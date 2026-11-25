@@ -64,11 +64,36 @@ pub(crate) enum Display {
     /// The trim itself is the game's own layer on worn armor; a held tool's trim has no layer to draw on
     /// here (an armor layer is one texture and a tint, and no stack carries a trim component).
     Trim,
+    /// EmbellishmentModule (display name, remove, raw data): names the modifier by the material variant
+    /// stored for it in the tool's persistent data, coloured by that material. The stored variant is
+    /// migrated through material redirects on build (its raw data half, run by the rebuild), and the
+    /// stored key goes when the modifier does.
+    Embellished,
+}
+
+/// What a boot walk module does at each cell it walks over (ArmorWalkRadiusModule.walkOn),
+/// at the entry's effective level.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum WalkModule {
+    /// FireWalkerModule: place fire where fire can be placed.
+    Fire { radius: f32 },
+    /// GlowWalkerModule: place a glow block in a dark empty cell, once per walk.
+    Glow { radius: f32, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: cover an empty cell with the named block where it can survive.
+    Cover { block: Identifier, radius: f32 },
+    /// ReplaceBlockWalkerModule: replace the block below an empty cell with another block,
+    /// the replacements already filtered to the entry's level.
+    Replace { radius: f32, replacements: Vec<crate::replace_fluid::Replacement> },
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Module {
-    Flag { id: Identifier, condition: Condition },
+    /// VolatileFlagModule: a boolean flag the entry sets. Bound to the volatile data hook (its
+    /// default binding) it lands in the tool's volatile data; bound to a projectile hook it is
+    /// written into the launched projectile's persistent data instead (fins' `tconstruct:efln`,
+    /// enderference's `tconstruct:enderference`). The two booleans record the binding: `volatile`
+    /// for the data half, `projectile` for the launch half; a record may carry either or both.
+    Flag { id: Identifier, condition: Condition, volatile: bool, projectile: bool },
     Rarity(i32),
     /// SweepingEdgeModule: a leveling value (no condition) added onto the volatile float `tconstruct:sweep_percent`.
     Sweep { flat: f32, each: f32 },
@@ -159,12 +184,22 @@ pub(crate) enum Module {
     BulkQuiver { check_standard_arrows: bool },
     /// TrickQuiverModule (BowAmmoModifierHook): the tool fires the stack in the selected slot of its own inventory.
     TrickQuiver,
+    /// SleevesModule (GeneralInteractionModifierHook): an empty-hand use of the worn chest piece throws the
+    /// selected stack of the modifier's own inventory (the sibling inventory module's), or cycles the
+    /// selection when crouching or when nothing usable is selected. The use itself is sleeves_hook's.
+    Sleeves,
     /// ShieldStrapModule (ArmorInteractModifierHook): the armor keybind on one of these keys rotates the piece's
     /// inventory through the off hand. The swap itself is armor_interact_hook's; see there for the server surface.
     ShieldStrap { keys: Vec<crate::tool_inventory::MenuKey> },
     /// ToolBeltModule (ArmorInteractModifierHook): the armor keybind on one of these keys swaps the piece's
     /// inventory with the wearer's main inventory, slot for slot.
     ToolBelt { keys: Vec<crate::tool_inventory::MenuKey> },
+    /// MinimapModule (EquipmentChange/ArmorInteract/InventoryTick hooks): the piece's minimap inventory's
+    /// selected map is the player's current map, which the HUD draws at its configured corner (hud.rs derives
+    /// it from the worn piece directly, so no player-data key is kept), and the armor keybind cycles the
+    /// selection (armor_interact_hook's). The map is not ticked while it is stored: PlutoLib has no map-tick
+    /// verb (see hud.rs).
+    Minimap,
     /// ShareDurabilityModule (ToolDamageModifierHook): wear on this tool also damages it directly by the consume
     /// amount, and charges the shield bar of a random other carried tool by the grant amount per point.
     ShareDurability { shield: Identifier, grant: (i32, i32), consume: (i32, i32) },
@@ -179,8 +214,19 @@ pub(crate) enum Module {
     Fishing,
     /// MaxArmorAttributeModule: an attribute worked from the largest level among the worn pieces.
     MaxArmorAttribute { module: Box<crate::max_armor::MaxArmorAttribute>, condition: Condition },
+    /// GoldenAttributeModule: an attribute worked from how many of the wearer's armor pieces have gold.
+    GoldenAttribute { module: Box<crate::max_armor::GoldenAttribute>, condition: Condition },
+    /// LightspeedAttributeModule: boots that grant an attribute while their wearer walks in bright light.
+    LightspeedAttribute { module: crate::wearer_modules::LightspeedAttribute, condition: Condition },
     /// ArmorLevelModule: the modifier's level added up over the worn pieces under a key.
     ArmorLevel { module: Box<crate::max_armor::ArmorLevel> },
+    /// ArmorStatModule: a float stat the worn pieces add up under a TinkerDataKey (the
+    /// critical damage, jump boost and use item speed the formulas read; no shipped
+    /// modifier carries one, so the amounts only ever come from datapack modifiers).
+    ArmorStat { module: Box<crate::max_armor::ArmorStat>, condition: Condition },
+    /// MaxArmorStatModule: the same float stat, but the largest level of its modifier
+    /// among the worn pieces counts once.
+    MaxArmorStat { module: Box<crate::max_armor::MaxArmorStat>, condition: Condition },
     /// ShowOffhandModule: a chest piece counts 1 toward the `tconstruct:show_empty_offhand` armor level while worn.
     ShowOffhand { allow_broken: bool },
     /// MobDisguiseModule: armor that makes mobs of one type see its wearer from half as far for each level.
@@ -195,6 +241,9 @@ pub(crate) enum Module {
     EdibleCure { condition: Condition },
     /// EdibleRemoveEffectModule: eating the tool removes one effect from the eater.
     EdibleRemove { effect: Identifier, condition: Condition },
+    /// EdibleRepresentativeItemModule: the item an edible tool presents as eaten — its eating
+    /// sounds while the use runs, and what an integration would be told was eaten.
+    EdibleRepresentative { item: Identifier, condition: Condition },
     /// ThornsModule: armor that hurts the mob that hit its wearer.
     Thorns { module: Box<crate::thorns::Thorns>, condition: Condition },
     /// FieryAttackModule and FreezingAttackModule: a melee hit that sets the target on fire or freezes it.
@@ -210,21 +259,53 @@ pub(crate) enum Module {
     /// AttributeModule for a vanilla attribute: published as an attribute modifier on the stack for each listed slot.
     /// A presentation-only module (display name, durability bar, tooltip): it changes no tool state, so the port records it and its data.
     Display(Display),
+    /// TheOneProbeModule (raw data): writes the probe keys into the tool's top-level data.
+    TheOneProbe,
     /// ToolActionsModule (ToolActionModifierHook): answers whether the tool can perform each named tool action.
     ToolActions { actions: Vec<String>, condition: Condition },
     /// ToolActionTransformModule: a right click that turns the clicked block into its transformed state.
     ToolAction { action: crate::tool_actions::ToolAction, sound: String, require_ground: bool, condition: Condition },
     /// ToolActionWalkerTransformModule: walking turns the ground under a replaceable cell into its transformed state.
     WalkTransform { action: crate::tool_actions::ToolAction, sound: String, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// FireWalkerModule: walking places fire in the cells fire can be placed at.
+    FireWalker { radius: crate::wearer_modules::Leveling },
+    /// GlowWalkerModule: walking places a glow block in a dark empty cell, wearing the boots.
+    GlowWalker { radius: crate::wearer_modules::Leveling, min_light: i32, damage: i32 },
+    /// CoverGroundWalkerModule: walking covers an empty cell with a block where it can survive.
+    CoverGround { block: Identifier, radius: crate::wearer_modules::Leveling, condition: Condition },
+    /// ReplaceBlockWalkerModule: walking replaces the block below an empty cell with another block.
+    ReplaceFluid { module: Box<crate::replace_fluid::ReplaceFluid> },
+    /// PlaceGlowModule: a right click on a block places a glow block on the clicked face, wearing the tool.
+    PlaceGlow { damage: i32 },
+    /// BlockItemProviderModule: the tool provides this block item through the block item provider
+    /// capability, at this wear per block consumed, while its condition holds.
+    BlockItemProvider { item: Identifier, damage: i32, condition: Condition },
     /// ConstantEnchantmentModule: the tool counts as carrying this enchantment at this level (published as the stack's enchantments).
     Enchantment { name: String, flat: f32, each: f32, ignoring: bool, condition: Condition },
     /// LootingModule.Armor: a worn piece adds this looting to its wearer's kills while it sits in one of the listed slots.
     ArmorLooting { flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    /// EnchantmentModule.ArmorHarvest: a worn piece lends this enchantment to the stack its wearer
+    /// breaks a block with, while it sits in one of the listed slots (the merge runs in the
+    /// block-break flow, block_break_hook).
+    ArmorHarvestEnchantment { name: String, flat: f32, each: f32, slots: Vec<String>, condition: Condition },
+    /// AutosmeltModule: a drop a cooking recipe of one of the listed types takes becomes its
+    /// cooked result (the conversion runs in the block-break loot flow, block_break_hook).
+    Autosmelt { recipe_types: Vec<String>, extra_drop_chance: f32 },
+    /// SmeltingModule: the tool cooks what its input inventory holds into its output inventory,
+    /// powered by the tool's use (the cooking runs in tool_stack::cook_smelting; the output's key
+    /// is the JSON's `output_key` or, at use, the modifier's ID with an `_output` suffix).
+    Smelting { recipe_type: String, multiplier: f32, input: Box<crate::tool_inventory::Inventory>, output: Box<crate::tool_inventory::Inventory>, condition: Condition },
     /// ClearEffectOnUnequipModule: taking the armor off takes the effect off its wearer.
     ClearEffectOnUnequip { effect: Identifier, condition: Condition },
     Protection { module: crate::protection::Protection, condition: Condition },
+    /// FlameBarrierModule (protection): protection against everything but fire, scaled by how
+    /// long the wearer has been burning (ConductingModifier.bonusScale).
+    FlameBarrier { flat: f32, each: f32, condition: Condition },
     /// AdjustDamageModule on the modify damage hook: changes the damage the wearer is about to take.
     AdjustDamage { module: crate::protection::AdjustDamage, condition: Condition },
+    /// TeleportDodgeModule on the modify damage hook: a chance to teleport the wearer away
+    /// from a matching hit, preventing the damage (the consumer is protection_hook).
+    TeleportDodge { module: Box<crate::teleport_dodge::TeleportDodge>, condition: Condition },
     /// DepthProtectionModule: protection by the wearer's height.
     DepthProtection { module: crate::wearer_modules::DepthProtection, condition: Condition },
     /// OvershieldModule: protection paid for with the overslime on the piece.
@@ -242,21 +323,143 @@ pub(crate) enum Module {
     /// An attribute module for `tconstruct:generic.protection_cap`, which the host has no attribute for: it raises the cap on summed protection.
     ProtectionCap { formula: StatFormula, condition: Condition },
     Attribute { attribute: String, operation: &'static str, formula: StatFormula, slots: Vec<String>, condition: Condition },
+    /// AttributeModule naming an attribute a mod declared with PlutoLib (attribute_api_v1) that the host does not
+    /// have: nothing is published on the stack (the host would not apply it); the port works the value out from
+    /// the module's amounts where the original reads the attribute (custom_attributes).
+    CustomAttribute { attribute: String, operation: pluto_lib::AttributeOperation, formula: StatFormula, slots: Vec<String>, condition: Condition },
     Punch { module: Box<crate::punch::Punch>, condition: Condition },
     ReversePunch { module: Box<crate::punch::ReversePunch> },
     /// DamageOnShootModule: firing the tool hurts its holder.
     DamageOnShoot { module: crate::projectile_modules::DamageOnShoot, condition: Condition },
+    /// SlingForceModule: reshapes a sling's force through its formula (sling_modules).
+    SlingForce { module: crate::sling_modules::SlingForce, condition: Condition },
+    /// A SlingModule (SlingKnockbackModule, SlingLeapModule, SlingTeleportModule): charges
+    /// and spends the charge as a force on release (sling_modules, sling_hook).
+    Sling { module: crate::sling_modules::Sling, condition: Condition },
+    /// FireballModule: using the tool shoots a fireball carrying a matched ammo
+    /// (projectile_modules, fireball_hook).
+    Fireball { module: crate::projectile_modules::Fireball, condition: Condition },
+    /// TippedModule: a projectile fired from the tool carries the potion stored on the
+    /// tool to the entity it hits (potion_contents, flight_hook).
+    Tipped,
     /// ExtinguishCampfireModule: a right click that puts out lit campfires.
     CampfireExtinguish { condition: Condition },
     /// BlockingModule: the tool is raised like a shield on a right click, and performs the shield block action.
     Blocking,
+    /// PlaceFireModule: the flint and steel behaviour — a right click lights campfires and candles,
+    /// primes TNT and starts fire where fire can be placed, and a fire block is not broken by a
+    /// left-click tool carrying it. The creeper ignite half (afterEntityUse) has no consumer:
+    /// PlutoLib's entity reach names no verb to ignite a creeper, and the pin exposes no
+    /// ignited-state entry a pure surface could write (see tool_action_hook's head note).
+    PlaceFire,
+    /// BrushModule: the tool brushes suspicious blocks like the vanilla brush (brush_hook).
+    Brush,
     /// InfinityModule: the launcher fires its named ammo without the shooter carrying any, paid for with
-    /// durability. The creative-only pickup the original sets on the fired arrow has no surface here (the
-    /// launch and shot events cannot change the arrow), so a supplied arrow can be picked up again.
+    /// durability. The creative-only pickup the original sets on the fired arrow rides PlutoLib's arrow
+    /// pickup surface: the spawn pass reads the `tic_infinity` mark on a supplied arrow, and the flight
+    /// pass reads the weapon's own Infinity from the shot's profile (flight_hook).
     Infinity { module: crate::projectile_modules::Infinity },
+    /// ArrowPierceModule: a shot's pierce level, set when the projectile spawns.
+    ArrowPierce { module: crate::projectile_modules::ArrowPierce },
+    /// ProjectileBounceModule: a block hit bounces the projectile while bounces remain.
+    ProjectileBounce { module: crate::projectile_modules::ProjectileBounce },
+    /// ProjectileGravityModule: the shot flies without gravity until its delay passes.
+    ProjectileGravity { module: crate::projectile_modules::ProjectileGravity },
+    /// ProjectileFuseModule: the shot's fuse ends after its time in ticks.
+    ProjectileFuse { module: crate::projectile_modules::ProjectileFuse },
+    /// ProjectileExplosionModule: a hit or a fuse's end explodes the projectile.
+    ProjectileExplosion { module: crate::projectile_modules::ProjectileExplosion },
+    /// ProjectileAttractMobsModule: a hit or a fuse's end pulls nearby living entities in.
+    ProjectileAttractMobs { module: crate::projectile_modules::ProjectileAttractMobs },
+    /// ProjectilePlaceGlowModule: a hit places a glow block where the projectile landed.
+    ProjectilePlaceGlow { module: crate::projectile_modules::ProjectilePlaceGlow },
+    /// RestrictAngleModule: a shot's direction is clamped to a fan of fixed angles.
+    RestrictAngle { module: crate::projectile_modules::RestrictAngle },
+    /// ThrowingModule: the tool is thrown on release of a charged use, as a ThrownTool.
+    Throwing,
     MeleeInstrument { module: Box<crate::melee_instrument::MeleeInstrument>, condition: Condition },
     Overgrowth { module: Box<crate::overgrowth::Overgrowth>, condition: Condition },
     Kinetic,
+    /// ConductingModifier (a code modifier, no data module): melee and projectile damage grow with
+    /// the attacker's fire (crate::conducting).
+    Conducting,
+    /// InsatiableModifier (a code modifier): melee and projectile damage grow with the insatiable
+    /// effects its hits feed (the grants ride the weapon hit, in weapon_effect_hook).
+    Insatiable,
+    /// LaceratingModifier (a code modifier): melee hits and armor counters put the bleeding effect
+    /// on the other side of the hit (the grants ride the weapon and wearer hits, in weapon_effect_hook).
+    Lacerating,
+    /// MomentumModifier (a code modifier): dig speed and draw speed grow with the momentum effects.
+    /// Its block-break grant (whose length follows the block's hardness) and its launch grant (the
+    /// shooter's current effect) wait for facts neither transport reports; see the module header of
+    /// mining_speed for the dig facts that do arrive.
+    Momentum,
+    /// DwarvenModifier (a code modifier): dig speed and projectile velocity grow the deeper the
+    /// holder is under the level's top and fade near it (mining_speed::dwarven_boost over the dig
+    /// report's block facts: the dug block's y and the level's build height).
+    Dwarven,
+    /// ExchangingModifier (a code modifier): after a block breaks, the block the off hand (or the
+    /// breaking tool itself) provides takes its place — the break's drops still roll, and the
+    /// provider is consumed (a block item shrinks, a tool takes the provider's wear). Its behaviour
+    /// runs in the after-break callback (block_break_hook), which reads this module off the tool.
+    Exchanging,
+    /// EnderportingModifier (a code modifier): the holder trades places with what the tool touches —
+    /// a melee hit swaps the attacker and the mob, a harvested block pulls the holder onto it, and a
+    /// projectile carries the swap to where it lands. Its behaviours run in the hit, break and impact
+    /// callbacks (enderporting_hook and flight_hook), which read this module off the tool.
+    Enderporting,
+    /// HarvestModule: right-clicking a harvestable block harvests it in place (and the tool's area
+    /// with it). Its behaviour runs in the use-on-block callback (harvest_hook), which reads this
+    /// module off the tool.
+    Harvest,
+    /// SelfDestructiveModifier (a code modifier): holding shift with the helmet key primes the
+    /// wearer with the self-destructing effect, whose last tick explodes. Its behaviour runs in
+    /// the armor interact receiver and the player tick (armor_interact_hook), which read this
+    /// module off the tool. The effect's own movement-speed payload is an effect attribute,
+    /// which the effect-attribute reach owns; it is not applied here.
+    SelfDestructive,
+    /// StrongBonesModifier (a code modifier): drinking milk with the helmet grants damage
+    /// resistance (and the calcified effect for calcifiable armor), cured when the helmet
+    /// comes off. Its behaviour runs in strong_bones_hook, which reads this module off the tool.
+    StrongBones,
+    /// EnderclearanceModule: a hit may teleport the mob it landed on (and a hit on the wearer may
+    /// teleport the attacker) to a random place within a diameter. The original tries up to its
+    /// teleport chances for a spot the mob fits; the port's teleport names one destination, so a
+    /// single random spot in the diameter is named (see weapon_effect_hook).
+    Enderclearance { chance: (f32, f32), diameter: (f32, f32) },
+    /// ChannelingModule: a hit may call lightning down on the mob it landed on, at a chance by the
+    /// weather over the attacker. The shipped data forbids melee (allow_melee false), so its live
+    /// half there is the launcher's, which is the projectile side's; the melee half below runs for
+    /// data that allows it.
+    Channeling { allow_melee: bool, chance_clear: f32, chance_rain: f32, chance_thunder: f32 },
+    /// TankModule: the tool's fluid tank itself, carried by the code-defined tank handler
+    /// (see tool_tank). Its volatile hook feeds the fluid capability, not volatile data keys.
+    Tank,
+    /// BucketModule: the tool places and picks up a bucket of its tank's fluid.
+    Bucket { module: crate::tool_tank::Bucket },
+    /// TankInteractionModule: a use on a block with a fluid handler trades with the tank.
+    TankInteraction { module: crate::tool_tank::TankInteraction },
+    /// MeltingModule: melts dropped items and hit entities into the tank.
+    Melting { module: Box<crate::tool_tank::Melting>, condition: Condition },
+    /// SlurpingModule: drinking the tank's fluid applies its effects to the holder.
+    Slurping { module: Box<crate::tool_tank::Slurping> },
+    /// SpillingModule: a hit applies the tank fluid's effects to the target.
+    Spilling { module: crate::tool_tank::Spilling, condition: Condition },
+    /// SpittingModule: charging and releasing fires the tank's fluid as projectiles.
+    Spitting { module: Box<crate::tool_tank::Spitting> },
+    /// SplashingModule: a use applies the tank fluid's effects over an area.
+    Splashing { module: Box<crate::tool_tank::Splashing> },
+    /// OverburnModule: burns the tank's fluid as melting fuel to regrow overslime.
+    Overburn,
+    /// SmashingModule: an ammo tank whose amount is the fluid effect ingredient's amount.
+    Smashing,
+    /// FovModule: multiplies the field of view by a leveling amount, in the
+    /// direction its action names (increase widens, decrease narrows).
+    Fov { flat: f32, each: f32, action: FovAction },
+    /// ZoomModule: narrows the field of view while the tool is used, as a
+    /// spyglass (a fixed factor at once) or a scope (a factor that grows
+    /// with the draw time).
+    Zoom { style: ZoomStyle },
 }
 const CREATIVE_KEY: &str = "tconstruct:creative";
 const OVERRIDE_BONUS: &str = "tconstruct:override_bonus";
@@ -269,6 +472,28 @@ pub(crate) enum QuiverDraw {
     Bulk { check_standard_arrows: bool },
     /// TrickQuiverModule: the stack in the selected slot, whatever it is.
     Trick,
+}
+
+/// FovModule's action: how the leveling amount turns into a multiplier.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum FovAction {
+    Increase,
+    Decrease,
+}
+
+impl FovAction {
+    /// FovModule's multiplier for an amount: increase multiplies the view
+    /// by 1 + amount, decrease by 1 / (1 + amount).
+    pub(crate) fn factor(&self, amount: f32) -> f32 {
+        match self { Self::Increase => 1.0 + amount, Self::Decrease => 1.0 / (1.0 + amount) }
+    }
+}
+
+/// ZoomModule's style: how a used tool narrows the field of view.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum ZoomStyle {
+    Spyglass,
+    Scope,
 }
 
 /// SlotType.getIfPresent: a swappable recipe only stores a created slot type, so any stored name is one.
@@ -305,7 +530,7 @@ impl LevelFormula {
 
 /// ModifierPredicate over the modifier that caused tool damage (the subset the original ships).
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>) }
+pub(crate) enum CausePredicate { Any, Tag(Identifier), Single(Identifier), Not(Box<CausePredicate>), And(Vec<CausePredicate>), SlotType(String) }
 
 impl CausePredicate {
     pub(crate) fn decode(value: Option<&Value>) -> Result<Option<Self>, String> {
@@ -322,16 +547,43 @@ impl CausePredicate {
                 let Some(inner) = Self::typed(object, inner)? else { return Ok(None); };
                 Self::Not(Box::new(inner))
             }
+            "mantle:and" => {
+                let Some(list) = object.get("predicates").and_then(Value::as_array) else { return Ok(None); };
+                if list.is_empty() { return Ok(None); }
+                let mut parts = Vec::with_capacity(list.len());
+                for part in list {
+                    let Some(part) = Self::decode(Some(part))? else { return Ok(None); };
+                    parts.push(part);
+                }
+                Self::And(parts)
+            }
+            "tconstruct:slot_type" => Self::SlotType(object.get("slot").and_then(Value::as_str).ok_or("slot missing")?.to_owned()),
             _ => return Ok(None),
         }))
     }
     /// `cause` is None for ordinary tool use (ModifierId.EMPTY), which no tag or single match.
+    /// A slot type cannot be decided here (it needs the modifier recipe lookup), so it never
+    /// matches on this path; see `matches_slotted`.
     pub(crate) fn matches(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool) -> bool {
         match self {
             Self::Any => true,
             Self::Tag(tag) => cause.is_some_and(|cause| in_tag(cause, tag)),
             Self::Single(modifier) => cause == Some(modifier),
             Self::Not(inner) => !inner.matches(cause, in_tag),
+            Self::And(parts) => parts.iter().all(|part| part.matches(cause, in_tag)),
+            Self::SlotType(_) => false,
+        }
+    }
+
+    /// `matches` with slot types decided by `slot_member` (whether a modifier is added through a
+    /// recipe of the named slot type, ModifierRecipeLookup's answer), as the worktable extraction
+    /// recipes' `tconstruct:slot_type` predicates require.
+    pub(crate) fn matches_slotted(&self, cause: Option<&Identifier>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, slot_member: &dyn Fn(&str, &Identifier) -> bool) -> bool {
+        match self {
+            Self::SlotType(name) => cause.is_some_and(|cause| slot_member(name, cause)),
+            Self::And(parts) => parts.iter().all(|part| part.matches_slotted(cause, in_tag, slot_member)),
+            Self::Not(inner) => !inner.matches_slotted(cause, in_tag, slot_member),
+            _ => self.matches(cause, in_tag),
         }
     }
 }
@@ -361,6 +613,16 @@ fn leveling_int(fields: &Map<String, Value>) -> Result<(f32, f32), String> {
         Some(Value::Number(number)) => Ok((0.0, number.as_f64().ok_or("level must be a number")? as f32)),
         Some(Value::Object(level)) => Ok((float(level, "flat")?, float(level, "each_level")?)),
         Some(_) => Err("level must be a number or a leveling value".into()),
+    }
+}
+/// A leveling value under its own key: a plain number for the flat part, or an object with `flat`
+/// and `each_level` parts; absent, both parts are zero. Returns (flat, each_level).
+fn leveling_keyed(fields: &Map<String, Value>, key: &str) -> Result<(f32, f32), String> {
+    match fields.get(key) {
+        None | Some(Value::Null) => Ok((0.0, 0.0)),
+        Some(Value::Number(number)) => Ok((number.as_f64().ok_or_else(|| format!("{key} must be a number"))? as f32, 0.0)),
+        Some(Value::Object(level)) => Ok((float(level, "flat")?, float(level, "each_level")?)),
+        Some(_) => Err(format!("{key} must be a number or a leveling value")),
     }
 }
 /// A predicate field that is absent or the always-true `mantle:any`; a module with any other predicate depends on state its event lacks.
@@ -435,13 +697,21 @@ impl Module {
                     _ => return Err("rarity must be common, uncommon, rare or epic".into()),
                 })
             }
-            "tconstruct:volatile_flag" if only("tconstruct:volatile_data") => Self::Flag { id: identifier(fields, "flag")?, condition: Condition::decode(fields)? },
+            // VolatileFlagModule: the volatile data hook is the default binding (an absent hooks
+            // list means it alone); the projectile hooks bind the launch half, which marks the
+            // launched projectile's persistent data. Any other hook in the list stays unbound.
+            "tconstruct:volatile_flag" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")) => Self::Flag {
+                id: identifier(fields, "flag")?,
+                condition: Condition::decode(fields)?,
+                volatile: hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data"),
+                projectile: hooks.iter().any(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown")),
+            },
             "tconstruct:volatile_int" if only("tconstruct:volatile_data") => Self::Int {
                 id: identifier(fields, "flag")?, flat: short(fields, "flat")?, each: short(fields, "each_level")?, condition: Condition::decode(fields)?,
             },
             // The float binds on its volatile data hook, like the flag and the int; a binding of nothing but the
-            // projectile launch hook stays unbound (a flag bound that way is unbound too), as the launched
-            // projectile's persistent data has no consumer yet.
+            // projectile launch hook stays unbound, as the float's own launch half has no consumer yet (the
+            // flag's launch half does: it marks the launched projectile, see the flag arm above).
             "tconstruct:volatile_float" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:projectile_launch"))
                 && (hooks.is_empty() || hooks.iter().any(|bound| bound.to_string() == "tconstruct:volatile_data")) => Self::Float {
                 id: identifier(fields, "flag")?, flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)?,
@@ -531,11 +801,9 @@ impl Module {
             }
             "tconstruct:stat_boost" if only("tconstruct:tool_stats") => {
                 let stat_id = identifier(fields, "stat")?;
-                // A stat of another domain (tanks, food) is not representable here. `tconstruct:tank_capacity` in
-                // particular is the capacity stat of the tool's fluid tank (ToolTankHelper, fed by the tank trait's
-                // module): this port has no tool tank at all — no tank module, no fluid stored on a tool — so the stat
-                // would measure a tank that does not exist, and the boost stays unbound until the tank itself is ported
-                // (the same missing piece as the overburn and smashing modules' own tank forms).
+                // A stat of another domain is not representable here and stays unbound. The tank
+                // capacity stat is this domain's own since the tool tank was ported (tool_tank):
+                // Stat::from_id knows tconstruct:tank_capacity, so the tank family's boosts bind.
                 let Some(stat) = Stat::from_id(&stat_id) else { return Ok(None); };
                 let operation = match fields.get("operation").and_then(Value::as_str) {
                     Some("add") => Operation::Add, Some("percent") => Operation::Percent,
@@ -668,8 +936,11 @@ impl Module {
                 Self::BulkQuiver { check_standard_arrows: check }
             }
             "tconstruct:trick_quiver" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:general_interact" | "tconstruct:remove")) => Self::TrickQuiver,
+            // SleevesModule: a singleton with no fields; it declares only the general interact hook.
+            "tconstruct:sleeves" if only("tconstruct:general_interact") => Self::Sleeves,
             "tconstruct:shield_strap" if only("tconstruct:armor_interact") => Self::ShieldStrap { keys: key_list(fields)? },
             "tconstruct:tool_belt" if only("tconstruct:armor_interact") => Self::ToolBelt { keys: key_list(fields)? },
+            "tconstruct:minimap" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:armor_interact" | "tconstruct:inventory_tick" | "tconstruct:remove")) => Self::Minimap,
             "tconstruct:share_durability" if only("tconstruct:tool_damage") => Self::ShareDurability {
                 shield: identifier(fields, "shield")?,
                 grant: leveling_int_keyed(fields, "grant")?,
@@ -686,8 +957,26 @@ impl Module {
                     None => return Ok(None),
                 }
             }
+            "tconstruct:golden_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                match crate::max_armor::GoldenAttribute::decode(fields)? {
+                    Some(module) => Self::GoldenAttribute { module: Box::new(module), condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
+            "tconstruct:lightspeed_attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:boot_walk" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                match crate::wearer_modules::LightspeedAttribute::decode(fields)? {
+                    Some(module) => Self::LightspeedAttribute { module, condition: Condition::decode(fields)? },
+                    None => return Ok(None),
+                }
+            }
             "tconstruct:armor_level" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change")) => {
                 Self::ArmorLevel { module: Box::new(crate::max_armor::ArmorLevel::decode(fields)?) }
+            }
+            "tconstruct:armor_stat" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                Self::ArmorStat { module: Box::new(crate::max_armor::ArmorStat::decode(fields)?), condition: Condition::decode(fields)? }
+            }
+            "tconstruct:max_armor_stat" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
+                Self::MaxArmorStat { module: Box::new(crate::max_armor::MaxArmorStat::decode(fields)?), condition: Condition::decode(fields)? }
             }
             "tconstruct:show_offhand" if only("tconstruct:equipment_change") => {
                 // ShowOffhandModule is an enum module: the required mode says whether a broken piece still counts.
@@ -712,6 +1001,19 @@ impl Module {
             "tconstruct:edible_remove_effect" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:edible_effect") => {
                 if crate::edible::has_holder(fields) { return Ok(None); }
                 Self::EdibleRemove { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
+            }
+            // EdibleRepresentativeItemModule: its hooks are the using tick (the eating sounds) and
+            // the edible effect (the list an integration is told); a holder condition needs the
+            // eater's state, which neither carries.
+            "tconstruct:edible_representative_item" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_using" | "tconstruct:edible_effect")) => {
+                if crate::edible::has_holder(fields) { return Ok(None); }
+                // ItemStackLoadable.REQUIRED_ITEM_NBT: a bare item id, or an object naming one in `id`.
+                let item = match fields.get("representative_item") {
+                    Some(Value::String(id)) => Identifier::parse(id).map_err(|e| e.to_string())?,
+                    Some(Value::Object(object)) => identifier(object, "id")?,
+                    _ => return Err("representative_item must name an item".into()),
+                };
+                Self::EdibleRepresentative { item, condition: Condition::decode(fields)? }
             }
             "tconstruct:thorns" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked")) => {
                 match crate::thorns::Thorns::decode(fields)? {
@@ -764,6 +1066,13 @@ impl Module {
             }
             // BlockingModule: a right click raises the tool like a shield (the per-stack use the blocking hook registers).
             "tconstruct:blocking" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_action")) => Self::Blocking,
+            // PlaceFireModule: an enum module with no fields, on its four default hooks (entity and
+            // block interact, tool action, remove block).
+            "tconstruct:place_fire" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:remove_block")) => Self::PlaceFire,
+            // BrushModule: a right click on a block starts the brush use, whose ticks brush the aimed
+            // block and its AOE transform neighbours (the per-stack use the throwing hook's registration
+            // composes, the strokes in brush_hook).
+            "tconstruct:brush" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => Self::Brush,
             "tconstruct:tool_action_transform" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:tool_action" | "tconstruct:aoe_highlight")) => {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
@@ -775,6 +1084,43 @@ impl Module {
                 let Some(action) = crate::tool_actions::ToolAction::parse(fields.get("tool_action").and_then(Value::as_str).ok_or("tool_action missing")?) else { return Ok(None); };
                 let sound = fields.get("sound").and_then(Value::as_str).ok_or("sound missing")?.to_owned();
                 Self::WalkTransform { action, sound, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
+            }
+            // FireWalkerModule, GlowWalkerModule, CoverGroundWalkerModule (BOOT_WALK): the walk
+            // forms in walk_hook, over the sturdy-face fact PlutoLib publishes from the game's
+            // block table and the world light read.
+            "tconstruct:fire_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::FireWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")? }
+            }
+            "tconstruct:glow_walker" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                let min_light = fields.get("min_light").and_then(Value::as_i64).ok_or("min_light must be an integer")?;
+                let damage = fields.get("tool_damage").and_then(Value::as_i64).ok_or("tool_damage must be an integer")?;
+                Self::GlowWalker { radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, min_light: min_light as i32, damage: damage as i32 }
+            }
+            "tconstruct:cover_ground" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:boot_walk") => {
+                Self::CoverGround { block: identifier(fields, "block")?, radius: crate::wearer_modules::Leveling::decode(fields.get("radius"), "radius")?, condition: Condition::decode(fields)? }
+            }
+            // ReplaceBlockWalkerModule (BOOT_WALK): the walk form in walk_hook, over the block
+            // predicate in replace_fluid (the port's first block-state predicate).
+            "tconstruct:replace_fluid" if only("tconstruct:boot_walk") => {
+                let Some(module) = crate::replace_fluid::ReplaceFluid::decode(fields, Condition::decode(fields)?)? else { return Ok(None); };
+                Self::ReplaceFluid { module: Box::new(module) }
+            }
+            // PlaceGlowModule (BLOCK_INTERACT, REMOVE_BLOCK): a right click places a glow block on the
+            // clicked face, and the remove half keeps a left-click tool from breaking its own glow.
+            "tconstruct:place_glow" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:remove_block")) => {
+                let damage = fields.get("tool_damage").and_then(Value::as_i64).ok_or("tool_damage must be an integer")?;
+                if damage < 0 { return Err("tool_damage must be at least 0".into()); }
+                Self::PlaceGlow { damage: damage as i32 }
+            }
+            // BlockItemProviderModule (BLOCK_ITEM_PROVIDER): the tool offers its block item to whoever
+            // places blocks from a hand, and is worn when one is consumed.
+            "tconstruct:block_item_provider" if only("tconstruct:block_item_provider") => {
+                let damage = match fields.get("tool_damage").filter(|value| !value.is_null()) {
+                    None => 1,
+                    Some(value) => value.as_i64().ok_or("tool_damage must be an integer")?,
+                };
+                if damage < 0 { return Err("tool_damage must be at least 0".into()); }
+                Self::BlockItemProvider { item: identifier(fields, "item")?, damage: damage as i32, condition: Condition::decode(fields)? }
             }
             // Presentation-only modules: one block, bound as recorded no-ops (Java: display name, durability display and tooltip hooks only).
             "tconstruct:show_interaction_source" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:display_name") => Self::Display(Display::InteractionSource),
@@ -792,6 +1138,11 @@ impl Module {
             "tconstruct:banner" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:tooltip")) => Self::Display(Display::BannerPatterns),
             "tconstruct:dye" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Dyed),
             "tconstruct:trim" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove")) => Self::Display(Display::Trim),
+            // EmbellishmentModule: display presentation as the other cosmetics, plus a raw data half the
+            // rebuild runs (the stored variant follows material redirects) and a removal half below.
+            "tconstruct:embellishment" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:display_name" | "tconstruct:remove" | "tconstruct:raw_data")) => Self::Display(Display::Embellished),
+            // TheOneProbeModule: a singleton writing two keys into the tool's top-level data on build.
+            "tconstruct:the_one_probe" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:raw_data") => Self::TheOneProbe,
             "tconstruct:tool_actions" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:tool_action") => {
                 let names = fields.get("tool_actions").and_then(Value::as_array).ok_or("tool_actions must be an array")?;
                 let mut actions = Vec::new();
@@ -820,14 +1171,64 @@ impl Module {
                     .collect::<Result<Vec<_>, _>>()?;
                 Self::ArmorLooting { flat, each, slots, condition: Condition::decode(fields)? }
             }
+            // EnchantmentModule.ArmorHarvest: a worn piece lends its enchantment to the breaking stack for the loot roll.
+            // Its block and holder predicates have no facts in the break flow, so only the ANY forms bind (as for looting).
+            "tconstruct:armor_harvest_enchantment" if only("tconstruct:harvest_enchantments") => {
+                if !["block", "holder"].iter().all(|key| is_any_predicate(fields, key)) { return Ok(None); }
+                let name = identifier(fields, "name")?.to_string();
+                let (flat, each) = leveling_int(fields)?;
+                let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                    .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                    .collect::<Result<Vec<_>, _>>()?;
+                Self::ArmorHarvestEnchantment { name, flat, each, slots, condition: Condition::decode(fields)? }
+            }
+            // AutosmeltModule: drops a cooking recipe takes become their cooked result.
+            "tconstruct:autosmelt" if only("tconstruct:process_loot") => {
+                let recipe_types = match fields.get("recipe_types") {
+                    Some(Value::String(one)) => vec![one.clone()],
+                    Some(Value::Array(many)) => many.iter().map(|kind| kind.as_str().map(str::to_owned).ok_or("recipe_types must name recipe types")).collect::<Result<Vec<_>, _>>()?,
+                    _ => return Err("recipe_types must be a recipe type or a list of them".into()),
+                };
+                Self::Autosmelt { recipe_types, extra_drop_chance: float(fields, "extra_drop_chance")? }
+            }
+            // SmeltingModule: the module's own fields are its input inventory's (InventoryModule.LOADER
+            // is a direct field); the output inventory is built on it, keyed by `output_key` or the
+            // modifier's ID with an `_output` suffix, patterned by `output_pattern`.
+            "tconstruct:smelting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit" | "tconstruct:block_harvest" | "tconstruct:projectile_launch" | "tconstruct:on_attacked" | "tconstruct:plant_harvest" | "tconstruct:shear_entity" | "tconstruct:sling_launch")) => {
+                let Some(input) = crate::tool_inventory::Inventory::decode(fields)? else { return Ok(None) };
+                let optional_id = |key: &str| match fields.get(key).filter(|value| !value.is_null()) {
+                    None => Ok(None),
+                    Some(value) => Identifier::parse(value.as_str().ok_or_else(|| format!("{key} must be an ID string"))?).map(Some).map_err(|e| e.to_string()),
+                };
+                let output_pattern = match optional_id("output_pattern")? {
+                    Some(pattern) => pattern,
+                    None => Identifier::parse("tconstruct:result").expect("valid id"),
+                };
+                Self::Smelting {
+                    recipe_type: identifier(fields, "recipe_type")?.to_string(),
+                    multiplier: float(fields, "multiplier")?,
+                    output: Box::new(input.as_output(optional_id("output_key")?, Some(output_pattern))),
+                    input: Box::new(input),
+                    condition: Condition::decode(fields)?,
+                }
+            }
             "tconstruct:severing" if only("tconstruct:process_loot") => Self::Severing,
             "tconstruct:adjust_damage" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:modify_damage" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::AdjustDamage::decode(fields)? else { return Ok(None); };
                 Self::AdjustDamage { module, condition: Condition::decode(fields)? }
             }
+            // TeleportDodgeModule binds the modify hurt hook in the original; the port hears it on its modify damage event.
+            "tconstruct:teleport_dodge" if only("tconstruct:modify_damage") => {
+                let Some(module) = crate::teleport_dodge::TeleportDodge::decode(fields)? else { return Ok(None); };
+                Self::TeleportDodge { module: Box::new(module), condition: Condition::decode(fields)? }
+            }
             "tconstruct:protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::protection::Protection::decode(fields)? else { return Ok(None); };
                 Self::Protection { module, condition: Condition::decode(fields)? }
+            }
+            // FlameBarrierModule: a leveling amount (its fields are the value itself, LevelingValue.directField).
+            "tconstruct:flame_barrier" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
+                Self::FlameBarrier { flat: float(fields, "flat")?, each: float(fields, "each_level")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:depth_protection" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:protection" | "tconstruct:tooltip")) => {
                 let Some(module) = crate::wearer_modules::DepthProtection::decode(fields)? else { return Ok(None); };
@@ -860,16 +1261,13 @@ impl Module {
                 Self::ClearEffectOnUnequip { effect: identifier(fields, "effect")?, condition: Condition::decode(fields)? }
             }
             "tconstruct:attribute" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:attributes" | "tconstruct:equipment_change" | "tconstruct:tooltip")) => {
-                // Only vanilla attributes exist in the host; a Tinkers or Forge attribute stays unbound. The Tinkers ones
-                // (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and bad effect
-                // duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
-                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier)
-                // cannot bind yet for two reasons: PlutoLib has no way to register an attribute the game does not have, so a
-                // stack entry naming one would be data nothing applies, and every reader of those attributes in the original
-                // is a Tinkers event handler over a game system PlutoLib does not report (experience gains, jumps and falls,
-                // knockback taken, critical hits, effect applications, using an item, swimming). The two with a reader in
-                // this port are the exceptions above and below: the protection cap is the port's own protection math, and
-                // chrysophilite is worked out in the loot flow itself. Binding the rest waits on attribute registration.
+                // The Tinkers attributes (TinkerAttributes: generic.bouncy, generic.jump_boost, generic.knockback_multiplier, the good and
+                // bad effect duration multipliers, generic.crouch_damage_multiplier, generic.chrysophilite, player.use_item_speed,
+                // player.mining_speed_multiplier, player.jump_count, player.critical_damage, player.experience_multiplier) bind as
+                // custom attribute modules below, now that PlutoLib can register an attribute the game does not have
+                // (attribute_api_v1): their amounts are not published on the stack but worked out by the port where the
+                // original reads the attribute. The protection cap is the port's own protection math. A Forge attribute
+                // nobody declared stays unbound, except swim speed, which binds through the bridge below.
                 let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
                 if name == "tconstruct:generic.protection_cap" && fields.get("operation").and_then(Value::as_str) == Some("addition") {
                     let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
@@ -877,17 +1275,38 @@ impl Module {
                 }
                 // Forge's gravity, reach and step height attributes are the vanilla ones under the game's own names, with the same
                 // base and operations; the Tinkers safe fall distance is a distance added to the vanilla safe fall distance.
+                // Swim speed names the water movement efficiency instead; see the operation conversion below.
+                let swim_speed = name == "forge:swim_speed";
                 let name = match name {
                     "forge:entity_gravity" => "minecraft:gravity", "forge:block_reach" => "minecraft:block_interaction_range",
                     "forge:entity_reach" => "minecraft:entity_interaction_range", "forge:step_height_addition" => "minecraft:step_height",
+                    "forge:swim_speed" => "minecraft:water_movement_efficiency",
                     "tconstruct:generic.safe_fall_distance" => "minecraft:safe_fall_distance", other => other,
                 };
+                // An attribute a mod declared with PlutoLib (the twelve of TinkerAttributes, declared in
+                // custom_attributes) binds as a custom attribute module, under any of the three operations.
+                if crate::custom_attributes::is_declared(name) {
+                    let Some(operation) = fields.get("operation").and_then(Value::as_str).and_then(pluto_lib::AttributeOperation::from_name) else { return Ok(None); };
+                    let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
+                    let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
+                        .map(|slot| match slot.as_str() { Some(name @ ("mainhand" | "offhand" | "feet" | "legs" | "chest" | "head")) => Ok(name.to_owned()), _ => Err("unknown equipment slot".to_owned()) })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    return Ok(Some(Self::CustomAttribute { attribute: name.to_owned(), operation, formula, slots, condition: Condition::decode(fields)? }));
+                }
                 let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
                 let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
                 let operation = match fields.get("operation").and_then(Value::as_str) {
                     Some("addition") => "add_value", Some("multiply_base") => "add_multiplied_base", Some("multiply_total") => "add_multiplied_total",
                     _ => return Ok(None),
                 };
+                // The swim speed bridge: Forge's swim speed (base 1) has no host attribute; the host's swim physics
+                // reads the water movement efficiency instead, an attribute of base 0 that reduces water drag. On the
+                // Forge attribute every operation's per-level increment is the stated amount itself, so the bridge
+                // reads the operation as the addition of that amount onto the efficiency: swimming gets faster by
+                // the stated amount per level, as the original grants, but through the drag curve rather than a
+                // speed multiplier, so the curve is not formula-identical. Keeping a multiplied form would multiply
+                // the efficiency's base of 0 and grant nothing at all.
+                let operation = if swim_speed { "add_value" } else { operation };
                 // The original's formula has only `level` by default; a variable naming an input this port lacks leaves it unbound.
                 let Some(formula) = StatFormula::decode(fields, &["level", "value", "multiplier", "base"])? else { return Ok(None); };
                 let slots = fields.get("slots").and_then(Value::as_array).ok_or("slots must be an array")?.iter()
@@ -907,20 +1326,139 @@ impl Module {
             }
             // OvergrowthModule: overslime regrows while the tool sits in an inventory.
             "tconstruct:overgrowth" if hooks.iter().all(|bound| bound.to_string() == "tconstruct:inventory_tick") => Self::Overgrowth { module: Box::new(crate::overgrowth::Overgrowth::decode(fields)?), condition: Condition::decode(fields)? },
+            // The tool tank family (tool_tank). The tank module is code-only in the original —
+            // TankModule has no data serializer — so this arm binds the code modifier's JSON.
+            "tconstruct:tank" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:slot_stack" | "tconstruct:display_name")) => Self::Tank,
+            "tconstruct:bucket" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:block_interact" | "tconstruct:general_interact")) => {
+                let Some(module) = crate::tool_tank::Bucket::decode(fields)? else { return Ok(None); };
+                Self::Bucket { module }
+            }
+            "tconstruct:tank_interaction" if only("tconstruct:block_interact") => {
+                let Some(module) = crate::tool_tank::TankInteraction::decode(fields)? else { return Ok(None); };
+                Self::TankInteraction { module }
+            }
+            "tconstruct:melting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit" | "tconstruct:process_loot")) => Self::Melting {
+                module: Box::new(crate::tool_tank::Melting::decode(fields)?),
+                condition: Condition::decode(fields)?,
+            },
+            "tconstruct:slurping" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact" | "tconstruct:inventory_tick" | "tconstruct:equipment_change")) => Self::Slurping { module: Box::new(crate::tool_tank::Slurping::decode(fields)?) },
+            "tconstruct:spilling" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:monster_melee_hit" | "tconstruct:launcher_hit")) => Self::Spilling {
+                module: crate::tool_tank::Spilling::decode(fields)?,
+                condition: Condition::decode(fields)?,
+            },
+            "tconstruct:spitting" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:armor_interact" | "tconstruct:inventory_tick")) => Self::Spitting { module: Box::new(crate::tool_tank::Spitting::decode(fields)?) },
+            "tconstruct:splashing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:entity_interact" | "tconstruct:block_interact" | "tconstruct:aoe_highlight")) => Self::Splashing { module: Box::new(crate::tool_tank::Splashing::decode(fields)?) },
+            "tconstruct:overburn" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:inventory_tick" | "tconstruct:remove")) => Self::Overburn,
+            "tconstruct:smashing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_hit" | "tconstruct:projectile_fuse" | "tconstruct:volatile_data" | "tconstruct:validate" | "tconstruct:remove" | "tconstruct:display_name" | "tconstruct:tooltip")) => Self::Smashing,
             // KineticModule: being hit feeds the wearer's insatiable effect.
             "tconstruct:kinetic" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:on_attacked" | "tconstruct:tooltip")) => Self::Kinetic,
+            // The code modifiers' module kinds: they occur only in the definitions modifiers.rs
+            // builds in code for the original's class-based modifiers, never in shipped data.
+            "tconstruct:conducting" => Self::Conducting,
+            "tconstruct:insatiable" => Self::Insatiable,
+            "tconstruct:lacerating" => Self::Lacerating,
+            "tconstruct:momentum" => Self::Momentum,
+            "tconstruct:self_destructive" => Self::SelfDestructive,
+            "tconstruct:strong_bones" => Self::StrongBones,
+            "tconstruct:enderporting" => Self::Enderporting,
+            "tconstruct:harvest" => Self::Harvest,
+            "tconstruct:dwarven" => Self::Dwarven,
+            "tconstruct:exchanging" => Self::Exchanging,
+            "tconstruct:enderclearance" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:on_attacked" | "tconstruct:tooltip")) => {
+                Self::Enderclearance { chance: leveling_keyed(fields, "chance")?, diameter: leveling_keyed(fields, "diameter")? }
+            }
+            "tconstruct:channeling" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:melee_hit" | "tconstruct:tooltip")) => {
+                let allow_melee = match fields.get("allow_melee") { None | Some(Value::Null) => true, Some(Value::Bool(value)) => *value, Some(_) => return Err("allow_melee must be boolean".into()) };
+                Self::Channeling { allow_melee, chance_clear: float(fields, "chance_clear")?, chance_rain: float(fields, "chance_rain")?, chance_thunder: float(fields, "chance_thunder")? }
+            }
             // DamageOnShootModule: firing the tool hurts its holder (the sling half has no event here; a mob
             // shooting cannot be hurt back either, as the launch event takes no actions).
             "tconstruct:damage_on_shoot" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:sling_launch")) => {
                 Self::DamageOnShoot { module: crate::projectile_modules::DamageOnShoot::decode(fields)?, condition: Condition::decode(fields)? }
             }
+            // SlingForceModule: a formula over the force of a sling, filtered on the sling,
+            // the holder and the target (sling_modules).
+            "tconstruct:sling_force" if only("tconstruct:sling_force") => {
+                let Some(module) = crate::sling_modules::SlingForce::decode(fields)? else { return Ok(None); };
+                Self::SlingForce { module, condition: Condition::decode(fields)? }
+            }
+            // The SlingModule family: charge on use, spend the charge as a force on release
+            // (sling_hook). SlingKnockbackModule's defaults add the melee hooks, as a bonk is
+            // a melee attack wearing a sling.
+            "tconstruct:sling_knockback" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact" | "tconstruct:melee_hit" | "tconstruct:melee_damage")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_knockback(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:sling_leap" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_leap(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            "tconstruct:sling_teleport" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::sling_modules::Sling::decode_teleport(fields)? else { return Ok(None); };
+                Self::Sling { module, condition: Condition::decode(fields)? }
+            }
+            // FireballModule: shoots a fireball carrying a matched ammo on use.
+            "tconstruct:fireball" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:armor_interact")) => {
+                let Some(module) = crate::projectile_modules::Fireball::decode(fields)? else { return Ok(None); };
+                Self::Fireball { module, condition: Condition::decode(fields)? }
+            }
+            // TippedModule: no fields and no condition; the potion rides the tool's
+            // persistent data under the modifier's own ID.
+            "tconstruct:tipped" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:projectile_thrown" | "tconstruct:projectile_hit" | "tconstruct:display_name" | "tconstruct:tooltip" | "tconstruct:remove")) => Self::Tipped,
             // InfinityModule: the bow ammo half binds on the ammo event; the removal half is run by the remove paths.
             "tconstruct:infinity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:bow_ammo" | "tconstruct:projectile_launch" | "tconstruct:projectile_shot" | "tconstruct:remove")) => {
                 let Some(module) = crate::projectile_modules::Infinity::decode(fields)? else { return Ok(None); };
                 Self::Infinity { module }
             }
+            // The in-flight modules: bound in flight_hook on the spawn, flight and impact tellings.
+            "tconstruct:arrow_pierce" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot")) => {
+                Self::ArrowPierce { module: crate::projectile_modules::ArrowPierce::decode(fields)? }
+            }
+            "tconstruct:projectile_bounce" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit")) => {
+                Self::ProjectileBounce { module: crate::projectile_modules::ProjectileBounce::decode(fields)? }
+            }
+            "tconstruct:projectile_gravity" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:schedule_projectile_task")) => {
+                Self::ProjectileGravity { module: crate::projectile_modules::ProjectileGravity::decode(fields)? }
+            }
+            "tconstruct:projectile_fuse" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:schedule_projectile_task")) => {
+                Self::ProjectileFuse { module: crate::projectile_modules::ProjectileFuse::decode(fields)? }
+            }
+            "tconstruct:projectile_explosion" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_fuse")) => {
+                Self::ProjectileExplosion { module: crate::projectile_modules::ProjectileExplosion::decode(fields)? }
+            }
+            "tconstruct:projectile_attract_mobs" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_fuse")) => {
+                Self::ProjectileAttractMobs { module: crate::projectile_modules::ProjectileAttractMobs::decode(fields)? }
+            }
+            "tconstruct:projectile_place_glow" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_hit" | "tconstruct:projectile_launch")) => {
+                Self::ProjectilePlaceGlow { module: crate::projectile_modules::ProjectilePlaceGlow::decode(fields)? }
+            }
+            "tconstruct:restrict_projectile_angle" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:projectile_shot" | "tconstruct:sling_launch")) => {
+                Self::RestrictAngle { module: crate::projectile_modules::RestrictAngle::decode(fields)? }
+            }
+            // ThrowingModule: the shipped record declares no hooks (the interaction hooks are the class's own).
+            "tconstruct:throwing" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interaction")) => Self::Throwing,
             "tconstruct:stat_override" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:tool_stats" | "tconstruct:remove")) => Self::StatOverride,
             "tconstruct:creative_slots" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:volatile_data" | "tconstruct:remove")) => Self::CreativeSlots,
+            // FovModule: a leveling value (flat and each_level inlined) and a required action; it binds on its
+            // equipment change hook, which the shipped records leave to the module's default.
+            "tconstruct:fov" if only("tconstruct:equipment_change") => {
+                let action = match fields.get("action").and_then(Value::as_str) {
+                    Some("increase") => FovAction::Increase,
+                    Some("decrease") => FovAction::Decrease,
+                    _ => return Err("fov action must be increase or decrease".into()),
+                };
+                Self::Fov { flat: float(fields, "flat")?, each: float(fields, "each_level")?, action }
+            }
+            // ZoomModule: a required style; it binds on the interaction and equipment hooks of either style
+            // (the spyglass adds the armor interact hook, the scope does not).
+            "tconstruct:zoom" if hooks.iter().all(|bound| matches!(bound.to_string().as_str(), "tconstruct:general_interact" | "tconstruct:tool_using" | "tconstruct:equipment_change" | "tconstruct:armor_interact")) => {
+                let style = match fields.get("style").and_then(Value::as_str) {
+                    Some("spyglass") => ZoomStyle::Spyglass,
+                    Some("scope") => ZoomStyle::Scope,
+                    _ => return Err("zoom style must be spyglass or scope".into()),
+                };
+                Self::Zoom { style }
+            }
             _ => return Ok(None),
         }))
     }
@@ -928,7 +1466,7 @@ impl Module {
     /// The volatile-data hook. Modules of other hooks do nothing here.
     pub fn apply_volatile(&self, entry: &Entry, facts: &Facts, data: &mut NbtCompound) {
         match self {
-            Self::Flag { id, condition } => { if condition.matches(entry, facts) { data.insert(id.to_string(), Nbt::Byte(1)); } }
+            Self::Flag { id, condition, volatile, .. } => { if *volatile && condition.matches(entry, facts) { data.insert(id.to_string(), Nbt::Byte(1)); } }
             Self::Rarity(ordinal) => {
                 let current = nbt_int(data.get("tconstruct:rarity"));
                 if *ordinal > current { data.insert("tconstruct:rarity".into(), Nbt::Int(*ordinal)); }
@@ -980,22 +1518,64 @@ impl Module {
                 // ToolInventoryCapability.addSlots, when the module's condition holds.
                 if condition.matches(entry, facts) { crate::tool_inventory::add_slots(data, module.volatile_slots(entry)); }
             }
-            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
-            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::ArmorLevel { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::AdjustDamage { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::WalkTransform { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic => {}
+            Self::Smelting { input, output, condition, .. } => {
+                // The smelting module adds both of its inventories (addModules registers each).
+                if condition.matches(entry, facts) {
+                    crate::tool_inventory::add_slots(data, input.volatile_slots(entry));
+                    crate::tool_inventory::add_slots(data, output.volatile_slots(entry));
+                }
+            }
+            Self::InventoryMenu(_) | Self::InventorySlotMenu | Self::BulkQuiver { .. } | Self::TrickQuiver | Self::Sleeves | Self::ShieldStrap { .. } | Self::ToolBelt { .. } | Self::Minimap | Self::ShareDurability { .. } | Self::Shears { .. } | Self::Fishing => {}
+            Self::StatOverride | Self::ConditionalStat { .. } | Self::ConditionalPower { .. } | Self::MiningSpeed { .. } | Self::MeleeDamage { .. } | Self::Knockback { .. } | Self::WeaponEffect { .. } | Self::UsageEffect { .. } | Self::CounterEffect { .. } | Self::ArmorAttackEffect { .. } | Self::AttackAction { .. } | Self::CounterAction { .. } | Self::LegacyEffect { .. } | Self::Thorns { .. } | Self::EffectImmunity { .. } | Self::MobDisguise { .. } | Self::MaxArmorAttribute { .. } | Self::GoldenAttribute { .. } | Self::LightspeedAttribute { .. } | Self::ArmorLevel { .. } | Self::ArmorStat { .. } | Self::MaxArmorStat { .. } | Self::ShowOffhand { .. } | Self::CapacityBar { .. } | Self::CapacityMelee { .. } | Self::CapacityLaunch { .. } | Self::Lifesteal { .. } | Self::CapacityDamage { .. } | Self::DurabilityShield { .. } | Self::BlockDamage { .. } | Self::Attribute { .. } | Self::CustomAttribute { .. } | Self::ToolAction { .. } | Self::Display(_) | Self::ToolActions { .. } | Self::Enchantment { .. } | Self::Protection { .. } | Self::ProtectionCap { .. } | Self::FlameBarrier { .. } | Self::ClearEffectOnUnequip { .. } | Self::Edible | Self::EdibleWear { .. } | Self::EdibleCure { .. } | Self::EdibleRemove { .. } | Self::EdibleRepresentative { .. } | Self::AdjustDamage { .. } | Self::TeleportDodge { .. } | Self::DepthProtection { .. } | Self::Overshield { .. } | Self::RecurrentProtection { .. } | Self::RestoreLostHealth { .. } | Self::DamageOnUnequip { .. } | Self::ReduceEffectOnUnequip { .. } | Self::CapacityMining { .. } | Self::CapacityLoot { .. } | Self::Severing | Self::ArmorLooting { .. } | Self::ArmorHarvestEnchantment { .. } | Self::Autosmelt { .. } | Self::CraftCount { .. } | Self::MaterialRepair { .. } | Self::UpdateHealth { .. } | Self::Punch { .. } | Self::ReversePunch { .. } | Self::DamageOnShoot { .. } | Self::SlingForce { .. } | Self::Sling { .. } | Self::Fireball { .. } | Self::Tipped | Self::Infinity { .. } | Self::CampfireExtinguish { .. } | Self::Blocking | Self::Brush | Self::PlaceFire | Self::WalkTransform { .. } | Self::FireWalker { .. } | Self::GlowWalker { .. } | Self::CoverGround { .. } | Self::ReplaceFluid { .. } | Self::MeleeInstrument { .. } | Self::Overgrowth { .. } | Self::Kinetic | Self::TheOneProbe | Self::Conducting | Self::Insatiable | Self::Lacerating | Self::Momentum | Self::Dwarven | Self::Enderporting | Self::Harvest | Self::SelfDestructive | Self::StrongBones | Self::Enderclearance { .. } | Self::Channeling { .. } | Self::ArrowPierce { .. } | Self::ProjectileBounce { .. } | Self::ProjectileGravity { .. } | Self::ProjectileFuse { .. } | Self::ProjectileExplosion { .. } | Self::ProjectileAttractMobs { .. } | Self::ProjectilePlaceGlow { .. } | Self::RestrictAngle { .. } | Self::Throwing | Self::PlaceGlow { .. } | Self::BlockItemProvider { .. } | Self::Fov { .. } | Self::Zoom { .. } | Self::Exchanging => {}
             Self::CreativeSlots => {
                 // addSlots for each stored slot type that exists (a valid slot name here).
                 for (name, count) in (facts.persistent_numbers)(&Identifier::parse(CREATIVE_KEY).expect("valid key")) {
                     if is_known_slot(&name) { add_slots(data, &name, count as i32); }
                 }
             }
-            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::DamageRange { .. } | Self::StatCopy { .. } | Self::Repair { .. } | Self::Requirements { .. } => {}
+            Self::SwappableTraits { .. } | Self::Boost { .. } | Self::SetTier { .. } | Self::Trait { .. } | Self::ReduceDamage { .. } | Self::DamageRange { .. } | Self::StatCopy { .. } | Self::Repair { .. } | Self::Requirements { .. } | Self::Tank | Self::Bucket { .. } | Self::TankInteraction { .. } | Self::Melting { .. } | Self::Slurping { .. } | Self::Spilling { .. } | Self::Spitting { .. } | Self::Splashing { .. } | Self::Overburn | Self::Smashing => {}
         }
+    }
+
+    /// RawDataModifierHook.addRawData over the tool's top-level data (the root of its custom data,
+    /// where another mod reads it). Run by the rebuild into a fresh compound, like the volatile pass.
+    pub fn apply_raw_data(&self, _entry: &Entry, facts: &Facts, data: &mut NbtCompound) {
+        match self {
+            // TheOneProbeModule: the hand key for a tool in the held tag, the helmet key for a helmet.
+            Self::TheOneProbe => {
+                if let Some(item) = facts.item {
+                    if (facts.in_tag)(item, &Identifier::new("tconstruct", "modifiable/held").expect("valid tag")) { data.insert("theoneprobe_hand".into(), Nbt::Byte(1)); }
+                    if (facts.in_tag)(item, &Identifier::new("tconstruct", "modifiable/armor/helmets").expect("valid tag")) { data.insert("theoneprobe".into(), Nbt::Byte(1)); }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// EmbellishmentModule.addRawData: the variant stored under the modifier's own ID in the tool's
+    /// persistent data follows material redirects on build. The persistent edit (key, new value) when
+    /// the stored variant's material moved; nothing for any other module or an unmoved variant.
+    pub fn embellish_migration(&self, modifier: &Identifier, persistent: &NbtCompound, materials: &crate::materials::Definitions) -> Option<(String, Nbt)> {
+        if !matches!(self, Self::Display(Display::Embellished)) { return None; }
+        let key = modifier.to_string();
+        let Some(Nbt::String(stored)) = persistent.get(&key) else { return None; };
+        let variant = crate::tool_materials::MaterialVariant::parse(stored)?;
+        let resolved = variant.resolved(materials);
+        (resolved.to_string() != *stored).then(|| (key, Nbt::String(resolved.to_string())))
     }
 
     /// ModifierRemovalHook.onRemoved for a modifier that left the tool: a swappable slot forgets its stored type.
     pub fn on_removed(&self, modifier: &Identifier, persistent: &mut NbtCompound) {
         match self {
             Self::SwappableSlot { key, .. } => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
+            // TankModule.onRemoved: the tank's content leaves with the handler.
+            Self::Tank => { persistent.remove(crate::tool_tank::FLUID_KEY); }
+            // OverburnModule.onRemoved: forget the burn in progress.
+            Self::Overburn => { persistent.remove(&modifier.to_string()); }
+            // TippedModule.onRemoved: the stored potion leaves with the modifier.
+            Self::Tipped => { persistent.remove(&modifier.to_string()); }
+            // SmashingModule.onRemoved: clear the stored fluid and its validation level.
+            Self::Smashing => { crate::tool_tank::smashing_clear(persistent); }
             // Only a module that matches a stored value owns it.
             Self::SwappableTraits { key, matching, .. } if !matching.is_empty() => { persistent.remove(&key.as_ref().unwrap_or(modifier).to_string()); }
             Self::CreativeSlots => { persistent.remove(CREATIVE_KEY); }
@@ -1003,14 +1583,24 @@ impl Module {
             Self::CapacityBar { .. } => { persistent.remove(&modifier.to_string()); }
             // TrickQuiverModule.onRemoved forgets the selected slot.
             Self::TrickQuiver => { persistent.remove("tconstruct:trick_quiver_selected"); }
+            // MinimapModule.onRemoved forgets the selected slot.
+            Self::Minimap => { persistent.remove("tconstruct:minimap_selected"); }
             // InfinityModule.onRemoved forgets the stored variant.
             Self::Infinity { module } => { if let Some(key) = module.variant_key(modifier) { persistent.remove(&key); } }
             // DyeModule.onRemoved forgets the dye colour, stored under the modifier's own ID.
             Self::Display(Display::Dyed) => { persistent.remove(&modifier.to_string()); }
+            // EmbellishmentModule.onRemoved forgets the stored variant, kept under the modifier's own ID.
+            Self::Display(Display::Embellished) => { persistent.remove(&modifier.to_string()); }
             // TrimModule.onRemoved forgets the trim pattern and material.
             Self::Display(Display::Trim) => { persistent.remove(&format!("{modifier}_pattern")); persistent.remove(&format!("{modifier}_material")); }
             // A tool that still holds items cannot lose the modifier (checked by the caller); an empty list's key goes.
             Self::Inventory { module, .. } | Self::QuiverInventory { module, .. } => { let _ = crate::tool_inventory::on_removed(module, modifier, persistent); }
+            // SmeltingModule: both of its inventories go the same way (the output under its resolved key).
+            Self::Smelting { input, output, .. } => {
+                let _ = crate::tool_inventory::on_removed(input, modifier, persistent);
+                let output = match output.named_key() { Some(_) => (**output).clone(), None => output.with_key(Identifier::parse(&format!("{modifier}_output")).expect("valid id")) };
+                let _ = crate::tool_inventory::on_removed(&output, modifier, persistent);
+            }
             Self::StatOverride => { persistent.remove(OVERRIDE_BONUS); persistent.remove(OVERRIDE_MULTIPLIER); }
             _ => {}
         }
@@ -1019,17 +1609,56 @@ impl Module {
     /// BreakSpeedModifierHook for a conditional mining speed module: the speed after it, with its priority
     /// (percent modules run after the additive ones, at 75).
     pub fn mining_speed(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, context: &crate::mining_speed::Context, speed: f32) -> f32 {
+        // DwarvenModifier.modifyBreakSpeed: on an effective dig, the speed grows with depth under
+        // the level's top and fades near it; the bonus is the dig's own multiplier (haste, fatigue,
+        // water, air) times the tool's mining speed multiplier times the mining bonus of 6. A dig
+        // that reported no build height leaves the speed alone.
+        if let Self::Dwarven = self {
+            if !context.effective { return speed; }
+            let Some(build) = context.facts.build_height else { return speed; };
+            let bonus = context.multiplier * tool.multiplier(Stat::MiningSpeed) * 6.0;
+            return crate::mining_speed::dwarven_boost(build[1], context.facts.pos_y as f32, entry.effective_level(), speed, bonus);
+        }
+        // MomentumModifier.modifyBreakSpeed: on an effective dig, the speed grows by the harvest
+        // momentum the holder carries (a quarter more a modifier level at the effect's tenth level).
+        if let Self::Momentum = self {
+            if !context.effective { return speed; }
+            let carried = crate::entity_facts::effect_level_of(context.holder.as_ref(), "tconstruct:momentum_harvest");
+            return speed * (1.0 + entry.effective_level() * carried / 40.0);
+        }
         let Self::MiningSpeed { module, condition } = self else { return speed; };
         module.apply(entry, condition.matches(entry, facts), tool, context, speed)
     }
     /// ConditionalStatModifierHook for a conditional stat module: the stat value after it.
     pub fn conditional_stat(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, holder_in_tag: &dyn Fn(&Identifier) -> bool, stat: Stat, value: f32, multiplier: f32) -> f32 {
+        match self {
+            // ConductingModifier.modifyStat: projectile damage grows with the holder's fire.
+            Self::Conducting if stat == Stat::ProjectileDamage => return value * crate::conducting::damage_multiplier(tool.entities.attacker, entry.effective_level()),
+            // InsatiableModifier.modifyStat: a quarter of the ranged insatiable effect a level.
+            Self::Insatiable if stat == Stat::ProjectileDamage => return value + crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:insatiable_ranged") * entry.effective_level() / 4.0 * multiplier,
+            // MomentumModifier.modifyStat: draw speed grows with the ranged momentum effect.
+            Self::Momentum if stat == Stat::DrawSpeed => return value * (1.0 + entry.effective_level() * crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:momentum_ranged") / 40.0),
+            // DwarvenModifier.modifyStat: projectile velocity follows the same depth curve, its
+            // per-level bonus the velocity bonus of 0.05 times the stat's own multiplier. The
+            // holder's height and the level's build height must both be reported (the dig report
+            // carries them; a stat read that has neither leaves the stat standing).
+            Self::Dwarven if stat == Stat::Velocity => {
+                let (Some(y), Some(build)) = (tool.entities.attacker.and_then(|holder| holder.y), tool.facts.build_height) else { return value; };
+                return crate::mining_speed::dwarven_boost(build[1], y as f32, entry.effective_level(), value, multiplier * 0.05);
+            }
+            _ => {}
+        }
         let Self::ConditionalStat { module, condition } = self else { return value; };
         module.apply(entry, condition.matches(entry, facts), tool, holder_in_tag, stat, value, multiplier)
     }
     /// Whether a conditional stat module is a percent module (None for other modules).
     pub fn conditional_stat_percent(&self) -> Option<bool> {
-        match self { Self::ConditionalStat { module, .. } => Some(module.percent()), _ => None }
+        match self {
+            Self::ConditionalStat { module, .. } => Some(module.percent()),
+            // The code modifiers below are not percent modules; they run at their modifier's priority.
+            Self::Conducting | Self::Insatiable | Self::Momentum | Self::Dwarven => Some(false),
+            _ => None,
+        }
     }
     /// The conditional power module, if this is one.
     pub fn conditional_power(&self) -> Option<&crate::conditional_stat::ConditionalPower> {
@@ -1037,6 +1666,14 @@ impl Module {
     }
     /// MeleeDamageModifierHook for a conditional melee damage module: the damage after it.
     pub fn melee_damage(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, base: f32, damage: f32, target_in_tag: &dyn Fn(&Identifier) -> bool) -> f32 {
+        match self {
+            // ConductingModifier.getMeleeDamage: a percent boost scaled by the attacker's fire.
+            Self::Conducting => return damage * crate::conducting::damage_multiplier(tool.entities.attacker, entry.effective_level()),
+            // InsatiableModifier.getMeleeDamage: half the melee insatiable effect a level, scaled
+            // by the tool's attack damage multiplier.
+            Self::Insatiable => return damage + crate::entity_facts::effect_level_of(tool.entities.attacker, "tconstruct:insatiable_melee") * entry.effective_level() / 2.0 * tool.multiplier(Stat::AttackDamage),
+            _ => {}
+        }
         let Self::MeleeDamage { module, condition } = self else { return damage; };
         module.apply(entry, condition.matches(entry, facts), tool, base, damage, target_in_tag)
     }
@@ -1059,10 +1696,11 @@ impl Module {
         module.grant(entry, condition.matches(entry, facts), usage, rolls)
     }
     /// The effect an armor counter module puts on the mob that hit the wearer, if it lands (`rolls` are uniform values in [0, 1)).
-    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
+    /// `source` is the hit's damage, which a counter module may condition on.
+    pub fn counter_effect(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Option<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
         match self {
-            Self::CounterEffect { module, condition } => module.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (module.whom(), grant)),
-            Self::LegacyEffect { counter, condition, .. } => counter.grant(entry, condition.matches(entry, facts), in_tag, rolls).map(|grant| (counter.whom(), grant)),
+            Self::CounterEffect { module, condition } => module.grant_counter(entry, condition.matches(entry, facts), source, in_tag, rolls).map(|grant| (module.whom(), grant)),
+            Self::LegacyEffect { counter, condition, .. } => counter.grant_counter(entry, condition.matches(entry, facts), source, in_tag, rolls).map(|grant| (counter.whom(), grant)),
             _ => None,
         }
     }
@@ -1123,6 +1761,14 @@ impl Module {
         if !condition.matches(entry, facts) { return None; }
         module.restore(entry, source, amount, roll)
     }
+    /// The teleport-dodge module's result for `amount` of damage taken, when its conditions hold and its chance lands:
+    /// the cooldown of enderference it grants and the wear it costs the piece. `enderference` says whether the wearer
+    /// already has the effect, which locks the dodge out.
+    pub fn teleport_dodge(&self, entry: &Entry, facts: &Facts, source: &crate::protection::DamageSource, enderference: bool, amount: f32, roll: &mut dyn FnMut() -> f32) -> Option<crate::teleport_dodge::Dodge> {
+        let Self::TeleportDodge { module, condition } = self else { return None; };
+        if !condition.matches(entry, facts) { return None; }
+        module.attempt(entry, source, enderference, amount, roll)
+    }
     /// The capacity bar this module declares.
     pub fn capacity_bar(&self) -> Option<&crate::capacity::Bar> { match self { Self::CapacityBar { bar } => Some(bar), _ => None } }
     /// The durability shield this module declares.
@@ -1141,6 +1787,35 @@ impl Module {
             }
             _ => None,
         }
+    }
+    /// Every inventory this module adds to a tool: a smelting module adds its input and its output
+    /// (addModules registers both), in that order; any other module adds its one part or none.
+    pub fn inventory_parts(&self, entry: &Entry, facts: &Facts) -> Vec<crate::tool_inventory::Part> {
+        match self {
+            Self::Smelting { .. } => match self.smelting_parts(entry, facts) { Some((input, output, _, _)) => vec![input, output], None => Vec::new() },
+            _ => self.inventory_part(entry, facts).into_iter().collect(),
+        }
+    }
+    /// AutosmeltModule's terms: the recipe types to try, in order, and the chance of an extra item
+    /// per level past the first; None for another module (the module carries no condition).
+    pub fn autosmelt(&self) -> Option<(&[String], f32)> {
+        let Self::Autosmelt { recipe_types, extra_drop_chance } = self else { return None; };
+        Some((recipe_types, *extra_drop_chance))
+    }
+    /// SmeltingModule's inventories as parts of this tool: the input part, the output part (its key
+    /// resolved: the JSON's `output_key`, else the modifier's ID with an `_output` suffix), the
+    /// recipe type and the multiplier; None for another module.
+    pub fn smelting_parts(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_inventory::Part, crate::tool_inventory::Part, &str, f32)> {
+        let Self::Smelting { recipe_type, multiplier, input, output, condition } = self else { return None; };
+        let active = condition.matches(entry, facts);
+        let tool_matches = condition.tool_matches(facts);
+        let input_part = crate::tool_inventory::Part::new((**input).clone(), entry.clone(), active, tool_matches);
+        let output_inventory = match output.named_key() {
+            Some(_) => (**output).clone(),
+            None => output.with_key(Identifier::parse(&format!("{}_output", entry.id)).ok()?),
+        };
+        let output_part = crate::tool_inventory::Part::new(output_inventory, entry.clone(), active, tool_matches);
+        Some((input_part, output_part, recipe_type, *multiplier))
     }
     /// CraftCountModule.modifyCraftCount: the running count multiplied by the module's value, when its
     /// condition holds (the caller stops the chain at zero, as the composed hook does).
@@ -1208,6 +1883,31 @@ impl Module {
             _ => None,
         }
     }
+    /// The armor-stat claim a worn piece makes under a TinkerDataKey, when its conditions hold:
+    /// a plain claim (every piece adds up) or a max claim (the largest level counts once).
+    pub fn armor_stat_claim(&self, entry: &Entry, facts: &Facts, broken: bool) -> Option<crate::max_armor::ArmorStatClaim> {
+        match self {
+            Self::ArmorStat { module, condition } => module.claim(entry, condition.matches(entry, facts), broken),
+            Self::MaxArmorStat { module, condition } => module.claim(entry, condition.matches(entry, facts), broken),
+            _ => None,
+        }
+    }
+    /// Whether this is an armor stat module (plain or max).
+    pub fn is_armor_stat(&self) -> bool { matches!(self, Self::ArmorStat { .. } | Self::MaxArmorStat { .. }) }
+    /// The (attribute, operation, amount) a golden attribute module grants a wearer with `total_gold` golden pieces.
+    pub fn golden_amount(&self, entry: &Entry, facts: &Facts, total_gold: i32) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
+        let Self::GoldenAttribute { module, condition } = self else { return None; };
+        module.amount(condition.matches(entry, facts), total_gold)
+    }
+    /// Whether this is a golden attribute module.
+    pub fn is_golden_attribute(&self) -> bool { matches!(self, Self::GoldenAttribute { .. }) }
+    /// The lightspeed module and the entry's effective level, when its condition holds.
+    pub fn lightspeed(&self, entry: &Entry, facts: &Facts) -> Option<(&crate::wearer_modules::LightspeedAttribute, f32)> {
+        let Self::LightspeedAttribute { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (module, entry.effective_level()))
+    }
+    /// Whether this is a lightspeed attribute module.
+    pub fn is_lightspeed_attribute(&self) -> bool { matches!(self, Self::LightspeedAttribute { .. }) }
     /// Whether this is a max armor attribute module.
     pub fn is_max_armor_attribute(&self) -> bool { matches!(self, Self::MaxArmorAttribute { .. }) }
     /// Whether this is an armor level module.
@@ -1221,6 +1921,11 @@ impl Module {
     }
     /// Whether this is the edible module itself.
     pub fn is_edible(&self) -> bool { matches!(self, Self::Edible) }
+    /// EdibleRepresentativeItemModule: the item this module presents as eaten, when its condition holds.
+    pub fn representative_item(&self, entry: &Entry, facts: &Facts) -> Option<&Identifier> {
+        let Self::EdibleRepresentative { item, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(item)
+    }
     /// What eating the tool does for this edible effect module, when its conditions hold.
     pub fn edible_effect(&self, entry: &Entry, facts: &Facts) -> Option<crate::edible::Effect> {
         match self {
@@ -1296,6 +2001,30 @@ impl Module {
     }
     /// Whether this is an overgrowth module.
     pub fn is_overgrowth(&self) -> bool { matches!(self, Self::Overgrowth { .. }) }
+    /// Whether this is the tank handler's tank module.
+    pub fn is_tank(&self) -> bool { matches!(self, Self::Tank) }
+    /// Whether this is an overburn module (its tick is tool_stack::overburn_tick).
+    pub fn is_overburn(&self) -> bool { matches!(self, Self::Overburn) }
+    /// Whether this is a smashing module.
+    pub fn is_smashing(&self) -> bool { matches!(self, Self::Smashing) }
+    /// The melting module, when its condition holds for the entry.
+    pub fn melting(&self, entry: &Entry, facts: &Facts) -> Option<&crate::tool_tank::Melting> {
+        match self { Self::Melting { module, condition } if condition.matches(entry, facts) => Some(module), _ => None }
+    }
+    /// The slurping module.
+    pub fn slurping(&self) -> Option<&crate::tool_tank::Slurping> { match self { Self::Slurping { module } => Some(module), _ => None } }
+    /// The spilling effect level for the entry, when its condition holds for it.
+    pub fn spilling_level(&self, entry: &Entry, facts: &Facts) -> Option<f32> {
+        match self { Self::Spilling { module, condition } if condition.matches(entry, facts) => Some(module.level(entry)), _ => None }
+    }
+    /// The spitting module.
+    pub fn spitting(&self) -> Option<&crate::tool_tank::Spitting> { match self { Self::Spitting { module } => Some(module), _ => None } }
+    /// The splashing module.
+    pub fn splashing(&self) -> Option<&crate::tool_tank::Splashing> { match self { Self::Splashing { module } => Some(module), _ => None } }
+    /// The bucket module.
+    pub fn bucket(&self) -> Option<&crate::tool_tank::Bucket> { match self { Self::Bucket { module } => Some(module), _ => None } }
+    /// The tank interaction module.
+    pub fn tank_interaction(&self) -> Option<&crate::tool_tank::TankInteraction> { match self { Self::TankInteraction { module } => Some(module), _ => None } }
     /// Whether an overgrowth module grows the tool's overslime on this tick, when its conditions hold.
     pub fn overgrowth(&self, entry: &Entry, facts: &Facts, nbt: &mut NbtCompound, env: &crate::tool_stack::Environment, roll: f32) -> bool {
         let Self::Overgrowth { module, condition } = self else { return false; };
@@ -1304,6 +2033,34 @@ impl Module {
     /// The level a kinetic module contributes to its modifier's total, None for any other module. The original counts the
     /// plain level here (SlotInChargeModule reads the entry level), not the effective one.
     pub fn kinetic_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Kinetic).then(|| entry.level) }
+    /// The field-of-view factor a FovModule contributes at this entry's effective level, None for any other module.
+    pub fn fov_factor(&self, entry: &Entry) -> Option<f32> {
+        let Self::Fov { flat, each, action } = self else { return None; };
+        Some(action.factor(flat + each * entry.effective_level()))
+    }
+    /// The style a ZoomModule zooms with, None for any other module.
+    pub fn zoom_style(&self) -> Option<ZoomStyle> {
+        let Self::Zoom { style } = self else { return None; };
+        Some(*style)
+    }
+    /// Whether this is the insatiable code module.
+    pub fn is_insatiable(&self) -> bool { matches!(self, Self::Insatiable) }
+    /// The enderclearance module's (chance, diameter) at an entry's effective level, None for any
+    /// other module.
+    pub fn enderclearance(&self, entry: &Entry) -> Option<(f32, f32)> {
+        let Self::Enderclearance { chance, diameter } = self else { return None; };
+        let level = entry.effective_level();
+        Some((chance.0 + chance.1 * level, diameter.0 + diameter.1 * level))
+    }
+    /// The channeling module's (clear, rain, thunder) chances when it allows melee, None for any
+    /// other module and for a channeling module whose data forbids melee.
+    pub fn channeling_melee(&self) -> Option<(f32, f32, f32)> {
+        let Self::Channeling { allow_melee, chance_clear, chance_rain, chance_thunder } = self else { return None; };
+        allow_melee.then_some((*chance_clear, *chance_rain, *chance_thunder))
+    }
+    /// The plain level a lacerating module contributes, None for any other module (the original's
+    /// applyEffect reads the entry's level, as the kinetic total does).
+    pub fn lacerating_level(&self, entry: &Entry) -> Option<i32> { matches!(self, Self::Lacerating).then(|| entry.level) }
     /// A recurrent protection module and the level its entry contributes to the total over the worn pieces,
     /// None for any other module. The original counts the plain level here too (SlotInChargeModule).
     pub fn recurrent_protection(&self, entry: &Entry) -> Option<(i32, crate::wearer_modules::RecurrentProtection)> {
@@ -1314,10 +2071,74 @@ impl Module {
         let Self::DamageOnShoot { module, condition } = self else { return None; };
         if condition.matches(entry, facts) { module.hurt(entry) } else { None }
     }
+    /// SlingForceModifierHook.modifySlingForce for this module: the force reshaped by its
+    /// formula, or the force unchanged when this is no sling force module or its condition
+    /// or predicates do not match.
+    pub fn sling_force(&self, entry: &Entry, facts: &Facts, tool: &crate::mining_speed::ToolView, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, force: f32, multiplier: f32) -> f32 {
+        let Self::SlingForce { module, condition } = self else { return force; };
+        module.apply(entry, condition.matches(entry, facts), tool, holder, target, sling, in_tag, force, multiplier)
+    }
+    /// The sling module this is, when its condition matches (the release computation).
+    pub fn sling(&self, entry: &Entry, facts: &Facts) -> Option<&crate::sling_modules::Sling> {
+        let Self::Sling { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(module)
+    }
+    /// The fireball module this is, when its condition matches (the firing).
+    pub fn fireball(&self, entry: &Entry, facts: &Facts) -> Option<&crate::projectile_modules::Fireball> {
+        let Self::Fireball { module, condition } = self else { return None; };
+        condition.matches(entry, facts).then_some(module)
+    }
+    /// Whether this is the tipped module (TippedModule).
+    pub fn is_tipped(&self) -> bool { matches!(self, Self::Tipped) }
     /// The infinity module, if this is one.
     pub fn infinity(&self) -> Option<&crate::projectile_modules::Infinity> {
         match self { Self::Infinity { module } => Some(module), _ => None }
     }
+    /// The flag a launched projectile carries in its persistent data, when this is a volatile
+    /// flag bound to a projectile hook and its condition matches (VolatileFlagModule's launch
+    /// half: fins sets `tconstruct:efln`, enderference sets `tconstruct:enderference`).
+    pub fn projectile_flag(&self, entry: &Entry, facts: &Facts) -> Option<&Identifier> {
+        let Self::Flag { id, condition, projectile, .. } = self else { return None; };
+        (*projectile && condition.matches(entry, facts)).then_some(id)
+    }
+    /// The arrow pierce module, if this is one.
+    pub fn arrow_pierce(&self) -> Option<&crate::projectile_modules::ArrowPierce> {
+        match self { Self::ArrowPierce { module } => Some(module), _ => None }
+    }
+    /// The projectile bounce module, if this is one.
+    pub fn projectile_bounce(&self) -> Option<&crate::projectile_modules::ProjectileBounce> {
+        match self { Self::ProjectileBounce { module } => Some(module), _ => None }
+    }
+    /// The projectile gravity module, if this is one.
+    pub fn projectile_gravity(&self) -> Option<&crate::projectile_modules::ProjectileGravity> {
+        match self { Self::ProjectileGravity { module } => Some(module), _ => None }
+    }
+    /// The projectile fuse module, if this is one.
+    pub fn projectile_fuse(&self) -> Option<&crate::projectile_modules::ProjectileFuse> {
+        match self { Self::ProjectileFuse { module } => Some(module), _ => None }
+    }
+    /// The projectile explosion module, if this is one.
+    pub fn projectile_explosion(&self) -> Option<&crate::projectile_modules::ProjectileExplosion> {
+        match self { Self::ProjectileExplosion { module } => Some(module), _ => None }
+    }
+    /// The projectile attract mobs module, if this is one.
+    pub fn projectile_attract(&self) -> Option<&crate::projectile_modules::ProjectileAttractMobs> {
+        match self { Self::ProjectileAttractMobs { module } => Some(module), _ => None }
+    }
+    /// The projectile place glow module, if this is one.
+    pub fn projectile_glow(&self) -> Option<&crate::projectile_modules::ProjectilePlaceGlow> {
+        match self { Self::ProjectilePlaceGlow { module } => Some(module), _ => None }
+    }
+    /// The restrict angle module, if this is one.
+    pub fn restrict_angle(&self) -> Option<&crate::projectile_modules::RestrictAngle> {
+        match self { Self::RestrictAngle { module } => Some(module), _ => None }
+    }
+    /// Whether this is the throwing module.
+    pub fn is_throwing(&self) -> bool { matches!(self, Self::Throwing) }
+    /// Whether this is the enderporting module (EnderportingModifier's swap behaviours).
+    pub fn is_enderporting(&self) -> bool { matches!(self, Self::Enderporting) }
+    /// Whether this is the harvest module (HarvestModule's right-click harvest).
+    pub fn is_harvest(&self) -> bool { matches!(self, Self::Harvest) }
     /// Whether this is a melee capacity module.
     pub fn is_melee_capacity(&self) -> bool { matches!(self, Self::CapacityMelee { .. }) }
     /// Whether this is a damage to capacity module.
@@ -1349,6 +2170,16 @@ impl Module {
                 return value - crate::protection::enchantment_points(name, level, source);
             }
             return value;
+        }
+        if let Self::FlameBarrier { flat, each, condition } = self {
+            if !condition.matches(entry, facts) { return value; }
+            // FlameBarrierModule.getProtectionModifier: nothing against fire itself, and only for
+            // damage protection can stop (DamageSourcePredicate.CAN_PROTECT); the bonus is the
+            // amount at the entry's level, scaled by how long the wearer has been burning.
+            if source.tags.contains_vanilla("is_fire", source.damage_type) || source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type) { return value; }
+            let amount = flat + each * entry.effective_level();
+            if amount == 0.0 { return value; }
+            return value + crate::conducting::bonus_scale(source.entities.target) * amount;
         }
         if let Self::DepthProtection { module, condition } = self {
             return if condition.matches(entry, facts) { module.protect(entry, source, value) } else { value };
@@ -1383,6 +2214,15 @@ impl Module {
         let level = (flat + each * entry.effective_level()) as i32;
         if level > 0 { level } else { 0 }
     }
+    /// HarvestEnchantmentsModifierHook for one worn piece: the enchantment this module lends the
+    /// breaking stack while the piece sits in `slot`, and its level (EnchantmentModule.ArmorHarvest:
+    /// the slot must be listed and the condition must match; the level may be 0 or negative, which
+    /// the merge reads as taking levels away).
+    pub fn armor_harvest_enchantment(&self, entry: &Entry, facts: &Facts, slot: &str) -> Option<(String, i32)> {
+        let Self::ArmorHarvestEnchantment { name, flat, each, slots, condition } = self else { return None; };
+        if !slots.iter().any(|listed| listed.as_str() == slot) || !condition.matches(entry, facts) { return None; }
+        Some((name.clone(), (flat + each * entry.effective_level()) as i32))
+    }
     /// The tool action this module performs on a right click, with its sound and whether the block above must be clear.
     pub fn tool_action(&self, entry: &Entry, facts: &Facts) -> Option<(crate::tool_actions::ToolAction, String, bool)> {
         let Self::ToolAction { action, sound, require_ground, condition } = self else { return None; };
@@ -1395,6 +2235,17 @@ impl Module {
         let Self::WalkTransform { action, sound, radius, condition } = self else { return None; };
         condition.matches(entry, facts).then(|| (*action, sound.clone(), radius.compute(entry.effective_level())))
     }
+    /// The boot walk this module performs, at the entry's effective level (ArmorWalkRadiusModule,
+    /// the radius as in walk_transform above).
+    pub fn walk_module(&self, entry: &Entry, facts: &Facts) -> Option<WalkModule> {
+        match self {
+            Self::FireWalker { radius } => Some(WalkModule::Fire { radius: radius.compute(entry.effective_level()) }),
+            Self::GlowWalker { radius, min_light, damage } => Some(WalkModule::Glow { radius: radius.compute(entry.effective_level()), min_light: *min_light, damage: *damage }),
+            Self::CoverGround { block, radius, condition } if condition.matches(entry, facts) => Some(WalkModule::Cover { block: block.clone(), radius: radius.compute(entry.effective_level()) }),
+            Self::ReplaceFluid { module } if module.condition.matches(entry, facts) => Some(WalkModule::Replace { radius: module.radius.compute(entry.effective_level()), replacements: module.at_level(entry.level) }),
+            _ => None,
+        }
+    }
     /// ToolActionModifierHook.canPerformAction: a tool actions module answers for its named actions, a shears
     /// module for the four shear actions and a fishing module for the cast, each while its condition holds
     /// (ShearsModule.canPerformAction, FishingModule.canPerformAction); a blocking module performs the shield
@@ -1406,6 +2257,8 @@ impl Module {
             Self::Fishing => name == "fishing_rod_cast",
             // BlockingModule.canPerformAction: a blocking tool performs the shield block action.
             Self::Blocking => name == "shield_block",
+            // PlaceFireModule.canPerformAction: a place fire tool performs the two lighting actions.
+            Self::PlaceFire => matches!(name, "light_fire" | "light_campfire"),
             // ToolActionWalkerTransformModule.canPerformAction: its own action, while its condition holds.
             Self::WalkTransform { action, condition, .. } => condition.matches(entry, facts) && action.name() == name,
             _ => false,
@@ -1413,10 +2266,27 @@ impl Module {
     }
     /// Whether this is a blocking module (BlockingModule: the tool is raised like a shield on a right click).
     pub fn blocking(&self) -> bool { matches!(self, Self::Blocking) }
+    /// Whether this is a place fire module (PlaceFireModule: the flint and steel behaviour).
+    pub fn place_fire(&self) -> bool { matches!(self, Self::PlaceFire) }
+    /// Whether this is a brush module (BrushModule: the tool brushes suspicious blocks like the vanilla brush).
+    pub fn brush(&self) -> bool { matches!(self, Self::Brush) }
     /// Whether a campfire extinguish module puts out a lit campfire the tool is used on, when its conditions hold.
     pub fn extinguishes_campfires(&self, entry: &Entry, facts: &Facts) -> bool {
         let Self::CampfireExtinguish { condition } = self else { return false; };
         condition.matches(entry, facts)
+    }
+    /// PlaceGlowModule: the wear a glow this module places costs its tool. The module carries no
+    /// condition; a broken tool answers nothing, which the consumers check, as Java's hooks do.
+    pub fn place_glow(&self) -> Option<i32> {
+        let Self::PlaceGlow { damage } = self else { return None; };
+        Some(*damage)
+    }
+    /// BlockItemProviderModule.getBlockItemStack: the block item this module provides and the wear
+    /// consuming one costs, while its condition holds (a broken tool provides nothing; the capability
+    /// query in tool_stack checks that, as Java's module does in its own answer).
+    pub fn block_item_provider(&self, entry: &Entry, facts: &Facts) -> Option<(Identifier, i32)> {
+        let Self::BlockItemProvider { item, damage, condition } = self else { return None; };
+        condition.matches(entry, facts).then(|| (item.clone(), *damage))
     }
     /// AttributesModifierHook for an attribute module: one attribute modifier entry per listed slot among `wanted`.
     pub fn attribute_entries(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, wanted: &[&str]) -> Vec<NbtCompound> {
@@ -1434,13 +2304,33 @@ impl Module {
             modifier
         }).collect()
     }
+    /// The contribution this custom attribute module makes for `slot`, as (attribute, operation, amount): the
+    /// same formula evaluation as attribute_entries, without the stack entry (the host has no such attribute to
+    /// publish to). None when the module is not a custom attribute module, the slot is not one of its slots, or
+    /// its condition fails.
+    pub fn custom_attribute_amount(&self, entry: &Entry, facts: &Facts, nbt: &NbtCompound, slot: &str) -> Option<(String, pluto_lib::AttributeOperation, f64)> {
+        let Self::CustomAttribute { attribute, operation, formula, slots, condition } = self else { return None; };
+        if !slots.iter().any(|wanted| wanted == slot) || !condition.matches(entry, facts) { return None; }
+        Some((attribute.clone(), *operation, f64::from(formula.eval(entry, &crate::mining_speed::ToolView::of(nbt), 0.0, 1.0, 0.0))))
+    }
     /// Whether this is a percent melee damage module (None for other modules).
     pub fn melee_percent(&self) -> Option<bool> {
-        match self { Self::MeleeDamage { module, .. } => Some(module.percent()), _ => None }
+        match self {
+            Self::MeleeDamage { module, .. } => Some(module.percent()),
+            // The code modifiers below are not percent modules; they run at their modifier's priority.
+            Self::Conducting | Self::Insatiable => Some(false),
+            _ => None,
+        }
     }
     /// The module's priority override, if it is a mining speed module.
     pub fn mining_percent(&self) -> Option<bool> {
-        match self { Self::MiningSpeed { module, .. } => Some(module.percent()), _ => None }
+        match self {
+            Self::MiningSpeed { module, .. } => Some(module.percent()),
+            // MomentumModifier is not a percent module; it runs at its modifier's priority (75).
+            // Neither is DwarvenModifier; it runs at its own priority (85).
+            Self::Momentum | Self::Dwarven => Some(false),
+            _ => None,
+        }
     }
 
     /// ModifierTraitModule.addTraits: the entry this module adds for `entry`, if any. A fixed-level
@@ -1564,8 +2454,8 @@ pub(crate) fn supports(stat: Stat, facts: &Facts) -> bool {
         Stat::SeaLuck | Stat::Lure => &["modifiable/fishing_rods"],
         // EdibleModule.VALID_TOOLS: tools that charge an interaction, and armor.
         Stat::Hunger | Stat::Saturation | Stat::EatDuration | Stat::EdibleCounterChance => &["modifiable/interactable/charge", "modifiable/armor"],
-        // Water inertia and overslime declare no tag.
-        Stat::WaterInertia | Stat::Overslime => return true,
+        // Water inertia and overslime declare no tag; tank capacity neither (CapacityStat ANY).
+        Stat::WaterInertia | Stat::Overslime | Stat::TankCapacity => return true,
     };
     tags.iter().any(|tag| (facts.in_tag)(item, &Identifier::new("tconstruct", tag).expect("valid tag id")))
 }
@@ -1582,6 +2472,142 @@ mod tests {
     }
     fn facts<'a>(item: Option<&'a Identifier>, in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool) -> Facts<'a> {
         Facts { item, in_tag, level: &|_, _| 0, tag_level: &|_, _| 0, has_persistent_key: &|_| false, persistent_string: &|_| String::new(), persistent_numbers: &|_| Vec::new(), hook_traits: &|_| Vec::new(), has_hook: &|_| false }
+    }
+    #[test]
+    fn sleeves_binds_as_a_unit_on_the_general_interact_hook() {
+        // The shipped form (sleeves.json): a bare type, no fields, no hooks named.
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves"})), Some(Module::Sleeves));
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:general_interact"]})), Some(Module::Sleeves));
+        // Any other hook in the binding leaves the kind unbound, as the guard set is the decode set.
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:general_interact", "tconstruct:remove"]})), None);
+        assert_eq!(decode(json!({"type": "tconstruct:sleeves", "hooks": ["tconstruct:armor_interact"]})), None);
+    }
+
+    #[test]
+    fn brush_binds_as_a_singleton_over_its_three_hooks() {
+        let module = decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:general_interact","tconstruct:block_interact","tconstruct:aoe_highlight"]})).expect("the brush module binds");
+        assert_eq!(module, Module::Brush);
+        assert!(module.brush());
+        // The shipped modifier names no hooks at all, which binds the same way (the guard
+        // reads the bound set as a subset, as the blocking module's does).
+        assert_eq!(decode(json!({"type":"tconstruct:brush"})), Some(Module::Brush));
+        // A binding to any hook outside the module's three is not honored.
+        assert_eq!(decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:melee_hit"]})), None);
+        assert_eq!(decode(json!({"type":"tconstruct:brush","hooks":["tconstruct:block_interact","tconstruct:remove_block"]})), None);
+    }
+    #[test]
+    fn the_one_probe_marks_held_tools_and_helmets_in_the_raw_data() {
+        let module = decode(json!({"type":"tconstruct:the_one_probe"})).unwrap();
+        let entry = Entry::new(id("tconstruct:the_one_probe"), 1);
+        let held = id("tconstruct:pickaxe");
+        let in_tag = |_: &Identifier, tag: &Identifier| tag == &id("tconstruct:modifiable/held");
+        let mut data = NbtCompound::new();
+        module.apply_raw_data(&entry, &facts(Some(&held), &in_tag), &mut data);
+        assert_eq!(data["theoneprobe_hand"], Nbt::Byte(1));
+        assert!(!data.contains_key("theoneprobe"), "a held tool is not a helmet");
+        let helmet = id("tconstruct:slime_helmet");
+        let in_tag = |_: &Identifier, tag: &Identifier| tag == &id("tconstruct:modifiable/armor/helmets");
+        let mut data = NbtCompound::new();
+        module.apply_raw_data(&entry, &facts(Some(&helmet), &in_tag), &mut data);
+        assert_eq!(data["theoneprobe"], Nbt::Byte(1));
+        assert!(!data.contains_key("theoneprobe_hand"));
+        // No item context (a preview outside a stack): nothing is marked.
+        let mut data = NbtCompound::new();
+        module.apply_raw_data(&entry, &facts(None, &|_, _| true), &mut data);
+        assert!(data.is_empty());
+    }
+    #[test]
+    fn embellishment_migrates_its_stored_variant_and_forgets_it_on_removal() {
+        let module = decode(json!({"type":"tconstruct:embellishment"})).unwrap();
+        let modifier = id("tconstruct:embellishment");
+        let mut materials = crate::materials::Definitions::default();
+        materials.redirects.insert(id("tconstruct:old_wood"), id("tconstruct:wood"));
+        let mut persistent = NbtCompound::new();
+        persistent.insert(modifier.to_string(), Nbt::String("tconstruct:old_wood#default".into()));
+        let (key, value) = module.embellish_migration(&modifier, &persistent, &materials).expect("the stored variant's material moved");
+        assert_eq!(key, "tconstruct:embellishment");
+        assert_eq!(value, Nbt::String("tconstruct:wood#default".into()));
+        // A variant already at its resolved material does not move, and neither does a missing one.
+        persistent.insert(modifier.to_string(), Nbt::String("tconstruct:wood".into()));
+        assert!(module.embellish_migration(&modifier, &persistent, &materials).is_none());
+        persistent.remove(&modifier.to_string());
+        assert!(module.embellish_migration(&modifier, &persistent, &materials).is_none());
+        // Removal forgets the stored variant.
+        persistent.insert(modifier.to_string(), Nbt::String("tconstruct:wood".into()));
+        module.on_removed(&modifier, &mut persistent);
+        assert!(!persistent.contains_key("tconstruct:embellishment"));
+    }
+    #[test]
+    fn flame_barrier_protects_a_burning_wearer_against_everything_but_fire() {
+        let module = decode(json!({"type":"tconstruct:flame_barrier","each_level":1.875})).unwrap();
+        let entry = Entry::new(id("tconstruct:flame_barrier"), 2);
+        let nbt = NbtCompound::new();
+        let f = facts(None, &|_, _| false);
+        let tags = crate::damage_tags::DamageTags::load(&[]).0;
+        let protect = |damage_type: &Identifier, wearer: Option<&pluto_lib::EntityState>| {
+            let none = |_: &Identifier| false;
+            let source = crate::protection::DamageSource { damage_type, indirect: false, tags: &tags, attacker_in_tag: &none, entities: crate::entity_facts::Entities { attacker: None, target: wearer } };
+            module.protection(&entry, &f, &nbt, &source, 4.0)
+        };
+        let burning = pluto_lib::EntityState { fire_ticks: 200, ..Default::default() };
+        let mob_attack = id("minecraft:mob_attack");
+        // Fully burning at level 2: the whole amount (1.875 a level) lands on the 4 already there.
+        assert_eq!(protect(&mob_attack, Some(&burning)), 7.75);
+        // Half the fire left: half the bonus.
+        let half = pluto_lib::EntityState { fire_ticks: 100, ..Default::default() };
+        assert_eq!(protect(&mob_attack, Some(&half)), 4.0 + 1.875);
+        // Fire itself is not protected against, and neither is a wearer who is not burning or not reported.
+        let on_fire = id("minecraft:on_fire");
+        assert_eq!(protect(&on_fire, Some(&burning)), 4.0);
+        assert_eq!(protect(&mob_attack, Some(&pluto_lib::EntityState::default())), 4.0);
+        assert_eq!(protect(&mob_attack, None), 4.0);
+    }
+    #[test]
+    fn the_code_modifiers_scale_damage_and_speed_with_the_reported_states() {
+        let f = facts(None, &|_, _| false);
+        let no_tag = |_: &Identifier| false;
+        // Conducting at level 1 on a fully burning attacker: melee and projectile damage grow by a fifth.
+        let conducting = decode(json!({"type":"tconstruct:conducting"})).unwrap();
+        let entry = Entry::new(id("tconstruct:conducting"), 1);
+        let burning = pluto_lib::EntityState { fire_ticks: 200, ..Default::default() };
+        let nbt = NbtCompound::new();
+        let tool = crate::mining_speed::ToolView::with(&nbt, crate::entity_facts::Entities { attacker: Some(&burning), target: None });
+        assert_eq!(conducting.melee_damage(&entry, &f, &tool, 10.0, 10.0, &no_tag), 12.0);
+        assert_eq!(conducting.conditional_stat(&entry, &f, &tool, &no_tag, Stat::ProjectileDamage, 10.0, 1.0), 12.0);
+        // Not burning: no growth. Another stat: untouched.
+        let calm = crate::mining_speed::ToolView::of(&nbt);
+        assert_eq!(conducting.melee_damage(&entry, &f, &calm, 10.0, 10.0, &no_tag), 10.0);
+        assert_eq!(conducting.conditional_stat(&entry, &f, &tool, &no_tag, Stat::DrawSpeed, 10.0, 1.0), 10.0);
+        // Insatiable at level 2 with three levels of its melee effect: +3 attack damage (half the
+        // effect a level, at the tool's attack damage multiplier of 1 here).
+        let insatiable = decode(json!({"type":"tconstruct:insatiable"})).unwrap();
+        let entry = Entry::new(id("tconstruct:insatiable"), 2);
+        let fed = pluto_lib::EntityState { effects: vec!["tconstruct:insatiable_melee".to_owned()], effect_levels: vec![("tconstruct:insatiable_melee".to_owned(), 2)], ..Default::default() };
+        let tool = crate::mining_speed::ToolView::with(&nbt, crate::entity_facts::Entities { attacker: Some(&fed), target: None });
+        assert_eq!(insatiable.melee_damage(&entry, &f, &tool, 10.0, 10.0, &no_tag), 13.0);
+        // Momentum at level 1 with the harvest effect at its tenth level: a quarter faster digging,
+        // and only on an effective dig.
+        let momentum = decode(json!({"type":"tconstruct:momentum"})).unwrap();
+        let entry = Entry::new(id("tconstruct:momentum"), 1);
+        let holder = pluto_lib::EntityState { effects: vec!["tconstruct:momentum_harvest".to_owned()], effect_levels: vec![("tconstruct:momentum_harvest".to_owned(), 9)], ..Default::default() };
+        let block = id("minecraft:stone");
+        let context = crate::mining_speed::Context { block: &block, block_in_tag: &no_tag, original: 4.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: Default::default(), holder: Some(holder) };
+        let tool = crate::mining_speed::ToolView::of(&nbt);
+        assert_eq!(momentum.mining_speed(&entry, &f, &tool, &context, 4.0), 5.0);
+        let context = crate::mining_speed::Context { effective: false, ..context };
+        assert_eq!(momentum.mining_speed(&entry, &f, &tool, &context, 4.0), 4.0);
+    }
+    #[test]
+    fn enderclearance_and_channeling_decode_their_hit_numbers() {
+        let entry = Entry::new(id("tconstruct:enderclearance"), 2);
+        let module = decode(json!({"type":"tconstruct:enderclearance","chance":{"flat":0.25},"diameter":{"each_level":8,"flat":8},"teleport_chances":{"flat":16}})).unwrap();
+        assert_eq!(module.enderclearance(&entry), Some((0.25, 24.0)));
+        // The shipped channeling forbids melee, so its melee chances stay inert; data allowing
+        // melee hands them over.
+        let shipped = decode(json!({"type":"tconstruct:channeling","allow_melee":false,"chance_clear":0.15,"chance_rain":0.65,"chance_thunder":1.0})).unwrap();
+        assert_eq!(shipped.channeling_melee(), None);
+        let allowed = decode(json!({"type":"tconstruct:channeling","allow_melee":true,"chance_clear":0.15,"chance_rain":0.65,"chance_thunder":1.0})).unwrap();
+        assert_eq!(allowed.channeling_melee(), Some((0.15, 0.65, 1.0)));
     }
     #[test]
     fn swappable_slots_follow_the_stored_slot_type_and_clear_on_removal() {
@@ -1800,6 +2826,23 @@ mod tests {
         assert!(Module::decode("tconstruct:sweeping_edge", json!({"each_level":"high"}).as_object().unwrap(), &[]).is_err());
     }
     #[test]
+    fn tank_modules_decode_from_their_shipped_shapes() {
+        // The shipped definitions (tinkering/modifiers), fields exactly as the files carry them.
+        assert!(decode(json!({"type":"tconstruct:tank","hooks":["tconstruct:volatile_data","tconstruct:validate","tconstruct:remove","tconstruct:slot_stack","tconstruct:display_name"]})).is_some_and(|module| module.is_tank()));
+        assert!(decode(json!({"type":"tconstruct:bucket"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:tank_interaction","interaction_source":"armor"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:melting","temperature":{"flat":500,"each_level":500},"nuggets_per_metal":{"flat":9,"each_level":3},"shards_per_gem":{"flat":6,"each_level":2}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:slurping","strength":{"each_level":1.0},"duration":{"flat":21}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:spilling","each_level":1.0})).is_some());
+        assert!(decode(json!({"type":"tconstruct:spitting","shots":{"each_level":1}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:splashing","strength":{"each_level":1.0}})).is_some());
+        assert!(decode(json!({"type":"tconstruct:overburn"})).is_some_and(|module| module.is_overburn()));
+        assert!(decode(json!({"type":"tconstruct:smashing"})).is_some_and(|module| module.is_smashing()));
+        // Malformed tank modules reject; foreign hook bindings stay unbound.
+        assert!(Module::decode("tconstruct:melting", json!({"temperature":{"flat":500}}).as_object().unwrap(), &[]).is_err());
+        assert!(decode(json!({"type":"tconstruct:bucket","hooks":["tconstruct:tooltip"]})).is_none());
+    }
+    #[test]
     fn show_offhand_counts_a_flat_one_on_the_chest_only() {
         let key = id("tconstruct:show_empty_offhand");
         let entry = Entry::new(id("tconstruct:stripping"), 3);
@@ -1818,9 +2861,33 @@ mod tests {
         assert!(decode(json!({"type":"tconstruct:show_offhand","mode":"disallow_broken","hooks":["tconstruct:tooltip"]})).is_none());
     }
     #[test]
+    fn armor_stat_modules_decode_and_claim_for_worn_pieces() {
+        let entry = Entry::new(id("tconstruct:unburdened"), 2);
+        let no_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &no_tag);
+        // The original's deprecated armor stat: a plain claim adds up, a max claim counts its
+        // largest level once. The tooltip hook binds too (the original reads the module there),
+        // a foreign hook leaves it unbound, and a missing key rejects.
+        let plain = decode(json!({"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert!(plain.is_armor_stat());
+        assert_eq!(plain.armor_stat_claim(&entry, &f, false).map(|claim| (claim.key, claim.level, claim.max)), Some(("tconstruct:jump_boost".into(), 2.0, false)));
+        assert!(plain.armor_stat_claim(&entry, &f, true).is_none(), "a broken piece claims nothing unless allowed");
+        let maxed = decode(json!({"type":"tconstruct:max_armor_stat","key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05,"hooks":["tconstruct:tooltip"]})).unwrap();
+        assert!(maxed.is_armor_stat());
+        assert_eq!(maxed.armor_stat_claim(&entry, &f, false).map(|claim| claim.max), Some(true));
+        assert!(decode(json!({"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:melee_hit"]})).is_none());
+        assert!(Module::decode("tconstruct:armor_stat", json!({"each_level":0.5}).as_object().unwrap(), &[]).is_err());
+    }
+    #[test]
     fn unrepresentable_shapes_are_unbound_and_malformed_modules_reject() {
-        assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_none(), "tank stats belong to another domain");
-        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_none());
+        assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:tank_capacity","operation":"add","flat":1})).is_some(), "the tank capacity stat binds since the tool tank was ported (tool_tank)");
+        // A volatile flag binds on the volatile data hook and on the projectile hooks (the shipped
+        // fins and enderference modules); any other hook in the binding leaves it unbound.
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]})).is_some(), "the shipped fins flag binds");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]})).is_some(), "the shipped enderference flag binds");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:projectile_launch"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:melee_hit"]})).is_none(), "a flag bound only to an unrelated hook stays unbound");
+        assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","hooks":["tconstruct:volatile_data","tconstruct:melee_hit"]})).is_none(), "one foreign hook in the binding is enough");
         assert!(decode(json!({"type":"tconstruct:stat_boost","stat":"tconstruct:durability","operation":"add","flat":1,"hooks":["tconstruct:volatile_data"]})).is_none());
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","attacker":"mantle:sprinting","flat":7.0})).is_some(), "an attacker state condition is bound");
         assert!(decode(json!({"type":"tconstruct:conditional_melee_damage","target":"mantle:on_fire","each_level":2.0})).is_some(), "a target state condition is bound");
@@ -1835,6 +2902,32 @@ mod tests {
         }
         // A well-formed predicate of a type this port lacks leaves just that module unbound.
         assert!(decode(json!({"type":"tconstruct:volatile_flag","flag":"a:b","tool":{"type":"tconstruct:has_hook","hook":"x:y"}})).is_none());
+    }
+
+    #[test]
+    fn volatile_flag_bound_to_projectile_hooks_marks_the_projectile_not_the_tool() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("tconstruct:fins"), 1);
+        // The shipped fins module: the efln flag, bound to launch and shot. It marks the launched
+        // projectile and writes nothing into the tool's own volatile data.
+        let fins = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]})).unwrap();
+        assert_eq!(fins.projectile_flag(&entry, &f), Some(&id("tconstruct:efln")));
+        let mut data = NbtCompound::new();
+        fins.apply_volatile(&entry, &f, &mut data);
+        assert!(data.is_empty(), "a projectile-bound flag writes no volatile data");
+        // The shipped enderference module: launch, shot and thrown.
+        let enderference = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]})).unwrap();
+        assert_eq!(enderference.projectile_flag(&entry, &f), Some(&id("tconstruct:enderference")));
+        // A flag on the default (volatile data) binding still writes the tool's data and marks no projectile.
+        let volatile = decode(json!({"type":"tconstruct:volatile_flag","flag":"test:f"})).unwrap();
+        assert_eq!(volatile.projectile_flag(&entry, &f), None);
+        volatile.apply_volatile(&entry, &f, &mut data);
+        assert_eq!(data["test:f"], Nbt::Byte(1));
+        // A condition that fails keeps the mark off the projectile; meeting it sets the mark.
+        let gated = decode(json!({"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","modifier_level":{"min":2},"hooks":["tconstruct:projectile_launch"]})).unwrap();
+        assert_eq!(gated.projectile_flag(&entry, &f), None);
+        assert_eq!(gated.projectile_flag(&Entry::new(id("tconstruct:fins"), 2), &f), Some(&id("tconstruct:efln")));
     }
 
     #[test]
@@ -1894,15 +2987,103 @@ mod tests {
     }
 
     #[test]
-    fn update_health_binds_for_armor_slots_and_stays_unbound_for_hands() {
+    fn update_health_binds_for_armor_slots_and_hands_alike() {
         let in_tag = |_: &Identifier, _: &Identifier| false;
         let f = facts(None, &in_tag);
-        // The shipped revitalizing armor module carries no bonus; the hand one cannot be reported.
+        // The shipped revitalizing armor module carries no bonus; the hand one carries 2 per level.
         let armor = decode(json!({"type":"tconstruct:update_health","slots":["feet","legs","chest","head"],"hooks":["tconstruct:equipment_change"]})).unwrap();
         assert_eq!(armor.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "chest", true), 0.0);
-        assert!(decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).is_none());
+        let hands = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["mainhand","offhand"],"hooks":["tconstruct:equipment_change"]})).unwrap();
+        assert_eq!(hands.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "mainhand", true), 4.0, "the tick reports held tools, so the hand module binds");
+        assert_eq!(hands.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "offhand", false), -4.0);
         let bonus = decode(json!({"type":"tconstruct:update_health","bonus":{"each_level":2.0},"slots":["feet"],"hooks":["tconstruct:equipment_change"]})).unwrap();
         assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", true), 4.0);
         assert_eq!(bonus.update_health(&Entry::new(id("tconstruct:revitalizing"), 2), &f, "feet", false), -4.0);
+    }
+
+    #[test]
+    fn golden_attribute_and_lightspeed_bind_in_their_shipped_forms() {
+        // The shipped gold guard (a vanilla attribute, addition) binds, and chrysophilite's own
+        // attribute binds now that it is declared with PlutoLib.
+        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"minecraft:generic.max_health","each_level":4.0,"flat":4.0,"operation":"addition"})).is_some());
+        assert!(decode(json!({"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"})).is_some());
+        // The shipped double jump attribute module binds the same way; turtles' grace's swim speed
+        // binds through the bridge to the water movement efficiency (see the dedicated test below).
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"tconstruct:player.jump_count","each_level":1.0,"operation":"addition","slots":["feet","legs","chest","head"]})).is_some());
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.25,"operation":"addition","slots":["feet","legs","chest","head"]})).is_some());
+        // The shipped lightspeed attribute binds; a foreign hook binding stays unbound.
+        assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4})).is_some());
+        assert!(decode(json!({"type":"tconstruct:lightspeed_attribute","attribute":"minecraft:generic.movement_speed","damage_chance":0.005,"light_layer":"block","min_light":5,"operation":"addition","per_level":9.0e-4,"hooks":["tconstruct:melee_hit"]})).is_none());
+    }
+
+    #[test]
+    fn turtles_grace_swim_speed_bridges_to_the_water_movement_efficiency_as_an_addition() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // The shipped turtles' grace attribute module, verbatim: Forge swim speed, a tenth a level,
+        // multiplied total, over every slot. It binds as the water movement efficiency, added.
+        let grace = decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.1,"operation":"multiply_total","slots":["mainhand","offhand","feet","legs","chest","head"]})).unwrap();
+        let entries = grace.attribute_entries(&Entry::new(id("tconstruct:turtles_grace"), 3), &f, &NbtCompound::new(), &["feet", "chest", "mainhand"]);
+        assert_eq!(entries.len(), 3, "one entry per wanted slot the module lists");
+        for entry in &entries {
+            assert_eq!(entry["type"].as_str(), Some("minecraft:water_movement_efficiency"));
+            assert_eq!(entry["operation"].as_str(), Some("add_value"), "a multiplied form would multiply the efficiency's base of 0 and grant nothing");
+            let amount = entry["amount"].as_f64().unwrap();
+            assert!((amount - 0.3).abs() < 1e-6, "a tenth a level at level 3: {amount}");
+        }
+        // The other operations bridge the same way, as each one's per-level increment on the Forge
+        // attribute (base 1) is the stated amount itself.
+        assert!(decode(json!({"type":"tconstruct:attribute","attribute":"forge:swim_speed","each_level":0.1,"operation":"multiply_base","slots":["feet"]})).is_some());
+    }
+
+    #[test]
+    fn replace_fluid_binds_and_distills_to_its_walk() {
+        let in_tag = |_: &Identifier, _: &Identifier| false;
+        let f = facts(None, &in_tag);
+        // frost_walker's shipped module, verbatim.
+        let shipped = json!({"type": "tconstruct:replace_fluid", "radius": {"each_level": 1.0, "flat": 2.0}, "replace": [{"block": "minecraft:frosted_ice", "target": {"type": "mantle:block_properties", "block": "minecraft:water", "properties": {"level": "0"}}}]});
+        let module = decode(shipped).unwrap();
+        // The radius is flat 2 plus 1 per effective level; the replacement rides along whole,
+        // and its target is what the walk consumer tests the block below an empty cell against.
+        let entry = Entry::new(id("tconstruct:frost_walker"), 1);
+        let Some(WalkModule::Replace { radius, replacements }) = module.walk_module(&entry, &f) else { panic!("frost walker distills to a replace walk") };
+        assert_eq!(radius, 3.0);
+        assert_eq!(replacements.len(), 1);
+        assert_eq!(replacements[0].state.to_string(), "minecraft:frosted_ice");
+        assert!(replacements[0].target.matches(&pluto_lib::BlockState::parse("minecraft:water[level=0]").unwrap()));
+        assert!(!replacements[0].target.matches(&pluto_lib::BlockState::parse("minecraft:water[level=1]").unwrap()), "nothing is placed over flowing water");
+        // A higher level widens the radius by each_level.
+        let entry = Entry::new(id("tconstruct:frost_walker"), 3);
+        let Some(WalkModule::Replace { radius, .. }) = module.walk_module(&entry, &f) else { panic!("still a replace walk") };
+        assert_eq!(radius, 5.0);
+        // A replacement gated above the entry's level is filtered out at the distill.
+        let gated = decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice", "modifier_level": {"min": 2}}]})).unwrap();
+        let Some(WalkModule::Replace { replacements, .. }) = gated.walk_module(&Entry::new(id("tconstruct:frost_walker"), 1), &f) else { panic!("still a replace walk") };
+        assert!(replacements.is_empty());
+        let Some(WalkModule::Replace { replacements, .. }) = gated.walk_module(&Entry::new(id("tconstruct:frost_walker"), 2), &f) else { panic!("still a replace walk") };
+        assert_eq!(replacements.len(), 1);
+        // A hook binding this port does not run leaves the module unbound, as does a target
+        // predicate form it cannot honor.
+        assert!(decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice"}], "hooks": ["tconstruct:tooltip"]})).is_none());
+        assert!(decode(json!({"type": "tconstruct:replace_fluid", "radius": {"flat": 2.0}, "replace": [{"block": "minecraft:ice", "target": {"type": "mantle:tag", "tag": "minecraft:base_stone_overworld"}}]})).is_none());
+    }
+
+    #[test]
+    fn place_fire_decodes_as_the_flint_and_steel_and_answers_the_lighting_actions() {
+        let in_tag = |_: &Identifier, _: &Identifier| true;
+        let f = facts(None, &in_tag);
+        let entry = Entry::new(id("test:firestarter"), 1);
+        // The shipped firestarter module carries no fields and no hooks list.
+        let module = decode(json!({"type":"tconstruct:place_fire"})).expect("the shipped place fire module binds");
+        assert_eq!(module, Module::PlaceFire);
+        assert!(module.place_fire());
+        // PlaceFireModule.canPerformAction answers the two lighting actions and no other.
+        assert!(module.can_perform_action(&entry, &f, "light_fire"));
+        assert!(module.can_perform_action(&entry, &f, "light_campfire"));
+        assert!(!module.can_perform_action(&entry, &f, "shield_block"));
+        // Bound on its four default hooks it still binds; on a foreign hook it stays unbound.
+        let hooks: Vec<Identifier> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].iter().map(|hook| id(hook)).collect();
+        assert_eq!(Module::decode("tconstruct:place_fire", json!({}).as_object().unwrap(), &hooks).unwrap(), Some(Module::PlaceFire));
+        assert!(decode(json!({"type":"tconstruct:place_fire","hooks":["tconstruct:melee_hit"]})).is_none());
     }
 }

@@ -116,7 +116,12 @@ fn every_creative_stack_carries_the_sprite_keys_of_its_materials() {
 fn built_repaired_swapped_and_cast_stacks_all_carry_their_sprite_keys() {
     use crate::tool_materials::MaterialVariant;
     use crate::tool_station::{lookup, Context, Input, Outcome};
-    let world = world();
+    let mut world = world();
+    // The code-defined modifiers production `modifiers::register` adds before the first reload:
+    // world() registers only the unported ones, so a copper part's dwarven trait would resolve as
+    // "required modifier tconstruct:dwarven unavailable". The other tests that need code modifiers
+    // register them into world().registry themselves; this one needs the ported set.
+    for modifier in crate::modifiers::ported_code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     let tools: Vec<(Identifier, &crate::tool_definitions::Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |_: &Identifier| 1;
     let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
@@ -152,8 +157,14 @@ fn built_repaired_swapped_and_cast_stacks_all_carry_their_sprite_keys() {
 #[test]
 fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_and_none_is_left_out() {
     let declared = crate::casting_loop::declared();
-    let groups: BTreeMap<String, BTreeSet<String>> = crate::creative::groups().into_iter()
+    let all_groups = crate::creative::groups();
+    let groups: BTreeMap<String, BTreeSet<String>> = all_groups.iter()
         .map(|group| (group.id.path().to_owned(), group.entries.iter().map(|stack| stack.item.to_string()).collect())).collect();
+    // The plain stacks per tab: the Deco tab holds only retextured variants (TinkerTables.addTableVariants
+    // and TinkerSmeltery.addTableVariants), each carrying its texture under custom data, so a variant of a
+    // table or controller is not a second plain listing of that item — the "also in" check below reads these.
+    let plain: BTreeMap<String, BTreeSet<String>> = all_groups.iter()
+        .map(|group| (group.id.path().to_owned(), group.entries.iter().filter(|stack| stack.components.is_none()).map(|stack| stack.item.to_string()).collect())).collect();
     let tools: BTreeSet<String> = crate::tool_parts::tool_items().map(|tool| tool.to_string()).collect();
     let parts: BTreeSet<String> = crate::tool_parts::material_items().keys().map(ToString::to_string).chain(["tconstruct:modifier_crystal".to_owned()]).collect();
     let expected = |name: &str| -> &'static str {
@@ -162,7 +173,7 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         else if parts.contains(name) { "tool_parts" }
         // TinkerTables.addTabItems and the declared gadgets of TinkerGadgets.addTabItems (the general tab); the Deco tab only holds retextured variants
         else if ["crafting_station", "part_builder", "tinker_station", "tinkers_anvil", "scorched_anvil", "modifier_worktable", "tinkers_chest", "part_chest", "cast_chest", "pattern", "materials_and_you", "puny_smelting", "mighty_smelting", "tinkers_gadgetry", "fantastic_foundry", "encyclopedia", "cheese_ingot", "cheese_block", "bamboo_armor_stand", "clear_item_frame", "clear_armor_stand", "bone_armor_stand", "necrotic_bone_armor_stand", "gold_item_frame", "reversed_gold_item_frame", "diamond_item_frame", "manyullyn_item_frame", "netherite_item_frame", "soul_glass", "soul_glass_pane",
-                 "punji", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "clear_glass", "clear_glass_pane", "gold_bars", "obsidian_pane", "copper_platform", "exposed_copper_platform", "weathered_copper_platform", "oxidized_copper_platform", "waxed_copper_platform", "waxed_exposed_copper_platform", "waxed_weathered_copper_platform", "waxed_oxidized_copper_platform", "iron_platform", "gold_platform", "cobalt_platform", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane"].contains(&path) { "general" }
+                 "punji", "earth_cake", "sky_cake", "ichor_cake", "ender_cake", "blood_cake", "magma_cake", "clear_glass", "clear_glass_pane", "clear_tinted_glass", "gold_bars", "obsidian_pane", "copper_platform", "exposed_copper_platform", "weathered_copper_platform", "oxidized_copper_platform", "waxed_copper_platform", "waxed_exposed_copper_platform", "waxed_weathered_copper_platform", "waxed_oxidized_copper_platform", "iron_platform", "gold_platform", "cobalt_platform", "white_clear_stained_glass", "orange_clear_stained_glass", "magenta_clear_stained_glass", "light_blue_clear_stained_glass", "yellow_clear_stained_glass", "lime_clear_stained_glass", "pink_clear_stained_glass", "gray_clear_stained_glass", "light_gray_clear_stained_glass", "cyan_clear_stained_glass", "purple_clear_stained_glass", "blue_clear_stained_glass", "brown_clear_stained_glass", "green_clear_stained_glass", "red_clear_stained_glass", "black_clear_stained_glass", "white_clear_stained_glass_pane", "orange_clear_stained_glass_pane", "magenta_clear_stained_glass_pane", "light_blue_clear_stained_glass_pane", "yellow_clear_stained_glass_pane", "lime_clear_stained_glass_pane", "pink_clear_stained_glass_pane", "gray_clear_stained_glass_pane", "light_gray_clear_stained_glass_pane", "cyan_clear_stained_glass_pane", "purple_clear_stained_glass_pane", "blue_clear_stained_glass_pane", "brown_clear_stained_glass_pane", "green_clear_stained_glass_pane", "red_clear_stained_glass_pane", "black_clear_stained_glass_pane"].contains(&path) { "general" }
         // TinkerMaterials.addTabItems, which the general tab calls: the firewood sets, the loose nuggets and, per metal, the block, ingot and nugget
         else if ["copper_nugget", "debris_nugget", "netherite_nugget"].contains(&path)
             || ["nahuatl", "blazewood"].iter().any(|wood| path.strip_prefix(wood).is_some_and(|rest| ["", "_fence", "_slab", "_stairs"].contains(&rest)))
@@ -182,13 +193,14 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     };
     let mut wrong = Vec::new();
     for name in &declared {
-        // Fluid blocks have no item in the original, and its soulsteel bucket is registered but in no tab ("future: soulsteel").
+        // Fluid blocks have no item in the original, and soulsteel is in no tab at all ("future: soulsteel" in
+        // TinkerMaterials for the metal, in TinkerFluids for the bucket): neither its block, ingot nor nugget, nor its bucket.
         // The potted flora, the wall signs and the wall heads are blocks with no item in the original either, so they are in no tab.
         // The ichor foliage is in no tab either: FoliageType.VISIBLE excludes ichor, and the wood section of the tab
         // accepts only the earth, sky, blood and ender saplings and leaves.
         // The crystalshot is likewise accepted into no tab (it is only cast), and the fake ingot and fake storage
         // block get tab variants only for the compatibility materials, which this port does not ship.
-        if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket"
+        if name.ends_with("_fluid") || name.ends_with("_wall_head") || name == "tconstruct:molten_soulsteel_bucket" || name == "tconstruct:soulsteel_block" || name == "tconstruct:soulsteel_ingot" || name == "tconstruct:soulsteel_nugget"
             || name.starts_with("tconstruct:potted_") || name.ends_with("_wall_sign") || name.ends_with("_wall_hanging_sign")
             || (name.starts_with("tconstruct:ichor_") && ["_slime_grass", "_slime_leaves", "_slime_sapling", "_slime_fern", "_slime_tall_grass", "_slime_grass_seeds"].iter().any(|suffix| name.ends_with(suffix))) || name == "tconstruct:crystalshot" || name == "tconstruct:fake_ingot" || name == "tconstruct:fake_storage_block"
             // The deprecated throwables are accepted by no addTabItems in the original, and the general tab
@@ -199,9 +211,10 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
         }
         let tab = expected(name);
         if !groups[tab].contains(name) { wrong.push(format!("{name} is missing from {tab}")); }
-        for (other, entries) in &groups {
-            // the Tanks tab holds filled tanks (the tank items again)
-            if other != tab && other != "fluids" && entries.contains(name) { wrong.push(format!("{name} is also in {other}")); }
+        for other in groups.keys() {
+            // the Tanks tab holds filled tanks (the tank items again); a Deco variant is the same
+            // item retextured, not a second plain listing, so this reads the plain stacks
+            if other != tab && other != "fluids" && plain[other].contains(name) { wrong.push(format!("{name} is also in {other}")); }
         }
     }
     assert!(wrong.is_empty(), "{wrong:#?}");
@@ -210,4 +223,80 @@ fn every_declared_item_and_block_is_in_the_creative_tab_the_original_puts_it_in_
     }
     assert!(groups["fluids"].iter().all(|item| item.ends_with("_tank") || item.ends_with("_gauge")), "{:?}", groups["fluids"]);
     assert!(declared.len() > 240, "{}", declared.len());
+}
+
+#[test]
+fn every_fluid_sprite_the_render_table_names_is_shipped() {
+    // The block-entity renderers and the tank windows draw each fluid's still and flowing sprites under
+    // the names of Mantle's fluid texture table (render_data::fluid_texture). A named sprite with no
+    // shipped texture file cannot resolve in the game: the face naming it is left undrawn.
+    let mut problems = Vec::new();
+    let mut sprites = BTreeSet::new();
+    for fluid in crate::fluid_defs::FLUIDS {
+        let id = format!("tconstruct:{}", fluid.name);
+        let Some(texture) = crate::render_data::fluid_texture(&id) else {
+            problems.push(format!("{id}: no fluid texture row"));
+            continue;
+        };
+        for sprite in [texture.still, texture.flowing] {
+            sprites.insert(sprite);
+            match sprite.strip_prefix("tconstruct:") {
+                Some(path) if assets().join(format!("textures/{path}.png")).is_file() => {}
+                _ => problems.push(format!("{id}: sprite {sprite} has no shipped texture")),
+            }
+        }
+    }
+    assert!(problems.is_empty(), "{problems:#?}");
+    assert!(sprites.len() > 100, "{}", sprites.len());
+}
+
+#[test]
+fn the_fluid_sprites_are_in_the_games_atlas_and_the_texture_tree_is_complete() {
+    // The game's unified atlas (screen draws and native block-entity draws) packs the walked texture
+    // folders and the base game's atlas definitions, which name only block/ and entity/conduit/, so a
+    // fluid sprite is stitched only because the content ships assets/minecraft/atlases/blocks.json: the
+    // host's content builder appends a mod's atlas sources to the base definition of the same name
+    // instead of copying the file. Pin the declaration exactly; it is the reviewed shape port.py allows.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content");
+    let atlas = read(content.join("assets/minecraft/atlases/blocks.json"));
+    assert_eq!(atlas, serde_json::json!({"sources": [{"type": "minecraft:directory", "source": "fluid", "prefix": "fluid/"}]}));
+    // The shipped fluid textures are exactly the sprites the render table names, plus the ones named by
+    // convention: the base fluid model's liquid pair (its still is the parent model's texture) and the
+    // inverted flowing sprite of each gas (a fluid lighter than air, density below zero), which Mantle
+    // names from the flowing sprite. The original's molten/shiny and molten/transparent folders are
+    // named by nothing in the original and stay unshipped.
+    let mut expected = BTreeSet::new();
+    for fluid in crate::fluid_defs::FLUIDS {
+        let texture = crate::render_data::fluid_texture(&format!("tconstruct:{}", fluid.name)).unwrap();
+        for sprite in [texture.still, texture.flowing] {
+            expected.insert(sprite.strip_prefix("tconstruct:fluid/").unwrap().to_owned());
+        }
+        if fluid.density < 0 {
+            expected.insert(texture.flowing.strip_prefix("tconstruct:fluid/").unwrap().replace("/flowing", "/flowing_inverted"));
+        }
+    }
+    expected.insert("liquid/still".to_owned());
+    expected.insert("liquid/flowing".to_owned());
+    let root = assets().join("textures/fluid");
+    let mut shipped = BTreeSet::new();
+    let mut stack = vec![root.clone()];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.extension().is_some_and(|e| e == "png") {
+                let relative = path.strip_prefix(&root).unwrap().with_extension("");
+                shipped.insert(relative.to_string_lossy().replace('\\', "/"));
+                // A sprite taller than wide is an animation strip: without its .mcmeta the atlas packs
+                // the whole strip as one sprite instead of animating its frames.
+                let bytes = std::fs::read(&path).unwrap();
+                let (w, h) = (u32::from_be_bytes(bytes[16..20].try_into().unwrap()), u32::from_be_bytes(bytes[20..24].try_into().unwrap()));
+                if h > w {
+                    assert!(path.with_extension("png.mcmeta").is_file(), "{path:?}: animated strip without its .mcmeta");
+                }
+            }
+        }
+    }
+    assert_eq!(shipped, expected);
 }

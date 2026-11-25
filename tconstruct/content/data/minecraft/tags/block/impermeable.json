@@ -2,6 +2,7 @@
   "values": [
     "tconstruct:clear_glass",
     "tconstruct:soul_glass",
+    "tconstruct:clear_tinted_glass",
     "tconstruct:seared_glass",
     "tconstruct:seared_soul_glass",
     "tconstruct:seared_tinted_glass",

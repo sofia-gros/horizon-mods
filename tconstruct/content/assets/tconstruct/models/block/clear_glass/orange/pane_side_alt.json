@@ -1,7 +1,10 @@
 {
   "parent": "tconstruct:block/template/pane/side_alt",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
     "edge": "tconstruct:block/clear_stained_glass_top",
-    "pane": "tconstruct:block/clear_stained_glass"
+    "pane": "tconstruct:block/clear_stained_glass_connected",
+    "particle": "tconstruct:block/clear_stained_glass"
   }
 }

@@ -19,12 +19,19 @@ BASE_DATA = ROOT / '.local/base-26.3/data/minecraft'
 DATA = CONTENT / 'data/tconstruct'
 # Declared items whose original model is plain (no tool/material loader); the rest wait for per-material rendering.
 SIMPLE_ITEMS = {'modifier_crystal', 'pattern', 'venom_bottle', 'raw_cobalt', 'cobalt_shard', 'steel_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball'}
-# The stations drop themselves through mantle:fill_retextured_block (their domain, R2); every other declared block has the original's loot table.
-STATION_BLOCKS = {'tinker_station', 'part_builder', 'modifier_worktable'}
+# The one tool whose item is registered under a different name than its definition (the importer's
+# MODEL_ALIASES, mirroring item_for_definition in tool_definitions.rs): the slime chestplate's
+# definition is slime_chestplate, its item slimy_chestplate.
+TOOL_ITEM_NAMES = {'slime_chestplate': 'slimy_chestplate'}
 
 
 def load(path):
     return json.loads(path.read_text(encoding='utf-8'))
+
+
+def item_definition(tool):
+    """The item definition file for a tool definition name, through TOOL_ITEM_NAMES."""
+    return ASSETS / 'items' / f'{TOOL_ITEM_NAMES.get(tool, tool)}.json'
 
 
 def split(reference):
@@ -53,7 +60,10 @@ class ContentAssets(unittest.TestCase):
         for path in models:
             model = load(path)
             leaf = path.relative_to(ASSETS / 'models').with_suffix('').as_posix() not in parents
-            self.assertNotIn('loader', model, path)
+            if 'loader' in model:
+                # Connected glass ships in the host's Fusion form (the DATA-W2 conversion of the Mantle
+                # connection models): that loader, in its connecting type, is the one loader a model may carry.
+                self.assertEqual((model['loader'], model.get('type')), ('fusion:model', 'fusion:connecting'), path)
             if 'parent' in model:
                 self.assertTrue(self.resolves('models', 'json', model['parent']), f'{path}: parent {model["parent"]}')
             for name, texture in model.get('textures', {}).items():
@@ -170,12 +180,12 @@ class ContentAssets(unittest.TestCase):
         whose cases are shipped material ids, then the modifier overlays; every model resolves."""
         materials = {p.stem for p in MATERIALS.glob('*.json')}
         tools = sorted(p.stem for p in TOOLS.glob('*.json'))
-        self.assertEqual(len(tools), 44)
+        self.assertEqual(len(tools), 45)
         self.used_overlays = set()
         for tool in tools:
             definition = load(TOOLS / f'{tool}.json')
             slots = sum(len(m.get('parts') or m.get('stat_types') or []) for m in definition['modules'] if m['type'] in ('tconstruct:part_stats', 'tconstruct:material_stats'))
-            leaves = list(self.walk(load(ASSETS / 'items' / f'{tool}.json')['model'], tool))
+            leaves = list(self.walk(load(item_definition(tool))['model'], tool))
             self.assertTrue(leaves, tool)
             for leaf in leaves:
                 for layer in (leaf['models'] if leaf['type'] == 'minecraft:composite' else [leaf]):
@@ -202,7 +212,7 @@ class ContentAssets(unittest.TestCase):
         return [n for n in self.nodes(node) if n['type'] == 'minecraft:condition' and n['property'] == prop]
 
     def flag_positions(self, tool):
-        return {c['index'] for c in self.conditions(load(ASSETS / 'items' / f'{tool}.json')['model'], 'minecraft:custom_model_data')}
+        return {c['index'] for c in self.conditions(load(item_definition(tool))['model'], 'minecraft:custom_model_data')}
 
     def textures_of(self, node):
         """The texture references of the base sprite of every layer under a (sub)tree."""
@@ -220,7 +230,7 @@ class ContentAssets(unittest.TestCase):
         stateless = {'arrow', 'shuriken', 'throwing_axe'}
         tools = {p.stem for p in TOOLS.glob('*.json') if not p.stem.startswith(('plate_', 'slime_', 'travelers_')) or p.stem.endswith('_shield')}
         for tool in tools:
-            broken = self.conditions(load(ASSETS / 'items' / f'{tool}.json')['model'], 'minecraft:broken')
+            broken = self.conditions(load(item_definition(tool))['model'], 'minecraft:broken')
             self.assertEqual(bool(broken), tool not in stateless, tool)
         pickaxe = self.conditions(load(ASSETS / 'items/pickaxe.json')['model'], 'minecraft:broken')[0]
         self.assertIn('tconstruct:item/tool/pickaxe/head_broken', self.textures_of(pickaxe['on_true']))
@@ -231,7 +241,7 @@ class ContentAssets(unittest.TestCase):
         """The original's charge thresholds, as use_duration dispatches under `using_item`; crossbow ammo and the use animation are flags;
         the rod's cast is the host's property."""
         def thresholds(tool):
-            nodes = [n for n in self.nodes(load(ASSETS / 'items' / f'{tool}.json')['model']) if n['type'] == 'minecraft:range_dispatch']
+            nodes = [n for n in self.nodes(load(item_definition(tool))['model']) if n['type'] == 'minecraft:range_dispatch']
             return sorted({tuple(entry['threshold'] for entry in node['entries']) for node in nodes})
         self.assertEqual(thresholds('longbow'), [(0.05, 0.6, 1.0)])
         self.assertEqual(thresholds('crossbow'), [(0.05, 0.58, 1.0)])
@@ -290,7 +300,7 @@ class ContentAssets(unittest.TestCase):
             if not name.endswith('_wall_head'):
                 self.assertIn(f'block.tconstruct.{name}', lang, name)
             table = DATA / 'loot_table/blocks' / f'{name}.json'
-            if name in STATION_BLOCKS or name in no_loot:
+            if name in no_loot:
                 self.assertFalse(table.exists(), name)
                 continue
             loot = load(table)
@@ -305,7 +315,7 @@ class ContentAssets(unittest.TestCase):
                     self.assertTrue((BASE / 'items' / f'{path}.json').is_file(), f'{name} drops {entry["name"]}')
         for name in SIMPLE_ITEMS:
             self.assertIn(f'item.tconstruct.{name}', lang, name)
-        self.assertEqual({p.stem for p in (DATA / 'loot_table/blocks').glob('*.json')}, blocks - STATION_BLOCKS - no_loot)
+        self.assertEqual({p.stem for p in (DATA / 'loot_table/blocks').glob('*.json')}, blocks - no_loot)
 
     def loot_entries(self, node):
         for pool in node.get('pools', []):
@@ -426,11 +436,54 @@ class ContentAssets(unittest.TestCase):
             used |= {split(t)[1] for t in load(path).get('textures', {}).values() if split(t)[0] == 'tconstruct'}
         # GUI textures are drawn by the screens' Rust code, not by models: the sprite names the sources use.
         sources = ''.join(path.read_text(encoding='utf-8') for path in (ROOT / 'tconstruct/mixins/tconstruct/api/src').glob('*.rs'))
-        used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_]+)"', sources)}
+        used |= {f'gui/{name}' for name in re.findall(r'"tconstruct:gui/([a-z_/]+)"', sources)}
+        # Fluid sprites are drawn by the block-entity renderers and the tank windows under the names of
+        # Mantle's fluid texture table (render_data.rs), not by models: the sprite names the sources use.
+        used |= {f'fluid/{name}' for name in re.findall(r'"tconstruct:fluid/([a-z_/]+)"', sources)}
+        # Three fluid sprites are named by convention, not by a literal: the base fluid model's flowing
+        # counterpart (its still is model-named), and the inverted flowing sprites of the two gas fluids
+        # (cinderslime, ichor), which Mantle names from the flowing sprite of a fluid lighter than air.
+        used |= {'fluid/liquid/flowing', 'fluid/molten/alloy/cinderslime/flowing_inverted',
+                 'fluid/slime/ichor/flowing_inverted'}
+        # Connected-glass sprites are picked by Mantle's connected-texture rule from the folder of a
+        # `connection` model's block texture: the fifteen direction-combination sprites, and, in the two
+        # full-glass folders (foundry glass, seared glass), the `normal` sprite of an unconnected face.
+        edges = ('d', 'dl', 'dlr', 'dr', 'l', 'lr', 'r', 'u', 'ud', 'udl', 'udlr', 'udr', 'ul', 'ulr', 'ur')
+        for path in (ASSETS / 'models').rglob('*.json'):
+            model = load(path)
+            if 'connection' not in model:
+                continue
+            for texture in model.get('textures', {}).values():
+                namespace, name = split(texture)
+                if namespace == 'tconstruct' and not name.endswith('_top'):
+                    used |= {f'{name}/{edge}' for edge in edges}
+                    if name in ('block/foundry/glass', 'block/smeltery/seared_glass'):
+                        used.add(f'{name}/normal')
+        # Particle sprites are named by the shipped particle definitions (assets/tconstruct/particles/*.json),
+        # whose texture ids are relative to textures/particle/: the host's particle loader reads them from there.
+        for path in (ASSETS / 'particles').glob('*.json'):
+            used |= {f'particle/{split(t)[1]}' for t in load(path).get('textures', []) if split(t)[0] == 'tconstruct'}
+        # Trim palettes are read by the trim renderer under the trim material's name (the importer's
+        # copy_trim_palettes): one palette per shipped trim material, named by the material.
+        used |= {f'trims/color_palettes/{p.stem}' for p in (CONTENT / 'data/tconstruct/trim_material').glob('*.json')}
         # Worn equipment textures are picked by the layer table and skull textures by the skull rendering
         # code, not by models: the original references both by convention, so neither is model-used.
-        present = {p.relative_to(ASSETS / 'textures').with_suffix('').as_posix() for p in (ASSETS / 'textures').rglob('*.png')
-                   if not p.relative_to(ASSETS / 'textures').as_posix().startswith(('entity/equipment/', 'entity/skull/'))}
+        # Modifier icons are the same kind: the icon manager names them from the modifier id by
+        # convention (gui/modifiers/<category>/<modifier>), with tinkering/modifier_icons.json holding
+        # the per-modifier overrides, so the shipped icon tree is not model-used either. The mob effect
+        # icons and the slime grass colormaps are whole trees of the same kind: the host resolves an
+        # effect's icon from its id alone (amplifier variants and the charging bar included) and the
+        # colour providers sample the colormaps per grass type, so the importer copies both trees whole
+        # rather than by reachability. A gui/modifiers sprite the sources name literally (the worktable
+        # book set) is not convention-named, so it stays in the accounting.
+        present = set()
+        for path in (ASSETS / 'textures').rglob('*.png'):
+            name = path.relative_to(ASSETS / 'textures').with_suffix('').as_posix()
+            if name.startswith(('entity/equipment/', 'entity/skull/', 'mob_effect/', 'colormap/')):
+                continue
+            if name.startswith('gui/modifiers/') and name not in used:
+                continue
+            present.add(name)
         self.assertEqual(present, used)
 
     def test_worn_armor_textures_are_exactly_the_ones_the_layer_table_can_pick(self):
@@ -463,7 +516,7 @@ class ContentAssets(unittest.TestCase):
                     self.assertEqual(namespace, 'tconstruct')
                     self.assertTrue((ASSETS / f'textures/entity/equipment/{kind}/{path}.png').is_file(), f'{name}: {layer}')
         slots = {'helmet': 'head', 'chestplate': 'chest', 'leggings': 'legs', 'boots': 'feet', 'wings': 'chest'}
-        armor = [p for p in (DECLARED / 'item').glob('*.json') if re.fullmatch(r'(travelers|plate|slime)_(helmet|chestplate|leggings|boots)|slime_wings', p.stem)]
+        armor = [p for p in (DECLARED / 'item').glob('*.json') if re.fullmatch(r'(travelers|plate|slime|slimy)_(helmet|chestplate|leggings|boots)|slime_wings', p.stem)]
         self.assertEqual(len(armor), 13)
         for path in armor:
             equippable = load(path)['components']['minecraft:equippable'] if 'components' in load(path) else None

@@ -42,6 +42,7 @@ DECLARATION_HASHES = {
     'pluto-block-entity-cache-generation': 'f8e21e6c9424b94864b9bbb22d15332eb4f4070157617cc0031c664f2007d06f',
     'pluto-living-drop-state': 'e8204433c51ef8d9a66931bc851816aacedbf7db00153a2fcf10de7ebf824551',
     'pluto-block-entity-container-reach': 'fe4212c7ab75aec4802abb750e29e4a81ad61a37a1a9145e247fd6d2333ebd2c',
+    'pluto-item-menu-open': 'cfdc76a6d58b054f17969aa409dc9c50cc7bb313e87670f91b7f0832f4cdf894',
 }
 
 
@@ -61,6 +62,7 @@ def validate_transferred_declarations(parsed):
 # Files the build tree does not have: helper fragments for the generated `Host` (source in this directory, never an official file).
 ADDED_FILES = {
     'tools/native-hook-fragments/pluto_container_reach.json': 'pluto-container-reach-fragment.json',
+    'tools/native-hook-fragments/pluto_item_menu_open.json': 'pluto-item-menu-open-fragment.json',
 }
 
 

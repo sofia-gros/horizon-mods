@@ -11,11 +11,12 @@ use std::sync::{Mutex, OnceLock};
 use super::base::{Event, Identifier};
 pub use super::standing_wall_item::StandingAndWallBlockItem;
 pub use super::item_registry::{ItemRegistry,ItemRegistrySnapshot};
-pub use super::item_behavior::{EnchantabilityContext, EnderMaskContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext};
+pub use super::item_behavior::{EnchantabilityContext, EnderMaskContext, IndestructibleContext, ItemBehavior, ItemBehaviors, MaxStackSizeContext, ToolActionContext};
 pub(crate) use super::item_behavior::ender_mask;
 pub(crate) use super::item_behavior::max_stack_size;
 pub(crate) use super::item_behavior::enchantability;
 pub(crate) use super::item_behavior::can_perform_action;
+pub(crate) use super::item_behavior::indestructible;
 pub(crate) use super::standing_wall_item::standing_wall_bindings;
 
 /// One tooltip line to add.
@@ -398,6 +399,220 @@ pub(crate) fn stack_use_food(stack: &super::player_api::StackData) -> Option<Foo
     behavior.food.as_ref().and_then(|food| food(stack))
 }
 
+/* Stacked-on-other clicks (Fabric: Item.overrideStackedOnOther) */
+
+/// A click of the carried stack onto another stack in a menu.
+pub struct StackedOnOtherRequest<'a> {
+    /// The stack in the player's hand (the registered item).
+    pub carried: &'a super::block_entity_api_v1::ItemSlot,
+    /// The stack in the clicked slot; None when the slot is empty.
+    pub clicked: Option<&'a super::block_entity_api_v1::ItemSlot>,
+    /// The player clicking, by uuid; 0 when the menu names none.
+    pub player: u128,
+    /// True for the secondary (right) click, false for the primary.
+    pub secondary: bool,
+    /// Whether the clicked slot allows modification by this player
+    /// (the game's own `Slot.allowModification` answer).
+    pub allow_modification: bool,
+    /// A draw in [0, 1) from the game's own random stream for this
+    /// click, for a callback whose answer varies by chance (the
+    /// original reads the level's random for its saw pitch): the pure
+    /// side owns no random source, so the transport draws it.
+    pub random: f32,
+}
+
+/// A sound a stacked-on-other click plays for the player, with the
+/// volume and pitch the caller chose (the original's
+/// `Player.playSound(sound, volume, pitch)`). An [`StackedOnOtherDecision::Apply`]
+/// decision's sound travels on the rich menu-sound queue, which carries
+/// both, where the menu's own sounds carry only their event id.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StackedSound {
+    /// The sound event id (such as `tconstruct:little_saw`).
+    pub id: &'static str,
+    /// The volume the sound plays at (1 is the event's own level).
+    pub volume: f32,
+    /// The pitch the sound plays at (1 is the event's own pitch).
+    pub pitch: f32,
+}
+
+/// What the carried item does with the click.
+pub enum StackedOnOtherDecision {
+    /// Not this item's click: the game's own click handling runs
+    /// (pickup, placement, bundle insertion and the rest).
+    Pass,
+    /// The click is consumed with no stack change: nothing is picked
+    /// up, placed, swapped or inserted.
+    Consume,
+    /// The click is consumed and both stacks are replaced: the clicked
+    /// slot's new stack (None empties it) and the carried stack (None
+    /// empties the hand). `give` is a stack handed to the clicking
+    /// player (into their inventory, else dropped), such as a single
+    /// filled item split off a carried stack of more than one.
+    /// `sound` is played to the player with its own volume and pitch.
+    Apply {
+        clicked: Option<super::block_entity_api_v1::ItemSlot>,
+        carried: Option<super::block_entity_api_v1::ItemSlot>,
+        give: Option<super::block_entity_api_v1::ItemSlot>,
+        sound: Option<StackedSound>,
+    },
+}
+
+pub type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision;
+
+static STACKED_ON_OTHER: Mutex<Option<HashMap<String, StackedOnOtherCallback>>> = Mutex::new(None);
+
+/// Registers what a carried stack does when it is clicked onto another
+/// stack in a menu (Fabric: `Item.overrideStackedOnOther`). The dispatch
+/// runs in every menu, including the game's own inventory and container
+/// menus, before the game's bundle handling, exactly where the game asks
+/// the carried item first.
+pub struct StackedOnOtherRegistry;
+
+impl StackedOnOtherRegistry {
+    /// Registering the same item again replaces the earlier entry.
+    pub fn register(item: Identifier, callback: StackedOnOtherCallback) {
+        if let Ok(mut all) = STACKED_ON_OTHER.lock() {
+            all.get_or_insert_with(HashMap::new).insert(item.to_string(), callback);
+        }
+    }
+
+    /// The callback registered for `item` (an id such as
+    /// `tconstruct:repair_kit`), if anything.
+    pub fn get(item: &str) -> Option<StackedOnOtherCallback> {
+        STACKED_ON_OTHER.lock().ok()?.as_ref()?.get(item).copied()
+    }
+}
+
+/// Whether any carried item has a stacked-on-other behaviour, so the
+/// game side can skip the dispatch entirely otherwise.
+pub(crate) fn has_stacked_on_other() -> bool {
+    STACKED_ON_OTHER.lock().ok().is_some_and(|all| all.as_ref().is_some_and(|all| !all.is_empty()))
+}
+
+/// The stacked-on-other callback registered for `item`, if any.
+pub(crate) fn stacked_on_other(item: &str) -> Option<StackedOnOtherCallback> {
+    StackedOnOtherRegistry::get(item)
+}
+/// One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`, the
+/// game's `native_living_entity_use_item_tick`, API 131): the stack in use, how many ticks the use
+/// has run and its full time. Heard every tick of the use, for the using player only, and only
+/// when a callback listens. The tick itself changes nothing: a callback acts through the player
+/// and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's
+/// drain). A use that ran its time out is finished, not ticked past its end.
+#[derive(Clone, Debug)]
+pub struct UseTick {
+    /// The stack being used.
+    pub stack: super::player_api::StackData,
+    /// The player using it.
+    pub player: super::player_api::ServerPlayer,
+    /// The dimension the player is in, such as `minecraft:overworld`; also available as [`UseTick::world`].
+    pub dimension: String,
+    /// Where the player stands (their feet).
+    pub position: [f64; 3],
+    /// Where the player's eyes are: where a use that aims (a brush's strokes) traces from.
+    pub eye: [f64; 3],
+    /// The direction the player looks, as a unit vector: how a use that aims traces.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
+    /// How many ticks the use has run: the use's full time less the ticks left, so the first
+    /// ticks of a use read near 0 and the last near `duration`.
+    pub ticks_used: u32,
+    /// The use's full time in ticks, as the stack's use gives it.
+    pub duration: u32,
+}
+
+impl UseTick {
+    /// The world the player is in.
+    pub fn world(&self) -> super::world_api_v1::World {
+        super::world_api_v1::World::new(&self.dimension)
+    }
+}
+
+static USE_TICK: Event<UseTick, ()> = Event::void();
+
+/// A player let go of an item they were using, before its use time ran out (vanilla's `Item.releaseUsing`, NeoForge's
+/// `LivingEntityUseItemEvent` release half, the game's `native_release_using`, API 131): the charge-and-release half of a
+/// use. A bow-like item shoots by the charge it gathered; a thrown tool leaves the hand. The stacks in both hands are
+/// given, as a bow shot gives them, so a callback knows which hand's stack it is spending; spending it is an `edits`
+/// entry, as an ammunition callback spends its source. Only a player's release is heard, and only for an item a
+/// [`StackUse`] or [`ItemUse`] registration gave a use time: the game asks nothing for items it uses itself.
+#[derive(Clone, Debug)]
+pub struct ReleaseUsing {
+    /// The stack that was being used (the one let go).
+    pub stack: super::player_api::StackData,
+    /// The player who let go.
+    pub player: super::player_api::ServerPlayer,
+    /// The dimension the player is in, such as `minecraft:overworld`; also available as [`ReleaseUsing::world`].
+    pub dimension: String,
+    /// Where the player stands (their feet).
+    pub position: [f64; 3],
+    /// Where the player's eyes are: where a thrown or shot projectile leaves from.
+    pub eye: [f64; 3],
+    /// The direction the player looks, as a unit vector: how a release aims what it throws or shoots.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode (a thrown tool is kept, a thrown stack is not spent).
+    pub creative: bool,
+    /// How many ticks the use was held before the release: the charge. A use that ran its whole time out is finished,
+    /// not released, and is not heard here.
+    pub ticks_used: u32,
+    /// The stacks in the player's main hand and off hand as the use ends; the used stack is one of them.
+    pub main_hand: Option<super::block_entity_api_v1::ItemSlot>,
+    pub off_hand: Option<super::block_entity_api_v1::ItemSlot>,
+    /// Whether the release counts as a use of the item: set it (with [`ReleaseUsing::set_used`]) and the game starts
+    /// the item's cooldown, as a bow's release does. Left alone, no cooldown starts.
+    pub used: std::cell::Cell<bool>,
+    /// Whole new stacks for places the player carries, which callbacks add to: how a callback spends the stack it
+    /// threw. The host writes them after the callbacks ran.
+    pub edits: RefCell<Vec<super::entity_events_v1::CarriedEdit>>,
+}
+
+impl ReleaseUsing {
+    /// Mark the release as a use of the item, so its cooldown starts.
+    pub fn set_used(&self) {
+        self.used.set(true);
+    }
+
+    /// The world the player is in.
+    pub fn world(&self) -> super::world_api_v1::World {
+        super::world_api_v1::World::new(&self.dimension)
+    }
+}
+
+static RELEASE_USING: Event<ReleaseUsing, ()> = Event::void();
+
+/// Events about items.
+pub struct ItemEvents;
+
+impl ItemEvents {
+    /// A player released an item they were using (see [`ReleaseUsing`]). Server only.
+    pub const RELEASE_USING: &'static Event<ReleaseUsing, ()> = &RELEASE_USING;
+    /// One tick of a player using an item over time (see [`UseTick`]). Server only.
+    pub const USE_TICK: &'static Event<UseTick, ()> = &USE_TICK;
+}
+
+/// Whether anyone listens to use ticks, so the host hook answers without building the payload.
+pub(crate) fn use_tick_heard() -> bool {
+    !USE_TICK.is_empty()
+}
+
+/// Reports one tick of a use to the callbacks.
+pub(crate) fn using_tick(tick: &UseTick) {
+    USE_TICK.invoke(tick);
+}
+
+/// Whether anyone listens to releases, so the host hook answers without building the payload.
+pub(crate) fn release_heard() -> bool {
+    !RELEASE_USING.is_empty()
+}
+
+/// A release the callbacks answered: whether it counts as a use, and the edits to the player's carried stacks.
+pub(crate) fn released(release: &ReleaseUsing) -> (bool, Vec<super::entity_events_v1::CarriedEdit>) {
+    RELEASE_USING.invoke(release);
+    (release.used.get(), release.edits.borrow_mut().drain(..).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -459,6 +674,64 @@ mod tests {
         assert_eq!(stack_use_action(&stack(2)), Some(UseAction::Block));
         assert_eq!(stack_use_action(&stack(1)), Some(UseAction::Eat), "the selector's pose wins over the fixed one");
         assert_eq!(stack_use_action(&stack(0)), None, "a stack the selector declines keeps the game's pose");
+    }
+
+    #[test]
+    fn stacked_on_other_callbacks_are_keyed_by_the_carried_item() {
+        use super::super::block_entity_api_v1::ItemSlot;
+        fn pass(_: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision { StackedOnOtherDecision::Pass }
+        fn consume(request: &StackedOnOtherRequest<'_>) -> StackedOnOtherDecision {
+            assert!(request.secondary && request.allow_modification);
+            assert_eq!(request.clicked.map(|slot| slot.item.to_string()).as_deref(), Some("test:tool"));
+            StackedOnOtherDecision::Consume
+        }
+        assert!(!has_stacked_on_other());
+        assert!(stacked_on_other("test:kit").is_none());
+        StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), consume);
+        assert!(has_stacked_on_other());
+        let carried = ItemSlot::new(Identifier::new("test", "kit").unwrap(), 2);
+        let clicked = ItemSlot::new(Identifier::new("test", "tool").unwrap(), 1);
+        let request = StackedOnOtherRequest { carried: &carried, clicked: Some(&clicked), player: 7, secondary: true, allow_modification: true, random: 0.25 };
+        assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Consume));
+        assert!(stacked_on_other("test:other").is_none(), "other carried items keep the game's click");
+        StackedOnOtherRegistry::register(Identifier::new("test", "kit").unwrap(), pass);
+        assert!(matches!(stacked_on_other("test:kit").unwrap()(&request), StackedOnOtherDecision::Pass), "re-registering replaces");
+    }
+    fn a_release_reports_the_charge_and_collects_the_spend() {
+        use super::super::entity_events_v1::{CarriedEdit, CarriedSlot, StackSlot};
+        assert!(!release_heard());
+        ItemEvents::RELEASE_USING.register(|release| {
+            if release.stack.item != "test:thrown_tool" { return; }
+            if release.ticks_used > 10 {
+                release.set_used();
+                // The tool leaves the main hand: the hand's place is written back with a count of 0, which empties it.
+                let empty = super::super::block_entity_api_v1::ItemSlot::new(Identifier::parse("test:thrown_tool").unwrap(), 0);
+                release.edits.borrow_mut().push(CarriedEdit { slot: CarriedSlot::Equipment(StackSlot::MainHand), stack: empty });
+            }
+        });
+        assert!(release_heard());
+        let tool = StackData { item: "test:thrown_tool".into(), count: 1, ..Default::default() };
+        let release = |ticks_used: u32| ReleaseUsing {
+            stack: tool.clone(),
+            player: super::super::player_api::ServerPlayer { uuid: 7, name: "thrower".into() },
+            dimension: "minecraft:overworld".into(),
+            position: [0.5, 64.0, 0.5],
+            eye: [0.5, 65.62, 0.5],
+            look: [0.0, 0.0, 1.0],
+            creative: false,
+            ticks_used,
+            main_hand: Some(super::super::block_entity_api_v1::ItemSlot::new(Identifier::parse("test:thrown_tool").expect("valid id"), 1)),
+            off_hand: None,
+            used: std::cell::Cell::new(false),
+            edits: RefCell::new(Vec::new()),
+        };
+        let (used, edits) = released(&release(20));
+        assert!(used, "a charged release counts as a use");
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].stack.count, 0, "the thrown tool is spent from the hand");
+        let (used, edits) = released(&release(5));
+        assert!(!used, "a tap is no throw");
+        assert!(edits.is_empty());
     }
 
     #[test]

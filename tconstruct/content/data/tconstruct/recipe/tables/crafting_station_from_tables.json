@@ -11,6 +11,8 @@
     "p",
     "w"
   ],
+  "texture": "w",
+  "match_all": false,
   "result": {
     "id": "tconstruct:crafting_station"
   }

@@ -1,7 +1,10 @@
 {
   "parent": "tconstruct:block/template/pane/side",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
     "edge": "tconstruct:block/foundry/glass_top",
-    "pane": "tconstruct:block/foundry/glass"
+    "pane": "tconstruct:block/foundry/glass_connected",
+    "particle": "tconstruct:block/foundry/glass"
   }
 }

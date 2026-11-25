@@ -1,5 +1,9 @@
 {
   "type": "minecraft:tree",
+  "below_trunk_provider": {
+    "type": "minecraft:simple",
+    "state": "minecraft:air"
+  },
   "decorators": [
     {
       "type": "tconstruct:leave_vines",
@@ -9,13 +13,13 @@
     {
       "type": "minecraft:attached_to_leaves",
       "block_provider": {
-        "type": "minecraft:randomized_int_state_provider",
+        "type": "minecraft:randomized_int",
         "property": "age",
         "source": {
-          "type": "minecraft:simple_state_provider",
+          "type": "minecraft:simple",
           "state": {
-            "Name": "tconstruct:ender_slime_sapling",
-            "Properties": {
+            "id": "tconstruct:ender_slime_sapling",
+            "properties": {
               "age": "0",
               "hanging": "true",
               "stage": "0",
@@ -25,10 +29,8 @@
         },
         "values": {
           "type": "minecraft:uniform",
-          "value": {
-            "max_inclusive": 4,
-            "min_inclusive": 0
-          }
+          "max_inclusive": 4,
+          "min_inclusive": 0
         }
       },
       "directions": [
@@ -41,7 +43,7 @@
     }
   ],
   "dirt_provider": {
-    "type": "minecraft:simple_state_provider",
+    "type": "minecraft:simple",
     "state": "minecraft:dirt"
   },
   "foliage_placer": {
@@ -52,10 +54,10 @@
     "radius": 3
   },
   "foliage_provider": {
-    "type": "minecraft:simple_state_provider",
+    "type": "minecraft:simple",
     "state": {
-      "Name": "tconstruct:ender_slime_leaves",
-      "Properties": {
+      "id": "tconstruct:ender_slime_leaves",
+      "properties": {
         "distance": "7",
         "persistent": "false",
         "waterlogged": "false"
@@ -81,16 +83,16 @@
         "tconstruct:earth_congealed_slime"
       ],
       "muddy_roots_provider": {
-        "type": "minecraft:simple_state_provider",
+        "type": "minecraft:simple",
         "state": "tconstruct:earth_enderbark_roots"
       },
       "random_skew_chance": 0.2
     },
     "root_provider": {
-      "type": "minecraft:simple_state_provider",
+      "type": "minecraft:simple",
       "state": {
-        "Name": "tconstruct:enderbark_roots",
-        "Properties": {
+        "id": "tconstruct:enderbark_roots",
+        "properties": {
           "waterlogged": "false"
         }
       }
@@ -102,7 +104,7 @@
           "tconstruct:sky_congealed_slime"
         ],
         "state_provider": {
-          "type": "minecraft:simple_state_provider",
+          "type": "minecraft:simple",
           "state": "tconstruct:sky_enderbark_roots"
         }
       },
@@ -112,7 +114,7 @@
           "tconstruct:ichor_congealed_slime"
         ],
         "state_provider": {
-          "type": "minecraft:simple_state_provider",
+          "type": "minecraft:simple",
           "state": "tconstruct:ichor_enderbark_roots"
         }
       },
@@ -122,17 +124,15 @@
           "tconstruct:ender_congealed_slime"
         ],
         "state_provider": {
-          "type": "minecraft:simple_state_provider",
+          "type": "minecraft:simple",
           "state": "tconstruct:ender_enderbark_roots"
         }
       }
     ],
     "trunk_offset_y": {
       "type": "minecraft:uniform",
-      "value": {
-        "max_inclusive": 3,
-        "min_inclusive": 1
-      }
+      "max_inclusive": 3,
+      "min_inclusive": 1
     }
   },
   "trunk_placer": {
@@ -141,27 +141,23 @@
     "can_grow_through": "#tconstruct:enderbark/logs_can_grow_through",
     "extra_branch_length": {
       "type": "minecraft:uniform",
-      "value": {
-        "max_inclusive": 1,
-        "min_inclusive": 0
-      }
+      "max_inclusive": 1,
+      "min_inclusive": 0
     },
     "extra_branch_steps": {
       "type": "minecraft:uniform",
-      "value": {
-        "max_inclusive": 4,
-        "min_inclusive": 1
-      }
+      "max_inclusive": 4,
+      "min_inclusive": 1
     },
     "height_rand_a": 1,
     "height_rand_b": 4,
     "place_branch_per_log_probability": 0.5
   },
   "trunk_provider": {
-    "type": "minecraft:simple_state_provider",
+    "type": "minecraft:simple",
     "state": {
-      "Name": "tconstruct:enderbark_log",
-      "Properties": {
+      "id": "tconstruct:enderbark_log",
+      "properties": {
         "axis": "y"
       }
     }

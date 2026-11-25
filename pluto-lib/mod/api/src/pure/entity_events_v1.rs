@@ -33,6 +33,36 @@ pub struct LivingDamage {
     pub amount: f32,
 }
 
+/// The vanilla damage-type tags a hit's gates name, flattened from the pinned vanilla data
+/// (`.local/base-26.3/data/minecraft/tags/damage_type/*.json`, the same source and flattening as
+/// `tools/import_original_data.py`'s `write_damage_vanilla`): `bypasses_effects` is only starvation,
+/// `bypasses_invulnerability` the out-of-world and generic-kill types, and `avoids_guardian_thorns`
+/// magic, thorns and the explosion types. A data pack may change them; the table is the vanilla game.
+const DAMAGE_TYPE_TAGS: &[(&str, &[&str])] = &[
+    ("bypasses_effects", &["minecraft:starve"]),
+    ("bypasses_invulnerability", &["minecraft:out_of_world", "minecraft:generic_kill"]),
+    ("avoids_guardian_thorns", &["minecraft:magic", "minecraft:thorns", "minecraft:fireworks", "minecraft:explosion", "minecraft:player_explosion", "minecraft:bad_respawn_point"]),
+];
+
+impl LivingDamage {
+    /// Whether the damage type is in the vanilla damage-type tag `tag` (`minecraft:<name>`), from
+    /// `DAMAGE_TYPE_TAGS`; false for a tag the table does not name.
+    pub fn in_damage_type_tag(&self, tag: &str) -> bool {
+        let tag = tag.strip_prefix("minecraft:").unwrap_or(tag);
+        DAMAGE_TYPE_TAGS.iter().find(|(name, _)| *name == tag)
+            .is_some_and(|(_, members)| members.contains(&self.damage_type.as_str()))
+    }
+
+    /// Tinkers' `OnAttackedModifierHook.isDirectDamage`: the hit has a causing entity, the direct
+    /// entity is none or the causer, and the damage type is not in
+    /// `minecraft:avoids_guardian_thorns`. Vanilla's `isIndirect` is a direct entity different
+    /// from the causer; an id of 0 or less names none (the host passes 0, other tellings -1).
+    pub fn is_direct_damage(&self) -> bool {
+        self.attacker > 0 && (self.direct <= 0 || self.direct == self.attacker)
+            && !self.in_damage_type_tag("minecraft:avoids_guardian_thorns")
+    }
+}
+
 static ENTITY_LOAD: Event<EntityInfo, ()> = Event::void();
 static ENTITY_UNLOAD: Event<EntityInfo, ()> = Event::void();
 static ENTITY_TICK_PRE: Event<EntityInfo, bool> = Event::allow_all();
@@ -110,6 +140,17 @@ pub struct EntityState {
     /// The names of the equipment slots that hold an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), as
     /// `LivingEntity.getItemBySlot` finds them filled; None when the game did not report its equipment.
     pub equipment: Option<Vec<String>>,
+    /// The armor pieces it wears that carry custom data, as (slot, stack) in `feet`, `legs`, `chest`, `head` order, read from
+    /// its saved data with its state; empty when the game did not report them or it wears none. This is how a mob's worn mod
+    /// armor reaches the damage events: a player's pieces are remembered from their own tick instead.
+    pub armor_stacks: Vec<(String, StackData)>,
+    /// The ids of the enchantments on its equipment (the hands and the armor together), as
+    /// `LivingEntity.getEnchantmentLevel` would find them present; empty when the game reported
+    /// none or did not report its equipment's enchantments. Only presence is carried, not levels.
+    pub enchantments: Vec<String>,
+    /// Whether it is thundering where it stands: the weather the game reports for its level,
+    /// taken with `rain_exposed` (a storm over a sheltered entity still thunders).
+    pub thundering: bool,
     /// Whether it crouches: a player holding sneak. A mob never does.
     pub crouching: bool,
     /// Its height, the y of its feet; None when the game did not report it.
@@ -178,11 +219,25 @@ pub struct WeaponHit {
     pub entity: i32,
     pub kind: String,
     pub attacker: i32,
+    /// The dimension the hit happens in, such as `minecraft:overworld`; empty when the game does not name it.
+    pub dimension: String,
     /// The weapon: its damage, max damage and custom data; None for an empty hand.
     pub weapon: Option<StackData>,
+    /// The damage the hit is about to deal, before armor and enchantments take their share (the
+    /// incoming-damage amount); 0 when the game did not report one. A hit the armor absorbs whole
+    /// still reads its pre-armor amount here.
+    pub damage_dealt: f32,
+    /// The attacker's attack ticks as the hit landed: ticks since their last swing. A mob attacker
+    /// reads as fully charged, as mobs keep no strength ticker; with the weapon's attack speed
+    /// this is the host's attack-strength scale (see [`WeaponHit::fully_charged`]).
+    pub attack_ticks: u32,
     /// What the player and the mob were doing as the hit landed; None when the game could not tell.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// Where the mob stands (its feet position), as the game reported it; None when it could not tell.
+    pub target_position: Option<[f64; 3]>,
+    /// Where the attacking player stands (their feet position), as the game reported it; None when it could not tell.
+    pub attacker_position: Option<[f64; 3]>,
     /// The armor the attacking player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces
     /// carrying custom data. Empty when the player is not known (with several players online only the named player's armor is known).
     pub armor: Vec<(String, StackData)>,
@@ -192,7 +247,27 @@ pub struct WeaponHit {
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
-/// A server player's tick, heard while the player wears armor that carries custom data.
+/// The attack ticks a fresh or unknown attacker reads as: the host starts a player's ticker at 100
+/// and a swing's delay is at most a few hundred ticks, so this is fully charged for any weapon.
+pub const ATTACK_TICKS_CHARGED: u32 = 10_000;
+
+impl WeaponHit {
+    /// The host's attack-strength scale for these ticks and this weapon's attack speed:
+    /// `(ticks + 0.5) / (20 / speed)`, clamped to 0..=1 (the host's `attack_strength_scale` in
+    /// `melee.rs`; a speed of 0 never charges, as the host's delay is then unbounded).
+    pub fn attack_strength_scale(&self, attack_speed: f32) -> f32 {
+        ((self.attack_ticks as f32 + 0.5) / (20.0 / attack_speed)).clamp(0.0, 1.0)
+    }
+
+    /// Whether the swing was fully charged: the host's `scale > 0.9` (the "full" gate of
+    /// `melee.rs`, and its critical-attack gate), for this weapon's attack speed. A mob attacker's
+    /// ticks read as charged (see [`ATTACK_TICKS_CHARGED`]).
+    pub fn fully_charged(&self, attack_speed: f32) -> bool {
+        self.attack_strength_scale(attack_speed) > 0.9
+    }
+}
+
+/// A server player's tick, heard while the player wears armor or holds a tool that carries custom data, or carries a mob effect.
 #[derive(Clone, Debug)]
 pub struct PlayerTick {
     /// The player's uuid and entity id.
@@ -202,10 +277,33 @@ pub struct PlayerTick {
     pub dimension: String,
     /// The player's feet position.
     pub position: [f64; 3],
+    /// The direction the player looks, as a unit vector: where a shot from them would go.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
     /// Whether the player stands on the ground.
     pub on_ground: bool,
+    /// Whether the player holds sneak (`Player.isShiftKeyDown`).
+    pub sneaking: bool,
+    /// Whether the player glides with an elytra (`isFallFlying`).
+    pub gliding: bool,
+    /// Whether the player spectates (game mode 3).
+    pub spectator: bool,
+    /// Whether the player stands in water (the block at their feet holds water).
+    pub in_water: bool,
+    /// Whether the player is on a climbable block (`LivingEntity.onClimbable`: the block at their feet is in
+    /// `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way; a gliding player passing a
+    /// block it can glide through never counts). A spectator never counts.
+    pub on_climbable: bool,
     /// The armor the player wears, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
     pub armor: Vec<(String, StackData)>,
+    /// The stacks the player holds, as (slot, stack): `mainhand`, `offhand`, only the pieces carrying custom data.
+    pub hands: Vec<(String, StackData)>,
+    /// The light where the player stands, sampled at the block containing their position raised by half a block (the point the
+    /// original's walk modules read): the block light, the sky light, and the sky darken the sky light is read against.
+    pub block_light: u8,
+    pub sky_light: u8,
+    pub sky_darken: u8,
     /// The effects on the player, as (effect id, amplifier, ticks left).
     pub effects: Vec<(String, i32, i32)>,
     /// The effects to take off the player, which callbacks add to.
@@ -216,6 +314,121 @@ pub struct PlayerTick {
     /// The actions to do to the ticking player, as `Attacker`, which callbacks add to; they land at the end of the tick. Only a player the host
     /// can name by entity id is reached (the acting player, or a guest).
     pub actions: RefCell<Vec<EntityAction>>,
+}
+
+/// A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player. The world and
+/// entity scopes are open while it runs, so callbacks may read and change the world around the mob and act on entities.
+#[derive(Clone, Debug)]
+pub struct MobTick {
+    /// The mob's entity id.
+    pub entity: i32,
+    /// The mob's type, such as `minecraft:zombie`.
+    pub kind: String,
+    /// The dimension the mob is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The mob's feet position.
+    pub position: [f64; 3],
+    /// The motion the mob moves with, as the game reported it after its tick.
+    pub velocity: [f64; 3],
+    /// Whether the mob stands on the ground.
+    pub on_ground: bool,
+    /// Whether the mob is in water.
+    pub in_water: bool,
+    /// Whether the mob is on a climbable block (`LivingEntity.onClimbable`: a climbing kind reads its own climbing
+    /// flag instead of the block; a gliding mob passing a block it can glide through never counts; the block at its
+    /// feet is in `#minecraft:climbable`, or an open trapdoor over a ladder facing the same way). Kinds that never
+    /// climb (horses and their kin, ghasts, phantoms) always read false.
+    pub on_climbable: bool,
+    /// Whether the mob climbs a wall (`Spider.onClimbable`'s own flag: a spider or cave spider pressed against a
+    /// wall sets it from horizontal collision; any other kind never reads true).
+    pub climbing: bool,
+    /// Whether the mob glides with an elytra (`isFallFlying`), as the player's tick report names it.
+    pub gliding: bool,
+    /// The armor the mob wears, as (slot, stack): `feet`, `legs`, `chest`, `head`. Unlike a player's tick report this lists
+    /// every piece worn, not only those carrying custom data: a mob's attribute values are worked out from this report alone.
+    pub armor: Vec<(String, StackData)>,
+    /// The stacks the mob holds, as (slot, stack): `mainhand`, `offhand`.
+    pub hands: Vec<(String, StackData)>,
+    /// The effects on the mob, as (effect id, amplifier, ticks left).
+    pub effects: Vec<(String, i32, i32)>,
+}
+
+/// Where a player is and where they look, as of their last tick: the aim a keybind shot
+/// (a helmet's fireball) fires with, when no telling carries the player at the press.
+#[derive(Clone, Debug)]
+pub struct PlayerAim {
+    /// The dimension the player is in, such as `minecraft:overworld`.
+    pub dimension: String,
+    /// The player's feet position.
+    pub position: [f64; 3],
+    /// The direction the player looks, as a unit vector.
+    pub look: [f64; 3],
+    /// Whether the player is in creative mode.
+    pub creative: bool,
+}
+
+/// A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`).
+/// Heard on the game that runs the attack, for a living target only: `critical` starts as
+/// vanilla's answer and `damage_multiplier` at 1.5 for a vanilla critical, 1.0 otherwise;
+/// a callback may force or deny the critical and change the multiplier, which scales the
+/// damage only while `critical` ends true.
+#[derive(Clone, Debug)]
+pub struct CriticalHit {
+    /// The attacking player's entity id, or -1 when the game names no acting player
+    /// (a guest's hit on a LAN world, where the attack runs on another game).
+    pub attacker_entity: i32,
+    /// Whether the attacker stands on the ground.
+    pub attacker_on_ground: bool,
+    /// Whether the attacker stands in water (the block at their feet holds water).
+    pub attacker_in_water: bool,
+    /// The entity type id of the target, such as `minecraft:zombie`.
+    pub target_kind: String,
+    /// Vanilla's answer: whether the hit would be critical without a mod.
+    pub vanilla_critical: bool,
+    /// Whether the hit is critical now; change it with `set`.
+    pub critical: Cell<bool>,
+    /// The damage multiplier now; change it with `set`. Only applies while `critical` is true.
+    pub damage_multiplier: Cell<f32>,
+}
+
+/// A living entity jumped (NeoForge: `LivingEvent.LivingJumpEvent`). Heard on both
+/// games; the event carries no host and no velocity, so a callback that needs to move
+/// the entity defers the push to the entity's next tick (a player has no set-velocity:
+/// the push lands as the set velocity minus the motion the tick measured).
+#[derive(Clone, Debug)]
+pub struct LivingJump {
+    /// The entity's numeric id.
+    pub entity: i32,
+    /// The entity type id, such as `minecraft:player`.
+    pub kind: String,
+}
+
+/// The local player's movement input, after the game read it and before it applies it
+/// (NeoForge: `MovementInputUpdateEvent`). Client only. A callback may scale the
+/// impulses (an item's use slowdown) or read the jump key state (a double jump);
+/// `using` is the stack being used, when one is, for the use-item speed its stats
+/// carry; it may not reach the player themselves — the entity reach is not open here, so
+/// a motion change is deferred to the player's next tick.
+#[derive(Clone, Debug)]
+pub struct MovementInput {
+    /// The local player's entity id, or -1 when the game names no acting player.
+    pub entity: i32,
+    /// The forward impulse now; change it with `set`.
+    pub forward: Cell<f32>,
+    /// The strafe impulse now; change it with `set`.
+    pub strafe: Cell<f32>,
+    /// Whether the jump key is held.
+    pub jump: Cell<bool>,
+    /// Whether the sneak key is held.
+    pub sneak: Cell<bool>,
+    /// Whether the player is using an item (eating, drawing a bow, blocking).
+    pub using_item: bool,
+    /// The stack being used, when the player is using an item: the held (main-hand) stack,
+    /// as the game hands it out. None when the player is not using an item, or the game
+    /// names no acting player. A use from the off hand has no surface at this hook (the
+    /// native hook names no hand, and the use-item tick that does is server-only), so an
+    /// off-hand use reads as the main hand's stack.
+    pub using: Option<StackData>,
 }
 
 /// Damage for a callback to deal to the mob that hurt the player (an armor's thorns).
@@ -235,12 +448,17 @@ pub enum ActionTarget {
 }
 
 /// How a [`EntityAction::Knockback`] picks the way the target is pushed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum KnockbackDirection {
     /// Away from the other party of the hit, as the game's own damage knockback pushes.
     AwayFromOther,
     /// Against the way the target faces, as `Entity.knockback(strength, -sin(yaw), cos(yaw))` pushes.
     AgainstFacing,
+    /// Along a caller-given horizontal vector, read as `Entity.knockback(strength, x, z)` reads its own
+    /// arguments: the target is pushed along the negated, normalized vector (and up by the strength,
+    /// capped as the game's own knockback caps it, when it stands on the ground). A projectile's hit
+    /// passes its negated motion, so the target is pushed the way the projectile flew.
+    Vector { x: f64, z: f64 },
 }
 
 /// Something for a callback to do to one party of a hit, which the game does after the callbacks ran (a weapon hit's before its damage
@@ -262,25 +480,43 @@ pub enum EntityAction {
     /// `LivingEntity.addEffect`: puts a status effect on the target, a player or a mob. An effect id the game does not know is skipped;
     /// `amplifier` is the level less one and `duration` is in ticks, and an effect with a negative amplifier or no duration is not given.
     AddEffect { target: ActionTarget, effect: String, amplifier: i32, duration: i32 },
-    /// Edits the custom data of the stack a player carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when that stack is
-    /// still of `item`. Players only: a mob target, a slot that holds another item and an edit that changes nothing are skipped. Acts on
-    /// the stack as it is when the action lands, not as the callback saw it, so wear that happened in between stays.
+    /// Edits the custom data of the stack a player or a mob carries in `slot` (`ItemStack.set(DataComponents.CUSTOM_DATA, ..)`), when
+    /// that stack is still of `item`. A player is reached only when they are the acting player of the hit; a mob is reached through
+    /// its living equipment write, except its off hand, which the host keeps as an item only. A slot that holds another item and an
+    /// edit that changes nothing are skipped. Acts on the stack as it is when the action lands, not as the callback saw it, so wear
+    /// that happened in between stays.
     EditStackData { target: ActionTarget, slot: StackSlot, item: String, edits: Vec<StackDataEdit> },
     /// `LivingEntity.hurt`: deals the target `amount` damage of `damage_type` with no attacker, as the host's hurt call does (armor, effects,
     /// invulnerability time and the damage hooks all hear it, so a callback hears its own hurt). A mod's own damage type id works once its
     /// data pack declares it (`data/<namespace>/damage_type/<name>.json`). Players and mobs; one the host cannot reach is skipped.
     Hurt { target: ActionTarget, amount: f32, damage_type: String },
     /// `Entity.teleportTo`: moves the target to `position`. A mob's navigation stops and its fall distance resets, as the game's own
-    /// teleport does; another entity keeps the way it faces. Reaches mobs and the game's other entities; a player is skipped — the
-    /// host has no call that moves a player (its teleports of players are reported by the teleport events, not ordered).
+    /// teleport does; another entity keeps the way it faces. A player is moved by the host's own player teleport (the `/tp` path:
+    /// they leave their vehicle, lose their motion and fall, and their client is told), keeping the way they face.
     Teleport { target: ActionTarget, position: [f64; 3] },
     /// Sets how many ticks an active effect has left on a player, keeping its level and flags: shortens or lengthens it. An effect the target
     /// does not have, a duration that is not positive and a mob target are skipped. The host takes the effect off and gives it back, so
     /// the game's own rules for giving an effect apply.
     SetEffectDuration { target: ActionTarget, effect: String, duration: i32 },
+    /// Folds a multiply-total payload into the base value of the target's `attribute`: the base becomes `factor` times what it is,
+    /// applied as a ratio against the factor already folded in, so repeating the action with the same factor changes nothing, and a
+    /// factor of 1.0 unfolds it. This is how a multiply-total effect payload on a host attribute is carried (a base move cannot
+    /// express it): the self-destructing effect's movement speed, 0.1 while primed. Players only; a mob target and a factor that is
+    /// not a positive finite number are skipped. An attribute the host does not know is skipped. The fold is kept apart from the
+    /// additions on the same attribute (a lightspeed addition landing on a folded base is unfolded with it), and it is unfolded when
+    /// the player leaves, after the additions are taken off (they sat on top of the folded base).
+    MultiplyAttribute { target: ActionTarget, attribute: String, factor: f64 },
+    /// `LivingEntity.spawnAtLocation` / `ModifierUtil.dropItem`: drops `stack` as an item at the target entity, at the
+    /// entity's position as the drop lands (the game's own item spawn, with its pickup delay). Reaches any living
+    /// entity the game can name, mobs and the ender dragon included; a target that has left the world drops nothing.
+    DropItem { target: ActionTarget, stack: StackData },
+    /// Spawns an entity of `kind` at the target's position, as the game's own summon does (the kind is
+    /// loaded from its data, projectiles and lightning included). A target the host cannot name, or a
+    /// kind the game does not know, spawns nothing.
+    Summon { target: ActionTarget, kind: String },
 }
 
-/// Which stack of a player an [`EntityAction::EditStackData`] edits.
+/// Which stack of a player or a mob an [`EntityAction::EditStackData`] edits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StackSlot { MainHand, OffHand, Feet, Legs, Chest, Head }
 
@@ -400,18 +636,23 @@ pub(crate) fn healed_health(current: f32, amount: f32) -> Option<f32> {
     (amount.is_finite() && amount > 0.0 && current.is_finite()).then(|| current + amount)
 }
 
-/// A mob hurting the player, heard on a server as the hit starts (before armor wears and the damage lands).
+/// A mob hurting the player, heard on a server as the damage arrives (the hurt stage, before armor wears and the damage lands).
 #[derive(Clone, Debug)]
 pub struct WearerHit {
     /// The mob's entity id and type id.
     pub attacker: i32,
     pub kind: String,
-    /// The damage type id and the amount the game works the hit out as: not reported yet, so an empty id and 0.0 for now (the hit is
-    /// heard before the game works either out).
+    /// The damage type id and the amount the game works the hit out as, resolved by the damage event that follows the hurt report
+    /// (the report itself names neither yet); a callback always sees the real type, such as `minecraft:mob_attack` or `minecraft:arrow`.
     pub damage_type: String,
     pub amount: f32,
+    /// The entity that directly dealt the hit (an arrow, for example): the attacker itself for a melee hit, -1 until the damage
+    /// event resolves it.
+    pub direct: i32,
     /// What the mob was doing as the hit landed.
     pub attacker_state: EntityState,
+    /// Where the mob stands (its feet position), as the game reported it; None when it could not tell.
+    pub attacker_position: Option<[f64; 3]>,
     /// The armor the player wore as of their last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the pieces carrying custom data.
     pub armor: Vec<(String, StackData)>,
     /// The effects to put on the mob, which callbacks add to.
@@ -434,14 +675,57 @@ pub struct DamageModification {
     /// When a player's attack caused it: the stack the player attacked with (damage, max damage, custom data); None otherwise.
     pub attacker_stack: Option<StackData>,
     /// The armor the damaged entity wore as of its last tick, as (slot, stack): `feet`, `legs`, `chest`, `head`, only the
-    /// pieces carrying custom data (a mod's own armor keeps its state there). Empty for an entity that is not a player.
+    /// pieces carrying custom data (a mod's own armor keeps its state there). A player's pieces are remembered from
+    /// their tick; another living entity's are the ones the hit's own report read from its saved data, when that
+    /// report ran, so a hit no report covered (a mob's hit on a mob, the environment) names none.
     pub armor: Vec<(String, StackData)>,
     /// When a player's weapon hit a mob: what the player and the mob were doing as the hit landed; None otherwise.
+    /// A mob's synchronous attack (a melee swing the game names the attacker of before the hit lands) also reports
+    /// the mob's state here, from its attack snapshot; the fields the snapshot does not carry (its health, its
+    /// equipment by slot) stay None.
     pub attacker_state: Option<EntityState>,
     pub target_state: Option<EntityState>,
+    /// The entity type id of the entity that caused the hit, such as `minecraft:zombie`; empty when the game did
+    /// not report it. A player's weapon hit reports `minecraft:player`, a mob's synchronous attack the mob's type.
+    pub attacker_kind: String,
+    /// Whether the entity that caused the hit is a player: `Some(true)` when the game names a player as the cause
+    /// (a weapon hit, or a hit whose causing entity carries a player's identity, such as a player's explosion),
+    /// `Some(false)` when it names a mob, None when the game did not say.
+    pub attacker_is_player: Option<bool>,
+    /// The stack in the causing entity's main hand, for an attacker of any kind; None for an empty hand or when
+    /// the game did not report it. For a player's attack this is the same stack as `attacker_stack`.
+    pub attacker_main_hand: Option<StackData>,
+    /// The hand that fired the arrow of this hit, when the shot's weapon is still held in it: the
+    /// hit's opening names both hands as the hit lands, and the ammunition telling names the weapon that was
+    /// shot. None for another hit — a trident's shot names no weapon, so its hit names no hand — or when
+    /// neither hand holds that weapon any more.
+    pub attacker_launcher_hand: Option<StackSlot>,
+    /// The launcher's stack as the hit landed (the bow or crossbow in `attacker_launcher_hand`); None when the
+    /// hand is.
+    pub attacker_launcher_stack: Option<StackData>,
+    /// The stack on the causing entity's chest, for an attacker of any kind; None for an empty chest slot or when
+    /// the game did not report it. Only a mob's synchronous attack reports it.
+    pub attacker_chest: Option<StackData>,
+    /// The causing entity's `minecraft:attack_damage` attribute as the game reports it (a mob's, from its attack
+    /// snapshot); None when not reported.
+    pub attacker_attack_damage: Option<f32>,
+    /// The damaged entity's health as the hit arrived, before this hit's damage; None when the game did not
+    /// report it (a player victim's health is not reported at this stage).
+    pub target_health: Option<f32>,
+    /// The damaged entity's `minecraft:attack_damage` attribute as the game reports it (a mob victim's); None
+    /// when not reported.
+    pub target_attack_damage: Option<f32>,
+    /// Where the causing entity stands (its feet position) as the hit landed, and where the damaged entity
+    /// stands; None when the game did not report them. The weapon-hit report names both for a player's
+    /// weapon hit; a mob's synchronous attack names them from the same report. A hit no report covered
+    /// (the environment) names neither.
+    pub attacker_position: Option<[f64; 3]>,
+    pub target_position: Option<[f64; 3]>,
     /// The actions to do to the damaged player (`Victim`), which callbacks add to; they land on the player's next tick (only for a player
     /// wearing armor with custom data, whose armor is listed in `armor`), and the other party's are dropped. On a player's attack
-    /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead.
+    /// (`attacker_stack` is set) the actions for `Attacker` land on the attacking player's next tick instead. An action for a
+    /// party neither tick can place (a mob attacker, a mob victim) is kept for that entity's next tick, and a
+    /// [`EntityAction::DropItem`] is handed to the game to spawn at its target entity.
     pub actions: RefCell<Vec<EntityAction>>,
 }
 
@@ -523,9 +807,43 @@ pub struct VisibilityModification {
     pub multiplier: Cell<f64>,
 }
 
+/// Experience a mob killed by a player is about to drop, before the game splits the total into
+/// orbs (NeoForge: `LivingExperienceDropEvent`). Heard on a server for a mob the game drops
+/// experience for when a player killed it; a mob that drops none is not heard. The sculk
+/// catalyst's spread is not a drop and is not heard either.
+#[derive(Clone, Debug)]
+pub struct ExperienceDrop {
+    /// The dying mob's entity id.
+    pub entity: i32,
+    /// The mob's type id, such as `minecraft:zombie`.
+    pub kind: String,
+    /// The player who killed the mob, as (uuid, entity id): the uuid names them for the player
+    /// reads, the entity id for the reads keyed by it (0 when the game does not know it; such
+    /// reads see the declared defaults). None when the game names no player: the drop is then
+    /// heard for the mob's own terms only.
+    pub player: Option<(u128, i32)>,
+    /// The dying mob's effects as of the drop, as (id, amplifier).
+    pub effects: Vec<(String, i32)>,
+    /// The stack the killing projectile was launched from, when the killing blow was a projectile
+    /// a player launched and the launch named its tool; None otherwise (a melee kill, a projectile
+    /// no launch named, or a projectile the game did not report). The consumer reads the
+    /// projectile's recorded experience float from it instead of the held tool's.
+    pub projectile_tool: Option<StackData>,
+    /// The looting slot the killing blow's attack claimed (canon's `ModifierLootingHandler`:
+    /// the slot the attacking tool came from, usually the main hand, an armor piece when the
+    /// blow was struck with one); None when no weapon hit named one, and the main hand reads
+    /// then. The consumer reads the tool in this slot instead of the main hand.
+    pub looting_slot: Option<StackSlot>,
+    /// The experience now, which callbacks may change with `set` (0 or less drops no orbs);
+    /// each callback sees the last one's.
+    pub experience: Cell<i32>,
+}
+
 static MODIFY_VISIBILITY: Event<VisibilityModification, ()> = Event::void();
+static EXPERIENCE_DROP: Event<ExperienceDrop, ()> = Event::void();
 static SHEAR: Event<ShearAttempt, ()> = Event::void();
 static PLAYER_TICK: Event<PlayerTick, ()> = Event::void();
+static MOB_TICK: Event<MobTick, ()> = Event::void();
 static WEAPON_HIT: Event<WeaponHit, ()> = Event::void();
 static WEARER_HIT: Event<WearerHit, ()> = Event::void();
 static MODIFY_KNOCKBACK: Event<KnockbackModification, ()> = Event::void();
@@ -534,6 +852,9 @@ static MODIFY_DAMAGE: Event<DamageModification, ()> = Event::void();
 static MODIFY_HURT: Event<DamageModification, ()> = Event::void();
 static ALLOW_DAMAGE: Event<LivingDamage, bool> = Event::allow_all();
 static AFTER_DEATH: Event<LivingDamage, ()> = Event::void();
+static CRITICAL_HIT: Event<CriticalHit, ()> = Event::void();
+static LIVING_JUMP: Event<LivingJump, ()> = Event::void();
+static MOVEMENT_INPUT: Event<MovementInput, ()> = Event::void();
 
 /// Fabric: `ServerLivingEntityEvents`.
 pub struct ServerLivingEntityEvents;
@@ -550,10 +871,14 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_HURT: &'static Event<DamageModification, ()> = &MODIFY_HURT;
     /// Fabric: `AFTER_DEATH`. Called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
     pub const AFTER_DEATH: &'static Event<LivingDamage, ()> = &AFTER_DEATH;
-    /// A server player's tick, heard while they wear armor carrying custom data: take effects off them with `remove_effects`.
+    /// A server player's tick, heard while they wear armor or hold a tool carrying custom data: take effects off them with `remove_effects`.
     /// The world scope is open while it runs, so callbacks may read and change blocks around the player.
     pub const PLAYER_TICK: &'static Event<PlayerTick, ()> = &PLAYER_TICK;
-    /// A mob hurting the player, as the hit starts: push status effects on the mob with `effects`. Server only.
+    /// A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player: it carries
+    /// the mob's position, motion and state, every piece it wears and holds, and its effects. The world and entity scopes are
+    /// open while it runs.
+    pub const MOB_TICK: &'static Event<MobTick, ()> = &MOB_TICK;
+    /// A mob hurting the player, as the damage arrives: push status effects on the mob with `effects`. Server only.
     pub const WEARER_HIT: &'static Event<WearerHit, ()> = &WEARER_HIT;
     /// A player's weapon hit on a mob, before its damage lands: push status effects on the mob with `effects`. Server only.
     pub const WEAPON_HIT: &'static Event<WeaponHit, ()> = &WEAPON_HIT;
@@ -563,6 +888,17 @@ impl ServerLivingEntityEvents {
     pub const MODIFY_ITEM_DAMAGE: &'static Event<ItemDamage, ()> = &MODIFY_ITEM_DAMAGE;
     /// NeoForge: `LivingVisibilityEvent`. How far a mob sees a player in armor carrying custom data: scale it with `multiplier.set`. Server only.
     pub const MODIFY_VISIBILITY: &'static Event<VisibilityModification, ()> = &MODIFY_VISIBILITY;
+    /// NeoForge: `CriticalHitEvent`. A player's melee hit on a living target: force or deny the critical with `critical.set` and change the
+    /// damage multiplier with `damage_multiplier.set`. The attacker is the acting player, or -1 when the game names none (a guest's hit).
+    pub const CRITICAL_HIT: &'static Event<CriticalHit, ()> = &CRITICAL_HIT;
+    /// NeoForge: `LivingEvent.LivingJumpEvent`. A living entity jumped: a callback that needs to move it defers the push to its next tick.
+    pub const LIVING_JUMP: &'static Event<LivingJump, ()> = &LIVING_JUMP;
+    /// NeoForge: `MovementInputUpdateEvent`. The local player's movement input: scale the impulses with `forward.set` / `strafe.set`, or
+    /// read the jump key state. Client only; the entity reach is not open here, so a motion change is deferred to the next tick.
+    pub const MOVEMENT_INPUT: &'static Event<MovementInput, ()> = &MOVEMENT_INPUT;
+    /// NeoForge: `LivingExperienceDropEvent`. The experience a mob killed by a player is about to drop: change the total with
+    /// `experience.set`. Server only.
+    pub const EXPERIENCE_DROP: &'static Event<ExperienceDrop, ()> = &EXPERIENCE_DROP;
 }
 
 /// The effects the callbacks take off the player on their tick.
@@ -571,19 +907,182 @@ pub(crate) fn player_tick(tick: &PlayerTick) -> Vec<String> {
     tick.remove_effects.borrow_mut().drain(..).collect()
 }
 
+/// A mob's tick, heard by the callbacks.
+pub(crate) fn mob_tick(tick: &MobTick) {
+    MOB_TICK.invoke(tick);
+}
+
+/// Whether any callback hears a mob's tick, so the host adapter builds the report only then.
+pub(crate) fn mob_tick_heard() -> bool {
+    !MOB_TICK.is_empty()
+}
+
 /// The actions the callbacks queued on the player's tick, taken after `player_tick`.
 pub(crate) fn take_tick_actions(tick: &PlayerTick) -> Vec<EntityAction> {
     tick.actions.borrow_mut().drain(..).collect()
 }
 
+/// A player's melee hit about to be critical, or not: what the callbacks leave of `critical` and `damage_multiplier` is what the game goes on with.
+pub(crate) fn critical_hit(hit: &CriticalHit) {
+    CRITICAL_HIT.invoke(hit);
+}
+
+/// A living entity jumped.
+pub(crate) fn living_jump(jump: &LivingJump) {
+    LIVING_JUMP.invoke(jump);
+}
+
+/// The local player's movement input, after the game read it and before it applies it.
+pub(crate) fn movement_input(input: &MovementInput) {
+    MOVEMENT_INPUT.invoke(input);
+}
+
+/// Whether anyone listens to experience drops, so the game only reads the mob's effects when someone does.
+pub(crate) fn experience_drop_heard() -> bool {
+    !EXPERIENCE_DROP.is_empty()
+}
+
+/// The experience after every callback has had its say.
+pub(crate) fn experience_drop(drop: &ExperienceDrop) -> i32 {
+    EXPERIENCE_DROP.invoke(drop);
+    drop.experience.get()
+}
+
+thread_local! {
+    /// The player a dying mob's death loot names as its killer, remembered for the experience
+    /// drop the game works out in the same call: its experience report names no player, so the
+    /// loot report (which runs first, in the same call) leaves the name here.
+    static EXPERIENCE_ATTACKER: RefCell<Option<(i32, u128, std::time::Instant)>> = const { RefCell::new(None) };
+}
+
+/// How long a killer's name waits for its drop; a loot report whose drop never comes (the mob
+/// dropped no experience) leaves a name that is dropped unread once it is this old.
+const EXPERIENCE_ATTACKER_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Names the player a dying mob's loot is credited to, for the experience drop that follows.
+pub(crate) fn note_experience_attacker(entity: i32, player: u128) {
+    EXPERIENCE_ATTACKER.with(|pending| *pending.borrow_mut() = Some((entity, player, std::time::Instant::now())));
+}
+
+/// The killer `note_experience_attacker` named for this mob, taken; a stale name is dropped.
+pub(crate) fn take_experience_attacker(entity: i32) -> Option<u128> {
+    EXPERIENCE_ATTACKER.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match *pending {
+            Some((who, player, at)) if who == entity && at.elapsed() < EXPERIENCE_ATTACKER_LIFETIME => { *pending = None; Some(player) }
+            Some((_, _, at)) if at.elapsed() >= EXPERIENCE_ATTACKER_LIFETIME => { *pending = None; None }
+            _ => None,
+        }
+    })
+}
+
+/// How long a killing blow's direct entity waits for its victim's death, and a looting slot waits
+/// for its attack's kill; a blow whose victim drops no experience leaves a name that is dropped
+/// unread once it is this old.
+const KILLING_NOTE_LIFETIME: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// The direct entity of the last blow that landed on each victim, by victim entity id: a projectile
+/// there names the launcher's tool (see `PROJECTILE_TOOLS`), so the experience drop of a mob the
+/// blow killed reads its float instead of the held tool's. Noted on every blow, including one with
+/// no direct entity, so a non-projectile killing blow does not inherit an earlier projectile's float.
+static KILLING_DIRECT: std::sync::Mutex<std::collections::BTreeMap<i32, (i32, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Remembers the direct entity of the blow that landed on `victim`.
+pub(crate) fn note_killing_direct(victim: i32, direct: i32) {
+    let Ok(mut blows) = KILLING_DIRECT.lock() else { return };
+    let now = std::time::Instant::now();
+    blows.retain(|_, (_, at)| at.elapsed() < KILLING_NOTE_LIFETIME);
+    blows.insert(victim, (direct, now));
+}
+
+/// The direct entity of the blow that landed on `victim`, taken; a stale one is dropped.
+pub(crate) fn take_killing_direct(victim: i32) -> Option<i32> {
+    let Ok(mut blows) = KILLING_DIRECT.lock() else { return None };
+    match blows.remove(&victim) {
+        Some((direct, at)) if at.elapsed() < KILLING_NOTE_LIFETIME => Some(direct),
+        _ => None,
+    }
+}
+
+/// How long a launched projectile's tool waits for a kill: a projectile flies for seconds at most,
+/// and an entry older than this is dropped unread (an entity id reused by another projectile after
+/// the first left the world must not lend it its launcher's tool).
+const PROJECTILE_TOOL_LIFETIME: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// The most launched projectiles remembered at once; past it the oldest launch is forgotten rather
+/// than letting a broken caller grow the map without bound.
+const MAX_PROJECTILE_TOOLS: usize = 4096;
+
+/// The stack each player's projectile was launched from, by projectile entity id: the death report
+/// names the killing projectile, not its float, and the launch is the only moment the tool is in
+/// hand. A launch no player made (a dispenser, a mob) names no tool.
+static PROJECTILE_TOOLS: std::sync::Mutex<std::collections::BTreeMap<u32, (StackData, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Remembers the stack `projectile` was launched from.
+pub(crate) fn note_projectile_tool(projectile: u32, tool: StackData) {
+    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return };
+    let now = std::time::Instant::now();
+    tools.retain(|_, (_, at)| at.elapsed() < PROJECTILE_TOOL_LIFETIME);
+    if tools.len() >= MAX_PROJECTILE_TOOLS {
+        if let Some(oldest) = tools.iter().min_by_key(|(_, (_, at))| *at).map(|(id, _)| *id) { tools.remove(&oldest); }
+    }
+    tools.insert(projectile, (tool, now));
+}
+
+/// The stack `projectile` was launched from, taken; a stale one is dropped.
+pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
+    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return None };
+    match tools.remove(&projectile) {
+        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool),
+        _ => None,
+    }
+}
+
+/// The looting slot each player's last weapon hit claimed, by player uuid: the slot the attacking
+/// tool came from (canon's `ModifierLootingHandler`, which claims it at attack time and resets it
+/// after the hit). A kill within the lifetime of a claim reads the claimed slot's tool instead of
+/// the main hand's; a kill after it reads the main hand.
+static LOOTING_SLOTS: std::sync::Mutex<std::collections::BTreeMap<u128, (StackSlot, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Claims the looting slot `slot` for `player`'s next kill.
+pub(crate) fn note_looting_slot(player: u128, slot: StackSlot) {
+    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return };
+    let now = std::time::Instant::now();
+    slots.retain(|_, (_, at)| at.elapsed() < KILLING_NOTE_LIFETIME);
+    slots.insert(player, (slot, now));
+}
+
+/// The looting slot `player`'s last weapon hit claimed, taken; a stale claim is dropped.
+pub(crate) fn take_looting_slot(player: u128) -> Option<StackSlot> {
+    let Ok(mut slots) = LOOTING_SLOTS.lock() else { return None };
+    match slots.remove(&player) {
+        Some((slot, at)) if at.elapsed() < KILLING_NOTE_LIFETIME => Some(slot),
+        _ => None,
+    }
+}
+
+/// The looting slot an attack with `weapon` claims when the attacker wears `armor` and holds
+/// `offhand`: the armor slot whose piece the weapon is, the off hand when the weapon is the
+/// off-hand stack, else the main hand. Two pieces are the same tool when their item and custom
+/// data match (damage is wear, not identity); when two worn pieces match, the first named wins.
+pub(crate) fn looting_slot(weapon: Option<&StackData>, armor: &[(String, StackData)], offhand: Option<&StackData>) -> StackSlot {
+    let Some(weapon) = weapon else { return StackSlot::MainHand };
+    let same = |stack: &StackData| stack.item == weapon.item && stack.custom_data == weapon.custom_data;
+    if let Some((slot, _)) = armor.iter().find(|(_, stack)| same(stack)) {
+        if let Some(found) = armor_stack_slot(slot) { return found; }
+    }
+    if offhand.is_some_and(|stack| same(stack)) { return StackSlot::OffHand; }
+    StackSlot::MainHand
+}
+
 static ATTRIBUTES: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 static TICKING: std::sync::Mutex<std::collections::BTreeSet<u128>> = std::sync::Mutex::new(std::collections::BTreeSet::new());
 
-/// Whether the player's tick is heard: while they wear armor carrying custom data, and for one tick after the last such piece comes off, so
-/// that what the callbacks kept for the armor (an attribute amount) is let go.
-pub(crate) fn tick_wanted(player: u128, armor_worn: bool) -> bool {
-    let Ok(mut ticking) = TICKING.lock() else { return armor_worn };
-    if armor_worn { ticking.insert(player); true } else { ticking.remove(&player) }
+/// Whether the player's tick is heard: while they wear armor or hold a tool carrying custom data, and for one tick after the last
+/// such piece goes away, so that what the callbacks kept for the equipment (an attribute amount) is let go.
+pub(crate) fn tick_wanted(player: u128, equipped: bool) -> bool {
+    let Ok(mut ticking) = TICKING.lock() else { return equipped };
+    if equipped { ticking.insert(player); true } else { ticking.remove(&player) }
 }
 
 /// The changes to a player's attribute bases for the amounts `wanted` (summed per attribute): (attribute, change, the total then applied).
@@ -610,10 +1109,54 @@ pub(crate) fn attribute_applied(player: u128, attribute: &str, total: f64) {
     }
 }
 
+/// The total a player's attribute base currently holds from the additions, or 0.0 when none: what a fold must work around, so that an
+/// addition landing on a folded base is unfolded with it instead of being multiplied by the unfold.
+pub(crate) fn attribute_applied_total(player: u128, attribute: &str) -> f64 {
+    ATTRIBUTES.lock().ok().and_then(|applied| applied.get(&(player, attribute.to_owned())).copied()).unwrap_or(0.0)
+}
+
 /// What a player who leaves holds on their attributes (to take off), forgotten.
 pub(crate) fn forget_attributes(player: u128) -> Vec<(String, f64)> {
     if let Ok(mut ticking) = TICKING.lock() { ticking.remove(&player); }
     let Ok(mut applied) = ATTRIBUTES.lock() else { return Vec::new() };
+    let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
+    applied.retain(|(who, _), _| *who != player);
+    held
+}
+
+static MULTIPLY: std::sync::Mutex<std::collections::BTreeMap<(u128, String), f64>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// The ratios to fold a player's attribute bases by for the multiply-total factors `wanted` (one per attribute): (attribute, ratio, the
+/// total factor then folded in). The ratio is the wanted factor over the factor already folded in (1.0 when nothing is), so repeating the
+/// action with the same factor changes nothing. Nothing is recorded until `multiply_factor_applied` is told the host took the ratio.
+pub(crate) fn multiply_factor_changes(player: u128, wanted: &[(String, f64)]) -> Vec<(String, f64, f64)> {
+    let mut totals: std::collections::BTreeMap<&str, f64> = std::collections::BTreeMap::new();
+    for (attribute, factor) in wanted { *totals.entry(attribute).or_insert(1.0) *= factor; }
+    let Ok(applied) = MULTIPLY.lock() else { return Vec::new() };
+    let mut changes = Vec::new();
+    for (attribute, total) in &totals {
+        let held = applied.get(&(player, (*attribute).to_owned())).copied().unwrap_or(1.0);
+        if *total != held {
+            let ratio = if held == 0.0 { *total } else { total / held };
+            changes.push(((*attribute).to_owned(), ratio, *total));
+        }
+    }
+    for ((who, attribute), held) in applied.iter() {
+        if *who == player && *held != 1.0 && !totals.contains_key(attribute.as_str()) { changes.push((attribute.clone(), 1.0 / held, 1.0)); }
+    }
+    changes
+}
+
+/// Records that the host took a fold: the player's total factor for the attribute is now `total`.
+pub(crate) fn multiply_factor_applied(player: u128, attribute: &str, total: f64) {
+    if let Ok(mut applied) = MULTIPLY.lock() {
+        if total == 1.0 { applied.remove(&(player, attribute.to_owned())); } else { applied.insert((player, attribute.to_owned()), total); }
+    }
+}
+
+/// What a player who leaves holds folded into their attributes (to unfold), forgotten.
+pub(crate) fn forget_multiply_factors(player: u128) -> Vec<(String, f64)> {
+    let Ok(mut applied) = MULTIPLY.lock() else { return Vec::new() };
     let held: Vec<(String, f64)> = applied.iter().filter(|((who, _), _)| *who == player).map(|((_, attribute), held)| (attribute.clone(), *held)).collect();
     applied.retain(|(who, _), _| *who != player);
     held
@@ -630,6 +1173,45 @@ pub(crate) fn wearer_hit(hit: &WearerHit, wearer: Option<i32>) -> Vec<EffectGran
     let actions: Vec<(i32, i32, EntityAction)> = hit.actions.borrow_mut().drain(..).filter_map(|action| wearer.map(|wearer| (wearer, hit.attacker, action))).collect();
     if !actions.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
     hit.effects.borrow_mut().drain(..).collect()
+}
+
+/// How long a hurt report's hit stays good: the damage event follows in the same call, so a few milliseconds is plenty, and a longer gap
+/// means the hit never reached it (cancelled, absorbed, or landed on something other than the wearer it was attributed to) and the
+/// report belongs to something that is over.
+const WEARER_HIT_LIFETIME: std::time::Duration = std::time::Duration::from_millis(100);
+
+thread_local! {
+    /// The hits a mob's attack opened on a wearer, waiting for the damage event that follows to resolve their damage type: the wearer
+    /// the armor is attributed to (None when no single wearer holds it), the attacking mob, and the hit as the hurt report built it
+    /// (its damage type and amount still empty and 0, its direct entity still -1).
+    static PENDING_WEARER_HITS: RefCell<Vec<(Option<i32>, i32, WearerHit, std::time::Instant)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Notes a hit on a wearer for the damage event that follows in the same call, which resolves its damage type before the callbacks hear it.
+pub(crate) fn note_wearer_hit(wearer: Option<i32>, hit: WearerHit) {
+    PENDING_WEARER_HITS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        pending.retain(|(_, _, _, at)| at.elapsed() < WEARER_HIT_LIFETIME);
+        pending.push((wearer, hit.attacker, hit, std::time::Instant::now()));
+    });
+}
+
+/// The effects the wearer-hit callbacks put on the mob that dealt the damage `damage` names, once the pending hurt report for that hit
+/// resolves with the damage's own type, amount and direct entity. A hit whose report never reaches a damage event (the attack missed, was
+/// cancelled, or landed on something other than the wearer it was attributed to) is never heard; a report with no attributed wearer
+/// matches by its attacker alone.
+pub(crate) fn resolve_wearer_hit(damage: &LivingDamage) -> Vec<EffectGrant> {
+    let pending = PENDING_WEARER_HITS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        pending.retain(|(_, _, _, at)| at.elapsed() < WEARER_HIT_LIFETIME);
+        let at = pending.iter().position(|(wearer, attacker, _, _)| *attacker == damage.attacker && (wearer.is_none() || *wearer == Some(damage.entity)));
+        at.map(|at| pending.remove(at))
+    });
+    let Some((wearer, _, mut hit, _)) = pending else { return Vec::new() };
+    hit.damage_type = damage.damage_type.clone();
+    hit.amount = damage.amount;
+    hit.direct = damage.direct;
+    wearer_hit(&hit, wearer)
 }
 
 /// The actions for the parties of hits on wearers, with the wearer's entity id and the mob's.
@@ -728,6 +1310,125 @@ pub(crate) fn entity_tick_heard() -> bool {
     !ENTITY_TICK_PRE.is_empty() || !ENTITY_TICK_POST.is_empty()
 }
 
+/// What the game names of the entity behind a synchronous attack (a mob's melee swing) as the attack is
+/// delivered: its type, what it holds and wears, its attack attribute and the state the hit hooks read. The
+/// game names the attacker before the hit lands (its knockback scope), so the facts belong to the attack in
+/// flight; a damage event reads them matched by the attacker's entity id, and only briefly. A player's hit
+/// names both hands instead (`off_hand`): the shot's weapon says which of them launched, so a launcher's
+/// hit can name its hand; the rest of a player's note stays neutral (no attack attribute, chest piece or
+/// state a mob's note carries), and the damage event reads only its hands.
+#[derive(Clone, Debug)]
+pub(crate) struct AttackerFacts {
+    pub kind: String,
+    pub main_hand: Option<StackData>,
+    /// The stack in the causing entity's off hand; None for an empty hand, a mob (whose note names no off
+    /// hand) or when the game did not report it.
+    pub off_hand: Option<StackData>,
+    pub chest: Option<StackData>,
+    pub attack_damage: f32,
+    pub state: EntityState,
+}
+
+/// What the game names of a damaged entity as a hit arrives: its health before the hit, and its attack
+/// attribute (a mob's; the ender dragon's is not named, and a player's health is not named at this stage).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct VictimFacts {
+    pub health: f32,
+    pub attack_damage: Option<f32>,
+}
+
+thread_local! {
+    static ATTACKER_FACTS: RefCell<Option<(i32, AttackerFacts, std::time::Instant)>> = const { RefCell::new(None) };
+    static VICTIM_FACTS: RefCell<Option<(i32, VictimFacts, std::time::Instant)>> = const { RefCell::new(None) };
+    static DAMAGE_PARTIES: RefCell<Option<(i32, i32, bool, std::time::Instant)>> = const { RefCell::new(None) };
+}
+
+/// How long a named fact of a hit stays usable: the damage events follow in the same call, so this only has to
+/// cover the calls the game makes between naming a fact and the events that read it.
+const DAMAGE_FACTS_LIFETIME: std::time::Duration = std::time::Duration::from_millis(100);
+
+/// Names the entity behind the synchronous attack being delivered: its type, the stacks in its main hand and
+/// on its chest, its attack attribute and its state. The transport calls this as the game opens the attack;
+/// the damage events of that attack read the facts.
+pub(crate) fn note_attacker_facts(entity: i32, facts: AttackerFacts) {
+    ATTACKER_FACTS.with(|pending| *pending.borrow_mut() = Some((entity, facts, std::time::Instant::now())));
+}
+
+/// Names the health (and attack attribute, for a mob) of the entity a hit is about to land on. The transport
+/// calls this as the game opens the hit, and again for the ender dragon as its damage is worked out.
+pub(crate) fn note_victim_facts(entity: i32, facts: VictimFacts) {
+    VICTIM_FACTS.with(|pending| *pending.borrow_mut() = Some((entity, facts, std::time::Instant::now())));
+}
+
+/// Names the parties of a hit as the game works them out (its incoming-damage report, which runs inside the
+/// hit, after the hurt stage and before the damage stage): the victim, the causing entity and whether that
+/// entity is a player.
+pub(crate) fn note_damage_parties(victim: i32, attacker: i32, attacker_is_player: bool) {
+    DAMAGE_PARTIES.with(|pending| *pending.borrow_mut() = Some((victim, attacker, attacker_is_player, std::time::Instant::now())));
+}
+
+fn attacker_facts(entity: i32) -> Option<AttackerFacts> {
+    ATTACKER_FACTS.with(|pending| match &*pending.borrow() {
+        Some((who, facts, at)) if *who == entity && at.elapsed() < DAMAGE_FACTS_LIFETIME => Some(facts.clone()),
+        _ => None,
+    })
+}
+
+fn victim_facts(entity: i32) -> Option<VictimFacts> {
+    VICTIM_FACTS.with(|pending| match &*pending.borrow() {
+        Some((who, facts, at)) if *who == entity && at.elapsed() < DAMAGE_FACTS_LIFETIME => Some(*facts),
+        _ => None,
+    })
+}
+
+/// Fills a damage event's report of the causing entity and of the damaged entity's health from what the game
+/// named of this hit: the attack snapshot, the parties report and the victim snapshot, over the states the
+/// weapon-hit report brought (those stand where they exist).
+fn fill_damage_facts(modification: &mut DamageModification) {
+    let damage = modification.damage.clone();
+    if let Some(facts) = attacker_facts(damage.attacker) {
+        if facts.kind == "minecraft:player" {
+            // The player's hit: the opening names both hands, and the shot's weapon says which launched. The
+            // rest of the snapshot is a mob's (an attack attribute, a chest piece, a state the hit hooks read),
+            // so a player's note carries none of it and the hit's own report stands where it exists.
+            modification.attacker_kind = facts.kind;
+            modification.attacker_is_player = Some(true);
+            if damage.damage_type.as_str() == "minecraft:arrow" {
+                // Only an arrow's shot names a weapon: a trident's shot names none, so any match
+                // there would be a bow left over from an earlier shot, not the trident.
+                if let Some((hand, stack)) = super::projectile_events_v1::launcher_for(&facts.main_hand, &facts.off_hand) {
+                    modification.attacker_launcher_hand = Some(hand);
+                    modification.attacker_launcher_stack = Some(stack);
+                }
+            }
+        } else {
+            modification.attacker_kind = facts.kind;
+            modification.attacker_main_hand = facts.main_hand;
+            modification.attacker_chest = facts.chest;
+            modification.attacker_attack_damage = Some(facts.attack_damage);
+            if modification.attacker_state.is_none() { modification.attacker_state = Some(facts.state); }
+            modification.attacker_is_player = Some(false);
+        }
+    }
+    if modification.attacker_main_hand.is_none() { modification.attacker_main_hand = modification.attacker_stack.clone(); }
+    if modification.attacker_stack.is_some() { modification.attacker_is_player = Some(true); }
+    // The parties report runs later in the hit than the hurt stage, so the damage stage reads it and the hurt
+    // stage keeps what the snapshot said; a report names this hit by both of its entities.
+    DAMAGE_PARTIES.with(|pending| {
+        if let Some((victim, attacker, is_player, at)) = &*pending.borrow() {
+            if *victim == damage.entity && *attacker == damage.attacker && at.elapsed() < DAMAGE_FACTS_LIFETIME {
+                modification.attacker_is_player = Some(*is_player);
+            }
+        }
+    });
+    if modification.attacker_kind.is_empty() {
+        if let Some(state) = &modification.attacker_state { modification.attacker_kind = state.kind.clone(); }
+    }
+    modification.target_health = modification.target_state.as_ref().and_then(|state| state.health)
+        .or_else(|| victim_facts(damage.entity).map(|facts| facts.health));
+    modification.target_attack_damage = victim_facts(damage.entity).and_then(|facts| facts.attack_damage);
+}
+
 /// True when the damage may be applied.
 pub(crate) fn after_death(death: &LivingDamage) {
     AFTER_DEATH.invoke(death);
@@ -736,6 +1437,7 @@ pub(crate) fn after_death(death: &LivingDamage) {
 thread_local! {
     static PENDING_ATTACK: RefCell<Option<(i32, StackData)>> = const { RefCell::new(None) };
     static PENDING_STATES: RefCell<Option<(i32, Option<EntityState>, Option<EntityState>, std::time::Instant)>> = const { RefCell::new(None) };
+    static PENDING_POSITIONS: RefCell<Option<(i32, Option<[f64; 3]>, Option<[f64; 3]>, std::time::Instant)>> = const { RefCell::new(None) };
 }
 
 /// How long the states of a hit stay good: the damage event follows in the same call, so a few milliseconds is plenty, and a longer gap
@@ -751,7 +1453,10 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
         if let Some((old_entity, old_attacker, old_target, at)) = &*pending {
             if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME {
                 let keep_equipment = |new: &mut Option<EntityState>, old: &Option<EntityState>| {
-                    if let (Some(new), Some(old)) = (new, old) { if new.equipment.is_none() { new.equipment = old.equipment.clone(); } }
+                    if let (Some(new), Some(old)) = (new, old) {
+                        if new.equipment.is_none() { new.equipment = old.equipment.clone(); }
+                        if new.armor_stacks.is_empty() { new.armor_stacks = old.armor_stacks.clone(); }
+                    }
                 };
                 let (mut attacker, mut target) = (attacker, target);
                 keep_equipment(&mut attacker, old_attacker);
@@ -762,6 +1467,48 @@ pub(crate) fn hit_states(entity: i32, attacker: Option<EntityState>, target: Opt
         }
         *pending = Some((entity, attacker, target, std::time::Instant::now()));
     });
+}
+
+/// A hit is landing on `entity`: where the attacker and the target stand (their feet positions), remembered for the
+/// damage that follows in the same call, in the same 100 ms window as [`hit_states`]. A hit is reported more than
+/// once and one report may know a position where another does not: the reports of one hit complement each other
+/// there, and the newest report stands otherwise.
+pub(crate) fn hit_positions(entity: i32, attacker: Option<[f64; 3]>, target: Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        if let Some((old_entity, old_attacker, old_target, at)) = &*pending {
+            if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME {
+                let attacker = attacker.or(*old_attacker);
+                let target = target.or(*old_target);
+                *pending = Some((entity, attacker, target, std::time::Instant::now()));
+                return;
+            }
+        }
+        *pending = Some((entity, attacker, target, std::time::Instant::now()));
+    });
+}
+
+/// The positions of the hit on `entity` as the game reported it most recently, if any (attacker, target); stale after 100 ms.
+fn pending_positions(entity: i32) -> (Option<[f64; 3]>, Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let pending = pending.borrow();
+        if let Some((old_entity, attacker, target, at)) = &*pending {
+            if *old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME { return (*attacker, *target); }
+        }
+        (None, None)
+    })
+}
+
+/// Takes the positions of the hit on `entity` (attacker, target) for the damage event that follows; stale after 100 ms.
+fn take_pending_positions(entity: i32) -> (Option<[f64; 3]>, Option<[f64; 3]>) {
+    PENDING_POSITIONS.with(|pending| {
+        let mut pending = pending.borrow_mut();
+        match pending.take() {
+            Some((old_entity, attacker, target, at)) if old_entity == entity && at.elapsed() < HIT_STATES_LIFETIME => (attacker, target),
+            Some((old_entity, _, _, at)) if old_entity == entity || at.elapsed() >= HIT_STATES_LIFETIME => (None, None),
+            other => { *pending = other; (None, None) }
+        }
+    })
 }
 
 /// The state of each player wearing armor that carries custom data, as of their last tick, by entity id: the damage event that
@@ -775,6 +1522,43 @@ pub(crate) fn remember_wearer_state(entity: i32, state: Option<EntityState>) {
 }
 
 fn wearer_state(entity: i32) -> Option<EntityState> { WEARER_STATES.lock().ok()?.get(&entity).cloned() }
+
+/// A player's attack strength, as the host models it (`attack_strength.rs`, `hand.rs`): ticks
+/// since their last swing, and the main-hand item the ticker belongs to. The host resets the
+/// ticker when the player swings and when the main-hand item changes to a different item, and
+/// ticks it every tick; a swing's delay is `20 / attack speed` ticks, so the ticker is what a
+/// weapon hit's fully-charged gate reads.
+static ATTACK_TICKS: std::sync::Mutex<std::collections::BTreeMap<u128, (u32, String)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// A player ticked with `main_hand` in their main hand: their ticker advances one tick, or resets
+/// when the held item changed to a different one (the same item with a different count or
+/// components does not reset it, as the host compares the item only). A player first seen reads
+/// as fully charged (the host starts the ticker at 100).
+pub(crate) fn note_attack_tick(player: u128, main_hand: &str) {
+    let Ok(mut tickers) = ATTACK_TICKS.lock() else { return };
+    match tickers.get_mut(&player) {
+        Some((ticks, held)) if *held == main_hand => { *ticks = ticks.saturating_add(1); }
+        Some((ticks, held)) => { *held = main_hand.to_owned(); *ticks = 0; }
+        None => { tickers.insert(player, (ATTACK_TICKS_CHARGED, main_hand.to_owned())); }
+    }
+}
+
+/// A player swung: their attack ticker resets, as the host's `player_attack_cooldown_reset` reports.
+pub(crate) fn reset_attack_ticks(player: u128) {
+    if let Ok(mut tickers) = ATTACK_TICKS.lock() {
+        if let Some((ticks, _)) = tickers.get_mut(&player) { *ticks = 0; }
+    }
+}
+
+/// A player's attack ticks as of their last tick (see [`ATTACK_TICKS_CHARGED`] for one never seen).
+pub(crate) fn attack_ticks(player: u128) -> u32 {
+    ATTACK_TICKS.lock().ok().and_then(|tickers| tickers.get(&player).map(|(ticks, _)| *ticks)).unwrap_or(ATTACK_TICKS_CHARGED)
+}
+
+/// Forgets a player's attack ticker when they leave.
+pub(crate) fn forget_attack_ticks(player: u128) {
+    if let Ok(mut tickers) = ATTACK_TICKS.lock() { tickers.remove(&player); }
+}
 
 /// What the vanilla biomes are like: (id without `minecraft:`, base temperature, whether it has precipitation). A data pack's biome is not here.
 const BIOME_CLIMATES: &[(&str, f32, bool)] = &[
@@ -826,7 +1610,7 @@ pub(crate) fn holds_water(id: &str, waterlogged: bool) -> bool {
 /// What an entity's saved data (`Entity.saveWithoutId`) says: its health, its maximum health, the share of its armor slots filled
 /// and the names of the equipment slots that hold an item.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32>, pub equipment: Option<Vec<String>> }
+pub(crate) struct SavedFacts { pub health: Option<f32>, pub max_health: Option<f32>, pub armor_coverage: Option<f32>, pub equipment: Option<Vec<String>>, pub armor_stacks: Vec<(String, StackData)> }
 
 fn number(value: &super::base::Nbt) -> Option<f64> {
     use super::base::Nbt;
@@ -862,14 +1646,35 @@ pub(crate) fn saved_facts(data: &super::base::NbtCompound) -> SavedFacts {
     let filled = |equipment: &super::base::NbtCompound, slot: &str| {
         matches!(equipment.get(slot), Some(Nbt::Compound(stack)) if !matches!(stack.get("id"), Some(Nbt::String(id)) if id == "minecraft:air"))
     };
-    let (armor_coverage, equipment) = match data.get("equipment") {
+    let (armor_coverage, equipment, armor_stacks) = match data.get("equipment") {
         Some(Nbt::Compound(equipment)) => (
             Some(armor_coverage(["head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).count())),
             Some(["mainhand", "offhand", "head", "chest", "legs", "feet"].iter().filter(|slot| filled(equipment, slot)).map(|slot| slot.to_string()).collect()),
+            ["feet", "legs", "chest", "head"].iter().filter_map(|slot| saved_armor_stack(equipment, slot)).collect(),
         ),
-        _ => (None, None),
+        _ => (None, None, Vec::new()),
     };
-    SavedFacts { health, max_health, armor_coverage, equipment }
+    SavedFacts { health, max_health, armor_coverage, equipment, armor_stacks }
+}
+
+/// One armor piece from an entity's saved `equipment` compound, in the game's saved stack layout (`id`, `count`,
+/// `components`): the stack as a mod sees it, with its `minecraft:custom_data`. None for an empty slot or a piece
+/// carrying no custom data — the armor the damage events report is the pieces a mod keeps state on, as the pieces
+/// a player's tick reports are.
+fn saved_armor_stack(equipment: &super::base::NbtCompound, slot: &str) -> Option<(String, StackData)> {
+    use super::base::Nbt;
+    let Nbt::Compound(stack) = equipment.get(slot)? else { return None };
+    let Some(Nbt::String(id)) = stack.get("id") else { return None };
+    if id == "minecraft:air" { return None; }
+    let custom_data = match stack.get("components") {
+        Some(Nbt::Compound(components)) => match components.get("minecraft:custom_data") {
+            Some(Nbt::Compound(data)) => data.clone(),
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let count = stack.get("count").and_then(number).map(|count| count as u32).unwrap_or(1);
+    Some((slot.to_owned(), StackData { item: id.clone(), count, custom_data, ..StackData::default() }))
 }
 
 /// `LivingEntity.getArmorCoverPercentage` for `filled` of the four armor slots.
@@ -892,8 +1697,71 @@ pub(crate) fn armor_worn_by(entity: i32) -> Vec<(String, StackData)> {
     Vec::new()
 }
 
+/// The stack the player with entity id `entity` holds in the off hand as of their last tick; the game names the local player of a
+/// single-player world as entity 0, which is the only holder when one is known.
+pub(crate) fn offhand_worn_by(entity: i32) -> Option<StackData> {
+    let Ok(hands) = OFFHAND.lock() else { return None };
+    if let Some((_, stack)) = hands.get(&entity) { return stack.clone(); }
+    if entity == 0 && hands.len() == 1 { return hands.values().next().and_then(|(_, stack)| stack.clone()); }
+    None
+}
+
 /// What each player wears, by entity id, with the player's uuid so a logout can forget it.
 static ARMOR: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Vec<(String, StackData)>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Where each player is and looks, by entity id, with the player's uuid so a logout can forget it.
+static AIM: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, PlayerAim)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records where the player (`entity`) is and looks, as of their tick; a player whose tick is not
+/// heard keeps the aim their last heard tick left (the armor memory's rule, by entity id).
+pub(crate) fn remember_aim(uuid: u128, entity: i32, aim: PlayerAim) {
+    let Ok(mut aims) = AIM.lock() else { return };
+    aims.insert(entity, (uuid, aim));
+}
+
+/// Where the player `uuid` is and looks as of their last tick, when a tick heard them.
+pub fn aim_of(uuid: u128) -> Option<PlayerAim> {
+    let aims = AIM.lock().ok()?;
+    aims.values().find(|(known, _)| *known == uuid).map(|(_, aim)| aim.clone())
+}
+
+/// Forgets a player who left.
+pub(crate) fn forget_aim(uuid: u128) {
+    if let Ok(mut aims) = AIM.lock() {
+        aims.retain(|_, (known, _)| *known != uuid);
+    }
+}
+
+/// What each player holds in the off hand, by entity id, with the player's uuid: the hand the armor
+/// memory does not cover, where a harvest enchantment may sit on a shield.
+static OFFHAND: std::sync::Mutex<std::collections::BTreeMap<i32, (u128, Option<StackData>)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Records what the player (`entity`) holds in the off hand; a stack with no custom data is
+/// recorded as none, as the tick that reports it only names stacks carrying some.
+pub(crate) fn remember_offhand(uuid: u128, entity: i32, stack: Option<StackData>) {
+    let Ok(mut hands) = OFFHAND.lock() else { return };
+    hands.insert(entity, (uuid, stack));
+}
+
+/// The equipment of the player `uuid`, as (slot, stack): the armor the armor memory kept for them
+/// (in `feet`, `legs`, `chest`, `head` order), then the off hand it kept, under the name `offhand`.
+/// Only pieces carrying custom data are ever recorded. Empty when the player is not known.
+pub fn equipment_of(uuid: u128) -> Vec<(String, StackData)> {
+    let mut out = Vec::new();
+    if let Ok(worn) = ARMOR.lock() {
+        for (owner, pieces) in worn.values() {
+            if *owner == uuid { out.extend(pieces.iter().cloned()); }
+        }
+    }
+    if let Ok(hands) = OFFHAND.lock() {
+        for (owner, stack) in hands.values() {
+            if *owner == uuid {
+                if let Some(stack) = stack { out.push(("offhand".to_string(), stack.clone())); }
+            }
+        }
+    }
+    out
+}
 
 /// Records what the player (`entity`) wears; an empty list forgets it.
 pub(crate) fn remember_armor(uuid: u128, entity: i32, armor: Vec<(String, StackData)>) {
@@ -956,7 +1824,12 @@ pub(crate) fn modify_damage(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
+    // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
+    // mob's saved data); a player's pieces are the remembered ones above.
+    let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
+    let (attacker_position, target_position) = take_pending_positions(damage.entity);
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    fill_damage_facts(&mut modification);
     MODIFY_DAMAGE.invoke(&modification);
     queue_damage_actions(damage, &modification);
     modification.amount.get()
@@ -974,22 +1847,48 @@ pub(crate) fn modify_hurt(damage: &LivingDamage) -> f32 {
     });
     // A hit that brought no state of the damaged entity still has its wearer's, as of their last tick.
     if target_state.is_none() && !armor.is_empty() { target_state = wearer_state(damage.entity); }
-    let modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, actions: RefCell::new(Vec::new()) };
+    // A mob's worn pieces come with the hit's own report of it, when that report ran (a player's weapon hit reads the
+    // mob's saved data); a player's pieces are the remembered ones above.
+    let armor = if armor.is_empty() { target_state.as_ref().map(|state| state.armor_stacks.clone()).unwrap_or_default() } else { armor };
+    let (attacker_position, target_position) = pending_positions(damage.entity);
+    let mut modification = DamageModification { damage: damage.clone(), amount: Cell::new(damage.amount), attacker_stack, armor, attacker_state, target_state, attacker_kind: String::new(), attacker_is_player: None, attacker_main_hand: None, attacker_launcher_hand: None, attacker_launcher_stack: None, attacker_chest: None, attacker_attack_damage: None, target_health: None, target_attack_damage: None, attacker_position, target_position, actions: RefCell::new(Vec::new()) };
+    fill_damage_facts(&mut modification);
     MODIFY_HURT.invoke(&modification);
     queue_damage_actions(damage, &modification);
     modification.amount.get()
 }
 
 /// Queues the actions a damage callback asked for, at either stage: the ones for an attacking player land on that player's
-/// next tick, the ones for the wearer on the wearer's.
+/// next tick, the ones for the wearer on the wearer's, a drop is handed to the game for its target, and one for a party
+/// neither tick can place (a mob attacker, a mob victim) is kept for that entity's next tick.
 fn queue_damage_actions(damage: &LivingDamage, modification: &DamageModification) {
-    let (by_attacker, rest): (Vec<EntityAction>, Vec<EntityAction>) = modification.actions.borrow_mut().drain(..)
-        .partition(|action| modification.attacker_stack.is_some() && damage.attacker >= 0 && action_target(action) == ActionTarget::Attacker);
-    // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
-    if !by_attacker.is_empty() { if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.extend(by_attacker.into_iter().map(|action| (damage.attacker, damage.entity, action))); } }
-    // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
-    let actions: Vec<(i32, i32, EntityAction)> = rest.into_iter().map(|action| (damage.entity, damage.attacker, action)).collect();
-    if !actions.is_empty() && !modification.armor.is_empty() { if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.extend(actions); } }
+    for action in modification.actions.borrow_mut().drain(..) {
+        // A drop lands at its target entity whatever the parties are; the game spawns it there.
+        if let EntityAction::DropItem { target, stack } = &action {
+            let entity = match target { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+            if entity >= 0 { if let Ok(mut queue) = DROP_ACTIONS.lock() { queue.push((entity, stack.clone())); } }
+            continue;
+        }
+        // The actions a player's attack asks for the attacker (a heal by the damage dealt) land on that player's next tick, with the damaged entity as the other party.
+        if action_target(&action) == ActionTarget::Attacker && modification.attacker_stack.is_some() && damage.attacker >= 0 {
+            if let Ok(mut queue) = ATTACKER_ACTIONS.lock() { queue.push((damage.attacker, damage.entity, action)); }
+            continue;
+        }
+        // The actions for the wearer land on their next tick, with the attacker's entity id as the other party.
+        // A mob wearer has no player tick to drain them: theirs land on the entity's own tick instead.
+        if !modification.armor.is_empty() {
+            if ARMOR.lock().map_or(false, |worn| worn.contains_key(&damage.entity)) {
+                if let Ok(mut queue) = ENTITY_ACTIONS.lock() { queue.push((damage.entity, damage.attacker, action)); }
+            } else {
+                let entity = match action_target(&action) { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+                if entity >= 0 { if let Ok(mut queue) = LATE_ACTIONS.lock() { queue.push((entity, damage.attacker, damage.entity, action)); } }
+            }
+            continue;
+        }
+        // Neither tick queue can place it: keep it for the target entity's next tick instead of dropping it.
+        let entity = match action_target(&action) { ActionTarget::Attacker => damage.attacker, ActionTarget::Victim => damage.entity };
+        if entity >= 0 { if let Ok(mut queue) = LATE_ACTIONS.lock() { queue.push((entity, damage.attacker, damage.entity, action)); } }
+    }
 }
 
 /// Which party an action is done to.
@@ -997,8 +1896,31 @@ fn action_target(action: &EntityAction) -> ActionTarget {
     match action {
         EntityAction::SetFire { target, .. } | EntityAction::Heal { target, .. } | EntityAction::Freeze { target, .. } | EntityAction::Knockback { target, .. }
         | EntityAction::AddEffect { target, .. } | EntityAction::EditStackData { target, .. } | EntityAction::Hurt { target, .. }
-        | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } => *target,
+        | EntityAction::SetEffectDuration { target, .. } | EntityAction::Teleport { target, .. } | EntityAction::DropItem { target, .. }
+        | EntityAction::Summon { target, .. } | EntityAction::MultiplyAttribute { target, .. } => *target,
     }
+}
+
+/// The stacks damage callbacks asked to drop at an entity, with the entity's id: the damage events have no
+/// world to drop into, so the transport hands them to the game, which spawns them at the entity.
+static DROP_ACTIONS: std::sync::Mutex<Vec<(i32, StackData)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the drops queued at entities, as (entity, stack); the transport calls this as the world ticks.
+pub(crate) fn take_drop_actions() -> Vec<(i32, StackData)> {
+    let Ok(mut queue) = DROP_ACTIONS.lock() else { return Vec::new() };
+    std::mem::take(&mut *queue)
+}
+
+/// The actions for a party neither the attacker's nor the wearer's tick could place, kept by the entity they
+/// are done to, with the hit's attacker and victim.
+static LATE_ACTIONS: std::sync::Mutex<Vec<(i32, i32, i32, EntityAction)>> = std::sync::Mutex::new(Vec::new());
+
+/// Takes the actions kept for the entity `entity`, as (attacker, victim, action); other entities' stay queued.
+pub(crate) fn take_late_actions(entity: i32) -> Vec<(i32, i32, EntityAction)> {
+    let Ok(mut queue) = LATE_ACTIONS.lock() else { return Vec::new() };
+    let (mine, rest): (Vec<_>, Vec<_>) = std::mem::take(&mut *queue).into_iter().partition(|(who, _, _, _)| *who == entity);
+    *queue = rest;
+    mine.into_iter().map(|(_, attacker, victim, action)| (attacker, victim, action)).collect()
 }
 
 /// The actions a player's attacks asked for the attacker, with the attacker's entity id and the damaged entity's.
@@ -1053,6 +1975,105 @@ mod tests {
         forget_armor(99);
         modify_damage(&hurt);
         assert_eq!(*seen.lock().unwrap(), vec![vec!["head:example:helmet".to_string()], Vec::<String>::new()]);
+    }
+
+    #[test]
+    fn damage_events_carry_the_attack_snapshot_and_the_victims_health() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 6060 {
+                log.lock().unwrap().push((hit.attacker_kind.clone(), hit.attacker_is_player, hit.attacker_main_hand.as_ref().map(|stack| stack.item.clone()),
+                    hit.attacker_chest.as_ref().map(|stack| stack.item.clone()), hit.attacker_attack_damage, hit.target_health, hit.target_attack_damage,
+                    hit.attacker_state.as_ref().map(|state| state.kind.clone())));
+            }
+        });
+        let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        let plate = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), off_hand: None, chest: Some(plate), attack_damage: 3.0,
+            state: EntityState { kind: "minecraft:zombie".into(), on_ground: true, ..EntityState::default() } });
+        note_victim_facts(6060, VictimFacts { health: 14.5, attack_damage: Some(2.0) });
+        let hurt = LivingDamage { entity: 6060, kind: "minecraft:pig".into(), damage_type: "minecraft:mob_attack".into(), attacker: 77, direct: 77, amount: 4.0 };
+        modify_damage(&hurt);
+        // The parties report names the same hit's causer as a player (a tamed mob's owner credited, say): it stands over the snapshot.
+        note_damage_parties(6060, 77, true);
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![
+            ("minecraft:zombie".to_string(), Some(false), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
+            ("minecraft:zombie".to_string(), Some(true), Some("example:sword".to_string()), Some("example:plate".to_string()), Some(3.0), Some(14.5), Some(2.0), Some("minecraft:zombie".to_string())),
+        ]);
+    }
+
+    #[test]
+    fn a_players_arrow_hit_names_the_hand_that_launched_it() {
+        use super::super::projectile_events_v1::{AmmoRequest, ammo};
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| {
+            if hit.damage.entity == 61616 {
+                log.lock().unwrap().push((hit.attacker_kind.clone(), hit.attacker_is_player,
+                    hit.attacker_launcher_hand, hit.attacker_launcher_stack.as_ref().map(|stack| stack.item.clone())));
+            }
+        });
+        let mut bow_data = NbtCompound::new();
+        bow_data.insert("tic_level".into(), Nbt::Int(2));
+        let bow = StackData { item: "example:longbow".into(), count: 1, custom_data: bow_data, ..StackData::default() };
+        let sword = StackData { item: "example:sword".into(), count: 1, ..StackData::default() };
+        let shield = StackData { item: "example:shield".into(), count: 1, ..StackData::default() };
+        // The shot's weapon, as the ammunition telling named it.
+        ammo(&AmmoRequest {
+            player: Some(9), name: "archer".into(), entity: None, kind: "minecraft:player".into(), weapon: bow.clone(),
+            vanilla: None, carried: Vec::new(), supplied: RefCell::new(None), edits: RefCell::new(Vec::new()),
+        });
+        let player_state = || EntityState { kind: "minecraft:player".into(), on_ground: true, ..EntityState::default() };
+        let arrow = |attacker: i32| LivingDamage { entity: 61616, kind: "minecraft:zombie".into(), damage_type: "minecraft:arrow".into(), attacker, direct: 0, amount: 4.0 };
+        // The bow in the off hand: the hit names the off hand and the bow.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(sword.clone()), off_hand: Some(bow.clone()), chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // The bow in the main hand instead: the hit names the main hand.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // The bow in neither hand (swapped away after the shot): no launcher is named.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(sword.clone()), off_hand: Some(shield), chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&arrow(0));
+        // A melee hit with the bow in hand: the launcher telling stays silent (it is only for arrows).
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&LivingDamage { damage_type: "minecraft:player_attack".into(), ..arrow(0) });
+        // A trident hit with the bow still in hand: the bow is a stale note from an earlier shot, not the
+        // trident's launcher, so no hand is named.
+        note_attacker_facts(0, AttackerFacts { kind: "minecraft:player".into(), main_hand: Some(bow.clone()), off_hand: None, chest: None, attack_damage: 0.0, state: player_state() });
+        modify_damage(&LivingDamage { damage_type: "minecraft:trident".into(), ..arrow(0) });
+        // A mob's arrow: the mob's snapshot stands (its main hand, no launcher), as before.
+        let plate = StackData { item: "example:plate".into(), count: 1, ..StackData::default() };
+        note_attacker_facts(77, AttackerFacts { kind: "minecraft:zombie".into(), main_hand: Some(sword), off_hand: None, chest: Some(plate), attack_damage: 3.0,
+            state: EntityState { kind: "minecraft:zombie".into(), on_ground: true, ..EntityState::default() } });
+        modify_damage(&arrow(77));
+        assert_eq!(*seen.lock().unwrap(), vec![
+            ("minecraft:player".to_string(), Some(true), Some(StackSlot::OffHand), Some("example:longbow".to_string())),
+            ("minecraft:player".to_string(), Some(true), Some(StackSlot::MainHand), Some("example:longbow".to_string())),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:player".to_string(), Some(true), None, None),
+            ("minecraft:zombie".to_string(), Some(false), None, None),
+        ]);
+    }
+
+    #[test]
+    fn a_drop_item_action_is_queued_for_its_target_and_other_actions_for_a_mob_party_are_kept_for_its_tick() {
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 7070 { return; }
+            hit.actions.borrow_mut().push(EntityAction::DropItem { target: ActionTarget::Victim, stack: StackData { item: "example:scale".into(), count: 3, ..StackData::default() } });
+            hit.actions.borrow_mut().push(EntityAction::Heal { target: ActionTarget::Attacker, amount: 2.0 });
+            hit.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 });
+        });
+        let hurt = LivingDamage { entity: 7070, kind: "minecraft:ender_dragon".into(), damage_type: "minecraft:explosion".into(), attacker: 88, direct: 88, amount: 10.0 };
+        modify_damage(&hurt);
+        assert_eq!(take_drop_actions(), vec![(7070, StackData { item: "example:scale".into(), count: 3, ..StackData::default() })]);
+        assert!(take_drop_actions().is_empty(), "the drops were taken");
+        // The heal for the (mob) attacker and the fire for the (mob) victim could go on no player's tick: both are kept, by target.
+        assert_eq!(take_late_actions(88), vec![(88, 7070, EntityAction::Heal { target: ActionTarget::Attacker, amount: 2.0 })]);
+        assert_eq!(take_late_actions(7070), vec![(88, 7070, EntityAction::SetFire { target: ActionTarget::Victim, seconds: 5 })]);
+        assert!(take_late_actions(7070).is_empty());
     }
 
     #[test]
@@ -1164,7 +2185,7 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 });
             }
         });
-        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |item: Option<&str>| WeaponHit { entity: 7373, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: item.map(|item| StackData { item: item.into(), count: 1, ..StackData::default() }), damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(weapon_hit(&hit(Some("example:wand"))), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 3, duration: 20 }]);
         assert!(weapon_hit(&hit(Some("example:stick"))).is_empty());
         assert!(weapon_hit(&hit(None)).is_empty());
@@ -1179,7 +2200,7 @@ mod tests {
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let log = seen.clone();
         ServerLivingEntityEvents::WEAPON_HIT.register(move |hit| if hit.entity == 4545 { log.lock().unwrap().push(hit.armor.len()); });
-        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, weapon: None, attacker_state: None, target_state: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WeaponHit { entity: 4545, kind: "minecraft:husk".into(), attacker: 4343, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: armor_worn_by(4343), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert!(weapon_hit(&hit).is_empty());
         assert_eq!(*seen.lock().unwrap(), vec![1]);
         forget_armor(0xA11CE);
@@ -1194,10 +2215,68 @@ mod tests {
                 hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
             }
         });
-        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = |armor: Vec<(String, StackData)>| WearerHit { attacker: 8484, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, direct: 8484, attacker_state: EntityState::default(), attacker_position: None, armor, effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         let helmet = StackData { item: "example:helmet".into(), count: 1, ..StackData::default() };
         assert_eq!(wearer_hit(&hit(vec![("head".into(), helmet)]), Some(7)), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
         assert!(wearer_hit(&hit(Vec::new()), Some(7)).is_empty());
+    }
+
+    #[test]
+    fn a_hurt_report_resolves_its_damage_type_at_the_damage_event() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen_hit = seen.clone();
+        ServerLivingEntityEvents::WEARER_HIT.register(move |hit| {
+            if hit.attacker != 7171 { return; }
+            seen_hit.lock().unwrap().push((hit.damage_type.clone(), hit.amount, hit.direct));
+            hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
+        });
+        let damage = |entity: i32, attacker: i32| LivingDamage { entity, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker, direct: attacker, amount: 3.0 };
+        assert!(resolve_wearer_hit(&damage(7, 7170)).is_empty(), "a damage event with no hurt report resolves nothing");
+        let hit = WearerHit { attacker: 7171, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, direct: -1, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        note_wearer_hit(Some(7), hit);
+        assert!(seen.lock().unwrap().is_empty(), "the hurt report alone hears nothing");
+        assert_eq!(resolve_wearer_hit(&damage(7, 7171)), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
+        assert_eq!(*seen.lock().unwrap(), vec![("minecraft:mob_attack".to_string(), 3.0, 7171)], "the callback sees the resolved type, amount and direct entity");
+        assert!(resolve_wearer_hit(&damage(7, 7171)).is_empty(), "the report resolves once");
+    }
+
+    #[test]
+    fn a_hurt_report_resolves_an_indirect_hit_and_ignores_another_victims_damage() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let seen_hit = seen.clone();
+        ServerLivingEntityEvents::WEARER_HIT.register(move |hit| {
+            if hit.attacker != 7272 { return; }
+            seen_hit.lock().unwrap().push((hit.damage_type.clone(), hit.amount, hit.direct));
+            hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:slowness".into(), amplifier: 0, duration: 100 });
+        });
+        let hit = WearerHit { attacker: 7272, kind: "minecraft:skeleton".into(), damage_type: String::new(), amount: 0.0, direct: -1, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        note_wearer_hit(Some(8), hit);
+        // The skeleton's arrow hit a mob beside the player, not the wearer: the report stays pending.
+        let other = LivingDamage { entity: 99, kind: "minecraft:zombie".into(), damage_type: "minecraft:arrow".into(), attacker: 7272, direct: 55, amount: 2.0 };
+        assert!(resolve_wearer_hit(&other).is_empty());
+        assert!(seen.lock().unwrap().is_empty(), "a hit on another mob is not the wearer's");
+        // The arrow's hit on the wearer resolves with the arrow as the direct entity.
+        let damage = LivingDamage { entity: 8, kind: "minecraft:player".into(), damage_type: "minecraft:arrow".into(), attacker: 7272, direct: 55, amount: 2.0 };
+        assert_eq!(resolve_wearer_hit(&damage), vec![EffectGrant { effect: "minecraft:slowness".into(), amplifier: 0, duration: 100 }]);
+        assert_eq!(*seen.lock().unwrap(), vec![("minecraft:arrow".to_string(), 2.0, 55)], "the callback sees the arrow, not the skeleton, as the direct entity");
+    }
+
+    #[test]
+    fn a_hurt_report_with_no_attributed_wearer_resolves_by_its_attacker() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(0));
+        let seen_hit = seen.clone();
+        ServerLivingEntityEvents::WEARER_HIT.register(move |hit| {
+            if hit.attacker != 7373 { return; }
+            *seen_hit.lock().unwrap() += 1;
+            hit.effects.borrow_mut().push(EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 });
+            hit.self_effects.borrow_mut().push(EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 });
+        });
+        let hit = WearerHit { attacker: 7373, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, direct: -1, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        note_wearer_hit(None, hit);
+        let damage = LivingDamage { entity: 9, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 7373, direct: 7373, amount: 4.0 };
+        assert_eq!(resolve_wearer_hit(&damage), vec![EffectGrant { effect: "minecraft:weakness".into(), amplifier: 0, duration: 100 }]);
+        assert_eq!(*seen.lock().unwrap(), 1, "the report resolves by its attacker when no wearer holds the armor");
+        assert!(take_self_effects(9).is_empty(), "with no known wearer the wearer's own effects are dropped, as before");
     }
 
     #[test]
@@ -1208,14 +2287,14 @@ mod tests {
         ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
             if hit.entity == 6262 { hit.actions.borrow_mut().push(EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }); }
         });
-        let hit = WearerHit { attacker: 6161, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WearerHit { attacker: 6161, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, direct: -1, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         wearer_hit(&hit, Some(41));
         assert!(take_wearer_actions(42).is_empty(), "another player's tick takes nothing");
         assert_eq!(take_wearer_actions(41), vec![(6161, EntityAction::SetFire { target: ActionTarget::Attacker, seconds: 4 })]);
         assert!(take_wearer_actions(41).is_empty(), "the queue is emptied once taken");
         wearer_hit(&hit, None);
         assert!(take_wearer_actions(41).is_empty(), "a hit with no known wearer queues nothing");
-        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, weapon: None, attacker_state: None, target_state: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let weapon = WeaponHit { entity: 6262, kind: "minecraft:husk".into(), attacker: 1, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ATTACK_TICKS_CHARGED, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         weapon_hit(&weapon);
         assert_eq!(take_weapon_actions(&weapon), vec![EntityAction::Freeze { target: ActionTarget::Victim, ticks: 80 }]);
         assert!(take_weapon_actions(&weapon).is_empty());
@@ -1256,14 +2335,14 @@ mod tests {
         ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
             if hit.attacker == 9595 { hit.self_effects.borrow_mut().push(EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }); }
         });
-        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let hit = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), amount: 3.0, direct: 9595, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         hit.counter_damage.borrow_mut().push(CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 });
         assert!(wearer_hit(&hit, Some(31)).is_empty(), "nothing goes on the attacker");
         assert!(take_counter_damage(32).is_empty() && take_self_effects(32).is_empty(), "another player's tick takes nothing");
         assert_eq!(take_counter_damage(31), vec![(9595, CounterDamage { damage_type: "minecraft:thorns".into(), amount: 2.0 })]);
         assert_eq!(take_self_effects(31), vec![EffectGrant { effect: "minecraft:strength".into(), amplifier: 0, duration: 200 }]);
         assert!(take_self_effects(31).is_empty(), "the queue is emptied once taken");
-        let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, attacker_state: EntityState::default(), armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let unattributed = WearerHit { attacker: 9595, kind: "minecraft:zombie".into(), damage_type: String::new(), amount: 0.0, direct: -1, attacker_state: EntityState::default(), attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), self_effects: RefCell::new(Vec::new()), counter_damage: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         wearer_hit(&unattributed, None);
         assert!(take_self_effects(31).is_empty(), "a hit with no known wearer queues nothing");
     }
@@ -1274,7 +2353,7 @@ mod tests {
             if tick.entity != 5757 { return; }
             for (id, amplifier, _) in &tick.effects { if id == "minecraft:poison" && *amplifier == 0 { tick.remove_effects.borrow_mut().push(id.clone()); } }
         });
-        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = |effects: Vec<(String, i32, i32)>| PlayerTick { player: 1, entity: 5757, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects, remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         assert_eq!(player_tick(&tick(vec![("minecraft:poison".into(), 0, 100), ("minecraft:speed".into(), 0, 100)])), vec!["minecraft:poison".to_string()]);
         assert!(player_tick(&tick(vec![("minecraft:poison".into(), 1, 100)])).is_empty());
     }
@@ -1305,6 +2384,18 @@ mod tests {
         assert!(tick_wanted(32, true));
         assert!(tick_wanted(32, false), "one more tick to let go of what the armor kept");
         assert!(!tick_wanted(32, false));
+    }
+
+    #[test]
+    fn an_aim_is_remembered_until_the_player_leaves() {
+        let aim = PlayerAim { dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], look: [0.0, 0.0, 1.0], creative: false };
+        assert!(aim_of(77).is_none());
+        remember_aim(77, 5, aim.clone());
+        assert_eq!(aim_of(77).map(|known| known.position), Some([1.0, 64.0, 2.0]));
+        remember_aim(77, 5, PlayerAim { look: [1.0, 0.0, 0.0], ..aim });
+        assert_eq!(aim_of(77).map(|known| known.look), Some([1.0, 0.0, 0.0]), "the last tick's aim wins");
+        forget_aim(77);
+        assert!(aim_of(77).is_none());
     }
 
     #[test]
@@ -1391,6 +2482,24 @@ mod tests {
     }
 
     #[test]
+    fn a_mob_attackers_stack_edit_waits_for_the_mobs_next_tick() {
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
+            if hit.damage.entity != 6161 { return; }
+            hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Attacker, slot: StackSlot::MainHand, item: "example:sword".into(), edits: vec![StackDataEdit { path: vec!["bar".into()], value: Some(Nbt::Int(3)) }] });
+        });
+        let hit = |attacker| LivingDamage { entity: 6161, kind: "minecraft:husk".into(), damage_type: "minecraft:player_attack".into(), attacker, direct: attacker, amount: 8.0 };
+        // No player's stack behind the hit (a mob's attack): nothing waits for a player's tick.
+        modify_damage(&hit(9193));
+        assert!(take_attacker_actions(9193).is_empty(), "a mob's action is not a player's");
+        // The edit waits in the late queue for the mob's own tick, which applies it as the attacker — the route the monster
+        // melee cook and the enderporting swap wear rely on.
+        let queued = take_late_actions(9193);
+        assert_eq!(queued.len(), 1);
+        assert!(matches!(&queued[0], (9193, 6161, EntityAction::EditStackData { slot: StackSlot::MainHand, .. })));
+        assert!(take_late_actions(9193).is_empty(), "taken once");
+    }
+
+    #[test]
     fn modify_hurt_runs_as_the_damage_arrives_and_leaves_the_hit_for_the_damage_stage() {
         remember_armor(88, 8888, vec![("chest".into(), StackData { item: "example:plate".into(), count: 1, ..StackData::default() })]);
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
@@ -1460,9 +2569,39 @@ mod tests {
             ("equipment", Nbt::Compound(compound(vec![("head", stack("minecraft:iron_helmet")), ("feet", stack("minecraft:air")), ("mainhand", stack("minecraft:stick"))]))),
         ]);
         // (20 + 4) * (1 + 0.5) * (1 + 1).
-        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25), equipment: Some(vec!["mainhand".into(), "head".into()]) });
+        assert_eq!(saved_facts(&data), SavedFacts { health: Some(7.5), max_health: Some(72.0), armor_coverage: Some(0.25), equipment: Some(vec!["mainhand".into(), "head".into()]), armor_stacks: Vec::new() });
         assert_eq!(saved_facts(&NbtCompound::new()), SavedFacts::default(), "data that says nothing reports nothing");
         assert_eq!(armor_coverage(9), 1.0);
+    }
+
+    #[test]
+    fn saved_data_gives_the_worn_armor_pieces_that_carry_custom_data() {
+        use super::super::base::{Nbt, NbtCompound};
+        let compound = |entries: Vec<(&str, Nbt)>| -> NbtCompound { entries.into_iter().map(|(key, value)| (key.to_owned(), value)).collect() };
+        let tool_helmet = Nbt::Compound(compound(vec![
+            ("id", Nbt::String("tconstruct:travelers_helmet".into())), ("count", Nbt::Int(1)),
+            ("components", Nbt::Compound(compound(vec![("minecraft:custom_data", Nbt::Compound(compound(vec![("tconstruct:materials", Nbt::String("x".into()))])))]))),
+        ]));
+        let plain_plate = Nbt::Compound(compound(vec![("id", Nbt::String("minecraft:iron_chestplate".into())), ("count", Nbt::Int(1))]));
+        let data = compound(vec![("equipment", Nbt::Compound(compound(vec![("head", tool_helmet), ("chest", plain_plate)])))]);
+        let facts = saved_facts(&data);
+        assert_eq!(facts.armor_stacks.len(), 1, "only the piece carrying custom data is reported: {:?}", facts.armor_stacks);
+        assert_eq!(facts.armor_stacks[0].0, "head");
+        assert_eq!(facts.armor_stacks[0].1.item, "tconstruct:travelers_helmet");
+        assert!(facts.armor_stacks[0].1.custom_data.contains_key("tconstruct:materials"), "the piece's own data rides along");
+    }
+
+    #[test]
+    fn modify_damage_carries_a_mobs_worn_armor_from_the_hits_own_report() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 7171 { log.lock().unwrap().push(hit.armor.iter().map(|(slot, stack)| format!("{slot}:{}", stack.item)).collect::<Vec<_>>()); });
+        let helmet = StackData { item: "tconstruct:travelers_helmet".into(), count: 1, ..StackData::default() };
+        let state = EntityState { kind: "tconstruct:sky_slime".into(), armor_stacks: vec![("head".into(), helmet)], ..EntityState::default() };
+        hit_states(7171, None, Some(state));
+        let hurt = LivingDamage { entity: 7171, kind: "tconstruct:sky_slime".into(), damage_type: "minecraft:player_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        modify_damage(&hurt);
+        assert_eq!(*seen.lock().unwrap(), vec![vec!["head:tconstruct:travelers_helmet".to_string()]]);
     }
 
     #[test]
@@ -1511,10 +2650,162 @@ mod tests {
             if tick.entity != 6262 { return; }
             tick.actions.borrow_mut().push(EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() });
         });
-        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], on_ground: true, armor: Vec::new(), effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        let tick = PlayerTick { player: 1, entity: 6262, dimension: "minecraft:overworld".to_owned(), position: [0.0; 3], look: [0.0, 0.0, 1.0], creative: false, on_ground: true, sneaking: false, gliding: false, spectator: false, in_water: false, on_climbable: false, armor: Vec::new(), hands: Vec::new(), block_light: 0, sky_light: 0, sky_darken: 0, effects: Vec::new(), remove_effects: RefCell::new(Vec::new()), attribute_additions: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
         player_tick(&tick);
         assert_eq!(take_tick_actions(&tick), vec![EntityAction::Hurt { target: ActionTarget::Attacker, amount: 2.0, damage_type: "example:tangled".into() }]);
         assert!(take_tick_actions(&tick).is_empty(), "taken once");
+    }
+
+    #[test]
+    fn a_critical_hit_callback_may_force_the_crit_and_raise_the_multiplier() {
+        ServerLivingEntityEvents::CRITICAL_HIT.register(|hit| {
+            if hit.attacker_entity != 7701 { return; }
+            if !hit.attacker_on_ground && !hit.attacker_in_water && !hit.critical.get() {
+                hit.critical.set(true);
+                hit.damage_multiplier.set(hit.damage_multiplier.get() + 0.5);
+            }
+        });
+        let hit = CriticalHit {
+            attacker_entity: 7701, attacker_on_ground: false, attacker_in_water: false,
+            target_kind: "minecraft:zombie".into(), vanilla_critical: false,
+            critical: Cell::new(false), damage_multiplier: Cell::new(1.0),
+        };
+        critical_hit(&hit);
+        assert!(hit.critical.get(), "the airborne hit is forced critical");
+        assert_eq!(hit.damage_multiplier.get(), 1.5);
+        let grounded = CriticalHit {
+            attacker_entity: 7701, attacker_on_ground: true, attacker_in_water: false,
+            target_kind: "minecraft:zombie".into(), vanilla_critical: false,
+            critical: Cell::new(false), damage_multiplier: Cell::new(1.0),
+        };
+        critical_hit(&grounded);
+        assert!(!grounded.critical.get(), "a grounded hit is not forced");
+        assert_eq!(grounded.damage_multiplier.get(), 1.0);
+    }
+
+    #[test]
+    fn a_jump_is_reported_with_its_kind() {
+        use std::sync::Mutex;
+        static JUMPED: Mutex<Vec<(i32, String)>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::LIVING_JUMP.register(|jump| JUMPED.lock().unwrap().push((jump.entity, jump.kind.clone())));
+        living_jump(&LivingJump { entity: 7702, kind: "minecraft:player".into() });
+        assert_eq!(JUMPED.lock().unwrap().clone(), vec![(7702, "minecraft:player".to_owned())]);
+    }
+
+    #[test]
+    fn a_movement_input_callback_may_scale_the_impulses() {
+        ServerLivingEntityEvents::MOVEMENT_INPUT.register(|input| {
+            if input.entity != 7703 || !input.using_item { return; }
+            input.forward.set(input.forward.get() * 0.5);
+            input.strafe.set(input.strafe.get() * 0.5);
+        });
+        let input = MovementInput {
+            entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: None,
+        };
+        movement_input(&input);
+        assert_eq!(input.forward.get(), 0.5);
+        assert!((input.strafe.get() - 0.2).abs() < 1e-9);
+        let idle = MovementInput {
+            entity: 7703, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: false, using: None,
+        };
+        movement_input(&idle);
+        assert_eq!(idle.forward.get(), 1.0, "not using an item, the impulses stand");
+    }
+
+    #[test]
+    fn a_movement_input_carries_the_stack_being_used() {
+        use std::sync::Mutex;
+        static USED: Mutex<Vec<Option<StackData>>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::MOVEMENT_INPUT.register(|input| {
+            if input.entity != 7704 { return; }
+            USED.lock().unwrap().push(input.using.clone());
+        });
+        let bow = StackData { item: "tconstruct:longbow".into(), count: 1, ..StackData::default() };
+        movement_input(&MovementInput {
+            entity: 7704, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: true, using: Some(bow.clone()),
+        });
+        movement_input(&MovementInput {
+            entity: 7704, forward: Cell::new(1.0), strafe: Cell::new(0.4),
+            jump: Cell::new(false), sneak: Cell::new(false), using_item: false, using: None,
+        });
+        assert_eq!(USED.lock().unwrap().clone(), vec![Some(bow), None], "the used stack rides the event, and none when nothing is used");
+    }
+
+    #[test]
+    fn a_multiply_total_fold_applies_as_a_ratio_and_unfolds() {
+        let player = 77_001u128;
+        let speed = "minecraft:movement_speed".to_owned();
+        assert_eq!(multiply_factor_changes(player, &[(speed.clone(), 0.1)]), vec![(speed.clone(), 0.1, 0.1)], "folding from 1.0 to 0.1 is a ratio of 0.1");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert!(multiply_factor_changes(player, &[(speed.clone(), 0.1)]).is_empty(), "the same factor again changes nothing");
+        assert_eq!(multiply_factor_changes(player, &[(speed.clone(), 1.0)]), vec![(speed.clone(), 10.0, 1.0)], "unfolding is a ratio of 10");
+        multiply_factor_applied(player, &speed, 1.0);
+        assert!(multiply_factor_changes(player, &[(speed.clone(), 1.0)]).is_empty(), "unfolded, nothing to do");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert_eq!(multiply_factor_changes(player, &[]), vec![(speed.clone(), 10.0, 1.0)], "a fold no longer wanted unfolds");
+        multiply_factor_applied(player, &speed, 1.0);
+        assert_eq!(forget_multiply_factors(player), Vec::<(String, f64)>::new(), "nothing held after the unfold");
+        multiply_factor_applied(player, &speed, 0.1);
+        assert_eq!(forget_multiply_factors(player), vec![(speed, 0.1)], "the fold is handed back on leaving");
+        assert!(forget_multiply_factors(player).is_empty(), "forgotten once");
+    }
+
+    #[test]
+    fn an_attribute_addition_total_is_read_for_the_fold() {
+        let player = 77_002u128;
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.0, "nothing applied yet");
+        attribute_applied(player, "minecraft:armor", 0.5);
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.5);
+        attribute_applied(player, "minecraft:armor", 0.0);
+        assert_eq!(attribute_applied_total(player, "minecraft:armor"), 0.0, "a zero total clears it");
+    }
+
+    #[test]
+    fn a_killing_blow_names_its_direct_entity_and_a_blow_without_one_overwrites() {
+        note_killing_direct(41, 7);
+        assert_eq!(take_killing_direct(41), Some(7), "the projectile's id is taken");
+        assert_eq!(take_killing_direct(41), None, "taken once");
+        note_killing_direct(41, 7);
+        note_killing_direct(41, -1);
+        assert_eq!(take_killing_direct(41), Some(-1), "a later blow without a direct entity overwrites");
+        assert_eq!(take_killing_direct(42), None, "another victim's blow is not taken");
+    }
+
+    #[test]
+    fn a_launched_projectiles_tool_is_remembered_until_its_kill() {
+        let tool = StackData { item: "tconstruct:bow".into(), count: 1, ..StackData::default() };
+        note_projectile_tool(9, tool.clone());
+        assert_eq!(take_projectile_tool(9), Some(tool), "the launcher's stack is taken");
+        assert_eq!(take_projectile_tool(9), None, "taken once");
+        assert_eq!(take_projectile_tool(10), None, "another projectile's tool is not taken");
+    }
+
+    #[test]
+    fn a_looting_slot_claim_is_remembered_until_its_kill() {
+        note_looting_slot(11, StackSlot::Chest);
+        assert_eq!(take_looting_slot(11), Some(StackSlot::Chest));
+        assert_eq!(take_looting_slot(11), None, "taken once");
+        assert_eq!(take_looting_slot(12), None, "another player's claim is not taken");
+    }
+
+    #[test]
+    fn the_looting_slot_is_the_slot_the_weapon_came_from() {
+        let stack = |item: &str, mark: i32| {
+            let mut custom_data = NbtCompound::new();
+            custom_data.insert("mark".into(), Nbt::Int(mark));
+            StackData { item: item.into(), count: 1, custom_data, ..StackData::default() }
+        };
+        let chest = stack("tconstruct:chestplate", 1);
+        let shield = stack("minecraft:shield", 2);
+        let armor = vec![("feet".to_string(), stack("minecraft:boots", 3)), ("chest".to_string(), chest.clone())];
+        assert_eq!(looting_slot(Some(&chest), &armor, Some(&shield)), StackSlot::Chest, "struck with the worn chestplate");
+        assert_eq!(looting_slot(Some(&shield), &armor, Some(&shield)), StackSlot::OffHand, "struck with the off-hand shield");
+        assert_eq!(looting_slot(Some(&stack("tconstruct:sword", 4)), &armor, Some(&shield)), StackSlot::MainHand, "a held sword is no worn piece");
+        assert_eq!(looting_slot(None, &armor, Some(&shield)), StackSlot::MainHand, "an empty hand claims the main hand");
+        assert_eq!(looting_slot(Some(&stack("tconstruct:chestplate", 9)), &armor, Some(&shield)), StackSlot::MainHand, "the same item with different data is another piece");
     }
 
     #[test]
@@ -1530,5 +2821,110 @@ mod tests {
         assert!(entity_tick_before(&moving));
         entity_tick_after(&moving);
         assert_eq!(POSTED.lock().unwrap().clone(), vec![72], "only the tick that ran is reported");
+    }
+
+    #[test]
+    fn a_mob_tick_reaches_its_callbacks_with_the_mobs_state() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(i32, bool, bool, bool, usize)>> = Mutex::new(Vec::new());
+        ServerLivingEntityEvents::MOB_TICK.register(|tick| {
+            if tick.entity == 7171 { SEEN.lock().unwrap().push((tick.entity, tick.on_climbable, tick.climbing, tick.gliding, tick.effects.len())); }
+        });
+        assert!(mob_tick_heard());
+        let tick = MobTick { entity: 7171, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [1.0, 64.0, 2.0], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: true, climbing: false, gliding: true, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+        mob_tick(&tick);
+        assert_eq!(SEEN.lock().unwrap().clone(), vec![(7171, true, false, true, 1)]);
+    }
+
+    #[test]
+    fn modify_damage_carries_the_positions_the_hit_reported() {
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log = seen.clone();
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(move |hit| if hit.damage.entity == 9191 { log.lock().unwrap().push((hit.attacker_position, hit.target_position)); });
+        hit_positions(9191, Some([1.0, 64.0, 2.0]), None);
+        // A second report of the same hit that knows only the target's place complements the first.
+        hit_positions(9191, None, Some([4.0, 64.0, 5.0]));
+        let hurt = LivingDamage { entity: 9191, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), attacker: 3, direct: 3, amount: 5.0 };
+        modify_damage(&hurt);
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0], (Some([1.0, 64.0, 2.0]), Some([4.0, 64.0, 5.0])));
+    }
+
+    #[test]
+    fn a_hit_reports_its_damage_and_charge() {
+        let hit = |ticks: u32| WeaponHit { entity: 1, kind: "minecraft:husk".into(), attacker: 2, dimension: String::new(), weapon: None, damage_dealt: 5.0, attack_ticks: ticks, attacker_state: None, target_state: None, target_position: None, attacker_position: None, armor: Vec::new(), effects: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()) };
+        // A sword at 4.0 attack speed swings every 5 ticks: 4 ticks is a 0.9 scale, not over it.
+        assert!(!hit(4).fully_charged(4.0));
+        assert!(hit(5).fully_charged(4.0));
+        // A tool at 1.6 attack speed swings every 12.5 ticks: 11 ticks is 0.92, charged.
+        assert!(!hit(10).fully_charged(1.6));
+        assert!(hit(11).fully_charged(1.6));
+        assert!(!hit(0).fully_charged(4.0), "a fresh swing is not charged");
+        assert!(!hit(ATTACK_TICKS_CHARGED).fully_charged(0.0), "a speed of 0 never charges");
+        assert!(hit(ATTACK_TICKS_CHARGED).fully_charged(1.6), "a fresh attacker reads as charged");
+    }
+
+    #[test]
+    fn damage_type_tags_gate_the_hit_effects() {
+        let damage = |damage_type: &str, attacker: i32, direct: i32| LivingDamage { entity: 1, kind: "minecraft:zombie".into(), damage_type: damage_type.into(), attacker, direct, amount: 4.0 };
+        assert!(damage("minecraft:starve", 0, 0).in_damage_type_tag("minecraft:bypasses_effects"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:bypasses_effects"));
+        assert!(damage("minecraft:out_of_world", 0, 0).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(damage("minecraft:generic_kill", 0, 0).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:bypasses_invulnerability"));
+        assert!(!damage("minecraft:mob_attack", 5, 5).in_damage_type_tag("minecraft:not_a_tag"), "an unnamed tag holds nothing");
+        // Directness: a melee hit is direct, an arrow is not, a thorns hit is not (its type avoids guardian thorns).
+        assert!(damage("minecraft:mob_attack", 5, 5).is_direct_damage());
+        assert!(damage("minecraft:player_attack", 5, 0).is_direct_damage(), "no direct entity is a direct hit");
+        assert!(!damage("minecraft:arrow", 5, 9).is_direct_damage(), "the arrow is not its shooter");
+        assert!(!damage("minecraft:thorns", 5, 5).is_direct_damage(), "thorns avoids guardian thorns");
+        assert!(!damage("minecraft:magic", 5, 5).is_direct_damage(), "magic avoids guardian thorns too");
+        assert!(!damage("minecraft:mob_attack", 0, 0).is_direct_damage(), "no causer is no direct hit");
+        assert!(!damage("minecraft:mob_attack", -1, -1).is_direct_damage());
+    }
+
+    #[test]
+    fn attack_ticks_follow_the_swing_and_the_held_item() {
+        let player = 0xA77ACC;
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "a player never seen reads as charged");
+        note_attack_tick(player, "example:sword");
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "the first tick does not wear the charge down");
+        note_attack_tick(player, "example:sword");
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED + 1, "the same item keeps ticking");
+        note_attack_tick(player, "example:axe");
+        assert_eq!(attack_ticks(player), 0, "a different held item resets the ticker");
+        for _ in 0..4 { note_attack_tick(player, "example:axe"); }
+        assert_eq!(attack_ticks(player), 4);
+        reset_attack_ticks(player);
+        assert_eq!(attack_ticks(player), 0, "a swing resets the ticker");
+        note_attack_tick(player, "example:axe");
+        assert_eq!(attack_ticks(player), 1, "the ticker runs again after the swing");
+        forget_attack_ticks(player);
+        assert_eq!(attack_ticks(player), ATTACK_TICKS_CHARGED, "a player who left is forgotten");
+    }
+
+    #[test]
+    fn a_mob_wearers_damage_actions_wait_for_its_own_tick() {
+        let piece = StackData { item: "example:chestplate".into(), count: 1, ..StackData::default() };
+        ServerLivingEntityEvents::MODIFY_DAMAGE.register(|modification| {
+            if modification.damage.entity == 91001 || modification.damage.entity == 91011 {
+                modification.actions.borrow_mut().push(EntityAction::SetFire { target: ActionTarget::Victim, seconds: 3 });
+            }
+        });
+        // The mob wearer: its armor comes with the hit's own report of it.
+        hit_states(91001, None, Some(EntityState { armor_stacks: vec![("chest".into(), piece.clone())], ..EntityState::default() }));
+        let mob_hurt = LivingDamage { entity: 91001, kind: "minecraft:zombie".into(), damage_type: "minecraft:mob_attack".into(), attacker: 91002, direct: 91002, amount: 4.0 };
+        assert_eq!(modify_damage(&mob_hurt), 4.0);
+        assert!(take_wearer_actions(91001).is_empty(), "no player tick can place a mob's actions");
+        assert_eq!(take_late_actions(91001).len(), 1, "the mob's own tick takes them");
+        assert!(take_late_actions(91001).is_empty(), "taken once");
+        // The player wearer: the same action waits for their player tick, as before.
+        remember_armor(0xBEEF, 91011, vec![("chest".into(), piece)]);
+        let player_hurt = LivingDamage { entity: 91011, kind: "minecraft:player".into(), damage_type: "minecraft:mob_attack".into(), attacker: 91002, direct: 91002, amount: 4.0 };
+        assert_eq!(modify_damage(&player_hurt), 4.0);
+        assert!(take_late_actions(91011).is_empty(), "a player's actions do not wait for an entity tick");
+        assert_eq!(take_wearer_actions(91011).len(), 1);
+        forget_armor(0xBEEF);
     }
 }

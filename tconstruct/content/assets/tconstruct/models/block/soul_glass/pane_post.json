@@ -1,7 +1,10 @@
 {
   "parent": "tconstruct:block/template/pane/post",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
     "edge": "tconstruct:block/soul_glass_top",
-    "pane": "tconstruct:block/soul_glass"
+    "pane": "tconstruct:block/soul_glass_connected",
+    "particle": "tconstruct:block/soul_glass"
   }
 }

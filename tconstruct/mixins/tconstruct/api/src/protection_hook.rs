@@ -5,7 +5,7 @@
 //! which the last slot sync recorded in the tool's data (tool_slot): the damage event reports no components, so a piece enchanted since
 //! its last sync is counted without the new enchantments until it is next synced. Modifiers that ignore the enchantment's protection take its points off again.
 use crate::{break_speed_hook::with_held_tool, common, damage_tags::{self, DamageTags}, protection::{damage_after_protection, protection_cap, DamageSource}, tool_stack};
-use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerLifecycleEvents, ServerLivingEntityEvents};
+use pluto_lib::{armor_stack_slot, ActionTarget, DamageModification, EntityAction, Identifier, ResourceManagerHelper, ResourceType, ServerEntityEvents, ServerLifecycleEvents, ServerLivingEntityEvents};
 use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, RwLock};
 
 static TAGS: RwLock<Option<Arc<DamageTags>>> = RwLock::new(None);
@@ -39,11 +39,56 @@ pub(crate) fn register() {
     // Damage to capacity runs after the protection (ModifierHooks.MODIFY_DAMAGE follows MODIFY_HURT): each piece's bars take what they can of
     // the damage left, and the fills reach the pieces on the wearer's next tick.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| fill_capacity(hit, source)); });
+    // Teleport dodge is a modify hurt module heard here: a landed dodge prevents the damage outright, so it runs
+    // before restore lost health, which works on the damage that is left. Its teleport lands on the wearer's next
+    // tick, when the entity and world reaches are open (teleport_dodge owns the queue).
+    ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| dodge(hit, source)); });
+    ServerEntityEvents::ENTITY_TICK_POST.register(|info| crate::teleport_dodge::tick_entity(info));
+    ServerLivingEntityEvents::PLAYER_TICK.register(|tick| crate::teleport_dodge::tick_player(tick));
     // Restore lost health is the last of the modify damage modules (priority 10): it works on the damage that is left.
     ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| { with_source(hit, |source| restore_health(hit, source, false)); });
+    // Conductive and venom are not armor modules: the original multiplies the damage in livingHurt, before the
+    // modify hurt modules run, for any victim that carries the effect, armored or not, so they do not go through
+    // with_source (which only runs for armor).
+    ServerLivingEntityEvents::MODIFY_HURT.register(|hit| conductive_venom(hit));
     // The same module bound to the modify hurt hook runs as the damage arrives, before armor: a share of the damage as it
     // came in comes back as regeneration. (ModifierHooks.MODIFY_HURT follows ALLOW_DAMAGE and precedes MODIFY_DAMAGE.)
     ServerLivingEntityEvents::MODIFY_HURT.register(|hit| { with_source(hit, |source| restore_health(hit, source, true)); });
+}
+
+/// Conductive and venom (the original's `ToolEvents.livingHurt`): a victim that carries conductive takes
+/// twice the damage per level from a damage type in `tconstruct:protection/fire`, and one that carries
+/// venom the same from `tconstruct:protection/magic`. The level is the victim's, from the state of
+/// their last tick when the hit carries one, or from what the effect tick remembered when it does not
+/// (a mob hit by anything but a player's weapon, or a player wearing no armor).
+fn conductive_venom(hit: &DamageModification) {
+    let amount = hit.amount.get();
+    if !(amount > 0.0) {
+        return;
+    }
+    let Ok(damage_type) = Identifier::parse(&hit.damage.damage_type) else { return };
+    let tags = tags();
+    let Ok(fire) = Identifier::new("tconstruct", "protection/fire") else { return };
+    let Ok(magic) = Identifier::new("tconstruct", "protection/magic") else { return };
+    let mut multiplier = 1.0;
+    if tags.contains(&fire, &damage_type) {
+        multiplier *= crate::mob_effect_ticks::conductive_multiplier(victim_level(hit, crate::mob_effect_ticks::CONDUCTIVE));
+    }
+    if tags.contains(&magic, &damage_type) {
+        multiplier *= crate::mob_effect_ticks::conductive_multiplier(victim_level(hit, crate::mob_effect_ticks::VENOM));
+    }
+    if multiplier != 1.0 {
+        hit.amount.set(amount * multiplier);
+    }
+}
+
+/// The level of the effect `effect` on the victim of the hit `hit` (the amplifier plus one), from the
+/// state the hit carries when it has one, or from what the effect tick remembered when it has none.
+fn victim_level(hit: &DamageModification, effect: &str) -> i32 {
+    match hit.target_state.as_ref() {
+        Some(state) => state.effect_level(effect),
+        None => crate::mob_effect_ticks::remembered_level(hit.damage.entity, effect),
+    }
 }
 
 /// RecurrentProtectionModule: the momentum the wearer already has comes off the damage, and a share of what is left
@@ -93,6 +138,33 @@ fn restore_health(hit: &DamageModification, source: &DamageSource, hurt: bool) {
     hit.actions.borrow_mut().extend(actions);
 }
 
+/// TeleportDodgeModule: the first piece whose dodge lands teleports its wearer away from the hit and prevents the
+/// damage. The enderference grant and the piece's wear are actions of this event, reaching the wearer on their next
+/// tick; the teleport itself is queued for that tick (teleport_dodge), as this event runs with neither the entity
+/// nor the world reach open. The wearer's enderference is read from the state of their last tick, as the rest of
+/// this hook reads them.
+fn dodge(hit: &DamageModification, source: &DamageSource) {
+    let amount = hit.amount.get();
+    if !(amount > 0.0) { return; }
+    let enderference = hit.target_state.as_ref().map_or(0, |state| state.effect_level(crate::teleport_dodge::ENDERFERENCE)) > 0;
+    for (slot, piece) in &hit.armor {
+        let Some(stack_slot) = armor_stack_slot(slot) else { continue };
+        let Ok(dodges) = with_held_tool(piece, |env, stack| tool_stack::dodges(&stack.custom_data, env, source, enderference, amount, &mut crate::tool_damage_hook::random)) else { continue };
+        for (modifier, dodge) in dodges {
+            if dodge.cooldown > 0 {
+                hit.actions.borrow_mut().push(EntityAction::AddEffect { target: ActionTarget::Victim, effect: crate::teleport_dodge::ENDERFERENCE.to_owned(), amplifier: 0, duration: dodge.cooldown });
+            }
+            if dodge.wear > 0 {
+                let edits = with_held_tool(piece, |env, stack| crate::wearer_modules::wear_edits(&stack.custom_data, env, &modifier, dodge.wear, &mut crate::tool_damage_hook::random)).unwrap_or_default();
+                if !edits.is_empty() { hit.actions.borrow_mut().push(EntityAction::EditStackData { target: ActionTarget::Victim, slot: stack_slot, item: piece.item.clone(), edits }); }
+            }
+            if hit.damage.entity > 0 { crate::teleport_dodge::queue(hit.damage.entity); }
+            hit.amount.set(0.0);
+            return;
+        }
+    }
+}
+
 /// Runs `run` on the damage a player's armor is asked about; nothing for an entity that wears no armor with custom data or a damage type that
 /// does not parse.
 fn with_source(hit: &DamageModification, run: impl FnOnce(&DamageSource)) {
@@ -127,6 +199,17 @@ fn fill_capacity(hit: &DamageModification, source: &DamageSource) {
     hit.actions.borrow_mut().extend(edits);
 }
 
+/// Whether the damaged entity is one of the original's small armor victims: `forge:small_armor`, whose only
+/// member is `#forge:slimes` — the two vanilla slimes and the three Tinkers ones, named outright because the
+/// tag reaches the snapshot only when the game captured it. The tag is consulted too, for a data pack that
+/// adds a member of its own.
+fn small_armor_victim(kind: &str) -> bool {
+    if matches!(kind, "minecraft:slime" | "minecraft:magma_cube" | "tconstruct:sky_slime" | "tconstruct:ender_slime" | "tconstruct:terracube") { return true; }
+    let Ok(kind) = Identifier::parse(kind) else { return false };
+    let Ok(tag) = Identifier::parse("forge:small_armor") else { return false };
+    crate::melee_hook::target_in_tag(common::entity_type_snapshot().as_deref(), Some(&kind), &tag)
+}
+
 /// Protection: the damage after the armor's protection modules (and the damage a piece blocks altogether).
 fn protect(hit: &DamageModification, source: &DamageSource) {
     static LOGGED: AtomicUsize = AtomicUsize::new(0);
@@ -154,6 +237,8 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         }
     }
     hit.actions.borrow_mut().extend(spent);
+    // ToolEvents.getProtectionModifier: a small armor victim's accumulated protection counts fourfold.
+    let total = if small_armor_victim(&hit.damage.kind) { crate::protection::small_armor_total(total) } else { total };
     let amount = hit.amount.get();
     let mut after = if total == 0.0 && vanilla == 0.0 { amount } else { damage_after_protection(amount, vanilla, total, protection_cap(cap_added)) };
     // The modules that adjust the damage the wearer takes run after the protection, each piece seeing what the last left; the wearer is
@@ -168,4 +253,30 @@ fn protect(hit: &DamageModification, source: &DamageSource) {
         eprintln!("Tinkers: {} damage to {} with {} armor pieces: protection {total}, {amount} -> {after}", hit.damage.damage_type, hit.damage.kind, hit.armor.len());
     }
     if after.is_finite() && after >= 0.0 && after != amount { hit.amount.set(after); }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_small_armor_victims_are_the_slimes() {
+        for kind in ["minecraft:slime", "minecraft:magma_cube", "tconstruct:sky_slime", "tconstruct:ender_slime", "tconstruct:terracube"] {
+            assert!(small_armor_victim(kind), "{kind}");
+        }
+        assert!(!small_armor_victim("minecraft:zombie"));
+        assert!(!small_armor_victim("minecraft:player"));
+        assert!(!small_armor_victim("not an id"));
+    }
+
+    #[test]
+    fn a_small_armor_victims_protection_counts_fourfold_in_the_damage() {
+        // 10 damage with 2 enchantment points the game already took and 5 accumulated: a normal victim's
+        // damage runs through the 5; a small armor victim's 5 counts as 20, the protection cap.
+        let normal = damage_after_protection(10.0, 2.0, 5.0, protection_cap(0.0));
+        let small = damage_after_protection(10.0, 2.0, crate::protection::small_armor_total(5.0), protection_cap(0.0));
+        assert!((normal - 10.0 / (1.0 - 2.0 / 25.0) * (1.0 - 5.0 / 25.0)).abs() < 1e-4, "{normal}");
+        assert!((small - 10.0 / (1.0 - 2.0 / 25.0) * (1.0 - 20.0 / 25.0)).abs() < 1e-4, "{small}");
+        assert!(small < normal);
+    }
 }

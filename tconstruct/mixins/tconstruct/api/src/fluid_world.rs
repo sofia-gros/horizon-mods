@@ -5,13 +5,21 @@
 //! the engine's contract expects — the effect that needs it does not run — and each such answer is
 //! named below rather than faked:
 //!
-//! - No explosion surface exists in PlutoLib's world API, so [`LiveWorld::explode`] does nothing: the
-//!   explosion effects of the shipped fluids (magma, redstone, several molten metals) charge for their
-//!   scale, as the engine's accounting does for any context, but no explosion happens until PlutoLib
-//!   grows an explode operation.
-//! - Particles (destroy particles, the cannon's shot particles) have no emission surface; sounds do.
-//! - Potion contents are not read: no potion registry reach hands out a potion's effects, so
-//!   `potion` / `potion_cloud` effects find no effects to give (their fluid's other effects still run).
+//! - Explosions go through PlutoLib's world explosion operation (the request is queued where it is
+//!   made and the level's mob-event seam sets it off), which is the game's own `Level.explode`: the
+//!   radius, the fire and the block interaction are the effect's, but the blast hurts and pushes
+//!   entities as the game's explosion does. The original's CustomExplosion carries its own damage
+//!   value, knockback scale and damage types and bypasses invulnerability time; the game's blast
+//!   seam takes none of those, so an explosion fluid's entity damage is the game's for its radius,
+//!   not the effect's damage value.
+//! - Destroy particles have no emission surface: they are the destroy-block crumble level event,
+//!   not a particle send. The cannon's shot particles do send, through the world handle (see
+//!   `crate::fluid_cannon`); sounds do.
+//! - Potion contents come from the game's own potion registry through PlutoLib's potion reach
+//!   (POTION-REACH): the fluid's tag names the potion under its `Potion` string, and the
+//!   `potion` / `potion_cloud` effects apply that potion's effects. A potion the game does not
+//!   know carries none, as the original's Potions.EMPTY does. Custom effects are not read:
+//!   neither original effect reads them (PotionCloudFluidEffect carries the TODO).
 //! - The vanilla interaction pipelines are not reachable, so `interact` effects answer Pass.
 //! - Blocks cannot be piston-moved, so nothing is pushable through this context and move effects rest.
 //! - An entity's active effects, air and equipment cannot be read by id; a target answers the
@@ -24,9 +32,10 @@
 //!   through the impact's own actions, which PlutoLib does to the hit's parties after the callback.
 //!   Area targets (an area effect's neighbours) are reached for hurts and facts only.
 use crate::common;
+use crate::{break_speed_hook, tool_damage_hook, tool_slot, tool_stack};
 use crate::fluid_effects::{
-    ActiveEffect, BlockContext, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder, InteractSpec,
-    InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
+    ActiveEffect, BlockContext, BlockInteraction, BreakSpec, CloudSpec, EntityInteractSpec, EntityTarget, ExplosionSpec, Holder,
+    InteractSpec, InteractionResult, NewEffect, PlaceSpec, PotionEffect, PushReaction, Stack, WorldAccess,
 };
 use crate::fluid_ingredient::{ItemOutput, Source};
 use pluto_lib::{
@@ -45,6 +54,23 @@ pub(crate) fn stack_of_slot(slot: &ItemSlot) -> Stack {
         count: slot.count as i32,
         nbt: if slot.custom_data.is_empty() { None } else { Some(nbt_to_value(&slot.custom_data)) },
     }
+}
+
+/// A stack the game reported as data (a hit's weapon, a worn piece) as an engine stack; the same
+/// conversion as stack_of_slot.
+pub(crate) fn stack_of_data(stack: &pluto_lib::StackData) -> Stack {
+    Stack {
+        item: Identifier::parse(&stack.item).unwrap_or_else(|_| Identifier::new("minecraft", "air").expect("valid id")),
+        count: stack.count as i32,
+        nbt: if stack.custom_data.is_empty() { None } else { Some(nbt_to_value(&stack.custom_data)) },
+    }
+}
+
+/// The original's FluidEffects.spawnParticles: the fluid's own sprite particles around a point —
+/// `count` of the `tconstruct:fluid` sprite carrying the fluid, spread (0.1, 0.2, 0.1) at speed 0.2
+/// around the point's middle height, as every caller of it asks.
+pub(crate) fn spawn_fluid_particles(world: &World, fluid: &FluidStack, at: [f64; 3], count: i32) {
+    world.send_particles("tconstruct:fluid", &pluto_lib::ParticleData::Fluid(fluid.clone()), [at[0], at[1] + 0.5, at[2]], [0.1, 0.2, 0.1], 0.2, count);
 }
 
 /// Writes an engine stack back into a cannon's item slot after an application: what the context's
@@ -134,10 +160,19 @@ pub(crate) fn holder(stack: Stack, projectile: Option<(i32, [f64; 3])>, position
     }
 }
 
+/// Whether the tool's item is in the durability tag (a Tinkers tool is); true when the snapshot is missing, as the wear path assumes.
+/// The exchange's consume keeps its own copy in block_break_hook, as the two wear sites share nothing else.
+fn durability_tagged(item: &Identifier, items: Option<&RegistryLookup>) -> bool {
+    let Some(items) = items else { return true; };
+    let tag = Identifier::new("tconstruct", "modifiable/durability").expect("valid id");
+    items.get_tag(&tag).is_some_and(|members| members.contains(item))
+}
+
 /// The live level: PlutoLib's world of one dimension, plus the registry snapshots the facts come from.
 pub(crate) struct LiveWorld {
     world: World,
     items: Option<Arc<RegistryLookup>>,
+    blocks: Option<Arc<RegistryLookup>>,
     entity_types: Option<Arc<RegistryLookup>>,
     fluids: Option<Arc<RegistryLookup>>,
     targets: Vec<LiveTarget<'static>>,
@@ -145,7 +180,7 @@ pub(crate) struct LiveWorld {
 
 impl LiveWorld {
     pub(crate) fn new(world: World) -> Self {
-        Self { world, items: common::item_snapshot(), entity_types: common::entity_type_snapshot(), fluids: common::fluid_snapshot(), targets: Vec::new() }
+        Self { world, items: common::item_snapshot(), blocks: common::block_snapshot(), entity_types: common::entity_type_snapshot(), fluids: common::fluid_snapshot(), targets: Vec::new() }
     }
 
     /// The world handle itself, for the operations outside the engine's vocabulary (spawning a
@@ -183,6 +218,13 @@ const REPLACEABLE: [&str; 12] = [
     "minecraft:vine", "minecraft:glow_lichen",
 ];
 
+/// Whether a block state may be replaced without a tool (the REPLACEABLE set above, plus a fluid's
+/// own world blocks). Shared with the bucket place half, which reads the same set over a state it
+/// already holds.
+pub(crate) fn replaceable(state: &BlockState) -> bool {
+    REPLACEABLE.contains(&state.block.to_string().as_str()) || FluidWorld::is_world_fluid(&state.block)
+}
+
 /// The copper weathering chain (WeatheringCopper): each block that weathers, and the block it becomes;
 /// the last of each family (the oxidized forms) and every waxed form do not weather.
 const WEATHERING: [(&str, &str); 12] = [
@@ -206,7 +248,8 @@ impl WorldAccess for LiveWorld {
     fn set_block(&mut self, pos: BlockPos, state: &BlockState) -> bool { self.world.set_block_state(pos, state) }
 
     fn destroy_particles(&mut self, _pos: BlockPos, _state: &BlockState) {
-        // No particle emission surface; the block still goes away by the caller's own set.
+        // The destroy-block crumble is a level event, not a particle send, and has no surface; the
+        // block still goes away by the caller's own set.
     }
 
     fn play_sound(&mut self, at: [f64; 3], sound: &str, volume: f32, pitch: f32) {
@@ -215,8 +258,16 @@ impl WorldAccess for LiveWorld {
 
     fn drop_item(&mut self, at: [f64; 3], stack: &Stack) { self.drop(at, stack); }
 
-    fn explode(&mut self, _spec: &ExplosionSpec) {
-        // No explosion operation exists in PlutoLib's world surface; see the module note.
+    fn explode(&mut self, spec: &ExplosionSpec) {
+        // The game's blast in the effect's shape: radius, fire and block interaction carry over;
+        // the effect's damage, knockback and damage type do not (see the module note). The
+        // original's `none` interacts with no blocks at all, which is the game's Keep.
+        let interaction = match spec.interaction {
+            BlockInteraction::Keep | BlockInteraction::None => pluto_lib::ExplosionInteraction::Keep,
+            BlockInteraction::DestroyWithDecay => pluto_lib::ExplosionInteraction::Block,
+            BlockInteraction::Destroy => pluto_lib::ExplosionInteraction::Tnt,
+        };
+        self.world.explode(spec.at, spec.radius, spec.place_fire, interaction);
     }
 
     fn spawn_cloud(&mut self, spec: &CloudSpec) {
@@ -295,9 +346,7 @@ impl WorldAccess for LiveWorld {
     }
 
     fn can_be_replaced(&self, pos: BlockPos) -> bool {
-        self.state_at(pos).map_or(false, |state| {
-            REPLACEABLE.contains(&state.block.to_string().as_str()) || FluidWorld::is_world_fluid(&state.block)
-        })
+        self.state_at(pos).map_or(false, |state| replaceable(&state))
     }
 
     fn within_world_border(&self, _pos: BlockPos) -> bool { true }
@@ -306,8 +355,55 @@ impl WorldAccess for LiveWorld {
         let Some(block) = spec.block.clone() else { return InteractionResult::Pass };
         if !self.can_be_replaced(spec.pos) { return InteractionResult::Pass; }
         if !self.world.set_block_state(spec.pos, &block) { return InteractionResult::Pass; }
+        // The original consumes the provider, not the placed stack as a count: a tool's provider
+        // module damages the tool by its tool_damage (its consume), a block item shrinks by one. The
+        // engine stack carries no damage channel, so a tool's wear lands in its NBT (below) and its
+        // count is untouched; the caller writes the stack back into its slot. A stack that looks
+        // like a tool but whose provider check errored (registries unready) is left untouched rather
+        // than eaten: eating it would destroy a tool for a placement the provider never authorised.
         if !spec.holder.creative && !spec.stack.is_empty() {
-            spec.stack.count -= 1;
+            let held = pluto_lib::StackData {
+                item: spec.stack.item.to_string(),
+                count: spec.stack.count.max(0) as u32,
+                damage: 0,
+                max_damage: None,
+                custom_data: spec.stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
+                custom_model_data: None,
+                enchantments: Default::default(),
+            };
+            let tagged = Identifier::parse(&held.item).is_ok_and(|item| durability_tagged(&item, self.items.as_deref()));
+            let outcome = break_speed_hook::with_held_tool(&held, |env, slot| {
+                let provider = tool_stack::block_item_provider(&slot.custom_data, env);
+                // ToolDamageUtil.damageAnimated on the reduced path, as the exchange's consume
+                // runs it: the TOOL_DAMAGE hooks speak first (overslime soaks what it can, the
+                // tool's own reductions apply), the durability-changed hooks hear the result, and
+                // the providing modifier is the cause. A wear that fails to apply leaves the tool
+                // unworn rather than eating it. (damageAnimated also broadcasts a break event when
+                // the tool breaks; neither this path nor the exchange's has a host reach for that
+                // broadcast from here.)
+                let damaged = provider.as_ref().and_then(|(modifier, _provided, wear)| {
+                    let mut slot = slot.clone();
+                    tool_slot::damage_slot(&mut slot, env, *wear, true, tagged, Some(modifier), &mut tool_damage_hook::random).ok()?;
+                    Some(slot.custom_data)
+                });
+                (provider, damaged)
+            });
+            match outcome {
+                Ok((Some(_), damaged)) => {
+                    if let Some(data) = damaged {
+                        spec.stack.nbt = Some(nbt_to_value(&data));
+                    }
+                }
+                Ok((None, _)) => {
+                    spec.stack.count -= 1;
+                }
+                Err(_) if held.custom_data.contains_key(tool_stack::TAG_MATERIALS) => {
+                    // A tool whose provider could not be read: leave the stack alone.
+                }
+                Err(_) => {
+                    spec.stack.count -= 1;
+                }
+            }
         }
         if let Some(sound) = &spec.sound {
             self.world.play_sound(sound, spec.location, 1.0, 1.0);
@@ -347,14 +443,7 @@ impl WorldAccess for LiveWorld {
     }
 
     fn fluid_block(&self, fluid: &Identifier) -> Option<BlockState> {
-        match fluid.to_string().as_str() {
-            "minecraft:water" => return Some(BlockState::new(fluid.clone())),
-            "minecraft:lava" => return Some(BlockState::new(fluid.clone())),
-            _ => {}
-        }
-        let definition = FluidRegistry::get(&fluid.to_string())?;
-        if !definition.world_blocks { return None; }
-        Some(FluidWorld::state(fluid, 0))
+        FluidWorld::source_block(fluid)
     }
 
     fn flowing_fluid_block(&self, fluid: &Identifier, level: i32) -> Option<BlockState> {
@@ -364,10 +453,40 @@ impl WorldAccess for LiveWorld {
     }
 
     fn block_item(&self, block: &Identifier) -> Option<Identifier> {
-        self.items.as_deref().filter(|items| items.contains(block)).map(|_| block.clone())
+        // The item form of a block: an item of the block's id, and — when the block registry was
+        // captured — the id really naming a block (without the capture the item snapshot alone is
+        // the answer, as it was before the block registry was captured).
+        let known_block = self.blocks.as_deref().map_or(true, |blocks| blocks.contains(block));
+        (known_block && self.items.as_deref().is_some_and(|items| items.contains(block))).then(|| block.clone())
     }
 
-    fn item_provided_block(&self, _item: &Identifier) -> Option<BlockState> { None }
+    fn item_provided_block(&self, stack: &Stack) -> Option<BlockState> {
+        // A tool's provider module says which block it provides (the glowing tool provides glowstone);
+        // a plain block item provides itself, which the block registry answers exactly: the item's id
+        // names a block. Without a block capture the item snapshot is the mirror, as it was before the
+        // block registry was captured — a non-block item whose id happens to be listed there answers a
+        // state the host will not place; the placement then fails and nothing is consumed. A broken
+        // tool provides nothing, as the original's tool-not-broken condition.
+        let held = pluto_lib::StackData {
+            item: stack.item.to_string(),
+            count: stack.count.max(0) as u32,
+            damage: 0,
+            max_damage: None,
+            custom_data: stack.nbt.as_ref().and_then(value_to_nbt).unwrap_or_default(),
+            custom_model_data: None,
+            enchantments: Default::default(),
+        };
+        if let Some((_modifier, provided, _wear)) =
+            break_speed_hook::with_held_tool(&held, |env, slot| tool_stack::block_item_provider(&slot.custom_data, env)).ok().flatten()
+        {
+            return Some(BlockState::new(provided));
+        }
+        let plain = match self.blocks.as_deref() {
+            Some(blocks) => blocks.contains(&stack.item),
+            None => self.items.as_deref().is_some_and(|items| items.contains(&stack.item)),
+        };
+        plain.then(|| BlockState::new(stack.item.clone()))
+    }
 
     fn correct_tier_for_drops(&self, _tier: &str, _pos: BlockPos) -> bool { false }
 
@@ -388,9 +507,16 @@ impl WorldAccess for LiveWorld {
         Some(Stack { item, count: output.count, nbt: output.nbt.clone() })
     }
 
-    fn potion_effects(&self, _tag: Option<&NbtCompound>) -> Vec<PotionEffect> {
-        // No potion contents reach; see the module note.
-        Vec::new()
+    fn potion_effects(&self, tag: Option<&NbtCompound>) -> Vec<PotionEffect> {
+        // PotionUtils.getPotion: the fluid's tag names the potion under its `Potion` string,
+        // and the game's registry hands out that potion's effects (see `crate::potion_contents`).
+        // No tag, no `Potion` string, or an id that does not parse names no potion, and a potion
+        // the game does not know carries no effects — the original answers Potions.EMPTY the same
+        // way. Custom effects are not read: neither original effect reads them.
+        let Some(tag) = tag else { return Vec::new() };
+        let Some(potion) = tag.get_string("Potion") else { return Vec::new() };
+        let Ok(potion) = Identifier::parse(potion) else { return Vec::new() };
+        crate::potion_contents::effects(&potion)
     }
 
     fn living_in_block(&mut self, pos: BlockPos) -> Vec<&mut dyn EntityTarget> {
@@ -414,6 +540,9 @@ impl WorldAccess for LiveWorld {
 enum Sink<'a> {
     Victim(&'a RefCell<Vec<EntityAction>>),
     Reach,
+    /// No queue at all: a given effect goes straight to the entity through the reach, and the rest
+    /// of the action vocabulary (which only a hit's own parties can carry) is refused.
+    Direct,
 }
 
 /// A live entity as an effect target: the facts the reaches answer, and conservative defaults for
@@ -425,6 +554,9 @@ pub(crate) struct LiveTarget<'a> {
     player: bool,
     fire_immune: bool,
     position: [f64; 3],
+    /// The party a queued action names: the victim of a hit, or the attacker where an effect
+    /// retaliates (a bursting tank answers its wearer's attacker).
+    party: ActionTarget,
     sink: Sink<'a>,
 }
 
@@ -453,6 +585,7 @@ impl<'a> LiveTarget<'a> {
             living,
             fire_immune,
             position: hit.at,
+            party: ActionTarget::Victim,
             sink: Sink::Victim(actions),
         }
     }
@@ -467,8 +600,38 @@ impl<'a> LiveTarget<'a> {
             player: entity.kind.to_string() == "minecraft:player",
             fire_immune: entity.living.map_or(false, |facts| facts.fire_immune),
             position,
+            party: ActionTarget::Victim,
             sink: Sink::Reach,
         }
+    }
+
+    /// An entity a callback names outright — a hit's attacker, the wearer of a tank, the drinker of
+    /// one: its living facts are probed from the reach around its position, and its given effects
+    /// queue on `actions` as the named party's.
+    pub(crate) fn party(id: i32, kind: &str, position: [f64; 3], actions: &'a RefCell<Vec<EntityAction>>, party: ActionTarget) -> Self {
+        let (mut living, mut fire_immune) = (!matches!(kind, "minecraft:item" | "minecraft:experience_orb" | "minecraft:falling_block"), false);
+        for entity in EntityReach::in_box([position[0] - 0.5, position[1] - 0.5, position[2] - 0.5], [position[0] + 0.5, position[1] + 0.5, position[2] + 0.5]) {
+            if entity.id == id as u64 {
+                living = entity.living.is_some();
+                fire_immune = entity.living.map_or(false, |facts| facts.fire_immune);
+                break;
+            }
+        }
+        Self { id, kind: kind.to_owned(), living, player: kind == "minecraft:player", fire_immune, position, party, sink: Sink::Victim(actions) }
+    }
+
+    /// An entity whose effects are given at once through the reach, for the tellings that carry no
+    /// action queue of their own (an inventory tick, a finished drink, an interact key's stop).
+    pub(crate) fn direct(id: i32, kind: &str, position: [f64; 3]) -> Self {
+        let (mut living, mut fire_immune) = (!matches!(kind, "minecraft:item" | "minecraft:experience_orb" | "minecraft:falling_block"), false);
+        for entity in EntityReach::in_box([position[0] - 0.5, position[1] - 0.5, position[2] - 0.5], [position[0] + 0.5, position[1] + 0.5, position[2] + 0.5]) {
+            if entity.id == id as u64 {
+                living = entity.living.is_some();
+                fire_immune = entity.living.map_or(false, |facts| facts.fire_immune);
+                break;
+            }
+        }
+        Self { id, kind: kind.to_owned(), living, player: kind == "minecraft:player", fire_immune, position, party: ActionTarget::Victim, sink: Sink::Direct }
     }
 
     fn queue(&mut self, action: EntityAction) -> bool {
@@ -478,6 +641,12 @@ impl<'a> LiveTarget<'a> {
                 true
             }
             Sink::Reach => false,
+            Sink::Direct => match action {
+                EntityAction::AddEffect { effect, amplifier, duration, .. } => {
+                    self.id > 0 && EntityReach::add_effect(self.id as u64, &effect, duration, amplifier.clamp(0, 255) as u8)
+                }
+                _ => false,
+            },
         }
     }
 }
@@ -521,17 +690,17 @@ impl EntityTarget for LiveTarget<'_> {
         // below the (unreadable) current burn is left to that rule, as setSecondsOnFire itself is.
         if ticks > 0 {
             let seconds = (ticks + 19) / 20;
-            self.queue(EntityAction::SetFire { target: ActionTarget::Victim, seconds });
+            self.queue(EntityAction::SetFire { target: self.party, seconds });
         }
     }
     fn set_ticks_frozen(&mut self, ticks: i32) {
         if ticks > 0 {
-            self.queue(EntityAction::Freeze { target: ActionTarget::Victim, ticks });
+            self.queue(EntityAction::Freeze { target: self.party, ticks });
         }
     }
     fn add_effect(&mut self, effect: NewEffect) -> bool {
         self.queue(EntityAction::AddEffect {
-            target: ActionTarget::Victim,
+            target: self.party,
             effect: effect.effect.to_string(),
             amplifier: effect.amplifier,
             duration: effect.duration,
@@ -597,11 +766,12 @@ mod tests {
             owner: -1,
             entity: Some(1),
             entity_kind: "minecraft:zombie".to_owned(),
+            entity_effects: Vec::new(),
             block: [0, 0, 0],
             face: [0, 1, 0],
             at: [0.5, 0.5, 0.5],
-            motion: [0.0; 3], data: NbtCompound::new(), discard: std::cell::Cell::new(false), motion_after: RefCell::new(None),
-            actions: RefCell::new(Vec::new()),
+            motion: [0.0; 3], data: NbtCompound::new(), piercing_ignored: Vec::new(), discard: std::cell::Cell::new(false), motion_after: RefCell::new(None),
+            ignore_entities: RefCell::new(Vec::new()), actions: RefCell::new(Vec::new()),
         };
         let actions = RefCell::new(Vec::new());
         let mut ops = MemoryEntityOps {
@@ -625,5 +795,51 @@ mod tests {
         assert!(matches!(queued[0], EntityAction::AddEffect { amplifier: 1, duration: 100, .. }));
         assert!(matches!(queued[1], EntityAction::SetFire { seconds: 3, .. }), "41 ticks round up to 3 seconds");
         assert_eq!(ops.hurt.len(), 1);
+    }
+
+    #[test]
+    fn an_explosion_effect_sets_off_the_games_blast_in_the_effects_shape() {
+        // magma's entry, as the shipped data declares it: an explosion on blocks, radius a half
+        // plus a half per level, destroying with decay and placing fire
+        let files = vec![(id("tconstruct:magma"), serde_json::json!({
+            "fluid": {"fluid": "tconstruct:magma", "amount": 100},
+            "block_effects": [{"type": "tconstruct:explosion", "block_interaction": "destroy_with_decay", "damage": {"each_level": 2.0}, "knockback": {"flat": 1.0}, "place_fire": true, "radius": {"each_level": 0.5, "flat": 0.5}}],
+        }))];
+        let context = crate::conditions::Context { items: None, config: Default::default() };
+        let data = crate::fluid_effects::Data { effects: crate::fluid_effects::Effects::load(&files, &context), loaded: true };
+        let tags = crate::fluid_ingredient::FluidTags::default();
+        let fluid = FluidStack { fluid: id("tconstruct:magma"), amount: 100, tag: None };
+        let mut ops = pluto_lib::MemoryWorldOps::default();
+        let mut live = LiveWorld::new(World::new("minecraft:overworld"));
+        let consumed = pluto_lib::with_world(&mut ops, || {
+            let mut context = block_context(&mut live, holder(Stack::empty(), None, [0.5, 64.5, 0.5]), [0, 64, 0], Direction::North, [0.5, 64.5, 0.5]);
+            data.apply_to_block(&fluid, 1.0, &mut context, &tags)
+        });
+        assert_eq!(consumed, 100, "one level of magma is spent on its explosion");
+        assert_eq!(ops.explosions.len(), 1, "the blast is the world's, in the effect's shape");
+        let blast = &ops.explosions[0];
+        assert_eq!(blast.dimension, "minecraft:overworld");
+        assert_eq!(blast.center, [0.5, 64.5, 0.5]);
+        assert_eq!(blast.radius, 1.0, "a half plus a half for the one level");
+        assert!(blast.fire);
+        assert_eq!(blast.interaction, pluto_lib::ExplosionInteraction::Block, "destroy_with_decay is the game's block rule");
+    }
+
+    #[test]
+    fn potion_effects_read_the_potion_the_fluids_tag_names() {
+        // Without a game the registry lookup finds nothing, so every tag answers empty here; the
+        // test pins the tag reading — no tag, no `Potion` key, a non-string value and an
+        // unparsable id all answer empty without touching the registry — and the fallback for a
+        // potion the game would know.
+        let live = LiveWorld::new(World::new("minecraft:overworld"));
+        assert!(live.potion_effects(None).is_empty());
+        let mut tag = NbtCompound::new();
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "no Potion key names no potion");
+        tag.insert("Potion".to_owned(), Nbt::Int(7));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "a non-string Potion names no potion");
+        tag.insert("Potion".to_owned(), Nbt::String("not an id".to_owned()));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "an unparsable id names no potion");
+        tag.insert("Potion".to_owned(), Nbt::String("minecraft:strong_poison".to_owned()));
+        assert!(live.potion_effects(Some(&tag)).is_empty(), "without a game no potion has effects");
     }
 }

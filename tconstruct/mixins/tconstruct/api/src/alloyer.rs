@@ -262,14 +262,21 @@ pub(crate) const DATA_INPUTS: usize = DATA_OUTPUT_FLUID + 1;
 pub(crate) const fn input_data(index: usize) -> usize { DATA_INPUTS + 1 + 3 * index }
 /// AlloyerScreen supports five input tanks at most.
 pub(crate) const MAX_INPUTS: usize = 5;
-pub(crate) const DATA_SLOTS: usize = input_data(MAX_INPUTS);
+/// The fuel gauge's own values, published by the ticker from the block below: which fluid the
+/// fuel tank below holds, its amount and capacity (each a high/low pair).
+pub(crate) const DATA_FUEL_FLUID: usize = input_data(MAX_INPUTS);
+pub(crate) const DATA_FUEL_AMOUNT: usize = DATA_FUEL_FLUID + 1;
+pub(crate) const DATA_FUEL_CAPACITY: usize = DATA_FUEL_AMOUNT + 2;
+pub(crate) const DATA_SLOTS: usize = DATA_FUEL_CAPACITY + 2;
 
 fn fluid_index(fluid: &Identifier) -> i32 {
     fluid_order().iter().position(|own| own == fluid).map_or(0, |position| position as i32 + 1)
 }
 
 impl State {
-    pub(crate) fn publish(&self, tick: &mut BlockEntityTick<'_>, tank: &Tank, sides: &[Side]) {
+    /// Publishes the window's values; the gauge's come from the block below (the fuel tank's
+    /// fluid, amount and capacity), which the state does not hold.
+    pub(crate) fn publish(&self, tick: &mut BlockEntityTick<'_>, tank: &Tank, sides: &[Side], gauge: Option<&(Identifier, i32, i32)>) {
         let values = [self.fuel.fuel, self.fuel.quality, self.fuel.temperature, self.fuel.rate];
         for (index, value) in values.into_iter().enumerate() { tick.set_menu_data(index, value); }
         tick.set_menu_data(DATA_OUTPUT_AMOUNT, tank.fluid.as_ref().map_or(0, |fluid| fluid.amount as i32));
@@ -281,6 +288,11 @@ impl State {
             tick.set_menu_data(base, side.and_then(|side| side.fluid.as_ref()).map_or(0, |(_, amount)| *amount));
             tick.set_menu_data(base + 1, side.and_then(|side| side.fluid.as_ref()).map_or(0, |(fluid, _)| fluid_index(fluid)));
             tick.set_menu_data(base + 2, side.map_or(0, |side| side.capacity));
+        }
+        tick.set_menu_data(DATA_FUEL_FLUID, gauge.and_then(|(fluid, _, _)| fluid_order().iter().position(|id| id == fluid)).map_or(0, |position| position as i32 + 1));
+        for (index, value) in [(DATA_FUEL_AMOUNT, gauge.map_or(0, |(_, amount, _)| *amount)), (DATA_FUEL_CAPACITY, gauge.map_or(0, |(_, _, capacity)| *capacity))] {
+            tick.set_menu_data(index, value >> 15);
+            tick.set_menu_data(index + 1, value & 0x7FFF);
         }
     }
 }
@@ -520,7 +532,7 @@ mod tests {
         state.save(tick.data, &world.alloys);
         tank.write(&mut tick);
         let sides = world.sides();
-        state.publish(&mut tick, &tank, &sides);
+        state.publish(&mut tick, &tank, &sides, None);
         let loaded = State::load(tick.data, &world.alloys);
         assert_eq!(loaded, state);
         assert_eq!(Tank::read(&tick), tank);

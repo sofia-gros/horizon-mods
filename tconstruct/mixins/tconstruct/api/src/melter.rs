@@ -17,7 +17,7 @@ use pluto_lib::{BlockEntityTick, BlockPos, Direction, FluidRegistry, FluidStack,
 pub(crate) const SLOTS: usize = MELTER_SLOTS as usize;
 pub(crate) const MELTING_TAG: &str = "melting";
 /// The block tag a fuel source below the melter must be in (`TinkerTags.Blocks.FUEL_TANKS`).
-const FUEL_TANKS: &str = "tconstruct:fuel_tanks";
+pub(crate) const FUEL_TANKS: &str = "tconstruct:fuel_tanks";
 
 /// What an item in a slot melts into, from the recipe that matches it (IMeltingRecipe: time, temperature, getOutput).
 #[derive(Clone, Debug, PartialEq)]
@@ -300,7 +300,14 @@ impl State {
 pub(crate) const fn slot_data(slot: usize) -> usize { 4 + 4 * slot }
 pub(crate) const DATA_TANK_AMOUNT: usize = slot_data(SLOTS);
 pub(crate) const DATA_TANK_FLUID: usize = DATA_TANK_AMOUNT + 1;
-pub(crate) const DATA_SLOTS: usize = DATA_TANK_FLUID + 1;
+/// The fuel gauge's own values, published by the ticker from the block below (the melter's `State`
+/// does not hold them): which fluid the fuel tank below holds, its amount and capacity (each a
+/// high/low pair, as a value can exceed 32767), and whether the block below is a heater.
+pub(crate) const DATA_FUEL_FLUID: usize = DATA_TANK_FLUID + 1;
+pub(crate) const DATA_FUEL_AMOUNT: usize = DATA_FUEL_FLUID + 1;
+pub(crate) const DATA_FUEL_CAPACITY: usize = DATA_FUEL_AMOUNT + 2;
+pub(crate) const DATA_HEATER: usize = DATA_FUEL_CAPACITY + 2;
+pub(crate) const DATA_SLOTS: usize = DATA_HEATER + 1;
 
 /// Every fluid a mod defined through PlutoLib, in id order: both halves of a game hold the same list, so a position names a fluid.
 pub(crate) fn fluid_order() -> Vec<Identifier> {
@@ -310,7 +317,9 @@ pub(crate) fn fluid_order() -> Vec<Identifier> {
 }
 
 impl State {
-    pub(crate) fn publish(&self, tick: &mut BlockEntityTick<'_>, tank: &Tank) {
+    /// Publishes the window's values; the gauge's come from the block below (the fuel tank's
+    /// fluid, amount and capacity, and whether it is a heater), which the state does not hold.
+    pub(crate) fn publish(&self, tick: &mut BlockEntityTick<'_>, tank: &Tank, gauge: Option<&(Identifier, i32, i32)>, heater: bool) {
         let values = [self.fuel.fuel, self.fuel.quality, self.fuel.temperature, self.fuel.rate];
         for (index, value) in values.into_iter().enumerate() { tick.set_menu_data(index, value); }
         for (index, slot) in self.slots.iter().enumerate() {
@@ -323,6 +332,13 @@ impl State {
         tick.set_menu_data(DATA_TANK_AMOUNT, tank.fluid.as_ref().map_or(0, |fluid| fluid.amount as i32));
         let which = tank.fluid.as_ref().and_then(|fluid| fluid_order().iter().position(|id| *id == fluid.fluid)).map_or(0, |position| position as i32 + 1);
         tick.set_menu_data(DATA_TANK_FLUID, which);
+        let fluid_index = gauge.and_then(|(fluid, _, _)| fluid_order().iter().position(|id| id == fluid)).map_or(0, |position| position as i32 + 1);
+        tick.set_menu_data(DATA_FUEL_FLUID, fluid_index);
+        for (index, value) in [(DATA_FUEL_AMOUNT, gauge.map_or(0, |(_, amount, _)| *amount)), (DATA_FUEL_CAPACITY, gauge.map_or(0, |(_, _, capacity)| *capacity))] {
+            tick.set_menu_data(index, value >> 15);
+            tick.set_menu_data(index + 1, value & 0x7FFF);
+        }
+        tick.set_menu_data(DATA_HEATER, i32::from(heater));
     }
 }
 
@@ -378,6 +394,21 @@ pub(crate) struct Live<'a> {
 
 impl<'a> Live<'a> {
     pub(crate) fn new(data: &'a Data, item_tags: Option<&'a pluto_lib::RegistryLookup>, pos: BlockPos) -> Self { Live { data, item_tags, pos, below: None } }
+
+    /// The fuel tank below's contents for the window's gauge: its fluid, amount and capacity.
+    pub(crate) fn fuel_tank(&self) -> Option<(Identifier, i32, i32)> {
+        let (below, face) = Neighbours::beside(self.pos, Direction::Down);
+        let tank = Neighbours::fluid_tanks(below, face)?.into_iter().next()?;
+        let fluid = tank.fluid?;
+        Some((fluid.fluid, fluid.amount.min(i32::MAX as u32) as i32, tank.capacity.min(i32::MAX as u32) as i32))
+    }
+
+    /// Whether the block below is a heater (its window's fuel slot is what the melter's window
+    /// frames, in the original).
+    pub(crate) fn below_is_heater(&self) -> bool {
+        let (below, _) = Neighbours::beside(self.pos, Direction::Down);
+        Neighbours::block_state(below).is_some_and(|state| state.block.path() == "seared_heater")
+    }
 }
 
 /// What the item melts into in a container with the given ore rate, and the byproducts a foundry also gets (`byproduct_rate`).
@@ -589,7 +620,7 @@ mod tests {
         let mut tick = BlockEntityTick { pos: [0, 64, 0], data: &mut data, items: &mut copy };
         state.save(tick.data);
         tank.write(&mut tick);
-        state.publish(&mut tick, &tank);
+        state.publish(&mut tick, &tank, None, false);
         let loaded = State::load(tick.data, tick.items);
         assert_eq!(loaded, state);
         assert_eq!(Tank::read(&tick), tank);

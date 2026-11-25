@@ -1,11 +1,13 @@
 //! The scorched alloyer block entity and its window over PlutoLib's public API (SlimeKnights AlloyerBlockEntity,
 //! AlloyerContainerMenu, AlloyerScreen and the GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The window
-//! shows the output tank, the input tanks beside the block and the fuel gauge; it has no slots of its own (the
-//! original's fuel slot is the heater's own and lives in the heater's window, as with the melter). Putting fluid in
-//! and out by clicking a tank with a held container is not ported; the block itself trades with a held container on
-//! use, like the melter. The fuel gauge's fluid fill is not drawn, again as with the melter's window.
+//! shows the output tank and the input tanks beside the block with their fluids' still textures tiled over flat
+//! fills of their colours, and the fuel gauge with the fuel tank below's fluid in it; it has no slots of its own
+//! (the original's fuel slot is the heater's own and lives in the heater's window, as with the melter). Clicking
+//! the output tank trades the held container with it; the input tanks are the blocks beside, and the fuel gauge's
+//! tank is the block below — a menu button reaches only its own block entity, so their clicks are not ported (the
+//! block itself trades with a held container on use, like the melter).
 use crate::{
-    alloyer::{self, Env, Side, State, Tank, ALLOYER_CAPACITY, DATA_INPUTS, DATA_OUTPUT_AMOUNT, DATA_OUTPUT_FLUID, DATA_SLOTS, MAX_INPUTS},
+    alloyer::{self, Env, Side, State, Tank, ALLOYER_CAPACITY, DATA_FUEL_AMOUNT, DATA_FUEL_CAPACITY, DATA_FUEL_FLUID, DATA_INPUTS, DATA_OUTPUT_AMOUNT, DATA_OUTPUT_FLUID, DATA_SLOTS, MAX_INPUTS},
     common,
     fluid_ingredient::FluidTags,
     fluid_items,
@@ -14,8 +16,8 @@ use crate::{
     smeltery_data::Data,
 };
 use pluto_lib::{
-    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, Direction, FluidRegistry, I18n, Identifier,
-    Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, World,
+    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, Direction, FluidItems, FluidRegistry, I18n, Identifier, MenuButton,
+    Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, TransferDirection, World,
 };
 
 pub(crate) const ALLOYER: &str = "scorched_alloyer";
@@ -42,6 +44,14 @@ impl<'a> Live<'a> {
     pub(crate) fn new(data: &'a Data, pos: BlockPos) -> Self { Live { data, pos, below: None } }
 
     fn own_state(&self) -> Option<BlockState> { World::ticking()?.get_block_state(self.pos) }
+
+    /// The fuel tank below's contents for the window's gauge: its fluid, amount and capacity.
+    fn fuel_tank(&self) -> Option<(Identifier, i32, i32)> {
+        let (below, face) = Neighbours::beside(self.pos, Direction::Down);
+        let tank = Neighbours::fluid_tanks(below, face)?.into_iter().next()?;
+        let fluid = tank.fluid?;
+        Some((fluid.fluid, fluid.amount.min(i32::MAX as u32) as i32, tank.capacity.min(i32::MAX as u32) as i32))
+    }
 }
 
 impl Env for Live<'_> {
@@ -113,7 +123,24 @@ fn tick_alloyer(tick: &mut BlockEntityTick<'_>) {
     let sides = live.sides();
     state.save(tick.data, &data.recipes.alloys);
     tank.write(tick);
-    state.publish(tick, &tank, &sides);
+    let gauge = live.fuel_tank();
+    state.publish(tick, &tank, &sides, gauge.as_ref());
+}
+
+/// A click in the output tank trades the held container with it (the input tanks and the fuel
+/// gauge belong to other blocks and are not sent).
+fn alloyer_click(at: [f32; 2]) -> Option<i32> { inside(at, OUTPUT).then_some(0) }
+
+/// `clickMenuButton` 0: the held container trades with this block entity's output tank. A trade
+/// whose result would not fit back in the hand does not happen, as on the smeltery's tank.
+fn alloyer_press(button: &mut MenuButton<'_>) {
+    if button.id != 0 { return; }
+    let Some(held) = button.carried.clone() else { return };
+    let mut target = fluid_items::TankTarget { fluid: button.fluid(0), capacity: ALLOYER_CAPACITY as u32 };
+    let Some(done) = FluidItems::interact(Some(&held), &mut target, TransferDirection::Auto) else { return };
+    if !done.give.is_empty() { return; }
+    button.set_fluid(0, target.fluid);
+    *button.carried = done.held;
 }
 
 /// The colour a fluid is drawn in: its defined colour, opaque.
@@ -131,8 +158,8 @@ fn fluid_at(data: &[i32], fluid_index: usize) -> Option<Identifier> {
 fn get(data: &[i32], index: usize) -> i32 { data.get(index).copied().unwrap_or(0) }
 
 /// Draws the alloyer window: background, the input tanks' scales and fluids, the output tank and its scale, the
-/// fuel gauge's background and the flame (AlloyerScreen.renderBg).
-pub(crate) fn draw_alloyer(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32]) {
+/// fuel gauge's background, its fluid and the flame (AlloyerScreen.renderBg).
+pub(crate) fn draw_alloyer(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], mouse: [f32; 2]) {
     let [x, y] = origin;
     canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 166.0], [x, y, 176.0, 166.0]);
     // no fuel slot in this window: the gauge's own background (FUEL_TANK), as the melter draws
@@ -141,6 +168,16 @@ pub(crate) fn draw_alloyer(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data
     if fuel > 0 && quality > 0 {
         let height = (14 * fuel / quality).clamp(0, 14) as f32;
         canvas.sprite(BACKGROUND, [176.0, 136.0 + 14.0 - height, 14.0, height], [x + FLAME_AT[0], y + FLAME_AT[1] + 14.0 - height, 14.0, height]);
+    }
+    // the fuel gauge's fluid, the fuel tank below's own
+    let (fuel_amount, fuel_capacity) = (crate::melter_menu::join_pair(data, DATA_FUEL_AMOUNT), crate::melter_menu::join_pair(data, DATA_FUEL_CAPACITY));
+    if fuel_amount > 0 && fuel_capacity > 0 {
+        let height = (FUEL_AT[3] * (fuel_amount.min(fuel_capacity) as f32) / fuel_capacity as f32).floor();
+        let fluid = fluid_at(data, DATA_FUEL_FLUID);
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + FUEL_AT[0], y + FUEL_AT[1] + FUEL_AT[3] - height, FUEL_AT[2], height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     let inputs = (get(data, DATA_INPUTS).max(0) as usize).min(MAX_INPUTS);
     for index in 0..inputs {
@@ -151,46 +188,99 @@ pub(crate) fn draw_alloyer(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data
         let (amount, capacity) = (get(data, base), get(data, base + 2));
         if amount > 0 && capacity > 0 {
             let height = (INPUT[1] * (amount.min(capacity) as f32) / capacity as f32).floor();
-            let color = fluid_at(data, base + 1).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid));
-            canvas.fill([x + INPUT_X[index], y + 16.0 + INPUT[1] - height, INPUT[0], height], color);
+            let fluid = fluid_at(data, base + 1);
+            let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+            let rect = [x + INPUT_X[index], y + 16.0 + INPUT[1] - height, INPUT[0], height];
+            canvas.fill(rect, color);
+            if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
         }
     }
     let amount = get(data, DATA_OUTPUT_AMOUNT);
+    let output_height = if amount > 0 { (OUTPUT[3] * (amount.min(ALLOYER_CAPACITY) as f32) / ALLOYER_CAPACITY as f32).floor() } else { 0.0 };
     if amount > 0 {
-        let height = (OUTPUT[3] * (amount.min(ALLOYER_CAPACITY) as f32) / ALLOYER_CAPACITY as f32).floor();
-        let color = fluid_at(data, DATA_OUTPUT_FLUID).map_or(0xFF_FF_FF_FF, |fluid| fluid_color(&fluid));
-        canvas.fill([x + OUTPUT[0], y + OUTPUT[1] + OUTPUT[3] - height, OUTPUT[2], height], color);
+        let fluid = fluid_at(data, DATA_OUTPUT_FLUID);
+        let color = fluid.as_ref().map_or(0xFF_FF_FF_FF, |fluid| fluid_color(fluid));
+        let rect = [x + OUTPUT[0], y + OUTPUT[1] + OUTPUT[3] - output_height, OUTPUT[2], output_height];
+        canvas.fill(rect, color);
+        if let Some(fluid) = &fluid { crate::melter_menu::draw_tiled_fluid(canvas, fluid, rect, color); }
     }
     canvas.sprite(BACKGROUND, [176.0, 0.0, 34.0, 52.0], [x + OUTPUT[0], y + OUTPUT[1], 34.0, 52.0]);
+    // the hovered part of a tank lights up, split at the fluid's surface
+    let mut highlight = |rect: [f32; 4], filled: f32| {
+        if !inside(mouse, rect) { return; }
+        let surface = rect[1] + rect[3] - filled;
+        let part = if mouse[1] >= surface { [rect[0], surface, rect[2], filled] } else { [rect[0], rect[1], rect[2], surface - rect[1]] };
+        if part[3] > 0.0 { canvas.fill([x + part[0], y + part[1], part[2], part[3]], 0x59_FF_FF_FF); }
+    };
+    highlight(OUTPUT, output_height);
+    for index in 0..inputs {
+        let base = alloyer::input_data(index);
+        let (amount, capacity) = (get(data, base), get(data, base + 2));
+        let filled = if amount > 0 && capacity > 0 { (INPUT[1] * (amount.min(capacity) as f32) / capacity as f32).floor() } else { 0.0 };
+        highlight([INPUT_X[index], 16.0, INPUT[0], INPUT[1]], filled);
+    }
 }
 
 fn inside(at: [f32; 2], rect: [f32; 4]) -> bool { at[0] >= rect[0] && at[0] < rect[0] + rect[2] && at[1] >= rect[1] && at[1] < rect[1] + rect[3] }
 
-/// The window's hover text: a tank's fluid and amount, or the fuel's state (GuiTankModule and GuiFuelModule,
-/// worded as the melter's window words them).
+/// The window's hover text: over a tank's fluid, the fluid and its amount; over its empty part,
+/// the capacity and the room left; over the gauge, the fuel's state (GuiTankModule and
+/// GuiFuelModule, worded as the melter's window words them).
 pub(crate) fn alloyer_tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String>) {
-    let tank = |amount_index: usize, fluid_index: usize, lines: &mut Vec<String>| {
+    let tank = |amount_index: usize, fluid_index: usize, capacity: i32, surface: f32, lines: &mut Vec<String>| {
         let amount = get(data, amount_index);
-        if amount <= 0 { return false; }
-        if let Some(fluid) = fluid_at(data, fluid_index) {
-            lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+        if amount > 0 && at[1] >= surface {
+            if let Some(fluid) = fluid_at(data, fluid_index) {
+                lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+            }
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&amount.to_string()]));
+        } else {
+            lines.push(I18n::translate("gui.tconstruct.melting.capacity"));
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&capacity.to_string()]));
+            if capacity - amount > 0 {
+                lines.push(I18n::translate("gui.tconstruct.melting.capacity.available"));
+                lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&(capacity - amount).to_string()]));
+            }
         }
-        lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&amount.to_string()]));
         true
     };
-    if inside(at, [OUTPUT[0] - 1.0, OUTPUT[1] - 1.0, OUTPUT[2] + 2.0, OUTPUT[3] + 2.0]) && tank(DATA_OUTPUT_AMOUNT, DATA_OUTPUT_FLUID, lines) { return; }
+    if inside(at, [OUTPUT[0] - 1.0, OUTPUT[1] - 1.0, OUTPUT[2] + 2.0, OUTPUT[3] + 2.0]) {
+        let amount = get(data, DATA_OUTPUT_AMOUNT);
+        let height = if amount > 0 { (OUTPUT[3] * (amount.min(ALLOYER_CAPACITY) as f32) / ALLOYER_CAPACITY as f32).floor() } else { 0.0 };
+        tank(DATA_OUTPUT_AMOUNT, DATA_OUTPUT_FLUID, ALLOYER_CAPACITY, OUTPUT[1] + OUTPUT[3] - height, lines);
+        return;
+    }
     let inputs = (get(data, DATA_INPUTS).max(0) as usize).min(MAX_INPUTS);
     for index in 0..inputs {
         let rect = [INPUT_X[index] - 1.0, 15.0, INPUT[0] + 2.0, INPUT[1] + 2.0];
-        if inside(at, rect) && tank(alloyer::input_data(index), alloyer::input_data(index) + 1, lines) { return; }
+        if inside(at, rect) {
+            let base = alloyer::input_data(index);
+            let (amount, capacity) = (get(data, base), get(data, base + 2));
+            let height = if amount > 0 && capacity > 0 { (INPUT[1] * (amount.min(capacity) as f32) / capacity as f32).floor() } else { 0.0 };
+            tank(base, base + 1, capacity, 16.0 + INPUT[1] - height, lines);
+            return;
+        }
     }
     if inside(at, [FUEL_AT[0] - 1.0, FUEL_AT[1] - 1.0, FUEL_AT[2] + 2.0, FUEL_AT[3] + 2.0]) {
         let temperature = get(data, 2);
-        if get(data, 0) > 0 && temperature > 0 {
+        let fuel_amount = crate::melter_menu::join_pair(data, DATA_FUEL_AMOUNT);
+        if fuel_amount > 0 {
+            if let Some(fluid) = fluid_at(data, DATA_FUEL_FLUID) {
+                lines.push(FluidRegistry::display_name(&fluid.to_string()).unwrap_or_else(|| fluid.to_string()));
+            }
+            lines.push(I18n::translate_args("gui.tconstruct.fluid.millibucket", &[&fuel_amount.to_string()]));
+            if temperature == 0 {
+                lines.push(format!("§c{}", I18n::translate("gui.tconstruct.melting.fuel.invalid")));
+            } else {
+                lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&temperature.to_string()])));
+            }
+        } else if get(data, 0) > 0 && temperature > 0 {
             lines.push(I18n::translate("gui.tconstruct.melting.fuel.solid"));
             lines.push(format!("§7§o{}", I18n::translate_args("gui.tconstruct.melting.fuel.temperature", &[&temperature.to_string()])));
-        } else {
+        } else if crate::melter_menu::join_pair(data, DATA_FUEL_CAPACITY) > 0 {
             lines.push(I18n::translate("gui.tconstruct.melting.fuel.empty"));
+        } else {
+            lines.push(I18n::translate("gui.tconstruct.melting.fuel.no_tank"));
         }
     }
 }
@@ -199,8 +289,10 @@ pub(crate) fn register() {
     let alloyer_id = Identifier::new("tconstruct", ALLOYER).expect("valid alloyer id");
     let layout = ScreenLayout::new(176.0, 166.0).with_own_background();
     let window = ScreenHandlerType::new(alloyer_id.clone(), layout)
-        .on_draw(|draw| draw_alloyer(draw.canvas, draw.origin, draw.data))
-        .on_tooltip(|tip| alloyer_tooltip(tip.at, tip.data, tip.lines));
+        .on_draw(|draw| draw_alloyer(draw.canvas, draw.origin, draw.data, draw.mouse))
+        .on_click(|press| alloyer_click(press.at))
+        .on_tooltip(|tip| alloyer_tooltip(tip.at, tip.data, tip.lines))
+        .on_button(|button| alloyer_press(button));
     ScreenHandlerRegistry::register(window);
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(alloyer_id).fluid_tanks([ALLOYER_CAPACITY as u32]).menu("tconstruct:alloyer").sync_data()
@@ -234,7 +326,7 @@ mod tests {
         let half = alloyer::input_data(0);
         let values = data(&[(0, 200), (1, 400), (2, 800), (DATA_OUTPUT_AMOUNT, ALLOYER_CAPACITY / 2),
             (DATA_OUTPUT_FLUID, 1), (DATA_INPUTS, 2), (half, 500), (half + 1, 1), (half + 2, 1000)]);
-        draw_alloyer(&mut canvas, [10.0, 20.0], &values);
+        draw_alloyer(&mut canvas, [10.0, 20.0], &values, [-1.0, -1.0]);
         assert!(canvas.sprites.iter().all(|sprite| sprite.0 == BACKGROUND), "every sprite is the window's own texture: {:?}", canvas.sprites);
         let flame = canvas.sprites.iter().find(|s| s.1[0] == 176.0 && s.1[2] == 14.0).expect("flame");
         assert_eq!((flame.1, flame.2), ([176.0, 143.0, 14.0, 7.0], [162.0, 42.0, 14.0, 7.0]), "half the fuel draws half the flame");
@@ -252,16 +344,20 @@ mod tests {
             ("gui.tconstruct.melting.fuel.empty".to_owned(), "No fuel".to_owned()),
         ]);
         let base = alloyer::input_data(0);
-        let values = data(&[(DATA_OUTPUT_AMOUNT, 500), (DATA_INPUTS, 1), (base, 250), (base + 2, 1000)]);
+        let (cap_high, cap_low) = crate::melter_menu::split_pair(2000);
+        let values = data(&[(DATA_OUTPUT_AMOUNT, 500), (DATA_INPUTS, 1), (base, 250), (base + 2, 1000), (DATA_FUEL_CAPACITY, cap_high), (DATA_FUEL_CAPACITY + 1, cap_low)]);
         let mut lines = Vec::new();
-        alloyer_tooltip([120.0, 30.0], &values, &mut lines);
-        assert_eq!(lines, vec!["500 mb".to_owned()], "the output tank's hover text: {lines:?}");
+        alloyer_tooltip([120.0, 64.0], &values, &mut lines);
+        assert_eq!(lines, vec!["500 mb".to_owned()], "the output tank's hover text over its fluid: {lines:?}");
         lines.clear();
-        alloyer_tooltip([60.0, 30.0], &values, &mut lines);
-        assert_eq!(lines, vec!["250 mb".to_owned()], "an input tank's hover text: {lines:?}");
+        alloyer_tooltip([120.0, 30.0], &values, &mut lines);
+        assert_eq!(lines.len(), 4, "over the output's empty part: the capacity and the room left: {lines:?}");
+        lines.clear();
+        alloyer_tooltip([60.0, 60.0], &values, &mut lines);
+        assert_eq!(lines, vec!["250 mb".to_owned()], "an input tank's hover text over its fluid: {lines:?}");
         lines.clear();
         alloyer_tooltip([159.0, 40.0], &values, &mut lines);
-        assert_eq!(lines, vec!["No fuel".to_owned()], "an unfueled alloyer says so: {lines:?}");
+        assert_eq!(lines, vec!["No fuel".to_owned()], "an unfueled alloyer with a fuel tank below says so: {lines:?}");
         let fueled = data(&[(0, 100), (2, 800)]);
         lines.clear();
         alloyer_tooltip([159.0, 40.0], &fueled, &mut lines);

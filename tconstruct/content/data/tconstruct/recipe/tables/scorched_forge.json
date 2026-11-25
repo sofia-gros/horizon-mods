@@ -28,6 +28,8 @@
     "mtm",
     "m m"
   ],
+  "texture": "m",
+  "match_all": true,
   "result": {
     "id": "tconstruct:scorched_anvil"
   }

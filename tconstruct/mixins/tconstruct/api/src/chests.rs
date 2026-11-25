@@ -3,7 +3,9 @@
 //! are scaling chests — 256 slots behind a display size that grows as they fill, one kind of item
 //! per slot (parts: items of `tconstruct:chest_parts`, 8 per slot; casts: items of `tconstruct:casts`,
 //! 4 per slot). Right-clicking a scaling chest with a valid item deposits it (ChestBlock.use with
-//! canInsert); the tinkers chest always opens its window instead (its canInsert is false).
+//! canInsert); the tinkers chest always opens its window instead (its canInsert is false). All
+//! three chests share the one tabbed menu in the original, so their windows carry the
+//! neighbouring tables' tabs (see `tabbed_tables`).
 //!
 //! What does not carry over, and why:
 //! - The one-kind-per-slot rule spans slots; PlutoLib's slot rule sees one stack at a time, so tag
@@ -13,14 +15,17 @@
 //!   (TinkersChestBlockItem.updateCustomBlockEntityTag, through the placement-data hook); no
 //!   renderer tints it here in any case. A broken cast chest drops its contents as items rather
 //!   than keeping them in the dropped chest's data (the original's TinkerData copy).
-//! - The window pages its slots (64 to a page); the original's chest screen scrolls instead.
+//! - The window scrolls its slots a page at a time through the slider (the row offset is the
+//!   block entity's, published as menu data, and the dynamic slots follow it). The mouse wheel
+//!   cannot scroll it: PlutoLib's wheel callback is a client-side hearing with no path to the
+//!   server state the slot positions resolve from, so the wheel is left to the game.
 use crate::common;
 use pluto_lib::{
     ActionResult, BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot, Nbt, NbtCompound,
     ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
 };
 
-/// Slots shown per window page, in eight columns.
+/// The visible grid: eight columns of eight rows.
 const COLUMNS: usize = 8;
 const ROWS: usize = 8;
 const PAGE: usize = COLUMNS * ROWS;
@@ -28,10 +33,15 @@ const PAGE: usize = COLUMNS * ROWS;
 const SCALING_SLOTS: usize = 256;
 /// The tinkers chest's size and per-slot limit (TinkersChestItemHandler).
 const TINKERS_SLOTS: usize = 64;
-/// The saved window page.
-const PAGE_KEY: &str = "page";
-/// Page buttons on the window: previous and next.
-const BUTTONS: (f32, f32, f32) = (136.0, 2.0, 18.0);
+/// The saved scroll offset, in rows.
+const ROW_KEY: &str = "row";
+/// The slider: its track's left, top, width and height (right of the grid).
+const SLIDER: (f32, f32, f32, f32) = (154.0, 18.0, 12.0, 144.0);
+/// The icons sheet, as the station windows name it (the tab strip's texture).
+const ICONS: &str = "tconstruct:gui/icons";
+/// The menu-data base of the tabbed tables' words: the chest's own words are 0 (the display
+/// size) and 1 (the scroll row), so the strip's follow at 2 (see `tabbed_tables`).
+const TABBED_AT: usize = 2;
 
 #[derive(Clone, Copy, PartialEq)]
 enum Kind {
@@ -74,16 +84,28 @@ fn visual_size(kind: Kind, items: &[Option<ItemSlot>]) -> usize {
     }
 }
 
-fn page_of(data: &NbtCompound) -> usize {
-    match data.get(PAGE_KEY) { Some(Nbt::Int(page)) => (*page).max(0) as usize, _ => 0 }
+fn row_of(data: &NbtCompound) -> usize {
+    match data.get(ROW_KEY) { Some(Nbt::Int(row)) => (*row).max(0) as usize, _ => 0 }
 }
 
-fn pages(visual: usize) -> usize { visual.div_ceil(PAGE).max(1) }
+/// How many rows the display size fills, and how far it can scroll.
+fn rows_total(visual: usize) -> usize { visual.div_ceil(COLUMNS) }
+fn max_row(visual: usize) -> usize { rows_total(visual).saturating_sub(ROWS) }
 
-/// Where a slot sits on the window under the current page and display size; `None` hides it.
-fn slot_position(slot: usize, visual: usize, page: usize) -> Option<[f32; 2]> {
-    if slot >= visual || slot / PAGE != page { return None; }
-    let within = slot % PAGE;
+/// The slider handle's height and top for a display size and scroll offset.
+fn handle(visual: usize, row: usize) -> (f32, f32) {
+    let total = rows_total(visual).max(ROWS);
+    let height = (SLIDER.3 * ROWS as f32 / total as f32).max(12.0);
+    let travel = SLIDER.3 - height;
+    let progress = if max_row(visual) > 0 { row.min(max_row(visual)) as f32 / max_row(visual) as f32 } else { 0.0 };
+    (height, SLIDER.1 + travel * progress)
+}
+
+/// Where a slot sits on the window under the current scroll and display size; `None` hides it.
+fn slot_position(slot: usize, visual: usize, row: usize) -> Option<[f32; 2]> {
+    if slot >= visual { return None; }
+    let within = slot.checked_sub(row * COLUMNS)?;
+    if within >= PAGE { return None; }
     Some([8.0 + (within % COLUMNS) as f32 * 18.0, 18.0 + (within / COLUMNS) as f32 * 18.0])
 }
 
@@ -146,42 +168,54 @@ fn register_chest(name: &'static str, kind: Kind) {
         }))
         .on_dynamic_slots(move |state| {
             let visual = state.data.first().copied().unwrap_or(0).max(0) as usize;
-            let page = state.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            Some((0..slots).map(|slot| slot_position(slot, visual, page)).collect())
+            let row = state.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            Some((0..slots).map(|slot| slot_position(slot, visual, row)).collect())
         })
         .on_draw(|draw| {
+            // The neighbouring tables' tabs above the window (see `tabbed_tables`).
+            crate::tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, TABBED_AT, ICONS);
             let visual = draw.data.first().copied().unwrap_or(0).max(0) as usize;
-            if pages(visual) <= 1 { return; }
-            for (index, label) in ["<", ">"].into_iter().enumerate() {
-                let x = draw.origin[0] + BUTTONS.0 + index as f32 * BUTTONS.2;
-                let y = draw.origin[1] + BUTTONS.1;
-                draw.canvas.fill([x, y, BUTTONS.2 - 2.0, 12.0], 0xFF8B8B8B);
-                draw.canvas.text(label, [x + 5.0, y + 2.0], 0x202020, false);
-            }
+            if max_row(visual) == 0 { return; }
+            let row = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            let (height, top) = handle(visual, row);
+            let (x, y) = (draw.origin[0] + SLIDER.0, draw.origin[1] + SLIDER.1);
+            draw.canvas.fill([x, y, SLIDER.2, SLIDER.3], 0xFF37_3737);
+            draw.canvas.fill([x, draw.origin[1] + top, SLIDER.2, height], 0xFFC6_C6C6);
+            draw.canvas.fill([x, draw.origin[1] + top, SLIDER.2, 1.0], 0xFF55_5555);
         })
         .on_click(|press| {
+            if !press.right {
+                if let Some(id) = crate::tabbed_tables::tab_click(press.at, press.data, TABBED_AT) { return Some(id); }
+            }
             let visual = press.data.first().copied().unwrap_or(0).max(0) as usize;
-            if press.right || pages(visual) <= 1 { return None; }
-            let (x, y) = (press.at[0] - BUTTONS.0, press.at[1] - BUTTONS.1);
-            if y < 0.0 || y > 12.0 || x < 0.0 { return None; }
-            let index = (x / BUTTONS.2) as usize;
-            (index <= 1 && x < BUTTONS.2 * 2.0 - 2.0).then_some(index as i32 + 1)
+            if press.right || max_row(visual) == 0 { return None; }
+            if press.at[0] < SLIDER.0 || press.at[0] >= SLIDER.0 + SLIDER.2 || press.at[1] < SLIDER.1 || press.at[1] >= SLIDER.1 + SLIDER.3 { return None; }
+            let row = press.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            let (height, top) = handle(visual, row);
+            if press.at[1] < top { Some(1) } else if press.at[1] >= top + height { Some(2) } else { None }
+        })
+        .on_tooltip(|tip| {
+            if let Some(name) = crate::tabbed_tables::tab_tooltip(tip.at, tip.data, TABBED_AT) {
+                tip.lines.push(name);
+            }
         })
         .on_button(move |press| {
+            if crate::tabbed_tables::press_tab(press) { return; }
             let visual = visual_size(kind, press.items);
-            let last = pages(visual) - 1;
-            let page = page_of(press.data);
-            let next = match press.id { 1 => page.saturating_sub(1), 2 => (page + 1).min(last), _ => return };
-            press.data.insert(PAGE_KEY.to_owned(), Nbt::Int(next as i32));
+            let row = row_of(press.data);
+            let next = match press.id { 1 => row.saturating_sub(ROWS), 2 => (row + ROWS).min(max_row(visual)), _ => return };
+            press.data.insert(ROW_KEY.to_owned(), Nbt::Int(next as i32));
         });
     ScreenHandlerRegistry::register(window);
     let mut entity = BlockEntityType::new(id.clone()).item_slots(slots as u32).menu(&format!("tconstruct:{name}"))
         .ticker(move |tick| {
             let visual = visual_size(kind, tick.items);
-            let page = page_of(tick.data).min(pages(visual) - 1);
-            if page_of(tick.data) != page { tick.data.insert(PAGE_KEY.to_owned(), Nbt::Int(page as i32)); }
+            let row = row_of(tick.data).min(max_row(visual));
+            if row_of(tick.data) != row { tick.data.insert(ROW_KEY.to_owned(), Nbt::Int(row as i32)); }
             tick.set_menu_data(0, visual as i32);
-            tick.set_menu_data(1, page as i32);
+            tick.set_menu_data(1, row as i32);
+            // The neighbouring tables' strip (tabs only; a chest shows no side inventory).
+            crate::tabbed_tables::publish(tick, TABBED_AT, false);
         });
     if kind == Kind::Tinkers {
         // TinkersChestBlockItem.updateCustomBlockEntityTag: a chest item carrying a dye colour in its
@@ -237,15 +271,19 @@ mod tests {
     }
 
     #[test]
-    fn slots_page_in_eights_and_hide_outside_the_display_size() {
+    fn slots_scroll_in_rows_of_eight_and_hide_outside_the_display_size() {
         assert_eq!(slot_position(0, 1, 0), Some([8.0, 18.0]));
         assert_eq!(slot_position(1, 1, 0), None, "past the display size");
         assert_eq!(slot_position(63, 64, 0), Some([8.0 + 7.0 * 18.0, 18.0 + 7.0 * 18.0]));
-        assert_eq!(slot_position(64, 100, 0), None, "on the next page");
-        assert_eq!(slot_position(64, 100, 1), Some([8.0, 18.0]));
-        assert_eq!(pages(64), 1);
-        assert_eq!(pages(65), 2);
-        assert_eq!(pages(256), 4);
+        assert_eq!(slot_position(64, 100, 0), None, "below the visible rows");
+        assert_eq!(slot_position(64, 100, 1), Some([8.0, 18.0 + 7.0 * 18.0]), "one row of scroll brings slot 64 to the last visible row");
+        assert_eq!(slot_position(0, 100, 1), None, "scrolled off the top");
+        assert_eq!(rows_total(64), 8);
+        assert_eq!(max_row(64), 0, "eight rows fit without scrolling");
+        assert_eq!(max_row(65), 1);
+        assert_eq!(max_row(256), 24);
+        let (height, top) = handle(256, 24);
+        assert!(top + height <= SLIDER.1 + SLIDER.3 + 0.01, "the handle stays in its track at the bottom");
     }
 
     #[test]

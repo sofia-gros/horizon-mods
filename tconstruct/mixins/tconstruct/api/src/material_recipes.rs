@@ -218,9 +218,13 @@ impl Leftover {
 impl Recipe {
     fn decode(id: &Identifier, value: &Value) -> Result<Self, String> {
         let fields = value.as_object().ok_or("recipe must be an object")?;
+        // IMaterialValue: value and needed are FROM_ONE loadables with a
+        // default of 1, so an absent field reads as 1; a present field must
+        // still be a number of at least 1.
         let number = |key: &str| match fields.get(key) {
+            None => Ok(1),
             Some(Value::Number(n)) => { let n = crate::materials::number_int(&n.to_string()); if n >= 1 { Ok(n) } else { Err(format!("{key} must be at least 1")) } }
-            _ => Err(format!("{key} must be a number")),
+            Some(_) => Err(format!("{key} must be a number")),
         };
         Ok(Self {
             id: id.clone(),
@@ -387,6 +391,10 @@ mod tests {
         // value 9 of needed 1 per item: 9 * amount / 3 / 1.
         let block = recipes.find(&id("minecraft:iron_block"), &none).unwrap();
         assert!((block.scale_repair(30.0) - 90.0).abs() < 1e-4);
+        // value/needed default to 1 when absent (IMaterialValue FROM_ONE defaults).
+        let defaulted = Recipe::decode(&id("tconstruct:tools/materials/defaulted"), &json!({"type":"tconstruct:material","ingredient":{"item":"minecraft:copper_ingot"},"material":"tconstruct:copper"})).unwrap();
+        assert_eq!((defaulted.needed, defaulted.value), (1, 1));
+        assert!(Recipe::decode(&id("tconstruct:tools/materials/bad"), &json!({"type":"tconstruct:material","ingredient":{"item":"minecraft:copper_ingot"},"material":"tconstruct:copper","value":0})).is_err(), "a present value of 0 still fails");
         // The horn recipe answers only a horn carrying its instrument.
         let sing = id("minecraft:sing_goat_horn");
         let horn = recipes.find_facts(&id("minecraft:goat_horn"), &none, &StackFacts { instrument: Some(&sing), ..StackFacts::default() }).expect("the sing horn");

@@ -56,9 +56,12 @@ pub(crate) fn register() {
         if factor != 1.0 { look.multiplier.set(look.multiplier.get() * factor); }
     });
     // The Enderman's stare asks about the head slot only, and the helmets are the only Tinkers armor that can sit there.
+    // The helmets are modifiable armor too, so their behaviour also carries the indestructible answer the
+    // tool behaviour hook registers for every other modifiable item (it skips these three to this hook).
     for family in ["travelers", "plate", "slime"] {
         let Ok(item) = Identifier::new("tconstruct", &format!("{family}_helmet")) else { continue };
-        if let Err(error) = ItemBehaviors::register(ItemBehavior::new(item).is_ender_mask(is_ender_mask)) {
+        if let Err(error) = ItemBehaviors::register(ItemBehavior::new(item).is_ender_mask(is_ender_mask)
+            .indestructible(|query| Some(tool_stack::volatile_flag(&query.custom_data, "tconstruct:indestructible")))) {
             eprintln!("Tinkers: {family} helmet ender mask not registered: {error}");
         }
     }

@@ -157,7 +157,10 @@ impl Iterator {
             Self::Vein { max_distance } => vein(origin, *max_distance + expanded, block_at),
             Self::Conditional { condition, if_true, if_false } => {
                 let Some(block) = block_at(origin) else { return Vec::new(); };
-                let chosen = if condition.matches(&block, &|tag| in_tag_at(origin, tag)) { if_true } else { if_false };
+                // The branch is picked without a dig report: no block facts are known at selection
+                // time, so a block-property predicate takes its fallback (blast resistance) or stays
+                // unmatched (requires-tool), exactly as a dig that reported nothing does.
+                let chosen = if condition.matches(&block, &|tag| in_tag_at(origin, tag), &crate::mining_speed::BlockFacts::default()) { if_true } else { if_false };
                 chosen.positions(origin, face, yaw, pitch, expanded, block_at, in_tag_at)
             }
             Self::Tree { width_bonus, depth_bonus } => {

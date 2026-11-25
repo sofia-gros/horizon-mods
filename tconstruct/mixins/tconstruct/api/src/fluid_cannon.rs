@@ -5,13 +5,21 @@
 //! trigger: a rising neighbour signal sets `triggered` and the shot follows four ticks later, once per rising edge.
 //! Shooting is `FluidCannonBlockEntity.shoot` whole (see [`shoot`]): the fluid's effects run against the block in front
 //! when they can, else the fluid flies as a `FluidEffectProjectile` (`crate::fluid_projectile`) of effects-amount times
-//! power, else the shot fails with the dispenser fail sound. What has no reach is not faked: the shot's fluid particles
-//! and the fail's BLOCK_ACTIVATE game event (no particle emission or game event surface), and the face sturdiness that
+//! power, else the shot fails with the dispenser fail sound. A shot the block in front consumes sends the
+//! original's fluid particles at the hit location, carrying the tank's fluid (the send is real; the fluid
+//! particle's per-spawn sprite awaits a host channel — see `crate::particles`). What has no reach is not
+//! faked: the fail's BLOCK_ACTIVATE game event (no game event surface), and the face sturdiness that
 //! gates the projectile is answered by approximation, as [`shoot`] notes. The use hook is told no click position, so it
 //! cannot split the block into the original's tank zone (the top half) and item zone: a held fluid container trades with
-//! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite (an entity inside it
-//! takes knightmetal damage) has no path in the block's entity-inside notice, which only names the entity; its path type
-//! is ported. What a broken cannon drops of its slot follows the host's slot storage, as the melter's inventory does.
+//! the tank first, and anything else swaps with the item slot. The end cannon's knightmetal bite is ported (the
+//! entity_inside callback below), and so is the plain knightmetal block's identical bite — KnightMetalBlock.entityInside
+//! is the body KnightMetalFluidCannonBlock's is copied from: an entity inside takes KnightMetalBlock.BLOCK_DAMAGE of
+//! tconstruct:knightmetal damage, queued as a hurt action and landed where the contact actions drain by the
+//! generalized hurt reach: living entities through the game's own hurt call, the rest — dropped items, vehicles,
+//! end crystals, armor stands, the dragon — through the game's damage hurt, as the original calls hurt on any
+//! entity that takes damage; a dropped stack a mod marks indestructible takes nothing, as the original's
+//! indestructible entity is invulnerable to the bite. Both blocks' path type is ported. What a broken cannon drops of its slot follows the host's
+//! slot storage, as the melter's inventory does.
 use crate::fluid_effects::{self, WorldAccess};
 use crate::fluid_ingredient::FluidTags;
 use crate::fluid_projectile;
@@ -19,8 +27,8 @@ use crate::fluid_values::BUCKET;
 use crate::fluid_world::{block_context, holder, slot_write_back, stack_of_slot, LiveWorld};
 use crate::tank::Tank;
 use pluto_lib::{
-    ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
-    FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, PathNodeType, Placement, World,
+    ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
+    EntityAction, EntityInsideContext, FluidStack, Identifier, ItemSlot, NeighbourTank, Nbt, NbtCompound, ParticleData, PathNodeType, Placement, World,
 };
 
 /// The cannons of `TinkerSmeltery`: name, tank capacity, and the shot's power, velocity and inaccuracy
@@ -40,6 +48,12 @@ const TAG_SHOT_DELAY: &str = "shot_delay";
 pub(crate) fn capacity_of(name: &str) -> Option<i32> { CANNONS.iter().find(|(cannon, ..)| *cannon == name).map(|(_, capacity, ..)| *capacity) }
 
 fn cannon_tank(name: &str, data: &NbtCompound) -> Tank { Tank::read(data, capacity_of(name).unwrap_or(BUCKET * 2)) }
+
+/// `SearedTankBlock.getAnalogOutputSignal` over the cannon's tank — a cannon is a seared tank, so
+/// the original answers a comparator with `ITankBlockEntity.comparatorStrength`. No host surface
+/// answers a comparator read yet, the same missing analog output as every tank's (the melter's, the
+/// alloyer's), so the strength stands as the port's record of the rule, as the casting tank's does.
+pub(crate) fn comparator(name: &str, data: &NbtCompound) -> i32 { cannon_tank(name, data).comparator() }
 
 pub(crate) fn read_tanks(name: &str, data: &NbtCompound) -> Vec<NeighbourTank> {
     let tank = cannon_tank(name, data);
@@ -135,10 +149,11 @@ fn fail(world: &mut LiveWorld, pos: BlockPos) -> Shot {
 /// `FluidCannonBlockEntity.shoot`: the tank fluid's effects, found as the original finds them, run
 /// against the block in front when the entry has block effects and a block with a shape stands
 /// there (spending what they consume, the context's stack going back into the slot, the fluid
-/// particles and the PARTICLES_SHOOT level event aside — no particle surface); else, when the face
+/// particles sent at the hit location, the PARTICLES_SHOOT level event aside — no level event
+/// surface); else, when the face
 /// in front is not sturdy, a projectile of `effects amount x power` millibuckets flies with the
 /// llama spit sound, and the tank is spent by what flew. A shot that cannot spawn its projectile
-/// (PlutoLib's entity registry is still a stub — see `crate::fluid_projectile`) fails without
+/// (the kind unpublished or the chunk unloaded — see `crate::fluid_projectile`) fails without
 /// spending, as does a fluid without effects.
 pub(crate) fn shoot(
     name: &str,
@@ -175,9 +190,15 @@ pub(crate) fn shoot(
             let mut context = block_context(world, holder(slot_stack(items), None, centre(pos)), target, opposite, location);
             let consumed = effects.apply_to_block(&fluid, power, &mut context, tags);
             if consumed > 0 {
+                // The context's stack goes back into the slot; take it out first, as the context
+                // holds the world the send below needs.
+                let holder_stack = context.env.holder.stack.clone();
+                // The original's shot particles (FluidCannonBlockEntity.shoot): ten fluid particles at
+                // the hit location, carrying the tank's fluid as it was shot, before it is spent.
+                world.world().send_particles("tconstruct:fluid", &ParticleData::Fluid(fluid.clone()), location, [0.1, 0.2, 0.1], 0.2, 10);
                 tank.drain(Some(&held.fluid), consumed, true);
                 tank.write(data);
-                if let Some(slot) = items.first_mut() { slot_write_back(slot, &context.env.holder.stack); }
+                if let Some(slot) = items.first_mut() { slot_write_back(slot, &holder_stack); }
                 return Shot::AppliedBlock;
             }
         }
@@ -268,6 +289,15 @@ pub(crate) fn cannon_trigger(state: &BlockState, signal: Option<bool>) -> Option
     }
 }
 
+/// `KnightMetalBlock.BLOCK_DAMAGE`: what an entity inside a knightmetal block or the end cannon takes.
+const KNIGHTMETAL_BITE: f32 = 4.0;
+
+/// `KnightMetalBlock.entityInside`, and `KnightMetalFluidCannonBlock`'s copy of it: the entity inside
+/// is hurt by the knightmetal damage source (TinkerDamageTypes.KNIGHTMETAL), with no attacker.
+fn knightmetal_bite(context: &EntityInsideContext) {
+    context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount: KNIGHTMETAL_BITE, damage_type: "tconstruct:knightmetal".to_owned() });
+}
+
 pub(crate) fn register() {
     for (name, ..) in CANNONS {
         let block = Identifier::new("tconstruct", name).expect("valid cannon id");
@@ -285,9 +315,18 @@ pub(crate) fn register() {
         if name == "end_fluid_cannon" {
             // `KnightMetalFluidCannonBlock.getBlockPathType`: mobs avoid it as damaging.
             behaviour = behaviour.path_node_type(|_| Some(PathNodeType::Damaging));
+            // `KnightMetalFluidCannonBlock.entityInside`: the knightmetal bite.
+            behaviour = behaviour.entity_inside(knightmetal_bite);
         }
         BlockBehaviors::register(behaviour);
     }
+    // KnightMetalBlock itself: the same bite and the same path type, on the plain block, which
+    // otherwise rides its vanilla template. Its placement is waterlogged in water, as
+    // KnightMetalBlock.getStateForPlacement leaves it.
+    BlockBehaviors::register(BlockBehavior::new(Identifier::new("tconstruct", "knightmetal_block").expect("valid block id"))
+        .state_for_placement(|c| Placement::State(c.state.clone().with("waterlogged", if c.in_water { "true" } else { "false" })))
+        .entity_inside(knightmetal_bite)
+        .path_node_type(|_| Some(PathNodeType::Damaging)));
 }
 
 #[cfg(test)]
@@ -304,6 +343,20 @@ mod tests {
         assert_eq!((capacity_of("seared_fluid_cannon"), capacity_of("scorched_fluid_cannon"), capacity_of("end_fluid_cannon"), capacity_of("seared_fuel_tank")), (Some(2000), Some(2000), Some(4000), None));
         let numbers: Vec<(f32, f32, f32)> = CANNONS.iter().map(|(_, _, power, velocity, inaccuracy)| (*power, *velocity, *inaccuracy)).collect();
         assert_eq!(numbers, [(1.0, 1.1, 4.5), (2.0, 1.5, 6.0), (1.5, 3.0, 3.0)]);
+    }
+
+    #[test]
+    fn the_knightmetal_bite_queues_four_knightmetal_damage_and_registers_on_both_blocks() {
+        let context = EntityInsideContext {
+            dimension: "minecraft:overworld".to_owned(), state: BlockState::parse("tconstruct:end_fluid_cannon").unwrap(),
+            pos: [0, 64, 0], entity: 7, kind: "minecraft:zombie".to_owned(), bounds: [0.0; 6], fall_distance: 0.0,
+            actions: std::cell::RefCell::new(Vec::new()),
+        };
+        knightmetal_bite(&context);
+        assert_eq!(context.actions.borrow().as_slice(), [EntityAction::Hurt { target: ActionTarget::Victim, amount: 4.0, damage_type: "tconstruct:knightmetal".to_owned() }]);
+        register();
+        assert!(BlockBehaviors::get("tconstruct:end_fluid_cannon").is_some());
+        assert!(BlockBehaviors::get("tconstruct:knightmetal_block").is_some());
     }
 
     #[test]
@@ -324,6 +377,19 @@ mod tests {
         let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: None, sneaking: false, give: Vec::new() };
         assert_eq!(use_cannon("seared_fluid_cannon", &mut used), ActionResult::Success);
         assert_eq!(used.held.as_ref().map(|slot| slot.count), Some(2));
+    }
+
+    #[test]
+    fn the_comparator_reads_the_cannons_fill() {
+        let mut data = NbtCompound::new();
+        let mut items = vec![None];
+        assert_eq!(comparator("end_fluid_cannon", &data), 0, "an empty cannon reads nothing");
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 2000, tag: None }, face: None, execute: true };
+        assert_eq!(fill_tank("end_fluid_cannon", &mut fill), 2000);
+        assert_eq!(comparator("end_fluid_cannon", &data), 1 + 14 * 2000 / 4000);
+        let mut fill = BlockEntityFill { pos: [0; 3], data: &mut data, items: &mut items, fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 2000, tag: None }, face: None, execute: true };
+        assert_eq!(fill_tank("end_fluid_cannon", &mut fill), 2000);
+        assert_eq!(comparator("end_fluid_cannon", &data), 15, "a full cannon reads full");
     }
 
     #[test]

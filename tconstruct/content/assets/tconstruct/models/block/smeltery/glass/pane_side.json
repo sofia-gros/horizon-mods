@@ -1,7 +1,10 @@
 {
   "parent": "tconstruct:block/template/pane/side",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
     "edge": "tconstruct:block/smeltery/seared_glass_top",
-    "pane": "tconstruct:block/smeltery/seared_glass"
+    "pane": "tconstruct:block/smeltery/seared_glass_connected",
+    "particle": "tconstruct:block/smeltery/seared_glass"
   }
 }

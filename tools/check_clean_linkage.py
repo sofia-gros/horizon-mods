@@ -7,12 +7,17 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tomllib
 
 from port import checked_files
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# The pipes consumer bundle, laid out exactly like the Tinkers bundle
+# (port.BUNDLE): <mod>/mixins/<mod>/{horizon-mixin.toml, api/}.
+PIPES_BUNDLE = Path('pipes/mixins/pipes')
 
 
 def prepare(prepared):
@@ -29,8 +34,9 @@ def prepare(prepared):
     if original.count('members = [\n') != 1:
         raise ValueError('workspace member declaration changed')
     consumer = stage / 'native-api/tconstruct'
+    pipes_consumer = stage / 'native-api/pipes'
     probe = stage / 'native-api/clean-linkage'
-    if consumer.exists() or probe.exists():
+    if consumer.exists() or pipes_consumer.exists() or probe.exists():
         raise ValueError('consumer check already staged; preserve its evidence')
     manifest = files['api/Cargo.toml'].decode('utf-8')
     parsed = tomllib.loads(manifest)
@@ -54,6 +60,24 @@ def prepare(prepared):
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(data)
     (consumer / 'Cargo.toml').write_text(''.join(lines), encoding='utf-8', newline='\n')
+    # Second consumer (build-test composition): the pipes mod's API crate,
+    # staged with the same host rewrite and bundle edge as the tconstruct
+    # consumer. Its manifest carries the same reviewed dependency allowlist.
+    pipes_source = ROOT / PIPES_BUNDLE / 'api'
+    pipes_manifest = (pipes_source / 'Cargo.toml').read_text(encoding='utf-8')
+    pipes_parsed = tomllib.loads(pipes_manifest)
+    if pipes_parsed['package']['name'] != 'mod-pipes':
+        raise ValueError('pipes API package name changed; review launcher projection')
+    if pipes_parsed['dependencies'] != {'horizon-client': expected, 'serde_json': '=1.0.154', 'toml': '=0.8.23'}:
+        raise ValueError('pipes consumer dependencies changed; review launcher projection')
+    pipes_lines = pipes_manifest.splitlines(keepends=True)
+    pipes_indexes = [i for i, line in enumerate(pipes_lines) if line.startswith('horizon-client = ')]
+    if len(pipes_indexes) != 1:
+        raise ValueError('ambiguous pipes consumer host dependency')
+    pipes_lines[pipes_indexes[0]] = ('horizon-client = { path = "../../crates/horizon-client", default-features = false }\n'
+                                     'pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }\n')
+    shutil.copytree(pipes_source, pipes_consumer)
+    (pipes_consumer / 'Cargo.toml').write_text(''.join(pipes_lines), encoding='utf-8', newline='\n')
     (probe / 'src').mkdir(parents=True)
     (probe / 'Cargo.toml').write_text(newline='\n', data='''[package]
 name = "pluto-clean-linkage"
@@ -64,27 +88,45 @@ publish = false
 horizon-client = { path = "../../crates/horizon-client", default-features = false }
 pluto_lib = { package = "mod-pluto_lib", path = "../pluto_lib" }
 tconstruct = { package = "mod-tconstruct", path = "../tconstruct" }
+pipes = { package = "mod-pipes", path = "../pipes" }
 ''', encoding='utf-8')
     (probe / 'src/main.rs').write_text(newline='\n', data='''// Diagnostic type composition only; never launch this as the game.
 fn main() {
     let _mods: horizon_client::mod_api::Mods = vec![
-        pluto_lib::hooks(), tconstruct::hooks(),
+        pluto_lib::hooks(), tconstruct::hooks(), pipes::hooks(),
     ].into();
 }
 ''', encoding='utf-8')
     workspace.write_text(newline='\n', data=original.replace('members = [\n',
-        'members = [\n    "native-api/tconstruct",\n    "native-api/clean-linkage",\n', 1),
+        'members = [\n    "native-api/tconstruct",\n    "native-api/pipes",\n    "native-api/clean-linkage",\n', 1),
         encoding='utf-8')
     return stage, {name: hashlib.sha256(data).hexdigest() for name, data in files.items()}
 
 
 def check(prepared):
     stage, inputs = prepare(prepared)
-    command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-               str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage']
-    code = subprocess.run(command).returncode
+    # Seed the local registry with the staged workspace's resolved closure
+    # before checking offline. The consumers staged above declare exact
+    # dependencies the pinned host lock does not carry (serde_json =1.0.154;
+    # toml =0.8.23, whose toml_edit 0.22.27 requires toml_write), and the
+    # offline check can only resolve crates the registry already holds.
+    # CI seeds the registry from the host lock alone, so without this fetch
+    # the resolution silently depends on whatever unrelated jobs happened
+    # to leave in the shared cargo cache (round 9: toml_write missing).
+    # This mirrors CI's "Fetch locked host dependencies" step, but for the
+    # staged workspace, which only exists after prepare(). The check itself
+    # stays offline and the re-run below still enforces --locked; the fetch
+    # only downloads crates, it does not relax what is verified.
+    code = subprocess.run(['cargo', '+1.95.0', 'fetch', '--manifest-path',
+                           str(stage / 'Cargo.toml')]).returncode
     if code == 0:
-        code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
+        # --keep-going: report every independent crate's errors in one run;
+        # the exit code is unchanged.
+        command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
+                   str(stage / 'Cargo.toml'), '-p', 'pluto-clean-linkage', '--keep-going']
+        code = subprocess.run(command).returncode
+        if code == 0:
+            code = subprocess.run(command[:4] + ['--locked'] + command[4:]).returncode
     (prepared / 'consumer-check.json').write_text(newline='\n', data=json.dumps({
         'exit': code, 'consumer_inputs': inputs,
         'launcher_integration_checked': False, 'binary_linked': False,

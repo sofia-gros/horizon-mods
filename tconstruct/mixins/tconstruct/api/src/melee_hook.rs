@@ -53,6 +53,15 @@ pub(crate) fn register() {
                 hit.attacker_state.as_ref().map(|state| state.sprinting), hit.target_state.as_ref().map(|state| state.fire_ticks));
         }
         if let Ok(damage) = changed {
+            let mut damage = damage;
+            // ToolEvents: a crouching attacker's damage is scaled by their crouch damage
+            // multiplier, from the pieces they wear, the stack they attack with and their
+            // effects, as the hit reports them.
+            if let Some(state) = hit.attacker_state.as_ref().filter(|state| state.crouching) {
+                let hands: Vec<(String, pluto_lib::StackData)> = hit.attacker_stack.as_ref().map(|stack| vec![("mainhand".to_owned(), stack.clone())]).unwrap_or_default();
+                let multiplier = crate::custom_attributes::value_from(&state.armor_stacks, &hands, &state.effect_levels, crate::custom_attributes::CROUCH_DAMAGE_MULTIPLIER);
+                if multiplier != 1.0 { damage *= multiplier as f32; }
+            }
             if damage.is_finite() && damage >= 0.0 && damage != amount { hit.amount.set(damage); }
         }
     });

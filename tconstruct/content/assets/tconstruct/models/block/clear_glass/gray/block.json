@@ -1,6 +1,9 @@
 {
   "parent": "minecraft:block/cube_all",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
-    "all": "tconstruct:block/clear_stained_glass"
+    "all": "tconstruct:block/clear_stained_glass_connected",
+    "particle": "tconstruct:block/clear_stained_glass"
   }
 }

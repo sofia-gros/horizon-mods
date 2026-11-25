@@ -90,7 +90,19 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 });
 ```
 
-> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` is not immediate: the game has no hook at the end of a break, so it runs at the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of that tick. Creative breaks are heard too; it carries no block entity. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
+> **Use with Caution.** `CANCELED` runs once when the combined `BEFORE` result vetoes a break, with the same position and before returning the cancellation to Horizon. An allowed break does not emit it. It is not a notification for unrelated vanilla restrictions or a later veto by another native mod. `AFTER` runs inside the break: the game's own break reports its completion, so the telling lands before the removal is sent to the players around. A break the completion seam does not report — the host returned an error after the removal, or the seam was not woven — falls back to the breaking player's next tick or next break, at most one tick late, and only if the block at the position is no longer the one `BEFORE` saw (a break another mod cancelled later is not reported). `held` is the tool as of the report. Creative breaks are heard too. The context carries the mined block's block entity (`mined_block_entity`) and the off hand's structured place predicates (`offhand_place_predicates`) alongside the flattened `offhand_place_on` entries. Actions queued by `BEFORE` callbacks land even when a callback vetoes the break. Native-unvalidated.
+
+`PlayerBlockBreakEvents::EXPERIENCE` is the experience half of NeoForge's `BlockEvent.BreakEvent`: it runs on the player's own break path as the game samples what the block drops, with a `BlockExperienceContext` (the position, dimension, player and their entity id, and the main-hand stack). Change the sampled amount with `experience.set`; the game's own silk-touch rule is applied to the answer afterwards. Breaks the level works out for a guest are heard too, on the removal path: the break named its breaker when it started, so the guest is credited.
+
+```rust
+use pluto_lib::PlayerBlockBreakEvents;
+
+PlayerBlockBreakEvents::EXPERIENCE.register(|drop| {
+    if drop.held.is_some() {
+        drop.experience.set(drop.experience.get() * 2);
+    }
+});
+```
 
 ## Reference
 
@@ -98,16 +110,16 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 
 ### `UseItemContext`
 
-A player used an item in the air. `item` is the item id, `count` the stack size.
+A player used an item in the air. `item` is the item id, `count` the stack size, `stack` the stack as used, with its damage and custom data (a tool's stats and modifiers live there), and `player` who used it (`None` when the host named no acting player and the world has not exactly one player). The host's use event names no hand; the hand holding the stack is the one whose carried stack equals `stack`.
 
 ```rust
-use pluto_lib::{ActionResult, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 
 UseItemCallback::EVENT.register(|used: &UseItemContext| {
     if used.item == "minecraft:stick" && used.count > 1 { ActionResult::Fail } else { ActionResult::Pass }
 });
-let result = UseItemCallback::EVENT.invoke(&UseItemContext { item: "minecraft:stick".into(), count: 2 });
-assert_eq!(result, ActionResult::Fail);
+let used = UseItemContext { item: "minecraft:stick".into(), count: 2, stack: StackData { item: "minecraft:stick".into(), count: 2, ..StackData::default() }, player: None };
+assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
 ### `UseBlockContext`
@@ -140,7 +152,7 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
-A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`.
+A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`. `creative` says whether the breaker is in creative mode and `may_build` whether their game type lets them build (both as the break started; `creative` is false and `may_build` true when the game names no player), and `offhand_place_on` holds the off hand stack's adventure-mode place tag entries (a block id, a `#tag`, or an id with a `[key=value,...]` state suffix), empty when it carries none. `offhand_place_predicates` holds the same tag's structured predicates (blocks, state ranges and block-entity NBT — see `AdventurePlacePredicate`), and `mined_block_entity` is the mined block's block entity (`None` when it had none).
 
 ```rust
 use pluto_lib::{BlockBreakContext, PlayerBlockBreakEvents};
@@ -162,6 +174,37 @@ let context = BlockBreakContext::at([1, 70, 1]);
 assert!(context.player.is_none() && context.held.is_none() && context.actions.borrow().is_empty());
 ```
 
+### `AfterUseContext`
+
+A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at both seams that report a use today: the hand's use, and a click on an entity the game did not take). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
+
+```rust
+use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
+
+AfterUseCallback::EVENT.register(|used| if used.crouching { ActionResult::Success } else { ActionResult::Pass });
+let used = AfterUseContext {
+    player: ServerPlayer { uuid: 1, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
+    eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
+};
+assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
+```
+
+### `AdventurePlacePredicate`
+
+One entry of an adventure-mode place tag (`minecraft:can_place_on`), read whole: the blocks it names (`None` means any block), the state tests (an exact value, or a minimum and maximum the mined state must lie between), and the block-entity NBT it must match (`None` when the entry carries no NBT test). `adventure_place_predicates` reads them from the component, and `place_predicates_allow` answers whether any of them allows a mined block with its block entity, as the host's own adventure-mode matcher does — the flattened `offhand_place_on` entries cannot carry the NBT test, so a tag that has one answers only through these.
+
+```rust
+use pluto_lib::{adventure_place_predicates, place_predicates_allow, BlockState, Nbt};
+
+let component = Nbt::parse_snbt("{blocks:[\"minecraft:chest\"],nbt:{CustomName:'{\"text\":\"Loots\"}'}}").unwrap();
+let predicates = adventure_place_predicates(&component);
+let mined = BlockState::parse("minecraft:chest").unwrap();
+let mut be = pluto_lib::NbtCompound::new();
+be.insert("CustomName".into(), Nbt::String("{\"text\":\"Loots\"}".to_string()));
+assert!(place_predicates_allow(&predicates, &mined, Some(&be), None));
+assert!(!place_predicates_allow(&predicates, &mined, None, None));
+```
+
 ## Events
 
 ### `UseItemCallback`
@@ -179,10 +222,50 @@ UseItemCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 Runs when a player uses an item. Answer `Fail` to cancel, `Success` / `Consume` to take the action yourself, `Pass` to leave it to the game.
 
 ```rust
-use pluto_lib::{ActionResult, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, StackData, UseItemCallback, UseItemContext};
 
 UseItemCallback::EVENT.register(|_| ActionResult::Consume);
-assert_eq!(UseItemCallback::EVENT.invoke(&UseItemContext { item: "minecraft:apple".into(), count: 1 }), ActionResult::Consume);
+let used = UseItemContext { item: "minecraft:apple".into(), count: 1, stack: StackData { item: "minecraft:apple".into(), count: 1, ..StackData::default() }, player: None };
+assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
+```
+
+### `DispenseRegistry`
+
+The registry of dispenser behaviours, keyed by the item dispensed. The game asks its mods before a dispenser ejects (its dispense hook); PlutoLib answers for the items registered here — spawning the shot, consuming one item and playing the projectile-launch event — and an item nobody claims keeps the game's own dispensing.
+
+```rust
+use pluto_lib::{DispenseBehavior, DispenseRegistry, Identifier};
+
+DispenseRegistry::register(
+    Identifier::parse("example:glow_ball").unwrap(),
+    DispenseBehavior::Shoot { entity: Identifier::parse("example:glow_ball").unwrap(), power: 1.1, inaccuracy: 6.0 },
+);
+assert!(DispenseRegistry::get("example:glow_ball").is_some());
+assert!(DispenseRegistry::get("example:unclaimed").is_none());
+```
+
+### `DispenseBehavior`
+
+What a dispenser does with one item. `Shoot { entity, power, inaccuracy }` fires the item as a projectile of the entity type `entity` (the original's `ShootProjectileDispenserBehavior`): the projectile spawns at the dispenser's mouth carrying the item, flies the shot [`dispense_shot`](#dispense_shot) computes, and one item is consumed.
+
+```rust
+use pluto_lib::{DispenseBehavior, Identifier};
+
+let shoot = DispenseBehavior::Shoot { entity: Identifier::parse("example:efln_ball").unwrap(), power: 1.1, inaccuracy: 6.0 };
+assert!(matches!(shoot, DispenseBehavior::Shoot { power, .. } if power == 1.1));
+```
+
+### `dispense_shot`
+
+`fn dispense_shot(pos: [i32; 3], facing: Direction, power: f32) -> ([f64; 3], [f64; 3])`. Where a shot spawns and the motion it starts with: the dispenser's dispense position (the block's centre stepped 0.7 along the facing) and the facing stepped up by 0.1, normalised and scaled by `power`. The spread the inaccuracy would add needs a random source the dispense hook does not hand over, so the shot is the mean shot and flies true.
+
+```rust
+use pluto_lib::{dispense_shot, Direction};
+
+let (origin, motion) = dispense_shot([10, 64, -3], Direction::East, 1.1);
+assert!((origin[0] - 11.2).abs() < 1e-9 && (origin[1] - 64.5).abs() < 1e-9);
+let length = (motion[0] * motion[0] + motion[1] * motion[1] + motion[2] * motion[2]).sqrt();
+assert!((length - f64::from(1.1f32)).abs() < 1e-9, "the shot flies at its power");
 ```
 
 ### `UseBlockCallback`
@@ -208,7 +291,7 @@ assert!(UseBlockCallback::EVENT.invoke(&UseBlockContext { pos: [0, 0, 0], face: 
 
 ### `UseItemOnBlockContext`
 
-A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback) and `creative` whether the player is in creative mode.
+A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback), `creative` whether the player is in creative mode and `sneaking` whether the player is sneaking.
 
 ```rust
 use pluto_lib::{ServerPlayer, UseItemOnBlockContext};
@@ -221,6 +304,7 @@ let used = UseItemOnBlockContext {
     dimension: "minecraft:overworld".into(),
     player: ServerPlayer { uuid: 1, name: "Alex".into() },
     creative: false,
+    sneaking: false,
     held: None,
 };
 assert_eq!((used.count, used.pos, used.face), (3, [1, 64, 1], [0, 1, 0]));
@@ -250,9 +334,34 @@ use pluto_lib::{ActionResult, ServerPlayer, UseItemOnBlockCallback, UseItemOnBlo
 UseItemOnBlockCallback::EVENT.register(|used| if used.item == "example:probe_item" { ActionResult::Fail } else { ActionResult::Pass });
 let used = UseItemOnBlockContext {
     item: "example:probe_item".into(), count: 1, pos: [0, 0, 0], face: [0, 1, 0], dimension: "minecraft:overworld".into(),
-    player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true, held: None,
+    player: ServerPlayer { uuid: 1, name: "Alex".into() }, creative: true, sneaking: false, held: None,
 };
 assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
+```
+
+### `AfterUseCallback`
+
+Holder of the finished-use event.
+
+```rust
+use pluto_lib::AfterUseCallback;
+
+AfterUseCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
+```
+
+### `AfterUseCallback::EVENT`
+
+Runs when a player's use finished without the game consuming it: the hand is empty, the player is not a spectator, and nothing the game did took the click. A click on an entity the game's own interaction did not take is reported the same way. Answer `Success` after doing the job, `Pass` to leave the click to the game.
+
+```rust
+use pluto_lib::{ActionResult, AfterUseCallback, AfterUseContext, ServerPlayer};
+
+AfterUseCallback::EVENT.register(|used| if used.crouching { ActionResult::Success } else { ActionResult::Pass });
+let used = AfterUseContext {
+    player: ServerPlayer { uuid: 1, name: "Alex".into() }, dimension: "minecraft:overworld".into(),
+    eye: [0.5, 64.0, 0.5], look: [0.0, 0.0, 1.0], crouching: true, creative: false, consumed: false,
+};
+assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
 ```
 
 ### `Hand`
@@ -324,13 +433,13 @@ assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 
 ### `BreakSpeedContext`
 
-How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for).
+How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for). Three more facts ride along for the modules that read block properties: `blast_resistance`, the block's explosion resistance (None when the game did not report it, and a variable over it takes its fallback), `requires_tool`, whether the block needs the correct tool for drops (None when the game did not report it), and `build_height`, the build range of the level the dig is in as [min, max) (None when the game did not report it).
 
 ```rust
 use pluto_lib::{BlockState, BreakSpeedContext};
 use std::cell::Cell;
 
-let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None, block_light: Some(0), sky_light: Some(15), sky_darken: 0, biome_temperature: Some(0.8) };
+let dig = BreakSpeedContext { pos: [0, 64, 0], block: BlockState::parse("minecraft:stone").unwrap(), original: 1.5, speed: Cell::new(1.5), held: None, player: None, block_light: Some(0), sky_light: Some(15), sky_darken: 0, biome_temperature: Some(0.8), blast_resistance: Some(6.0), requires_tool: Some(true), build_height: Some([-64, 320]) };
 dig.speed.set(dig.speed.get() * 2.0);
 assert_eq!((dig.original, dig.speed.get()), (1.5, 3.0));
 assert_eq!(dig.pos, [0, 64, 0]);
@@ -339,12 +448,12 @@ assert_eq!(dig.block.block.path(), "stone");
 
 ### `DiggingPlayer`
 
-What a break-speed callback may read about the player who digs: `on_ground` (the player's last accepted move put them on the ground) and `eyes_in_water` (the block at their eye height holds water or is waterlogged).
+What a break-speed callback may read about the player who digs: `on_ground` (the player's last accepted move put them on the ground), `eyes_in_water` (the block at their eye height holds water or is waterlogged), `effect_levels` the effects on the player as (effect id, amplifier), and `rain_exposed` whether rain falls on the player.
 
 ```rust
 use pluto_lib::DiggingPlayer;
 
-let airborne = DiggingPlayer { on_ground: false, eyes_in_water: false };
+let airborne = DiggingPlayer { on_ground: false, eyes_in_water: false, ..DiggingPlayer::default() };
 assert!(!airborne.on_ground && !airborne.eyes_in_water);
 ```
 
@@ -367,7 +476,7 @@ use pluto_lib::{BlockState, BreakSpeedCallback, BreakSpeedContext};
 use std::cell::Cell;
 
 BreakSpeedCallback::EVENT.register(|dig| if dig.block.block.path() == "slow_stone" { dig.speed.set(0.0) });
-let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None, block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None };
+let dig = BreakSpeedContext { pos: [0; 3], block: BlockState::parse("example:slow_stone").unwrap(), original: 4.0, speed: Cell::new(4.0), held: None, player: None, block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None, blast_resistance: None, requires_tool: None, build_height: None };
 BreakSpeedCallback::EVENT.invoke(&dig);
 assert_eq!(dig.speed.get(), 0.0);
 ```
@@ -440,35 +549,58 @@ PlayerBlockBreakEvents::CANCELED.register(|_| {});
 
 ### `DiggingFacts`
 
-What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature).
+What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature). It also carries `blast_resistance`, the block's explosion resistance, `requires_tool`, whether the block needs the correct tool for drops, and `build_height`, the build range of the level as [min, max); each of the three is `None` when the game did not report it.
 
 ```rust
 use pluto_lib::events_interaction_v0::DiggingFacts;
 
-let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8) };
+let facts = DiggingFacts { block_light: Some(3), sky_light: Some(15), sky_darken: 4, biome_temperature: Some(0.8), blast_resistance: None, requires_tool: None, build_height: None };
 assert_eq!((facts.block_light, facts.sky_light, facts.sky_darken), (Some(3), Some(15), 4));
 assert_eq!(facts.biome_temperature, Some(0.8));
-assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None });
+assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light: None, sky_darken: 0, biome_temperature: None, blast_resistance: None, requires_tool: None, build_height: None });
 ```
 
 ### `UseItemOnEntityContext`
 
-A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none) and `actions` the `EntityAction`s a callback queues for the player.
+A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none), `dimension` the dimension the interaction happens in, `player_dimension` the dimension the player is in, and `creative` whether the player is in creative mode, and `actions` the `EntityAction`s a callback queues for the player.
 
 ```rust
 use std::cell::RefCell;
 use pluto_lib::{Hand, ServerPlayer, StackData, UseItemOnEntityContext};
 
 let click = UseItemOnEntityContext {
-    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
+    actions: RefCell::new(Vec::new()),
 };
 assert_eq!((click.entity, click.hand), (5, Hand::Main));
 assert_eq!(click.kind, "minecraft:sheep");
 assert_eq!(click.held.as_ref().map(|held| held.item.as_str()), Some("test:kama"));
 assert_eq!(click.player.as_ref().map(|player| player.uuid), Some(9));
+assert!(click.dimension.is_empty());
+assert_eq!(click.player_dimension, "minecraft:overworld");
+assert!(!click.creative);
 assert!(click.actions.borrow().is_empty());
+```
+
+### `EntityReach::ignite_creeper`
+
+`fn ignite_creeper(id: u64) -> bool`. Ignites the creeper `id`, as flint and steel does: the creeper's own ignited flag is set, so its fuse starts and it explodes at max swell. Only a creeper is ignited. A host may apply an accepted ignite at its next rider synchronisation rather than instantly, as for a knockback; a refusal there (the entity is gone, or not a creeper) is final. False outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([0.0, 64.0, 0.0], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:creeper").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+with_entities(&mut ops, || assert!(EntityReach::ignite_creeper(2)));
+assert_eq!(ops.ignited_creepers, vec![2]);
+assert!(!EntityReach::ignite_creeper(2), "outside a scope");
 ```
 
 ### `InteractEntityContext`
@@ -559,9 +691,10 @@ UseEntityCallback::EVENT.register(|click| {
     if click.kind == "minecraft:sheep" && click.held.as_ref().is_some_and(|held| held.item == "test:kama") { ActionResult::Success } else { ActionResult::Pass }
 });
 let click = UseItemOnEntityContext {
-    entity: 5, kind: "minecraft:sheep".into(), hand: Hand::Main,
+    entity: 5, kind: "minecraft:sheep".into(), dimension: String::new(), hand: Hand::Main,
     held: Some(StackData { item: "test:kama".into(), count: 1, ..Default::default() }),
-    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), actions: RefCell::new(Vec::new()),
+    player: Some(ServerPlayer { uuid: 9, name: "Alex".into() }), player_dimension: "minecraft:overworld".into(), creative: false,
+    actions: RefCell::new(Vec::new()),
 };
 assert_eq!(UseEntityCallback::EVENT.invoke(&click), ActionResult::Success);
 ```
@@ -791,6 +924,95 @@ with_entities(&mut ops, || {
 });
 ```
 
+### `EntityReach::effects_of`
+
+`fn effects_of(id: u64) -> Vec<(String, i32, i32)>`. The mob effects entity `id` carries, as (effect id, amplifier, ticks left); empty outside a scope, when it carries none, or when the host cannot say.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.effect_lists.push((2, vec![("tconstruct:magnetic".to_owned(), 0, 120)]));
+assert!(EntityReach::effects_of(2).is_empty(), "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::effects_of(2), vec![("tconstruct:magnetic".to_owned(), 0, 120)]);
+    assert!(EntityReach::effects_of(99).is_empty(), "no such entity");
+});
+```
+
+### `EntityReach::velocity_of`
+
+`fn velocity_of(id: u64) -> Option<[f64; 3]>`. The velocity entity `id` moves with (`Entity.getDeltaMovement`); `None` outside a scope or when the host cannot reach it. A player's is the motion their client last reported.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.velocities.push((2, [0.0, 0.3, 0.0]));
+assert_eq!(EntityReach::velocity_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::velocity_of(2), Some([0.0, 0.3, 0.0]));
+    assert_eq!(EntityReach::velocity_of(99), None, "no such entity");
+});
+```
+
+### `EntityReach::bounds_of`
+
+`fn bounds_of(id: u64) -> Option<[[f64; 3]; 2]>`. The two corners of entity `id`'s bounding box (min, max), as `Entity.getBoundingBox` gives them; `None` outside a scope or when the host cannot reach it.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+ops.bounding_boxes.push((2, [[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
+assert_eq!(EntityReach::bounds_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::bounds_of(2), Some([[2.0, 64.0, 2.0], [2.6, 65.8, 2.6]]));
+    assert_eq!(EntityReach::bounds_of(99), None, "no such entity");
+});
+```
+
+### `EntityReach::set_velocity`
+
+`fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False outside a scope, for a player, or when the host cannot.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, ItemSlot, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([1.5, 64.5, 1.5], WorldEntity {
+    id: 1,
+    kind: Identifier::parse("minecraft:item").unwrap(),
+    item: Some(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)),
+    living: None,
+}));
+ops.velocities.push((1, [0.0, -0.1, 0.0]));
+assert!(!EntityReach::set_velocity(1, [0.1, 0.2, 0.3]), "outside a scope");
+with_entities(&mut ops, || {
+    assert!(EntityReach::set_velocity(1, [0.1, 0.2, 0.3]));
+    assert_eq!(EntityReach::velocity_of(1), Some([0.1, 0.2, 0.3]));
+    assert!(!EntityReach::set_velocity(99, [0.0, 0.0, 0.0]), "no such entity");
+});
+```
+
 ### `EntityReach::teleport`
 
 `fn teleport(id: u64, pos: [f64; 3]) -> bool`. Moves entity `id` to `pos`; a mob's navigation stops and its fall distance resets, as the game's own teleport does. False outside a scope, for a player, or when the host cannot move it.
@@ -821,6 +1043,41 @@ with_entities(&mut ops, || {
     assert!(EntityReach::teleport(2, [7.5, 70.0, -3.5]));
     assert_eq!(EntityReach::position_of(2), Some([7.5, 70.0, -3.5]));
     assert!(!EntityReach::teleport(99, [0.0, 64.0, 0.0]), "no such entity to move");
+});
+```
+
+### `EntityReach::id_of_uuid`
+
+`fn id_of_uuid(uuid: u128) -> Option<u64>`. The entity id of the player whose uuid is `uuid`, resolved through the host's entity-by-uuid call; `None` outside a scope or when no such player is there. This is the bridge from a player a callback names (a `ServerPlayer`) to the entity ids the ride reach and the other queries speak of.
+
+```rust
+use pluto_lib::{EntityReach, MemoryEntityOps, with_entities};
+
+assert_eq!(EntityReach::id_of_uuid(1), None, "outside a scope");
+let mut ops = MemoryEntityOps::default();
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::id_of_uuid(1), None, "the memory world holds no players");
+});
+```
+
+### `EntityReach::kind_of`
+
+`fn kind_of(id: u64) -> Option<Identifier>`. The type of the entity `id`; `None` outside a scope or when there is no such entity.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, LivingFacts, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([2.5, 64.5, 2.5], WorldEntity {
+    id: 2,
+    kind: Identifier::parse("minecraft:zombie").unwrap(),
+    item: None,
+    living: Some(LivingFacts { fire_immune: false, invulnerable: false, fire_resistant: false }),
+}));
+assert_eq!(EntityReach::kind_of(2), None, "outside a scope");
+with_entities(&mut ops, || {
+    assert_eq!(EntityReach::kind_of(2), Identifier::parse("minecraft:zombie").ok());
+    assert_eq!(EntityReach::kind_of(99), None, "no such entity");
 });
 ```
 
@@ -987,6 +1244,44 @@ ServerEntityEvents::ENTITY_TICK_POST.register(|entity: &EntityInfo| {
 ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraft:cow".into(), dimension: "minecraft:overworld".into() });
 ```
 
+### `MobTick`
+
+A mob's tick, heard after the mob's own tick ran, for every living entity that is not a player: `entity` is the entity id, `kind` its type, `dimension` the dimension it is in, `position` its feet position, `velocity` the motion it moves with, `on_ground` whether it stands on the ground, `in_water` whether it is in water, `on_climbable` whether it is on a climbable block (the game's own check: a climbing kind reads its own climbing flag, a gliding mob passing a block it can glide through never counts, kinds that never climb read false), `climbing` whether it climbs a wall (a spider or cave spider pressed against one), `gliding` whether it glides with an elytra, `armor` every piece worn (as (slot, stack): `feet`, `legs`, `chest`, `head`), `hands` the stacks held (as (slot, stack): `mainhand`, `offhand`) and `effects` its effects as (effect id, amplifier, ticks left). Unlike a player's report the armor lists every piece, not only those carrying custom data: a mob's attribute values are worked out from this report alone. The world and entity scopes are open while it runs.
+
+```rust
+use pluto_lib::MobTick;
+
+let tick = MobTick { entity: 7, kind: "minecraft:zombie".into(), dimension: "minecraft:overworld".into(), position: [0.0; 3], velocity: [0.0, -0.5, 0.0], on_ground: false, in_water: false, on_climbable: false, climbing: false, gliding: false, armor: Vec::new(), hands: Vec::new(), effects: vec![("tconstruct:bouncy".into(), 0, 100)] };
+assert_eq!(tick.effects.len(), 1);
+```
+
+### `ServerLivingEntityEvents::MOB_TICK`
+
+A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player. It carries the mob's position, motion and state, every piece it wears and holds, and its effects (see [`MobTick`](#mobtick)); a mob's attribute values are worked out from the report.
+
+```rust
+use pluto_lib::ServerLivingEntityEvents;
+
+ServerLivingEntityEvents::MOB_TICK.register(|tick| {
+    if tick.kind == "minecraft:zombie" && !tick.on_ground {
+        // The mob is airborne this tick.
+    }
+});
+```
+
+### `EntityReach::set_velocity`
+
+`fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False when the host cannot (no such entity, a player, an entity the game does not simulate, or a value that is not finite), and outside a scope.
+
+```rust
+use pluto_lib::{EntityReach, Identifier, MemoryEntityOps, WorldEntity, with_entities};
+
+let mut ops = MemoryEntityOps::default();
+ops.entities.push(([0.0, 64.0, 0.0], WorldEntity { id: 2, kind: Identifier::parse("minecraft:zombie").unwrap(), item: None, living: None }));
+with_entities(&mut ops, || assert!(EntityReach::set_velocity(2, [0.1, 2.7, -0.2])));
+assert_eq!(ops.velocities, vec![(2, [0.1, 2.7, -0.2])]);
+```
+
 ### `CarriedSlot`
 
 One place a player carries a stack, as the wider events that report a player's whole carrying name them: `Equipment(StackSlot)` is a hand or an armor slot, and `Inventory(u32)` is a main-inventory slot, 0 to 35, the hotbar first.
@@ -1027,4 +1322,227 @@ let edit = CarriedEdit {
 };
 assert_eq!(edit.slot, CarriedSlot::Inventory(0));
 assert_eq!(edit.stack.count, 0, "a count of 0 empties the place");
+```
+
+## Living class landings and death drops
+
+### `CauseFallDamageContext`
+
+The landing a class `cause_fall_damage` decides on: `entity` and `entity_type` name the landing entity, `distance` is the fall distance after any living-fall event adjustment, `multiplier` is the damage multiplier the landing carries, `velocity` is the entity's motion as it lands, and `suppressing_bounce` reports a sneaking player (a mob never suppresses).
+
+```rust
+use pluto_lib::{CauseFallDamageContext, Identifier};
+let context = CauseFallDamageContext { entity: 7, entity_type: Identifier::parse("example:bouncer").unwrap(),
+    distance: 5.0, multiplier: 1.0, velocity: [0.0, -1.5, 0.0], suppressing_bounce: false };
+assert_eq!(context.distance, 5.0);
+assert!(!context.suppressing_bounce);
+```
+
+### `FallOutcome`
+
+What a `cause_fall_damage` override does instead of applying fall damage: `Cancel` applies nothing beyond the block's own `fallOn`; `Bounce` rebounds with the given motion, airborne again, playing `sound` at the entity when present.
+
+```rust
+use pluto_lib::{FallOutcome, Identifier};
+let outcome = FallOutcome::Bounce { velocity: [0.0, 0.9, 0.0], sound: Some(Identifier::parse("example:bounce").unwrap()) };
+assert!(matches!(outcome, FallOutcome::Bounce { .. }));
+assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
+```
+
+### `EquipmentDropChanceContext`
+
+The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only, and `looting` is the killing blow's Looting level. A LAN guest killer's level is read from the guest's own hand, as the host resolved it for the kill. The roll a class's own `dropCustomDeathLoot` makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is rolled even when the recorded chance is exactly 0: with looting, a 0-chance slot still drops at `looting` percent.
+
+```rust
+use pluto_lib::{EquipmentDropChanceContext, Identifier};
+let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:armored").unwrap(),
+    slot: "head".into(), slime_size: Some(4), chance: 2.0, looting: 0 };
+assert_eq!(context.chance, 2.0);
+assert_eq!(context.slot, "head");
+```
+
+### `LivingEntityBehavior::cause_fall_damage`
+
+Registers the class's own `causeFallDamage`: returning an outcome replaces the inherited fall-damage application for the landing; returning `None` keeps it.
+
+```rust
+use pluto_lib::{FallOutcome, Identifier, LivingEntityBehavior};
+let behavior = LivingEntityBehavior::new(Identifier::parse("example:bouncer").unwrap())
+    .cause_fall_damage(|context| (context.distance > 2.0).then_some(FallOutcome::Cancel));
+let _ = behavior;
+```
+
+### `LivingEntityBehavior::equipment_drop_chance`
+
+Registers the class's own per-slot equipment drop chance at death; returning `None` keeps the recorded chance for that slot.
+
+```rust
+use pluto_lib::{Identifier, LivingEntityBehavior};
+let behavior = LivingEntityBehavior::new(Identifier::parse("example:armored").unwrap())
+    .equipment_drop_chance(|context| (context.chance > 0.25).then_some(0.25));
+let _ = behavior;
+```
+
+### `LivingEntityBehaviors::cause_fall_damage`
+
+Dispatches the registered `cause_fall_damage` override for the context's type; `None` keeps the inherited application.
+
+```rust
+use pluto_lib::{CauseFallDamageContext, Identifier, LivingEntityBehaviors};
+let context = CauseFallDamageContext { entity: 1, entity_type: Identifier::parse("example:unregistered").unwrap(),
+    distance: 9.0, multiplier: 1.0, velocity: [0.0; 3], suppressing_bounce: false };
+assert_eq!(LivingEntityBehaviors::cause_fall_damage(&context), None);
+```
+
+### `LivingEntityBehaviors::equipment_drop_chance`
+
+Dispatches the registered per-slot drop chance for the context's type; `None` keeps the recorded chance.
+
+```rust
+use pluto_lib::{EquipmentDropChanceContext, Identifier, LivingEntityBehaviors};
+let context = EquipmentDropChanceContext { entity_type: Identifier::parse("example:unregistered").unwrap(),
+    slot: "head".into(), slime_size: None, chance: 0.085, looting: 0 };
+assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&context), None);
+```
+
+Mob splits are documented with the world events in [world.md](world.md).
+
+Spawn placements and the fishing registry are documented in [world.md](world.md).
+
+### `BlockExperienceContext`
+
+The experience a player's block break is about to drop (the experience half of NeoForge's `BlockEvent.BreakEvent`), heard through `PlayerBlockBreakEvents::EXPERIENCE`: `pos` is the block's position, `dimension` the dimension it is in (empty when the game does not name it), `player` the player who breaks it (None when the game names none), `player_entity` the breaking player's entity id (0 when the game names none), `held` the stack in the player's main hand as the drop is sampled (None for an empty hand), and `experience` the experience now, which callbacks change with `set`; each callback sees the last one's.
+
+```rust
+use pluto_lib::BlockExperienceContext;
+use std::cell::Cell;
+
+let context = BlockExperienceContext { pos: [0, 64, 0], dimension: "minecraft:overworld".into(), player: None, player_entity: 1, held: None, experience: Cell::new(3) };
+context.experience.set(7);
+assert_eq!(context.experience.get(), 7);
+```
+
+### `StateMatcher`
+
+One state test of a block predicate: `Exact` (the property must equal this value), `Range` (the property's value, read as an integer, must lie between the bounds; each bound absent means open — a value or bound that is not an integer fails the test) or `Never` (a test that never passes: a state entry the game cannot read).
+
+```rust
+use pluto_lib::StateMatcher;
+
+let matcher = StateMatcher::Range { min: Some("2".into()), max: None };
+assert!(matches!(matcher, StateMatcher::Range { .. }));
+assert_eq!(StateMatcher::Exact("true".into()), StateMatcher::Exact("true".into()));
+```
+
+### `AdventurePlacePredicate::never`
+
+`fn never() -> AdventurePlacePredicate`. A predicate that matches no block: what a malformed predicate becomes, so it is kept in the list (and fails) rather than dropped, which would let another predicate pass in its place.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState};
+
+let state = BlockState::parse("minecraft:stone").unwrap();
+assert!(!AdventurePlacePredicate::never().allows(&state, None, None));
+```
+
+### `AdventurePlacePredicate::from_nbt`
+
+`fn from_nbt(value: &Nbt) -> AdventurePlacePredicate`. One predicate from a `can_place_on` component value: a bare block id string, or a compound naming `blocks`, `state` tests and an `nbt` test, as the game's own `BlockPredicate` reads it.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState, Nbt};
+
+let predicate = AdventurePlacePredicate::from_nbt(&Nbt::String("minecraft:stone".into()));
+assert!(predicate.allows(&BlockState::parse("minecraft:stone").unwrap(), None, None));
+assert!(!predicate.allows(&BlockState::parse("minecraft:dirt").unwrap(), None, None));
+```
+
+### `AdventurePlacePredicate::allows`
+
+`fn allows(&self, mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether this predicate accepts the mined block: its blocks name it, its state tests hold, and its NBT test matches the mined block's block entity. `blocks` resolves `#tag`s; None means no snapshot, so a tag names nothing.
+
+```rust
+use pluto_lib::{AdventurePlacePredicate, BlockState, Nbt};
+
+let predicate = AdventurePlacePredicate::from_nbt(&Nbt::String("#minecraft:logs".into()));
+let state = BlockState::parse("minecraft:oak_log").unwrap();
+assert!(!predicate.allows(&state, None, None), "no snapshot, so the tag names nothing");
+```
+
+### `adventure_place_predicates`
+
+`fn adventure_place_predicates(component: &Nbt) -> Vec<AdventurePlacePredicate>`. The block predicates of a `minecraft:can_place_on` component, in the order the tag lists them: a list of predicates, one compound predicate, or a bare block id (the shorthand the game's own text path reads as an id).
+
+```rust
+use pluto_lib::{Nbt, adventure_place_predicates};
+
+let predicates = adventure_place_predicates(&Nbt::String("minecraft:stone".into()));
+assert_eq!(predicates.len(), 1);
+```
+
+### `place_predicates_allow`
+
+`fn place_predicates_allow(predicates: &[AdventurePlacePredicate], mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether any of the place tag's predicates accepts the mined block (the game's `AdventureModePredicate.test`), with the mined block's block entity for the NBT tests. An empty predicate list accepts nothing.
+
+```rust
+use pluto_lib::{BlockState, place_predicates_allow};
+
+let state = BlockState::parse("minecraft:stone").unwrap();
+assert!(!place_predicates_allow(&[], &state, None, None));
+```
+
+### `PlayerBlockBreakEvents::EXPERIENCE`
+
+The experience half of NeoForge's `BlockEvent.BreakEvent`: the `BlockExperienceContext` of a player's block break, heard as the game samples the drop on the player's own break path, before the game's silk-touch rule is applied to the sampled amount.
+
+```rust
+use pluto_lib::{BlockExperienceContext, PlayerBlockBreakEvents};
+use std::cell::Cell;
+
+PlayerBlockBreakEvents::EXPERIENCE.register(|context| context.experience.set(context.experience.get() + 1));
+let context = BlockExperienceContext { pos: [0, 64, 0], dimension: "minecraft:overworld".into(), player: None, player_entity: 1, held: None, experience: Cell::new(3) };
+PlayerBlockBreakEvents::EXPERIENCE.invoke(&context);
+assert_eq!(context.experience.get(), 4);
+```
+
+### `EntityReach::bounding_box_of`
+
+`fn bounding_box_of(id: u64) -> Option<[[f64; 3]; 2]>`. The box entity `id` occupies, as [min corner, max corner]; None outside a scope or when the host cannot reach it.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert_eq!(EntityReach::bounding_box_of(4), None, "no entity scope is open");
+```
+
+### `EntityReach::has_scope`
+
+`fn has_scope() -> bool`. Whether an entity scope is open on this thread: the reach answers "nothing there" outside one, and a caller that must tell "nothing there" from "never looked" asks this.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert!(!EntityReach::has_scope());
+```
+
+### `EntityReach::spin_attack`
+
+`fn spin_attack(id: u64) -> bool`. Starts the player `id`'s spin attack; whether the spin was accepted. False outside a scope.
+
+```rust
+use pluto_lib::EntityReach;
+
+assert!(!EntityReach::spin_attack(4), "no entity scope is open");
+```
+
+### `Grapple::starts_spin_attack`
+
+`fn starts_spin_attack(self) -> bool`. Whether a grapple of this kind starts the owner's spin attack when it pulls (the original's `pullGrapple`): only a drill does, on the landing pull and on the hooked-entity pull alike.
+
+```rust
+use pluto_lib::Grapple;
+
+assert!(Grapple::Drill.starts_spin_attack());
+assert!(!Grapple::Dash.starts_spin_attack());
+assert!(!Grapple::None.starts_spin_attack());
 ```

@@ -16,6 +16,11 @@ pub(crate) struct Resolver<'a> {
     pub recipes: Option<&'a Recipes>,
     pub modifier_recipes: Option<&'a crate::modifier_recipes::Recipes>,
     pub overslime_recipes: Option<&'a crate::overslime::Recipes>,
+    pub modifier_repair_recipes: Option<&'a crate::modifier_repair::Recipes>,
+    pub damaging_recipes: Option<&'a crate::damaging::Recipes>,
+    pub dyeing_recipes: Option<&'a crate::dyeing::Recipes>,
+    pub banner_recipes: Option<&'a crate::banner_modifier::Recipes>,
+    pub trim_recipes: Option<&'a crate::armor_trim::Recipes>,
     pub in_tag: &'a dyn Fn(&Identifier, &Identifier) -> bool,
 }
 
@@ -35,7 +40,7 @@ pub(crate) fn resolve_input(stack: &ItemSlot, resolver: &Resolver) -> Input {
     let instrument = crate::material_recipes::instrument_of(stack);
     if let Some(recipe) = resolver.recipes.and_then(|recipes| recipes.find_facts(&stack.item, resolver.in_tag, &crate::material_recipes::StackFacts { instrument: instrument.as_ref(), ..Default::default() })) {
         if let Some(material) = recipe.material.material_id() {
-            return Input::Material { item: stack.item.clone(), material, value: recipe.value, needed: recipe.needed, count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
+            return Input::Material { item: stack.item.clone(), material, recipe: recipe.clone(), count: i32::try_from(stack.count).unwrap_or(i32::MAX) };
         }
     }
     Input::Other { item: stack.item.clone() }
@@ -50,7 +55,17 @@ pub(crate) fn read(menu: &dyn MenuAccess, input_count: usize, resolver: &Resolve
 
 /// What the station would produce for the staged menu, with no side effects.
 pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, resolver: &Resolver) -> Result<Outcome, String> {
-    let (tool, inputs) = read(menu, input_count, resolver);
+    let (tool, mut inputs) = read(menu, input_count, resolver);
+    // A tinkerable tool stack in an input slot is the sacrifice of tool material swapping;
+    // resolve_input cannot know the tool definitions, so it is recognized here.
+    for (index, input) in inputs.iter_mut().enumerate() {
+        let is_tool = matches!(input, Some(Input::Other { item }) if ctx.tools.iter().any(|(tool_item, _)| tool_item == item));
+        if is_tool {
+            if let Some(stack) = menu.stack(index + 1).filter(|stack| stack.count > 0) {
+                *input = Some(Input::Tool { stack: Box::new(stack) });
+            }
+        }
+    }
     let raw: Vec<Option<(Identifier, u32)>> = (1..=input_count)
         .map(|slot| menu.stack(slot).filter(|stack| stack.count > 0).map(|stack| (stack.item.clone(), stack.count))).collect();
     // A modifier crystal carries its modifier in the stack's data, which the plain item and count above do not.
@@ -59,8 +74,30 @@ pub(crate) fn preview(menu: &dyn MenuAccess, ctx: &Context, input_count: usize, 
         (stack.item.clone(), stack.count, modifier)
     })).collect();
     let crystal = crate::modifier_recipes::lone_crystal(&stacks);
-    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, raw: &raw, in_tag: resolver.in_tag });
-    tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref())
+    // The full input stacks: the banner recipe reads the banner stack's pattern data.
+    let full_stacks: Vec<Option<ItemSlot>> = (1..=input_count).map(|slot| menu.stack(slot).filter(|stack| stack.count > 0)).collect();
+    let modifiers = resolver.modifier_recipes.map(|recipes| tool_station::ModifierRecipes { recipes, crystal, overslime: resolver.overslime_recipes, modifier_repairs: resolver.modifier_repair_recipes, damaging: resolver.damaging_recipes, dyeing: resolver.dyeing_recipes, banner: resolver.banner_recipes, trim: resolver.trim_recipes, raw: &raw, stacks: &full_stacks, in_tag: resolver.in_tag });
+    // The part swap's repair and the material swapping recipes: the casting lookup lives
+    // with the smeltery recipes, the swapping recipes in their own registry.
+    let casting = crate::common::smeltery_data().and_then(|data| data.read().ok().map(|data| data.recipes.material_casting.clone()));
+    let part_cost = |item: &Identifier| casting.as_ref().map_or(0, |casting| casting.item_cost(item));
+    let swapping = crate::common::swapping_recipes().and_then(|recipes| recipes.read().ok().map(|recipes| recipes.clone()));
+    // The repair gate disables the station's material repair only once a reload has run
+    // without the fieldless tinker_station_repair recipe; before any reload (or where the
+    // registry was never initialized) repair runs as the station's own, which is the
+    // original's behaviour with its shipped recipe present.
+    let repair_gate = crate::common::repair_gate().and_then(|gate| gate.read().ok());
+    let part_swapping = crate::common::part_swapping().and_then(|recipes| recipes.read().ok());
+    let building_recipes = crate::common::building_recipes().and_then(|recipes| recipes.read().ok());
+    // The tipped transform reads the first non-empty input stack's potion.
+    let potion = (1..=input_count).filter_map(|slot| menu.stack(slot)).find(|stack| stack.count > 0)
+        .and_then(|stack| match stack.custom_data.get("Potion") { Some(pluto_lib::Nbt::String(text)) => Some(text.clone()), _ => None });
+    let building_data = building_recipes.as_deref().filter(|recipes| recipes.loaded)
+        .map(|recipes| tool_station::BuildingData { recipes, potion: potion.as_deref() });
+    let swap_data = tool_station::SwapData { part_cost: &part_cost, recipes: swapping.as_ref(), raw: &raw, in_tag: resolver.in_tag,
+        repair_present: repair_gate.as_ref().map_or(true, |gate| !gate.loaded || gate.present),
+        part_swapping: part_swapping.as_deref().filter(|recipes| recipes.loaded), building: building_data };
+    tool_station::lookup_with(ctx, tool.as_ref(), &inputs, modifiers.as_ref(), Some(&swap_data))
 }
 
 /// craftResult: computes the outcome, consumes the inputs and the tool, and hands back the result.
@@ -145,7 +182,7 @@ mod tests {
         let tools = [(id("tconstruct:pickaxe"), &pickaxe)];
         let item_max = |_: &Identifier| 1;
         let ctx = Context { materials: &materials, modifiers: &registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
-        let resolver = Resolver { kit_amount: 2.0, recipes: None, modifier_recipes: None, overslime_recipes: None, in_tag: &|_, _| false };
+        let resolver = Resolver { kit_amount: 2.0, recipes: None, modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, banner_recipes: None, trim_recipes: None, in_tag: &|_, _| false };
         let mut lazy = LazyResultContainer::default();
         lazy.result(|| Some(ItemSlot::new(id("test:stale"), 1)));
         // Slots: tool, 4 inputs, result placeholder.
@@ -173,9 +210,9 @@ mod tests {
         let recipes = crate::material_recipes::Recipes::load(&[(id("tconstruct:tools/materials/plank"), json!({"type":"tconstruct:material",
             "ingredient":{"item":"test:plank"},"material":"test:wood","needed":1,"value":1}))], &Always);
         assert_eq!(recipes.len(), 1);
-        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, overslime_recipes: None, in_tag: &|_, _| false };
+        let with_recipes = Resolver { kit_amount: 2.0, recipes: Some(&recipes), modifier_recipes: None, overslime_recipes: None, modifier_repair_recipes: None, damaging_recipes: None, dyeing_recipes: None, banner_recipes: None, trim_recipes: None, in_tag: &|_, _| false };
         let plank = ItemSlot::new(id("test:plank"), 5);
-        assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { value: 1, needed: 1, count: 5, .. }));
+        assert!(matches!(resolve_input(&plank, &with_recipes), Input::Material { count: 5, recipe, .. } if recipe.value == 1 && recipe.needed == 1));
         assert!(matches!(resolve_input(&plank, &resolver), Input::Other { .. }), "without recipes the plank is just an item");
         let mut hurt = built.clone();
         crate::tool_slot::damage_slot(&mut hurt, &Environment4::of(&ctx, &pickaxe), 10, true, true, None, &mut || 1.0).unwrap();

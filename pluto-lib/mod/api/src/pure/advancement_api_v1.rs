@@ -11,9 +11,26 @@
 //! the current actor, native player conditions, progress, rewards and
 //! notifications, and evaluates submissions synchronously.
 //!
+//! A mod may also resolve an advancement's function reward in code. The
+//! game's function store carries only data pack files, so a function a mod
+//! ships as data in its own package never reaches it; registering a
+//! resolver for the function id lets the native adapter grant the
+//! advancements the function stands for to the rewarded player, at the
+//! game's own reward boundary. A function the store does carry keeps the
+//! game's path, and the callback only names the advancements: the adapter
+//! performs the grants.
+//!
 //! Register once during startup, before inventory events or predicate
 //! evaluation. Callbacks must be read-only. No content keys or eligibility
 //! rules live here.
+//!
+//! Consumers also publish their resolved item-tag snapshots here: the
+//! criteria a mod ships resolve `#tag` references against the world the
+//! player is in, and the native engine's own tag table does not carry the
+//! mod's data. A consumer publishes the snapshot its own data resolved to
+//! under its owner id; the adapter applies it to the current world's store
+//! and answers those tags from it, failing closed on a tag the owner marks
+//! unavailable instead of falling back.
 
 use std::collections::BTreeMap;
 use std::sync::{Mutex, RwLock};
@@ -209,6 +226,133 @@ pub fn queued_event_count() -> usize {
     EVENT_QUEUE.lock().unwrap_or_else(|error| error.into_inner()).len()
 }
 
+/// One owner's resolved item-tag snapshot for advancement matching, in
+/// host-independent form: tag id -> member ids. `Some(empty)` is a known
+/// empty tag; `None` is a tag the owner knows but cannot currently resolve,
+/// which matching must fail closed on rather than fall back to the native
+/// table. Tags absent from the snapshot are not the owner's business: the
+/// adapter leaves them to the native table.
+pub type TagSnapshot = BTreeMap<String, Option<Vec<String>>>;
+
+static TAG_SNAPSHOTS: Mutex<BTreeMap<String, TagSnapshot>> = Mutex::new(BTreeMap::new());
+static TAG_GENERATION: Mutex<u64> = Mutex::new(0);
+
+/// Publish one owner's current resolved item-tag snapshot for advancement
+/// matching, replacing the owner's previous publication wholesale.
+/// Publishing an empty snapshot releases the ownership: the publication is
+/// retained as an empty snapshot so the adapter releases the owner's
+/// world-side ownership on its next tick. Consumers publish when their
+/// data (re)loads and release when it unloads; the adapter applies
+/// publications to the current world's store on its advancement tick and
+/// leaves owners it never hears from unmanaged.
+pub fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot) {
+    TAG_SNAPSHOTS
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .insert(owner.to_owned(), snapshot);
+    *TAG_GENERATION.lock().unwrap_or_else(|error| error.into_inner()) += 1;
+}
+
+/// The publication generation: 0 before the first publication, bumped by
+/// every `publish_tag_snapshot` call. The native adapter compares it
+/// against the generation it last applied to a world's store, so an
+/// unchanged publication costs one comparison per tick.
+pub fn tag_snapshot_generation() -> u64 {
+    *TAG_GENERATION.lock().unwrap_or_else(|error| error.into_inner())
+}
+
+/// Every currently published owner snapshot, cloned for the native
+/// adapter. Pure consumers only publish; the adapter reads.
+pub fn tag_snapshots() -> Vec<(String, TagSnapshot)> {
+    TAG_SNAPSHOTS
+        .lock()
+        .unwrap_or_else(|error| error.into_inner())
+        .iter()
+        .map(|(owner, snapshot)| (owner.clone(), snapshot.clone()))
+        .collect()
+}
+
+/// Resolves one advancement function reward: called with the function id,
+/// it returns the advancement ids to grant the player the reward belongs
+/// to. An empty return leaves the function unexecuted, exactly as an
+/// unregistered one does. The callback names grants only; the native
+/// adapter performs them against the game's own progress, whose grants
+/// are idempotent, so resolving a reward again never grants twice.
+pub type FunctionRewardCallback = fn(&str) -> Vec<String>;
+
+#[derive(Clone, Copy)]
+pub struct FunctionRewardRegistration {
+    /// Stable unique registration identity, not a function discriminator.
+    pub id: &'static str,
+    /// The function id this registration resolves: the id an advancement's
+    /// `rewards.function` names.
+    pub function: &'static str,
+    pub callback: FunctionRewardCallback,
+}
+
+#[derive(Default)]
+struct FunctionRewardRegistry(
+    RwLock<BTreeMap<&'static str, (&'static str, FunctionRewardCallback)>>,
+);
+
+impl FunctionRewardRegistry {
+    const fn new() -> Self {
+        Self(RwLock::new(BTreeMap::new()))
+    }
+    fn register(&self, entry: FunctionRewardRegistration) -> Result<(), RegistrationError> {
+        if entry.id.is_empty() || entry.function.is_empty() {
+            return Err(RegistrationError::EmptyId);
+        }
+        let mut rewards = self.0.write().unwrap_or_else(|error| error.into_inner());
+        if rewards.contains_key(entry.function)
+            || rewards.values().any(|(id, _)| *id == entry.id)
+        {
+            return Err(RegistrationError::DuplicateId);
+        }
+        rewards.insert(entry.function, (entry.id, entry.callback));
+        Ok(())
+    }
+    fn is_empty(&self) -> bool {
+        self.0.read().unwrap_or_else(|error| error.into_inner()).is_empty()
+    }
+    fn resolve(&self, function: &str) -> Vec<String> {
+        // Never run consumer code while holding a lock, as in the predicate
+        // dispatch. Registration is startup-only by contract; an in-flight
+        // snapshot is stable even if violated.
+        let callback = self
+            .0
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .get(function)
+            .map(|(_, callback)| *callback);
+        callback.map_or_else(Vec::new, |callback| callback(function))
+    }
+}
+
+static FUNCTION_REWARDS: FunctionRewardRegistry = FunctionRewardRegistry::new();
+
+/// Process-lifetime registration; a function id and a registration id are
+/// each claimed once, and duplicates are rejected without replacement.
+/// Call before the first advancement completes, not lazily from a
+/// callback.
+pub fn register_function_reward(
+    entry: FunctionRewardRegistration,
+) -> Result<(), RegistrationError> {
+    FUNCTION_REWARDS.register(entry)
+}
+
+pub fn has_function_rewards() -> bool {
+    !FUNCTION_REWARDS.is_empty()
+}
+
+/// The advancements a registered resolver grants for `function`; empty
+/// when the function is unregistered or its resolver grants none. The
+/// native adapter calls this at the game's reward boundary; pure
+/// consumers only register.
+pub fn resolve_function_reward(function: &str) -> Vec<String> {
+    FUNCTION_REWARDS.resolve(function)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -334,5 +478,109 @@ mod tests {
         assert!(!(drained[0].matches)(&drained[0].payload, &serde_json::json!({"type": "example:b"})));
         assert_eq!(queued_event_count(), 0);
         assert!(take_queued_events().is_empty());
+    }
+
+    fn snapshot(members: Option<Vec<&str>>) -> TagSnapshot {
+        [("example:tag".to_string(), members.map(|v| v.into_iter().map(str::to_owned).collect()))]
+            .into_iter()
+            .collect()
+    }
+
+    #[test]
+    fn tag_snapshots_publish_replace_and_release_per_owner() {
+        // The publication registry is process-global; unique owner ids keep
+        // this test observing only its own publications, and it releases
+        // them again so no other test is affected.
+        let before = tag_snapshot_generation();
+        publish_tag_snapshot("example:owner-a", snapshot(Some(vec!["example:x"])));
+        publish_tag_snapshot("example:owner-b", snapshot(None));
+        assert_eq!(tag_snapshot_generation(), before + 2);
+        let published = tag_snapshots();
+        assert!(published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:x"])))));
+        assert!(published.contains(&("example:owner-b".to_string(), snapshot(None))));
+        // Replacement is wholesale, never a merge.
+        publish_tag_snapshot("example:owner-a", snapshot(Some(vec!["example:z"])));
+        let published = tag_snapshots();
+        assert!(published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:z"])))));
+        assert!(!published.contains(&("example:owner-a".to_string(), snapshot(Some(vec!["example:x"])))));
+        // An empty publication is retained as an empty snapshot, so the
+        // adapter can release the owner's world-side ownership.
+        publish_tag_snapshot("example:owner-a", TagSnapshot::new());
+        assert!(tag_snapshots().contains(&("example:owner-a".to_string(), TagSnapshot::new())));
+        publish_tag_snapshot("example:owner-b", TagSnapshot::new());
+        assert_eq!(tag_snapshot_generation(), before + 5);
+    }
+
+    fn grant_root(_: &str) -> Vec<String> {
+        vec!["minecraft:story/root".to_string()]
+    }
+    fn grant_none(_: &str) -> Vec<String> {
+        Vec::new()
+    }
+    fn reward(
+        id: &'static str,
+        function: &'static str,
+        callback: FunctionRewardCallback,
+    ) -> FunctionRewardRegistration {
+        FunctionRewardRegistration { id, function, callback }
+    }
+
+    #[test]
+    fn function_rewards_resolve_by_function_id_and_reject_duplicates() {
+        let registry = FunctionRewardRegistry::new();
+        assert!(registry.is_empty());
+        assert_eq!(registry.resolve("example:grant_root"), Vec::<String>::new());
+        registry
+            .register(reward("example:root", "example:grant_root", grant_root))
+            .unwrap();
+        assert!(!registry.is_empty());
+        assert_eq!(
+            registry.resolve("example:grant_root"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(registry.resolve("example:other"), Vec::<String>::new());
+        // Neither the function nor the registration id can be claimed twice.
+        assert_eq!(
+            registry.register(reward("example:other", "example:grant_root", grant_none)),
+            Err(RegistrationError::DuplicateId)
+        );
+        assert_eq!(
+            registry.register(reward("example:root", "example:other", grant_none)),
+            Err(RegistrationError::DuplicateId)
+        );
+        assert_eq!(
+            registry.register(reward("", "example:other", grant_none)),
+            Err(RegistrationError::EmptyId)
+        );
+        assert_eq!(
+            registry.register(reward("example:other", "", grant_none)),
+            Err(RegistrationError::EmptyId)
+        );
+        // A resolver granting nothing leaves the function unexecuted.
+        registry
+            .register(reward("example:none", "example:grant_none", grant_none))
+            .unwrap();
+        assert_eq!(registry.resolve("example:grant_none"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn public_function_reward_registration_resolves() {
+        // The process registry is shared; this test uses its own function
+        // id and only observes that id.
+        assert_eq!(resolve_function_reward("example:public_grant"), Vec::<String>::new());
+        register_function_reward(reward("example:public", "example:public_grant", grant_root))
+            .unwrap();
+        assert_eq!(
+            resolve_function_reward("example:public_grant"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(
+            register_function_reward(reward(
+                "example:public-again",
+                "example:public_grant",
+                grant_none
+            )),
+            Err(RegistrationError::DuplicateId)
+        );
     }
 }

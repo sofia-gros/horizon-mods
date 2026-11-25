@@ -1,6 +1,9 @@
 {
   "parent": "tconstruct:block/template/pane/noside",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
-    "pane": "tconstruct:block/foundry/soul_glass"
+    "pane": "tconstruct:block/foundry/soul_glass_connected",
+    "particle": "tconstruct:block/foundry/soul_glass"
   }
 }

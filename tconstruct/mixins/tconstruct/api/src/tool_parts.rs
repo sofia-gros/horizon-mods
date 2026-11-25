@@ -24,9 +24,9 @@ const TOOL_STACKS: &[(&str, i32)] = &[
     ("hand_axe", 1), ("broad_axe", 1), ("kama", 1), ("scythe", 1), ("dagger", 2), ("sword", 1), ("cleaver", 1),
     ("crossbow", 1), ("longbow", 1), ("fishing_rod", 1), ("javelin", 1), ("arrow", 64), ("shuriken", 16), ("throwing_axe", 16),
     ("flint_and_brick", 1), ("sky_staff", 1), ("earth_staff", 1), ("ichor_staff", 1), ("ender_staff", 1),
-    ("melting_pan", 1), ("war_pick", 1), ("battlesign", 1), ("swasher", 1), ("travelers_shield", 1), ("plate_shield", 1),
+    ("melting_pan", 1), ("war_pick", 1), ("battlesign", 1), ("swasher", 1), ("minotaur_axe", 1), ("travelers_shield", 1), ("plate_shield", 1),
     // Armor and wings: unstackable like every worn item.
-    ("plate_helmet", 1), ("slime_helmet", 1), ("travelers_helmet", 1), ("plate_chestplate", 1), ("slime_chestplate", 1), ("travelers_chestplate", 1), ("plate_leggings", 1), ("slime_leggings", 1), ("travelers_leggings", 1), ("plate_boots", 1), ("slime_boots", 1), ("travelers_boots", 1), ("slime_wings", 1),
+    ("plate_helmet", 1), ("slime_helmet", 1), ("travelers_helmet", 1), ("plate_chestplate", 1), ("slimy_chestplate", 1), ("travelers_chestplate", 1), ("plate_leggings", 1), ("slime_leggings", 1), ("travelers_leggings", 1), ("plate_boots", 1), ("slime_boots", 1), ("travelers_boots", 1), ("slime_wings", 1),
 ];
 
 /// The stack limit of a tool item; anything else is treated as unstackable like the base item properties.
@@ -64,7 +64,7 @@ mod tests {
         let size = |path: &str| tool_stack_size(&Identifier::new("tconstruct", path).unwrap());
         assert_eq!((size("pickaxe"), size("dagger"), size("arrow"), size("shuriken"), size("unknown")), (1, 2, 64, 16, 1));
         assert_eq!(tool_stack_size(&Identifier::parse("minecraft:arrow").unwrap()), 1);
-        assert_eq!(TOOL_STACKS.len(), 44);
+        assert_eq!(TOOL_STACKS.len(), 45);
     }
     #[test]
     fn every_part_uses_a_known_stat_type_and_items_are_unique() {

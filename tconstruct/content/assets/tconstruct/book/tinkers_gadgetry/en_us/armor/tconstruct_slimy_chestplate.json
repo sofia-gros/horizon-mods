@@ -1,5 +1,5 @@
 {
-  "tool": "tconstruct:slimy_chestplate",
+  "tool": "tconstruct:slime_chestplate",
   "text": [
     { "text": "Become the ultimate boxer by pouring slime on a ribcage in a basin!" },
     { "text": "Provides many useful melee traits to buff your unarmed attacks.", "paragraph": true }

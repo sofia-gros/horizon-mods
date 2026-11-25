@@ -16,9 +16,10 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 ///   attacker and the victim; PlutoLib has no nearby-entity enumeration, no entity action
 ///   that addresses a third entity, and no way to spawn a named particle at an entity
 ///   (ParticleFactoryRegistry only registers item-particle factories).
-/// * Interaction gates (attack/dual_option/toggleable_set interaction): nothing in the tool
-///   system asks a definition which interaction source a modifier may use; there is no
-///   canInteract consumer to bind these to.
+/// * Interaction gates (attack interaction): nothing in the tool system asks a definition
+///   which click an attack uses. The dual_option and toggleable_set gates ARE bound
+///   (`Data::interaction_gate`): the worktable's toggle recipe asks exactly which source a
+///   modifier may use, so those two are decoded below.
 /// * Display names (fixed/unique/material/custom material name): a stack's name comes from
 ///   the host's item name; no code path computes a material-based display name.
 /// * melting_fluid_effective: effectiveness here is one static module baked into the stack's
@@ -27,7 +28,7 @@ pub(crate) const FOLDER: &str = "tinkering/tool_definitions";
 ///   the mining paths hold.
 const UNBOUND: &[&str] = &[
     "tconstruct:melee_particle", "tconstruct:sweep_melee", "tconstruct:circle_melee",
-    "tconstruct:attack_interaction", "tconstruct:dual_option_interaction", "tconstruct:toggleable_set_interaction",
+    "tconstruct:attack_interaction",
     "tconstruct:melting_fluid_effective",
     "tconstruct:fixed_material_name", "tconstruct:unique_material_name", "tconstruct:material_name", "tconstruct:custom_material_name",
 ];
@@ -83,15 +84,52 @@ fn repair_durability(registry: &Materials, material: &Identifier, stat: &Identif
     }
 }
 
-/// RandomMaterial: one entry of a default/remapping materials list. The `random_variant` and
-/// `ancient` registry types are not decoded (no shipped definition uses them, and variant
-/// choices need the material recipe cache), and a `random` entry's material predicate is not
-/// decoded either (no shipped entry carries one); both reject instead of guessing.
+/// RandomMaterial: one entry of a default/remapping materials list. The `random_variant` registry
+/// type is not decoded (no shipped definition or loot entry uses it, and variant choices need the
+/// material recipe cache); it rejects instead of guessing. `ancient` and a `random` entry's material
+/// predicate decode here for the loot injectors (see loot_injectors.rs).
 #[derive(Clone, Debug, PartialEq)]
 enum RandomMaterial {
     Fixed(crate::tool_materials::MaterialVariant),
     First,
-    Random { min_tier: i32, max_tier: i32, allow_hidden: bool },
+    Random { min_tier: i32, max_tier: i32, allow_hidden: bool, material: Option<MaterialPredicate> },
+    /// Randomized.ANCIENT: any tier, hidden allowed, and not in `tconstruct:exclude_from_loot`.
+    Ancient,
+}
+
+/// A material predicate, as the loot entries name it (Mantle's `IJsonPredicate<MaterialVariantId>`):
+/// a material tag, or the inversion of another predicate. Tested against the material tags the
+/// registry loaded (`tinkering/tags/materials`).
+#[derive(Clone, Debug, PartialEq)]
+enum MaterialPredicate {
+    Tag(Identifier),
+    Inverted(Box<MaterialPredicate>),
+}
+impl MaterialPredicate {
+    fn decode(value: &Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or("material predicate must be an object")?;
+        let kind = object.get("type").and_then(Value::as_str).ok_or("material predicate needs a type")?;
+        match kind {
+            "mantle:tag" => {
+                let tag = object.get("tag").and_then(Value::as_str).ok_or("material tag predicate needs a tag")?;
+                Identifier::parse(tag).map(Self::Tag).map_err(|error| error.to_string())
+            }
+            "mantle:inverted" => {
+                // The inner predicate's type rides in `inverted_type`; its fields sit beside it.
+                let inner = object.get("inverted_type").and_then(Value::as_str).ok_or("inverted material predicate needs inverted_type")?;
+                let mut object = object.clone();
+                object.insert("type".to_owned(), Value::String(inner.to_owned()));
+                Self::decode(&Value::Object(object)).map(|predicate| Self::Inverted(Box::new(predicate)))
+            }
+            _ => Err(format!("material predicate type {kind} is not supported")),
+        }
+    }
+    fn test(&self, material: &Identifier, registry: &Materials) -> bool {
+        match self {
+            Self::Tag(tag) => registry.tags.get(tag).is_some_and(|members| members.contains(material)),
+            Self::Inverted(inner) => !inner.test(material, registry),
+        }
+    }
 }
 impl RandomMaterial {
     fn decode(value: &Value) -> Result<Self, String> {
@@ -105,8 +143,8 @@ impl RandomMaterial {
                     .ok_or_else(|| format!("invalid material variant {text}"))
             }
             "tconstruct:first" => Ok(Self::First),
+            "tconstruct:ancient" => Ok(Self::Ancient),
             "tconstruct:random" => {
-                if object.contains_key("material") { return Err("random material predicates are not supported".into()); }
                 // IntRange: a bare number is an exact tier; the default range is every tier.
                 let int = |value: &Value| crate::materials::number_int(&value.to_string());
                 let (min_tier, max_tier) = match object.get("tier") {
@@ -124,7 +162,13 @@ impl RandomMaterial {
                     Some(Value::Bool(value)) => *value,
                     Some(_) => return Err("allow_hidden must be boolean".into()),
                 };
-                Ok(Self::Random { min_tier, max_tier, allow_hidden })
+                // A material predicate narrows the choices (Mantle's `IJsonPredicate<MaterialVariantId>`);
+                // absent, every material with the stat is a choice.
+                let material = match object.get("material") {
+                    None | Some(Value::Null) => None,
+                    Some(value) => Some(MaterialPredicate::decode(value)?),
+                };
+                Ok(Self::Random { min_tier, max_tier, allow_hidden, material })
             }
             _ => Err(format!("random material type {kind} is not supported")),
         }
@@ -136,22 +180,58 @@ impl RandomMaterial {
         match self {
             Self::Fixed(variant) => variant.clone(),
             Self::First => first_with_stat(registry, stat),
-            Self::Random { min_tier, max_tier, allow_hidden } => {
-                // Choices in the registry's canonical order (the visible sort extended to
-                // hidden materials): tier in range, hidden only when allowed, has the stat.
-                let mut choices: Vec<&crate::materials::Material> = registry.materials.values()
-                    .filter(|material| material.tier >= *min_tier && material.tier <= *max_tier
-                        && (*allow_hidden || !material.hidden) && registry.get_stats(&material.id, stat).is_some())
-                    .collect();
-                choices.sort_by(|a, b| a.tier.cmp(&b.tier).then(a.sort_order.cmp(&b.sort_order))
-                    .then(a.id.path().cmp(b.id.path())).then(a.id.namespace().cmp(b.id.namespace())));
-                if choices.is_empty() { return first_with_stat(registry, stat); }
-                let index = ((roll() * choices.len() as f32) as usize).min(choices.len() - 1);
-                crate::tool_materials::MaterialVariant::parse(&choices[index].id.to_string())
-                    .unwrap_or_else(crate::tool_materials::MaterialVariant::unknown)
+            Self::Random { min_tier, max_tier, allow_hidden, material } => {
+                Self::pick_random(stat, registry, roll, *min_tier, *max_tier, *allow_hidden, material.as_ref())
+            }
+            Self::Ancient => {
+                // Randomized.ANCIENT: any tier, hidden allowed, and not in the exclude tag.
+                let excluded = MaterialPredicate::Inverted(Box::new(MaterialPredicate::Tag(
+                    Identifier::new("tconstruct", "exclude_from_loot").expect("valid tag"))));
+                Self::pick_random(stat, registry, roll, 0, i32::MAX, true, Some(&excluded))
             }
         }
     }
+
+    /// The shared random choice: the registry's canonical order (the visible sort extended to
+    /// hidden materials) over tier in range, hidden only when allowed, the predicate when one is
+    /// named, and having the stat. An empty choice falls back to first-with-stat, as the original's
+    /// getMaterial does.
+    fn pick_random(stat: &Identifier, registry: &Materials, roll: &mut dyn FnMut() -> f32, min_tier: i32, max_tier: i32, allow_hidden: bool, predicate: Option<&MaterialPredicate>) -> crate::tool_materials::MaterialVariant {
+        let mut choices: Vec<&crate::materials::Material> = registry.materials.values()
+            .filter(|material| material.tier >= min_tier && material.tier <= max_tier
+                && (allow_hidden || !material.hidden) && registry.get_stats(&material.id, stat).is_some()
+                && predicate.is_none_or(|predicate| predicate.test(&material.id, registry)))
+            .collect();
+        choices.sort_by(|a, b| a.tier.cmp(&b.tier).then(a.sort_order.cmp(&b.sort_order))
+            .then(a.id.path().cmp(b.id.path())).then(a.id.namespace().cmp(b.id.namespace())));
+        if choices.is_empty() { return first_with_stat(registry, stat); }
+        let index = ((roll() * choices.len() as f32) as usize).min(choices.len() - 1);
+        crate::tool_materials::MaterialVariant::parse(&choices[index].id.to_string())
+            .unwrap_or_else(crate::tool_materials::MaterialVariant::unknown)
+    }
+}
+
+/// RandomMaterial.build for a loot function's materials list (AddToolDataFunction): entries by
+/// position up to the definition's stat types, first-with-stat beyond them. `roll` is the port's
+/// [0, 1) source standing in for the loot context's random.
+pub(crate) fn build_random_materials(types: &[(Identifier, f32)], values: &[Value], registry: &Materials, roll: &mut dyn FnMut() -> f32) -> Result<MaterialList, String> {
+    let entries: Vec<RandomMaterial> = values.iter().map(RandomMaterial::decode).collect::<Result<_, _>>()?;
+    let built: Vec<crate::tool_materials::MaterialVariant> = (0..types.len()).map(|index| match entries.get(index) {
+        Some(entry) => entry.pick(&types[index].0, registry, roll),
+        None => first_with_stat(registry, &types[index].0),
+    }).collect();
+    Ok(MaterialList::from_variants(built))
+}
+
+/// RandomMaterial.getMaterial for one entry (ToolPartLootEntry): the material for one stat type.
+pub(crate) fn pick_random_material(value: &Value, stat: &Identifier, registry: &Materials, roll: &mut dyn FnMut() -> f32) -> Result<crate::tool_materials::MaterialVariant, String> {
+    Ok(RandomMaterial::decode(value)?.pick(stat, registry, roll))
+}
+
+/// Whether a JSON value decodes as a RandomMaterial, for load-time validation (the loot
+/// injectors reject a bad material before the table ever rolls, instead of at roll time).
+pub(crate) fn valid_random_material(value: &Value) -> Result<(), String> {
+    RandomMaterial::decode(value).map(|_| ())
 }
 
 /// MaterialRegistry.firstWithStatType as a variant; the unknown material when nothing has the
@@ -175,6 +255,15 @@ fn random_materials(fields: &serde_json::Map<String, Value>, key: &str) -> Resul
         .iter().map(RandomMaterial::decode).collect()
 }
 
+/// The INTERACTION hook's gate module: DualOptionInteraction, or ToggleableSetInteraction
+/// with its predicate over the modifiers that interact on use. The worktable's toggle recipe
+/// is the consumer: it asks the gate whether a modifier may interact on the right click.
+#[derive(Clone, Debug)]
+pub(crate) enum InteractionGate {
+    DualOption,
+    ToggleableSet(crate::modifier_modules::CausePredicate),
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Data {
     stats: Vec<StatModule>, volatile: Vec<VolatileModule>, actions: BTreeSet<String>,
@@ -190,6 +279,8 @@ pub(crate) struct Data {
     max_tier: Option<Identifier>,
     /// The MISSING_MATERIALS binding, when a module claims the hook.
     missing: Option<MissingModule>,
+    /// The INTERACTION gate binding, when a module claims the hook.
+    interaction: Option<InteractionGate>,
     unbound: Vec<Identifier>,
 }
 impl Data {
@@ -212,6 +303,7 @@ impl Data {
         let mut speed: Vec<(crate::mining_speed::BlockCondition, f32)> = Vec::new();
         let mut max_tier: Option<Identifier> = None;
         let mut missing: Option<MissingModule> = None;
+        let mut interaction: Option<InteractionGate> = None;
         let mut unbound: Vec<Identifier> = Vec::new();
         for module in modules {
             let fields = module.as_object().ok_or("module must be an object")?;
@@ -220,6 +312,14 @@ impl Data {
             let empty = kind.to_string() == "tconstruct:empty";
             if UNBOUND.contains(&kind.to_string().as_str()) {
                 if !unbound.contains(&kind) { unbound.push(kind); }
+                continue;
+            }
+            if kind.to_string() == "tconstruct:dual_option_interaction" || kind.to_string() == "tconstruct:toggleable_set_interaction" {
+                // The interaction gates bind the INTERACTION hook, which has no merger.
+                if interaction.is_some() { return Err("only one module may bind the interaction hook".into()); }
+                interaction = Some(if kind.to_string() == "tconstruct:dual_option_interaction" { InteractionGate::DualOption } else {
+                    InteractionGate::ToggleableSet(crate::modifier_modules::CausePredicate::decode(fields.get("interact_modifiers"))?.ok_or("unsupported interact_modifiers predicate")?)
+                });
                 continue;
             }
             if kind.to_string() == "tconstruct:tool_parts" {
@@ -461,7 +561,7 @@ impl Data {
                 if !stats.iter().any(|previous| same_stat_module(previous, &decoded)) { stats.push(decoded); }
             }
         }
-        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, aoe, speed, max_tier, missing, unbound })
+        Ok(Self { stats, volatile, actions, traits, hook_traits, repairs, parts: tool_parts.unwrap_or_default(), effective, aoe, speed, max_tier, missing, interaction, unbound })
     }
 
     /// Definition traits in hook order. Resolution happens against the current
@@ -550,7 +650,7 @@ impl Data {
     /// before modifier break-speed modules, as in the original hook order.
     pub fn modify_mining_speed(&self, context: &crate::mining_speed::Context, speed: f32) -> f32 {
         self.speed.iter().fold(speed, |speed, (condition, modifier)| {
-            if condition.matches(context.block, context.block_in_tag) { speed * modifier } else { speed }
+            if condition.matches(context.block, context.block_in_tag, &context.facts) { speed * modifier } else { speed }
         })
     }
     /// MissingMaterialsToolHook: the filled material list when the tool holds fewer materials
@@ -601,6 +701,8 @@ impl Data {
     }
     /// Modules this definition declares that are recorded but not implemented (see `UNBOUND`).
     pub fn unbound_modules(&self) -> &[Identifier] { &self.unbound }
+    /// The definition's interaction gate (DualOptionInteraction / ToggleableSetInteraction), when bound.
+    pub(crate) fn interaction_gate(&self) -> Option<&InteractionGate> { self.interaction.as_ref() }
     /// ToolHooks.AOE_ITERATOR: the definition's area iterator, when it binds one.
     pub fn aoe(&self) -> Option<&crate::aoe::Iterator> { self.aoe.as_ref() }
     /// ToolPartsHook.parts: the part items in slot order (empty for tools without a parts module).
@@ -700,15 +802,18 @@ impl Definitions {
 }
 
 /// ToolDefinitions and ArmorDefinitions, excluding other-mod integration.
-/// These are definition identities, not item registrations (slime_chestplate is
-/// intentionally different from the original item's slimy_chestplate identity).
+/// These are definition identities, not item registrations: one definition's item
+/// differs (the slime chestplate's item is `slimy_chestplate`), translated by
+/// `item_for_definition` wherever an item is meant. The minotaur axe is registered
+/// unconditionally here; the original registers it only with Twilight Forest loaded,
+/// a condition the port's data cannot express, and its data ships with the port.
 pub(crate) fn registered() -> BTreeSet<Identifier> {
     let mut ids: BTreeSet<_> = [
         "pickaxe", "sledge_hammer", "vein_hammer", "mattock", "pickadze", "excavator",
         "hand_axe", "broad_axe", "kama", "scythe", "dagger", "sword", "cleaver",
         "crossbow", "longbow", "fishing_rod", "javelin", "arrow", "shuriken", "throwing_axe",
         "flint_and_brick", "sky_staff", "earth_staff", "ichor_staff", "ender_staff",
-        "melting_pan", "war_pick", "battlesign", "swasher",
+        "melting_pan", "war_pick", "battlesign", "swasher", "minotaur_axe",
         "travelers_shield", "plate_shield", "slime_wings",
     ].into_iter().map(|path| Identifier::new("tconstruct", path).unwrap()).collect();
     for family in ["travelers", "plate", "slime"] {
@@ -717,6 +822,27 @@ pub(crate) fn registered() -> BTreeSet<Identifier> {
         }
     }
     ids
+}
+
+/// The item carrying a definition: every tool item shares its definition's id but one - the
+/// original registers the slime chestplate item as `slimy_chestplate`, while its definition
+/// (built from family and slot, like the other armor definitions) is `slime_chestplate`.
+pub(crate) fn item_for_definition(definition: &Identifier) -> Identifier {
+    if definition.namespace() == "tconstruct" && definition.path() == "slime_chestplate" {
+        Identifier::new("tconstruct", "slimy_chestplate").expect("valid item")
+    } else { definition.clone() }
+}
+
+/// The definition a tool item carries: the inverse of `item_for_definition`.
+pub(crate) fn definition_id_for_item(item: &Identifier) -> Identifier {
+    if item.namespace() == "tconstruct" && item.path() == "slimy_chestplate" {
+        Identifier::new("tconstruct", "slime_chestplate").expect("valid definition")
+    } else { item.clone() }
+}
+
+/// The (item, definition) pairs the tool contexts key by item.
+pub(crate) fn item_pairs(definitions: &Definitions) -> Vec<(Identifier, &Data)> {
+    definitions.data.iter().map(|(id, data)| (item_for_definition(id), data)).collect()
 }
 
 static SERVER: OnceLock<Arc<RwLock<Definitions>>> = OnceLock::new();
@@ -1013,13 +1139,13 @@ mod tests {
         let no_tags = |_: &Identifier| false;
         let axe_only = |tag: &Identifier| tag.to_string() == "minecraft:mineable/axe";
         let axe_and_mattock = |tag: &Identifier| matches!(tag.to_string().as_str(), "minecraft:mineable/axe" | "tconstruct:mineable/mattock");
-        let cobweb_context = crate::mining_speed::Context { block: &cobweb, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
+        let cobweb_context = crate::mining_speed::Context { block: &cobweb, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default(), holder: None };
         assert_eq!(data.modify_mining_speed(&cobweb_context, 4.0), 30.0, "cobweb set matches");
-        let axe_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_only, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
+        let axe_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_only, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default(), holder: None };
         assert_eq!(data.modify_mining_speed(&axe_context, 4.0), 8.0, "axe tag and not mattock tag");
-        let both_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_and_mattock, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
+        let both_context = crate::mining_speed::Context { block: &log, block_in_tag: &axe_and_mattock, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default(), holder: None };
         assert_eq!(data.modify_mining_speed(&both_context, 4.0), 4.0, "the inverted tag excludes it");
-        let plain_context = crate::mining_speed::Context { block: &log, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default() };
+        let plain_context = crate::mining_speed::Context { block: &log, block_in_tag: &no_tags, original: 1.0, multiplier: 1.0, effective: true, on_ground: None, eyes_in_water: None, facts: crate::mining_speed::BlockFacts::default(), holder: None };
         assert_eq!(data.modify_mining_speed(&plain_context, 4.0), 4.0);
         for invalid in [
             json!({"type":"tconstruct:mining_speed_modifier","predicate_type":"mantle:set","blocks":["minecraft:cobweb"]}),
@@ -1166,5 +1292,32 @@ mod tests {
         ] { assert!(Data::decode(&json!({"modules":[
             {"type":"tconstruct:material_stats","stat_types":["tconstruct:head"]}, invalid,
         ]})).is_err(), "{invalid}"); }
+    }
+
+    #[test]
+    fn ancient_and_predicate_random_materials_pick_from_the_tagged_choices() {
+        let mut registry = fill_registry();
+        let head = Identifier::parse("tconstruct:head").unwrap();
+        let (wood, stone) = (Identifier::parse("test:wood").unwrap(), Identifier::parse("test:stone").unwrap());
+        // Ancient: any tier, hidden allowed, and not in the exclude tag. With no tag loaded both
+        // materials qualify and the lowest tier wins the first roll.
+        let ancient = json!({"type":"tconstruct:ancient"});
+        assert_eq!(pick_random_material(&ancient, &head, &registry, &mut || 0.0).unwrap().to_string(), "test:wood");
+        // Excluding wood leaves stone, the only ancient choice left.
+        registry.tags.insert(Identifier::parse("tconstruct:exclude_from_loot").unwrap(), vec![wood.clone()]);
+        assert_eq!(pick_random_material(&ancient, &head, &registry, &mut || 0.0).unwrap().to_string(), "test:stone");
+        // A tag predicate keeps only the tag's members; an inverted one keeps the rest.
+        registry.tags.insert(Identifier::parse("test:bartered").unwrap(), vec![stone.clone()]);
+        let tagged = json!({"type":"tconstruct:random","material":{"type":"mantle:tag","tag":"test:bartered"}});
+        assert_eq!(pick_random_material(&tagged, &head, &registry, &mut || 0.0).unwrap().to_string(), "test:stone");
+        let inverted = json!({"type":"tconstruct:random","material":{"type":"mantle:inverted","inverted_type":"mantle:tag","tag":"test:bartered"}});
+        assert_eq!(pick_random_material(&inverted, &head, &registry, &mut || 0.0).unwrap().to_string(), "test:wood");
+        // RandomMaterial.build: entries by position, first-with-stat beyond them.
+        let types = vec![(head.clone(), 1.0), (Identifier::parse("tconstruct:handle").unwrap(), 1.0)];
+        let built = build_random_materials(&types, &[ancient, json!({"type":"tconstruct:first"})], &registry, &mut || 0.0).unwrap();
+        assert_eq!(material_names(&built), vec!["test:stone", "test:wood"]);
+        // random_variant still rejects, as does a predicate of an unknown kind.
+        assert!(pick_random_material(&json!({"type":"tconstruct:random_variant"}), &head, &registry, &mut || 0.0).is_err());
+        assert!(pick_random_material(&json!({"type":"tconstruct:random","material":{"type":"mantle:all"}}), &head, &registry, &mut || 0.0).is_err());
     }
 }

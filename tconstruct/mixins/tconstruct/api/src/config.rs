@@ -5,8 +5,20 @@
 //! - The ten booleans in SETTINGS are the ConfigEnabledCondition props; conditions.rs evaluates
 //!   them from the parsed map exactly as the original's `tconstruct:config` conditions do
 //!   (`slime_recipe_fix` deliberately reads the glassRecipeFix value, as ConfigEnabledCondition
-//!   registers it). spawn_with_book's only other consumer is the starting-book advancement
-//!   (AdvancementsProvider), part of the advancements surface the port does not have.
+//!   registers it). Four props gate shipped data the port itself loads, so they are live:
+//!   cheaper_netherite_alloy (the netherite alloy recipe), wither_bone_drop (the wither bone
+//!   loot modifier), allow_ingotless_alloys (the ingotless alloy recipes) and
+//!   force_integration_materials (integration material definitions and fluid effects).
+//!   The other props' only original data users are files the host loads itself, whose
+//!   conditions cannot name a config value: gravel_to_flint, glass_recipe_fix and
+//!   slime_recipe_fix are recipe-level conditions on host crafting recipes, spawn_with_book
+//!   conditions the starting-book advancement, and slimy_loot_chests conditions the Mantle loot
+//!   injectors, which the port ships and evaluates at table load (loot_injectors.rs). The
+//!   converted content ships those recipes with the condition stripped and the advancement
+//!   unwrapped: the host's recipe/advancement condition vocabulary is the closed neoforge set
+//!   (an unknown type never loads) and PlutoLib has no seam into host data loading, so those
+//!   files load unconditionally here; the props stay parsed and evaluable for any data the port
+//!   itself loads.
 //! - repairKitAmount: RepairKitItem.getRepairAmount and CraftingTableRepairKitRecipe ->
 //!   station_menu.rs reads `repair_kit_amount()`.
 //! - The four ore rates (melter/smeltery/foundry/foundry byproduct): MelterBlockEntity,
@@ -24,17 +36,28 @@
 //!   FULL_STACK the whole stack) into the tool inventory's open packet. PlutoLib menus sync
 //!   their own state, so the port's tool inventory has no per-open payload to choose.
 //! - headDrops: WorldEvents.creeperKill drops a head when a charged creeper kills the matching
-//!   mob. The port has the head blocks (world_blocks.rs) but no entity-drop event consumer;
-//!   WorldEvents is not ported, so nothing reads these yet.
+//!   mob -> world_blocks.rs registers creeper_head_drop on the drops callback and reads
+//!   `head_drop()` per kill, after the native charged-creeper and spent-skull checks.
 //! - wandererAncientToolWeight: WorldEvents.wanderingTrades adds that many copies of the
-//!   ancient-tool listing to the wandering trader's rare trades. Trader trade registration
-//!   is not ported.
-//! - dropDragonScales: ToolEvents drops dragonScale items when a player-caused explosion
-//!   damages an ender dragon. The port's damage hooks do not report that event shape.
+//!   ancient-tool listing to the wandering trader's rare trades -> trader.rs registers the
+//!   listing with TradeOfferHelper at level 2; its provider reads
+//!   `wanderer_ancient_tool_weight()` per pool snapshot.
+//! - dropDragonScales: ToolEvents.livingDamage drops dragon scales at an ender dragon
+//!   hurt by a player-caused explosion for 2+ damage (the count scales with the damage
+//!   past the health clamp) -> dragon_scales.rs registers the damage callback and reads
+//!   `drop_dragon_scales()` per hit; PlutoLib's damage events now report whether the
+//!   causing entity is a player and the victim's health as the hit arrived, and the
+//!   drop is an EntityAction::DropItem the game spawns at the dragon.
 //! - allowMonsterMeleeModifiers: ToolEvents gates the MONSTER_MELEE_DAMAGE and
-//!   MONSTER_MELEE_HIT hooks on it. Those hooks are bound in modifier_modules.rs, but the
-//!   port's melee dispatch (melee_hook.rs) only reports player attacks, so nothing reads
-//!   the setting yet.
+//!   MONSTER_MELEE_HIT hooks on it -> monster_melee.rs registers the hurt and damage
+//!   dispatches and reads `allow_monster_melee_modifiers()` per hit; PlutoLib's damage
+//!   events now report a mob attacker's entity type (the DAMAGE_MODIFIER_BLACKLIST
+//!   check), its main-hand stack (the MELEE_WEAPON tool) and its chest stack (the
+//!   UNARMED check) from the game's attack snapshot, with its attack attribute and the
+//!   victim's health and attack attribute (the unarmed branch's base-damage quirk).
+//!   The dispatch covers attacks the game delivers synchronously (a mob's melee
+//!   swing); the melee capacity edits of a hit and a player victim's attack attribute
+//!   stay unreported, as monster_melee.rs records.
 //! - disableSideInventoryWhitelist: TabbedContainerMenu.isUsable lets table screens show
 //!   neighbouring inventories whose block entity type is in `tconstruct:side_inventories`
 //!   (or any, with this on). The port's station menus have no side-inventory tabs.
@@ -504,6 +527,25 @@ pub(crate) fn ore_rates() -> OreRates {
 /// or invalid config drops at the defaults, the same stance as `ore_rates`.
 pub(crate) fn head_drop(serialized_name: &str) -> bool {
     common().unwrap_or_default().head_drop(serialized_name).unwrap_or(false)
+}
+
+/// How many copies of the ancient-tool listing WorldEvents.wanderingTrades adds to the
+/// wandering trader's rare pool; an unloaded or invalid config trades at the default,
+/// the same stance as `ore_rates`.
+pub(crate) fn wanderer_ancient_tool_weight() -> i32 {
+    common().unwrap_or_default().wanderer_ancient_tool_weight
+}
+
+/// Whether ToolEvents.livingDamage drops dragon scales at a player-exploded ender dragon;
+/// an unloaded or invalid config drops at the default, the same stance as `ore_rates`.
+pub(crate) fn drop_dragon_scales() -> bool {
+    common().unwrap_or_default().drop_dragon_scales
+}
+
+/// Whether ToolEvents runs the monster melee hooks for a mob wielding a Tinkers tool;
+/// an unloaded or invalid config runs them at the default, the same stance as `ore_rates`.
+pub(crate) fn allow_monster_melee_modifiers() -> bool {
+    common().unwrap_or_default().allow_monster_melee_modifiers
 }
 
 fn section_mut<'m>(root: &'m mut toml::map::Map<String, toml::Value>, path: &[&str]) -> &'m mut toml::map::Map<String, toml::Value> {

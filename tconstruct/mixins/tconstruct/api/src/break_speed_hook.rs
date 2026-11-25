@@ -11,7 +11,7 @@ pub(crate) fn with_held_tool<R>(held: &pluto_lib::StackData, run: impl FnOnce(&t
     let materials = common::register().read().map_err(|_| "materials locked")?;
     let modifiers = common::server_modifiers().ok_or("modifier registry missing")?.read().map_err(|_| "modifiers locked")?;
     if !materials.server_loaded || !modifiers.definitions_loaded || definitions.data.is_empty() { return Err("registries not loaded"); }
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let item_tags = common::item_snapshot();
     let ctx = Tools { materials: &materials, modifiers: &modifiers, item_tags_loaded: item_tags.is_some(), item_tags: item_tags.as_deref(), tools: &tools, item_max: &item_max };
@@ -33,13 +33,31 @@ fn compute(dig: &BreakSpeedContext) -> Result<(f32, bool, f32, usize), &'static 
         // What vanilla applied on top of the tool's own rule speed: haste, fatigue, water and air.
         let rule_speed = if effective { tool_stack::stat(&stack.custom_data, crate::tool_stats::Stat::MiningSpeed).max(1.0) } else { 1.0 };
         let multiplier = if rule_speed > 0.0 { dig.original / rule_speed } else { 1.0 };
+        // The holder the formula's entity variables read: the digging player as reported, with the
+        // enchantments of the tool they dig with for `mantle:has_enchantment`.
+        let holder = dig.player.as_ref().map(|player| {
+            let mut state = pluto_lib::EntityState { on_ground: player.on_ground, eyes_in_water: player.eyes_in_water, rain_exposed: player.rain_exposed, ..Default::default() };
+            state.effects = player.effect_levels.iter().map(|(id, _)| id.clone()).collect();
+            state.effect_levels = player.effect_levels.clone();
+            state.enchantments = tool_stack::carried_enchantments(&stack.custom_data, env).into_keys().collect();
+            state
+        });
         let context = Context {
             block: &dig.block.block, block_in_tag: &block_in_tag, original: dig.original, multiplier, effective,
-            on_ground: dig.player.map(|player| player.on_ground), eyes_in_water: dig.player.map(|player| player.eyes_in_water),
-            facts: crate::mining_speed::BlockFacts { block_light: dig.block_light, sky_light: dig.sky_light, sky_darken: dig.sky_darken, biome_temperature: dig.biome_temperature },
+            on_ground: dig.player.as_ref().map(|player| player.on_ground), eyes_in_water: dig.player.as_ref().map(|player| player.eyes_in_water),
+            facts: crate::mining_speed::BlockFacts { block_light: dig.block_light, sky_light: dig.sky_light, sky_darken: dig.sky_darken, biome_temperature: dig.biome_temperature, blast_resistance: dig.blast_resistance, requires_tool: dig.requires_tool, pos_y: dig.pos[1], build_height: dig.build_height },
+            holder,
         };
         let modifier_count = tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).len();
-        (tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get()), effective, multiplier, modifier_count)
+        let speed = tool_stack::break_speed(&stack.custom_data, env, &context, dig.speed.get());
+        // ToolEvents.onBreakSpeed: the speed is scaled by the player's mining speed multiplier,
+        // from the digging tool's own attribute modules and the player's effects. The worn
+        // armor's share of the attribute reaches it through the player tick, which this event
+        // does not report, so it is not in this scaling.
+        let effects: Vec<(String, i32)> = dig.player.as_ref().map(|player| player.effect_levels.iter().map(|(id, amplifier)| (id.clone(), amplifier + 1)).collect()).unwrap_or_default();
+        let mining_multiplier = crate::custom_attributes::stack_value(&stack.custom_data, env, "mainhand", &effects, crate::custom_attributes::MINING_SPEED_MULTIPLIER);
+        let speed = if mining_multiplier != 1.0 { speed * mining_multiplier as f32 } else { speed };
+        (speed, effective, multiplier, modifier_count)
     })
 }
 

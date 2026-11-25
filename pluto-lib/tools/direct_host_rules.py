@@ -15,7 +15,23 @@ RULES = [
             return Ok(());
         }
         let size = self.slots.len() as i32;
-        let in_range = |i: i32| (0..size).contains(&i);''')],
+        let in_range = |i: i32| (0..size).contains(&i);'''),
+            # The carried stack's stacked-on-other override is asked before
+            # the bundle handling inside a pickup, as the game asks the
+            # carried item first; a consumed click skips both.
+            ('''        if !self.bundle_click(env, s, primary) {''', '''        if !pluto_menu_actions::stacked_on_other(self, env, s, primary) && !self.bundle_click(env, s, primary) {'''),
+            # The rich menu sounds ride beside the menu's own sounds: a queue
+            # that carries volume and pitch, which `player_sounds` cannot.
+            ('''    /// Sounds the player makes (a bundle's insert and remove), for the
+    /// caller to play at the player as `Entity.playSound`.
+    pub player_sounds: Vec<&'static str>,''', '''    /// Sounds the player makes (a bundle's insert and remove), for the
+    /// caller to play at the player as `Entity.playSound`.
+    pub player_sounds: Vec<&'static str>,
+    /// PlutoLib's rich menu sounds: a sound event with its own volume
+    /// and pitch, for the caller to play at the player with them.
+    pub rich_player_sounds: Vec<pluto_menu_actions::RichSound>,'''),
+            ('''            player_sounds: Vec::new(),''', '''            player_sounds: Vec::new(),
+            rich_player_sounds: Vec::new(),''')],
     },
     {
         'id': 'pluto-menu-actions-local',
@@ -40,8 +56,15 @@ RULES = [
         });
         let env = Env {
             items: self.items(),'''),
+            # The click session's random draw is taken before `maps` borrows
+            # the game through the structure-tag closure: at the scope call
+            # below the game is still borrowed, so the draw cannot happen
+            # there. Nothing else in the session draws from this stream
+            # before the call, so the stream order is unchanged.
+            ('''        let tag = |t: &str| self.structure_tag(t);''', '''        let pluto_click_random = self.world.random.next_float();
+        let tag = |t: &str| self.structure_tag(t);'''),
             ('''        let outcome = run(&mut menu, &env, &to_menu);''', '''        let (outcome, pluto_context) = horizon_client::menu::pluto_menu_actions::scope(
-            pluto_context, || run(&mut menu, &env, &to_menu));'''),
+            pluto_context, pluto_click_random, || run(&mut menu, &env, &to_menu));'''),
             ('''        self.carried = carried;
         if !offhand_mapped {''', '''        self.carried = carried;
         if let Some(context) = pluto_context {
@@ -53,6 +76,26 @@ RULES = [
             if changed && context.authoritative { self.container_changed((x, y, z)); }
         }
         if !offhand_mapped {'''),
+            ('''        // A bundle's sounds are the player's own (`Entity.playSound`): the
+        // client plays them as it clicks, predicting or not.
+        for sound in std::mem::take(&mut menu.player_sounds) {
+            self.player_menu_sound(sound);
+        }''', '''        // A bundle's sounds are the player's own (`Entity.playSound`): the
+        // client plays them as it clicks, predicting or not.
+        for sound in std::mem::take(&mut menu.player_sounds) {
+            self.player_menu_sound(sound);
+        }
+        // PlutoLib's rich menu sounds carry the caller's own volume and
+        // pitch (the original's `Player.playSound` arguments): play each
+        // at the player with them, and route it through the guest sound
+        // queue so a hosted game broadcasts it with them.
+        for sound in std::mem::take(&mut menu.rich_player_sounds) {
+            if let Some(p) = self.player.as_ref() {
+                let at = [p.position.x, p.position.y, p.position.z];
+                self.audio.play(sound.id, Some(at), sound.volume, sound.pitch);
+                self.guest_player_sounds.push((sound.id.to_owned(), at, sound.volume, sound.pitch));
+            }
+        }'''),
         ],
     },
     {
@@ -62,6 +105,12 @@ RULES = [
         'target': "horizon_client::game::lan_crafting::Game<'_>::lan_machine_click",
         'kind': 'OVERWRITE', 'helper': 'pluto-menu-actions.rs', 'append_helper': False,
         'edits': [
+            # The click's random draw is taken before guest_menu_op is
+            # entered: inside its closure the draw needs &mut self while the
+            # call itself borrows *self mutably (E0500/E0501, CI round 6).
+            # The op closure is FnOnce in the host (lan_crafting.rs) and
+            # guest_menu_op's pre-op path (maps / menu_env / load_player)
+            # never draws from this stream, so the stream order is unchanged.
             ('''        let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
             if matches!(kind, Kind::Mod(_)) {''', '''        let mut pluto_context = match self.world.block_entities.get(&pos) {
             Some(BlockEntity::Mod(entity)) => Some(horizon_client::menu::pluto_menu_actions::Context {
@@ -72,8 +121,9 @@ RULES = [
             }),
             _ => None,
         };
+        let pluto_click_random = horizon_core::random::RandomSource::next_float(&mut self.world.random);
         let mut changed = self.guest_menu_op(host, gi, &mut menu, |menu, env| {
-            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), || {
+            let (changed, context) = horizon_client::menu::pluto_menu_actions::scope(pluto_context.take(), pluto_click_random, || {
             if matches!(kind, Kind::Mod(_)) {'''),
             ('''                .collect::<Vec<_>>()
         });
@@ -269,6 +319,15 @@ RULES = [
         'target': "horizon_client::game::machines::native_items::Game<'_>::native_container_slots",
         'kind': 'HEAD', 'helper': 'pluto-container-reach.rs',
         # Appends one wrapper that returns the crate-private slot type as plain values; no existing line changes.
+        'edits': [],
+    },
+    {
+        'id': 'pluto-item-menu-open',
+        'file': 'crates/horizon-client/src/game/native_menus.rs',
+        'sha256': 'e85cf29cb3ca1d7a2d1e1a28374c67738f71e4ca74208eef30e1ab1148958857',
+        'target': "horizon_client::game::native_menus::Game<'_>::native_open_item_menu",
+        'kind': 'HEAD', 'helper': 'pluto-item-menu-open.rs',
+        # Appends one wrapper that opens a native-slots menu for a player's item; no existing line changes.
         'edits': [],
     },
 ]

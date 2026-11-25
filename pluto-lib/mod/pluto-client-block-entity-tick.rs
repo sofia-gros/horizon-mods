@@ -45,6 +45,34 @@ pub(super) fn observe(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32
     targets
 }
 
+/// Copy every loaded Mod block entity's `texture` record into the retexture
+/// mesh cache, so the mesher can draw a retextured block with its texture.
+/// Only block entities that name a texture write; the rest clear any stale
+/// entry for their position (a block placed without a texture, or one whose
+/// texture was removed). Runs on the client tick pass, so the cache is fresh
+/// whenever the world runs; a paused world cannot change. The mesh seam
+/// re-checks the current block against the pure table on every face, so this
+/// feed needs no block check of its own: the `texture` key is only ever
+/// written by the retextured placement hook and loot function.
+fn refresh_retextures(game: &Game<'_>) {
+    for (pos, entity) in &game.world.block_entities {
+        let horizon_client::containers::BlockEntity::Mod(entity) = entity else { continue };
+        let texture = entity.nbt.iter().find_map(|(key, tag)| {
+            if key.to_string_lossy() != "texture" {
+                return None;
+            }
+            match tag {
+                horizon_world::nbt::Tag::String(value) => Some(value.to_string_lossy()),
+                _ => None,
+            }
+        });
+        horizon_client::mesher::pluto_retexture::refresh(
+            [pos.0, pos.1, pos.2],
+            texture.as_deref(),
+        );
+    }
+}
+
 /// Called only at the existing block-entity tick pass, not a frame callback.
 /// An owned lease releases all entity/world borrows before native signal queries.
 /// The callback only receives read-only saved data and its own transient copy.
@@ -55,6 +83,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
     let client = game.remote.is_some();
     let has_level = game.remote.as_ref().is_some_and(|remote| remote.has_level());
     if !client_tick_enabled(client, has_level, game.pause, game.title.is_some(), game.clock.world_runs()) { return; }
+    refresh_retextures(game);
     let Some(sink) = client_tick_sink() else { return };
     for pos in observe(game, sink.has) {
         let prepared = (|| {
@@ -87,6 +116,7 @@ fn reset_world(world: &horizon_client::world::World) {
 /// Source helpers distinguish retained same-level respawns from actual level
 /// replacement/disconnect/reconfiguration. Native validation remains pending.
 pub(super) fn reset_client_level(game: &Game<'_>) {
+    horizon_client::mesher::pluto_retexture::clear();
     reset_world(&game.world);
     for world in game.levels.parked_worlds() { reset_world(world); }
 }

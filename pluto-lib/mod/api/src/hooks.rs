@@ -5,17 +5,20 @@
 
 use horizon_client::mod_api::{
     AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
-    AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
-    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, LootFunctionEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
+    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenCharTypedPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
-    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent,
+    InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent, PlayerDestroyItemEvent,
     IngredientEvent, IngredientTestEvent,
+    ComputeFovModifierEvent, BlockExpEvent, LevelHost, LevelDimension,
+    WorldPrimitivesEvent,
 };
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
+use crate::pure::living_fall_v1::{self, LivingFall};
 #[cfg(feature = "native-inventory-glue")]
 use crate::pure::advancement_api_v1;
 use crate::pure::recipe_api_v1;
@@ -26,6 +29,10 @@ use crate::pure::base::{Identifier, Nbt, NbtCompound};
 use crate::pure::block_entity_api_v1::{self, FluidStack, ItemSlot};
 use crate::pure::neighbour_api_v1::{self, NeighbourOps, NeighbourSlot, NeighbourTank};
 use crate::pure::entity_api_v1::{self, EntityOps};
+use crate::pure::dispense_api_v1::{self, DispenseBehavior};
+use crate::pure::fishing_api_v1::{self, Fishing, Grapple};
+use crate::pure::fov_api_v1::{self, FovSlot, FovStack};
+use crate::pure::highlight_api_v1;
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
 use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
@@ -33,11 +40,12 @@ use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
 use crate::pure::book_api_v1::{self, BookOps, BookView};
+use crate::pure::projectile_api_v1;
 use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
-use crate::pure::{events_interaction_v0, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
+use crate::pure::{events_interaction_v0, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 struct StructureQueries<'a>(&'a mut dyn horizon_client::entry::pluto_block::structures::PlanningWorld);
 impl crate::pure::worldgen_api_v1::StructureWorld for StructureQueries<'_> {
@@ -74,6 +82,7 @@ impl horizon_client::entry::pluto_block::structures::PieceCallbacks for ApiStruc
 /// PlutoLib's entry point: the launcher calls it before the hooks of every mod that depends on PlutoLib.
 pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::menu::pluto_menu_actions::set_handler(staged_menu_click);
+    horizon_client::menu::pluto_menu_actions::set_stacked_handler(staged_stacked_on_other);
     horizon_client::menu::pluto_menu_actions::set_pick_all_exclusion(|menu, slot| {
         block_entity_api_v1::block_of_menu(menu)
             .is_some_and(|block| screen_handler_api_v1::excluded_from_pick_all(&block, slot))
@@ -82,10 +91,41 @@ pub fn hooks() -> Box<dyn Hooks> {
         code: horizon_client::lang::code,
         get: |key| horizon_client::lang::has(key).then(|| horizon_client::lang::get(key)),
     });
+    crate::pure::potion_api_v1::set_host(crate::pure::potion_api_v1::HostPotions {
+        effects: |id| {
+            let facts = horizon_client::pluto_potions::potion(id)?;
+            Some(
+                facts
+                    .effects
+                    .iter()
+                    .map(|(raw, duration, amplifier)| {
+                        let effect = horizon_client::pluto_potions::effect(raw);
+                        let canonical = effect.map_or(*raw, |effect| effect.canonical_id);
+                        let instant = effect.is_some_and(|effect| effect.instant);
+                        (canonical.to_string(), *duration, *amplifier, instant)
+                    })
+                    .collect(),
+            )
+        },
+    });
     horizon_client::mesher::pluto_block_colors::set_provider(
         crate::pure::color_provider_api_v1::has_block_provider,
         crate::pure::color_provider_api_v1::block_color_from_host,
     );
+    horizon_client::mesher::pluto_retexture::set_matcher(
+        crate::pure::retexture_api_v1::is_retextured_face,
+    );
+    horizon_client::item_render::pluto_retexture_item::set_provider(
+        |components| {
+            let value = components.get("minecraft:custom_data")?;
+            match horizon_client::scoreboard::json_to_tag(value) {
+                Tag::Compound(data) => crate::pure::retexture_api_v1::texture_of(&compound_from_tag(&data)),
+                _ => None,
+            }
+        },
+        crate::pure::retexture_api_v1::is_retextured_face,
+    )
+    .expect("PlutoLib retexture item provider installs once");
     horizon_client::item_render::pluto_item_colors::set_provider(
         crate::pure::color_provider_api_v1::has_item_provider,
         |item,count,components,tint_index| {
@@ -143,6 +183,65 @@ pub fn hooks() -> Box<dyn Hooks> {
         },
     ).expect("PlutoLib living drop provider installs once");
     horizon_client::game::pluto_server_stopped::set_dispatcher(lifecycle_events_v1::server_stopped);
+    horizon_client::entry::pluto_projectile_flight_access::set_sink(horizon_client::entry::pluto_projectile_flight_access::Sink {
+        has_spawn: projectile_events_v1::spawn_heard,
+        has_flight: projectile_events_v1::flight_heard,
+        spawn: |facts| {
+            let spawn = projectile_events_v1::ProjectileSpawned {
+                dimension: facts.dimension.clone(), projectile: facts.projectile, kind: facts.kind.clone(), owner: facts.owner,
+                position: facts.position, motion: facts.motion,
+                arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
+                stack: facts.stack.as_ref().map(read_stack),
+                data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
+                motion_after: std::cell::RefCell::new(None), pierce: std::cell::Cell::new(None), pickup: std::cell::Cell::new(None), no_gravity: std::cell::Cell::new(None), pickup_stack: std::cell::RefCell::new(None),
+            };
+            projectile_events_v1::spawned(&spawn);
+            horizon_client::entry::pluto_projectile_flight_access::SpawnOutcome {
+                motion: spawn.motion_after.borrow_mut().take(),
+                pierce: spawn.pierce.get(),
+                pickup: spawn.pickup.get().map(|pickup| pickup as u8),
+                no_gravity: spawn.no_gravity.get(),
+                pickup_stack: spawn.pickup_stack.borrow_mut().take().map(|data| { let mut stack = ItemStack::new(&data.item, data.count); write_stack(&mut stack, &data); stack }),
+            }
+        },
+        flight: |facts| {
+            let flight = projectile_events_v1::ProjectileFlight {
+                dimension: facts.dimension.clone(), projectile: facts.projectile, kind: facts.kind.clone(), owner: facts.owner,
+                owner_position: facts.owner_position, age: facts.age, position: facts.position, motion: facts.motion,
+                in_ground: facts.in_ground, no_gravity: facts.no_gravity,
+                arrow: facts.arrow.map(|a| projectile_events_v1::ArrowFacts { pierce: a.pierce, in_ground: a.in_ground, in_ground_time: a.in_ground_time, dealt_damage: a.dealt_damage }),
+                data: facts.stack.as_ref().map(|stack| read_stack(stack).custom_data).unwrap_or_default(),
+                motion_after: std::cell::RefCell::new(None), discard: std::cell::Cell::new(false), no_gravity_after: std::cell::Cell::new(None), pickup_after: std::cell::Cell::new(None),
+                release_from_ground: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
+            };
+            projectile_events_v1::flight(&flight);
+            horizon_client::entry::pluto_projectile_flight_access::FlightOutcome {
+                motion: flight.motion_after.borrow_mut().take(),
+                discard: flight.discard.get(),
+                no_gravity: flight.no_gravity_after.get(),
+                pickup: flight.pickup_after.get().map(|pickup| pickup as u8),
+                release_from_ground: flight.release_from_ground.get(),
+                actions: flight.actions.borrow_mut().drain(..).map(|action| match action {
+                    projectile_events_v1::FlightAction::Explode { center, radius, fire, interaction } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Explode {
+                        center, radius, fire, blast: match interaction { world_api_v1::ExplosionInteraction::Keep => 0, world_api_v1::ExplosionInteraction::Block => 1, world_api_v1::ExplosionInteraction::Tnt => 2 },
+                    },
+                    projectile_events_v1::FlightAction::Particle { name, position, count, spread, speed } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::Particle { name, position, count, spread, speed },
+                    projectile_events_v1::FlightAction::PushEntity { entity, delta } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PushEntity { entity, delta },
+                    projectile_events_v1::FlightAction::PullItems { center, radius, strength } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PullItems { center, radius, strength },
+                    projectile_events_v1::FlightAction::PullEntities { center, radius, strength } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::PullEntities { center, radius, strength },
+                    projectile_events_v1::FlightAction::DropStack { stack, position } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::DropStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item }, position },
+                    projectile_events_v1::FlightAction::GiveStack { stack } => horizon_client::entry::pluto_projectile_flight_access::FlightAction::GiveStack { stack: { let mut item = ItemStack::new(&stack.item, stack.count); write_stack(&mut item, &stack); item } },
+                }).collect(),
+            }
+        },
+    }).expect("PlutoLib projectile flight sink installs once");
+    horizon_client::entry::pluto_break_complete_access::set_break_complete_sink(
+        horizon_client::entry::pluto_break_complete_access::BreakCompleteSink { completed: break_complete_sink },
+    )
+    .expect("PlutoLib break completion sink installs once");
+    horizon_client::entry::pluto_throw_sound_access::set_sink(horizon_client::entry::pluto_throw_sound_access::Sink {
+        throw_sound: projectile_api_v1::throw_sound_for,
+    }).expect("PlutoLib throw sound sink installs once");
     horizon_client::entry::pluto_block_entity_access::set_predicate(block_entity_api_v1::registered_type)
         .expect("PlutoLib block entity predicate installs once before native initialization");
     horizon_client::entry::pluto_block_entity_access::set_cache_generation_provider(crate::pure::render_cache::generation)
@@ -176,12 +275,45 @@ pub fn hooks() -> Box<dyn Hooks> {
                 horizon_client::entry::pluto_living_load_access::AttributeBase {attribute:base.attribute.to_string(),value:base.value}).collect())
         })
     }}).expect("PlutoLib living load provider installs once");
+    horizon_client::game::pluto_block_exp_access::set_provider(horizon_client::game::pluto_block_exp_access::Provider {
+        adjust: |host, pos, value| {
+            if !events_interaction_v0::block_experience_heard() { return value; }
+            let acting = host.acting_player();
+            let dimension = acting.as_ref().map(|player| player.dimension.clone()).unwrap_or_default();
+            // A break the game named a breaker for (every player's, a guest's included) leaves
+            // its breaker here; the acting player is the fallback when no note names one, and
+            // taking the note first keeps the removal path from bonusing the same break again.
+            let noted = events_interaction_v0::take_block_breaker(&dimension, pos);
+            let (player, player_entity, held) = match &noted {
+                Some(breaker) => (
+                    Some(player_api::ServerPlayer { uuid: breaker.uuid, name: breaker.name.clone() }),
+                    breaker.entity,
+                    host.held_stack(breaker.uuid).map(|stack| read_stack(&stack)),
+                ),
+                None => (
+                    acting.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+                    acting.as_ref().map(|player| player.entity_id).unwrap_or(0),
+                    acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack)),
+                ),
+            };
+            let context = events_interaction_v0::BlockExperienceContext {
+                pos, dimension, player, player_entity, held,
+                experience: std::cell::Cell::new(value),
+            };
+            scoped(host, || events_interaction_v0::block_experience(&context))
+        },
+    }).expect("PlutoLib block experience provider installs once");
     horizon_client::entry::pluto_player_hurt_access::set_sink(horizon_client::entry::pluto_player_hurt_access::Sink {
         hurt: |hurt| {
             let hit = entity_events_v1::WearerHit {
                 attacker: hurt.attacker, kind: hurt.attacker_kind.clone(), damage_type: hurt.damage_type.clone(), amount: hurt.amount,
+                // The damage event that follows resolves the type, the amount and the direct entity; until then they stand empty, 0 and -1.
+                direct: -1,
+                attacker_position: Some(hurt.position),
                 attacker_state: entity_events_v1::EntityState {
                     kind: hurt.attacker_kind.clone(), sprinting: false, on_ground: hurt.on_ground, in_water: hurt.in_water,
+                    eyes_in_water: hurt.eyes_in_water,
+                    rain_exposed: hurt.rain_exposed,
                     fire_ticks: hurt.fire_ticks, fire_immune: hurt.fire_immune, effects: hurt.effects.clone(),
                     ..entity_events_v1::EntityState::default()
                 },
@@ -190,9 +322,29 @@ pub fn hooks() -> Box<dyn Hooks> {
             // The damage event that follows carries the attacker's state, for the protection that conditions on it.
             let wearer = entity_events_v1::only_wearer_entity();
             if let Some(wearer) = wearer { entity_events_v1::hit_states(wearer, Some(hit.attacker_state.clone()), None); }
-            entity_events_v1::wearer_hit(&hit, wearer).into_iter().map(|grant| (grant.effect, grant.duration, grant.amplifier)).collect()
+            // The hit itself is only noted here: the damage event that follows resolves its damage type (the hurt report names neither
+            // the type nor the amount yet) and hears it then, in `living_incoming_damage`, so the callbacks see the real source.
+            entity_events_v1::note_wearer_hit(wearer, hit);
+            Vec::new()
         },
     }).expect("PlutoLib player hurt sink installs once");
+    horizon_client::entry::pluto_damage_facts_access::set_sink(horizon_client::entry::pluto_damage_facts_access::Sink {
+        attacker: |facts| {
+            let state = entity_events_v1::EntityState {
+                kind: facts.kind.clone(), sprinting: false, on_ground: facts.on_ground, in_water: facts.in_water,
+                fire_ticks: facts.fire_ticks, fire_immune: facts.fire_immune, effects: facts.effects.clone(),
+                ..entity_events_v1::EntityState::default()
+            };
+            entity_events_v1::note_attacker_facts(facts.attacker, entity_events_v1::AttackerFacts {
+                kind: facts.kind.clone(), main_hand: facts.main_hand.as_ref().map(read_stack), off_hand: facts.off_hand.as_ref().map(read_stack), chest: facts.chest.as_ref().map(read_stack),
+                attack_damage: facts.attack_damage, state,
+            });
+        },
+        victim: |facts| entity_events_v1::note_victim_facts(facts.entity, entity_events_v1::VictimFacts { health: facts.health, attack_damage: facts.attack_damage }),
+    }).expect("PlutoLib damage facts sink installs once");
+    horizon_client::entry::pluto_sky_access::set_sink(horizon_client::entry::pluto_sky_access::Sink {
+        frame: sky_frame,
+    }).expect("PlutoLib sky sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -221,6 +373,24 @@ pub fn hooks() -> Box<dyn Hooks> {
             let entity_type=Identifier::parse(kind).ok()?;
             crate::pure::living_entity_behavior::LivingEntityBehaviors::attack_damage(
                 &crate::pure::living_entity_behavior::AttackDamageContext {entity,entity_type,attribute})
+        },
+        has_cause_fall:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_cause_fall,
+        cause_fall:|entity,kind,distance,multiplier,velocity,suppressing_bounce| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::cause_fall_damage(
+                &crate::pure::living_entity_behavior::CauseFallDamageContext {entity,entity_type,distance,multiplier,velocity,suppressing_bounce})
+                .map(|outcome|match outcome {
+                    crate::pure::living_entity_behavior::FallOutcome::Cancel=>
+                        horizon_client::mobs::pluto_living_entity_access::FallOutcome::Cancel,
+                    crate::pure::living_entity_behavior::FallOutcome::Bounce {velocity,sound}=>
+                        horizon_client::mobs::pluto_living_entity_access::FallOutcome::Bounce {velocity,sound:sound.map(|s|intern_sound(&s.to_string()))},
+                })
+        },
+        has_drop_chance:crate::pure::living_entity_behavior::LivingEntityBehaviors::has_drop_chance,
+        drop_chance:|kind,slot,slime_size,chance,looting| {
+            let entity_type=Identifier::parse(kind).ok()?;
+            crate::pure::living_entity_behavior::LivingEntityBehaviors::equipment_drop_chance(
+                &crate::pure::living_entity_behavior::EquipmentDropChanceContext {entity_type,slot:slot.to_string(),slime_size,chance,looting})
         },
     }).expect("PlutoLib living query sink installs once");
     horizon_client::entry::pluto_block::set_skull_definition_provider(|| {
@@ -274,15 +444,74 @@ pub fn hooks() -> Box<dyn Hooks> {
             item: item.to_owned(), action: action.to_owned(), custom_data: nbt_from_json(data),
         })
     }).expect("PlutoLib item tool action dispatcher installs once");
+    horizon_client::entry::pluto_block::set_indestructible_dispatcher(|item, data| {
+        item_api_v1::indestructible(&item_api_v1::IndestructibleContext {
+            item: item.to_owned(), custom_data: nbt_from_json(data),
+        })
+    }).expect("PlutoLib item indestructible dispatcher installs once");
     horizon_client::entry::pluto_block::set_schedule_drain(|dimension, edit| {
         world_api_v1::apply_pending_block_ticks(dimension, |pos, block, delay| edit.schedule_tick(pos, block, delay));
         // The extra blocks a break's callbacks asked for go through the game's own destroy path, drops and all.
         events_interaction_v0::apply_pending_extra_breaks(dimension, |pos| edit.break_block(pos, true) == Some(true));
+        // The block actions a use callback queued (a harvest's breaks, re-dispatched uses and the
+        // writes that must land after them), in the order they were asked for.
+        world_api_v1::apply_pending_block_actions(dimension, |action| match action {
+            world_api_v1::PendingBlockAction::Break { pos, drop } => edit.break_block(*pos, *drop) == Some(true),
+            world_api_v1::PendingBlockAction::Use { pos, face, hit, item } => {
+                let face = match *face { [0, -1, 0] => 0, [0, 0, -1] => 2, [0, 0, 1] => 3, [-1, 0, 0] => 4, [1, 0, 0] => 5, _ => 1 };
+                edit.use_block(*pos, face, *hit, item.as_deref()).is_some()
+            }
+            world_api_v1::PendingBlockAction::SetState { pos, state } => match BlockState::parse(state) {
+                Ok(parsed) => edit.set_state(*pos, &to_info(&parsed), 3),
+                Err(_) => false,
+            },
+        });
     });
     horizon_client::entry::pluto_entity_spawn_access::set_provider(
         horizon_client::entry::pluto_entity_spawn_access::Provider {
             enabled:crate::pure::entity_spawn_api::has_callbacks,prepare:native_spawn_prepare,
         }).expect("PlutoLib mob spawn dispatcher installs once");
+    horizon_client::entry::pluto_entity_spawn_access::set_attachment_writer(|host,entity,dimension,attachment,json,synced| {
+        let Some(kind)=json_attachment(attachment,synced) else { return false };
+        host.dimension()==dimension && kind.set(host,Holder::Entity(entity),json.to_owned()).is_ok()
+    }).expect("PlutoLib spawn attachment writer installs once");
+    horizon_client::entry::pluto_mob_split::set_provider(
+        horizon_client::entry::pluto_mob_split::Provider {
+            active:crate::pure::mob_split_api::MobSplitCallbacks::has_callbacks,
+            prepare:native_split_prepare,inherit:native_split_inherit,
+        }).expect("PlutoLib mob split dispatcher installs once");
+    horizon_client::entry::pluto_spawn_placement::set_provider(
+        horizon_client::entry::pluto_spawn_placement::Provider {
+            active:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_registrations,
+            evaluate:native_spawn_placement,
+            active_or:crate::pure::spawn_placement_api::SpawnPlacementRegistry::has_or_registrations,
+            evaluate_or:native_spawn_placement_or,
+            or_types:native_spawn_placement_or_types,
+        }).expect("PlutoLib spawn placement dispatcher installs once");
+    horizon_client::pluto_hanging_access::set_provider(
+        horizon_client::pluto_hanging_access::Provider {
+            frame_for_item:native_hanging_frame_for_item,
+            frame_for_variant:native_hanging_frame_for_variant,
+            stand_for_item:native_hanging_stand_for_item,
+            stand_for_variant:native_hanging_stand_for_variant,
+            frame_rotation:native_hanging_frame_rotation,
+            frame_analog:native_hanging_frame_analog,
+            frame_tick:native_hanging_frame_tick,
+            stand_hidden:native_hanging_stand_hidden,
+        }).expect("PlutoLib hanging variant provider installs once");
+    horizon_client::entry::pluto_fishing_access::set_provider(
+        horizon_client::entry::pluto_fishing_access::Provider {
+            take_use:native_fishing_take_use,
+            note_wear:Fishing::note_wear,
+            is_rod:fishing_api_v1::FishingRegistry::is_rod,
+        });
+    horizon_client::entry::pluto_sleeves_takeover_access::set_provider(
+        horizon_client::entry::pluto_sleeves_takeover_access::Provider { post_use: native_post_use });
+    horizon_client::entry::pluto_map_tick_access::set_provider(
+        horizon_client::entry::pluto_map_tick_access::Provider {
+            enabled:crate::pure::map_api_v1::map_tick_heard,
+            map_tick:native_map_tick,
+        });
     horizon_client::merchant::pluto_trade_access::set_provider(native_trade_factories)
         .expect("PlutoLib trade factory provider installs once");
     let blocks = block_sink();
@@ -324,14 +553,28 @@ pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::entry::pluto_block::set_feature_dispatcher(|world, kind, configuration, origin| {
         use crate::pure::worldgen_api_v1::{FeatureContext, FeatureTypeRegistry};
         let id = Identifier::parse(kind).ok()?;
-        match FeatureTypeRegistry::generate(&id, configuration, &mut FeatureContext { world: &mut GameEditor(world), origin }) {
-            Ok(result) => result,
+        let generated = FeatureTypeRegistry::generate(&id, configuration, &mut FeatureContext { world: &mut GameEditor(&mut *world), origin });
+        match generated {
+            Ok(Some(result)) => Some(result),
+            Ok(None) if kind == "minecraft:tree" => routed_tree(world, configuration, origin),
+            Ok(None) => None,
             Err(error) => {
                 eprintln!("pluto_lib: feature type {id} rejected configuration: {error}");
                 Some(false)
             }
         }
     });
+    recipe_api_v1::set_cooking_lookup(|kind, item| {
+        horizon_client::entry::pluto_cooking_recipes::cook(kind, item).map(|facts| recipe_api_v1::CookingRecipe {
+            result: facts.result, result_count: facts.result_count, experience: facts.experience, time: facts.time,
+        })
+    });
+    world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
+    world_api_v1::set_placement_facts_lookup(|block| horizon_client::entry::pluto_block_facts::placement_for(block).map(|facts| world_api_v1::PlacementFacts {
+        classes: facts.classes.iter().map(|class| class.to_string()).collect(),
+        full_collision: facts.full_collision,
+        solid_render: facts.solid_render,
+    }));
     horizon_client::creative::pluto_creative::set_document(crate::pure::item_group_api_v1::document);
     item_api_v1::set_register_sink(|item, behavior| {
         horizon_client::entry::pluto_item_use::set(
@@ -343,6 +586,10 @@ pub fn hooks() -> Box<dyn Hooks> {
             },
         );
     });
+    // A menu's equipment reaches the host's menu builder through the same sink shape as the
+    // item uses above: the consumer registers it against the pure screen API, and the host's
+    // own equipment registry takes it from here.
+    screen_handler_api_v1::set_menu_equipment_sink(horizon_client::menu::pluto_menu_equipment::set_equipment);
     // The pure advancement/recipe forwarders install into the native
     // inventory gates carried by the pluto_lib bundle; see
     // install_native_inventory_forwarders.
@@ -369,6 +616,25 @@ fn install_native_inventory_forwarders() {
     .expect("PlutoLib advancement predicate forwarder installs once");
     horizon_client::game::pluto_advancement_event_source::set_event_source(advancement_event_source)
         .expect("PlutoLib advancement event source installs once");
+    horizon_client::game::pluto_advancement_tag_source::set_tag_source(
+        horizon_client::game::pluto_advancement_tag_source::TagSource {
+            generation: advancement_tag_generation,
+            snapshots: advancement_tag_snapshots,
+        },
+    )
+    .expect("PlutoLib advancement tag source installs once");
+    horizon_client::game::pluto_advancement_function_source::set_function_resolver(
+        advancement_function_resolver,
+    )
+    .expect("PlutoLib advancement function resolver installs once");
+    horizon_client::pluto_inventory::crafting::matching::register(
+        horizon_client::pluto_inventory::crafting::matching::Registration {
+            id: "pluto_lib:recipe_api_v1",
+            interest: recipe_admission_interest,
+            callback: recipe_admission_forward,
+        },
+    )
+    .expect("PlutoLib recipe admission forwarder installs once");
     horizon_client::pluto_inventory::crafting::assembly::register(
         horizon_client::pluto_inventory::crafting::assembly::Registration {
             id: "pluto_lib:recipe_api_v1",
@@ -377,6 +643,16 @@ fn install_native_inventory_forwarders() {
         },
     )
     .expect("PlutoLib recipe assembly forwarder installs once");
+    // Special recipes mirror per provider id, not under one registry
+    // id: the host's tables carry one marker entry per provider id
+    // (see pluto_crafting_match), and the crafting gate resolves a
+    // marker through the provider registered under the entry's own
+    // name. The sink mirrors later registrations as they happen; the
+    // enumeration covers registrations from before this install.
+    recipe_api_v1::set_special_recipe_sink(recipe_special_forward_for);
+    for id in recipe_api_v1::special_recipe_ids() {
+        recipe_special_forward_for(id);
+    }
 }
 
 /// Without the native inventory gates (a standalone API build) there is
@@ -500,11 +776,51 @@ fn advancement_event_source() -> Vec<horizon_client::game::pluto_advancement_eve
         .collect()
 }
 
+/// The native tag driver's generation probe: the pure registry's
+/// publication counter, forwarded without touching the snapshots, so an
+/// unchanged publication costs the driver one comparison per tick.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_tag_generation() -> u64 {
+    advancement_api_v1::tag_snapshot_generation()
+}
+
+/// The native tag driver's snapshot pull: every owner's current pure
+/// publication, converted to the native transport form (the pure snapshot
+/// map is already the native map's shape). The driver calls this only
+/// when the generation moved or a world's store was never driven.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_tag_snapshots(
+) -> Vec<horizon_client::game::pluto_advancement_tag_source::OwnedSnapshot> {
+    advancement_api_v1::tag_snapshots()
+        .into_iter()
+        .map(|(owner, tags)| horizon_client::game::pluto_advancement_tag_source::OwnedSnapshot {
+            owner,
+            tags,
+        })
+        .collect()
+}
+
+/// The native reward-function hook's resolver: the pure advancement API's
+/// function reward registry, forwarded unchanged (both sides speak in
+/// advancement ids). An unregistered function resolves to no grants and
+/// keeps the game's data pack path.
+#[cfg(feature = "native-inventory-glue")]
+fn advancement_function_resolver(id: &str) -> Vec<String> {
+    advancement_api_v1::resolve_function_reward(id)
+}
+
 #[cfg(feature = "native-inventory-glue")]
 fn recipe_assembly_interest(
     _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
 ) -> bool {
     recipe_api_v1::has_assembly_providers()
+}
+
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_admission_interest(
+    _: &horizon_client::pluto_inventory::crafting::matching::RecipeFacts<'_>,
+) -> bool {
+    recipe_api_v1::has_admission_providers()
 }
 
 /// The native half of the pure recipe API's crafting assembly: the host's
@@ -535,6 +851,7 @@ fn recipe_assembly_forward(
         },
         result_item: request.recipe.template.and_then(|t| t.item),
         result_count: request.recipe.template.map_or(0, |t| t.count),
+        id: request.recipe.id,
     };
     let Some(evaluation) = recipe_api_v1::prepare_assembly(&facts) else {
         return Decision::Pass;
@@ -590,6 +907,155 @@ fn recipe_assembly_forward(
     }
 }
 
+/// The native half of the pure recipe API's crafting admission: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries decisions into the pure registry, converting the
+/// native stack facts into pure views. A pure denial is the native denial;
+/// anything else leaves the native result standing.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_admission_forward(
+    request: &horizon_client::pluto_inventory::crafting::matching::Request<'_>,
+) -> horizon_client::pluto_inventory::crafting::matching::Decision {
+    use horizon_client::pluto_inventory::crafting::matching::Decision;
+    use horizon_client::pluto_inventory::recipe_book::placement::Form;
+    if !recipe_api_v1::has_admission_providers() {
+        return Decision::Pass;
+    }
+    let facts = recipe_api_v1::RecipeFacts {
+        form: match request.recipe.form {
+            Form::Shaped { width, height } => {
+                recipe_api_v1::RecipeForm::Shaped { width, height }
+            }
+            Form::Shapeless => recipe_api_v1::RecipeForm::Shapeless,
+            Form::Special => recipe_api_v1::RecipeForm::Special,
+            // Cooking recipes never match in a crafting grid, and the
+            // pure registry models grid forms only: no policy evaluation
+            // applies, so the native result stands.
+            Form::Cooking => return Decision::Pass,
+        },
+        result_item: request.recipe.template.and_then(|t| t.item),
+        result_count: request.recipe.template.map_or(0, |t| t.count),
+        id: request.recipe.id,
+    };
+    let Some(evaluation) = recipe_api_v1::prepare_admission(&facts) else {
+        return Decision::Pass;
+    };
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = request
+        .input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = request
+        .input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let result_data = request
+        .result
+        .and_then(|snap| snap.components.and_then(advancement_components));
+    let result = request.result.map(|snap| recipe_api_v1::StackView {
+        id: snap.id,
+        count: snap.count,
+        damage: snap.damage,
+        custom_data: result_data.as_ref(),
+    });
+    let forwarded = recipe_api_v1::AdmissionRequest {
+        recipe: &facts,
+        grid: recipe_api_v1::GridFacts {
+            width: request.input.width,
+            height: request.input.height,
+            left: request.input.left,
+            top: request.input.top,
+            cells: &cells,
+        },
+        result,
+    };
+    match evaluation.evaluate(&forwarded) {
+        recipe_api_v1::AdmissionOutcome::Native => Decision::Pass,
+        recipe_api_v1::AdmissionOutcome::Denied { .. } => Decision::Deny,
+    }
+}
+
+/// The native half of the pure recipe API's special recipes: the host's
+/// crafting gate consults only the native inventory-api registry, so this
+/// forwarder carries the cropped grid into the pure registry, converting
+/// the native stack facts into pure views. A pure result's custom data
+/// compound becomes the native stack spec's component tree, and the pure
+/// registration's id is the recipe identity the lookup reports.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_special_forward(
+    input: &horizon_client::pluto_inventory::crafting::matching::InputFacts<'_>,
+) -> Option<(&'static str, horizon_client::pluto_inventory::crafting::special::StackSpec)> {
+    if !recipe_api_v1::has_special_recipes() {
+        return None;
+    }
+    // Owned pure component trees behind the borrowed views, alive for the
+    // synchronous evaluation only.
+    let cell_data: Vec<Option<Nbt>> = input
+        .cells
+        .iter()
+        .map(|cell| cell.and_then(|snap| snap.components.and_then(advancement_components)))
+        .collect();
+    let cells: Vec<Option<recipe_api_v1::StackView<'_>>> = input
+        .cells
+        .iter()
+        .zip(&cell_data)
+        .map(|(cell, data)| {
+            cell.map(|snap| recipe_api_v1::StackView {
+                id: snap.id,
+                count: snap.count,
+                damage: snap.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let grid = recipe_api_v1::GridFacts {
+        width: input.width,
+        height: input.height,
+        left: input.left,
+        top: input.top,
+        cells: &cells,
+    };
+    let (name, result) = recipe_api_v1::evaluate_special_recipe(&grid)?;
+    Some((
+        name,
+        horizon_client::pluto_inventory::crafting::special::StackSpec {
+            item: result.item,
+            count: result.count,
+            damage: result.damage,
+            custom_data: result.custom_data.map(|data| nbt_component(&Nbt::Compound(data))),
+        },
+    ))
+}
+
+/// Mirror one pure special-recipe provider into the native registry
+/// under its own id. Every mirrored callback is
+/// [`recipe_special_forward`], so provider evaluation is unchanged;
+/// only the registration names differ. A duplicate is ignored: the
+/// registration sink can fire for an id the install enumeration
+/// already mirrored.
+#[cfg(feature = "native-inventory-glue")]
+fn recipe_special_forward_for(id: &'static str) {
+    let _ = horizon_client::pluto_inventory::crafting::special::register(
+        horizon_client::pluto_inventory::crafting::special::Registration {
+            id,
+            callback: recipe_special_forward,
+        },
+    );
+}
+
 /// Pure NBT as the native component tree (the reverse of
 /// `advancement_component`): strings cross as UTF-16 code units and floats
 /// as their bit patterns, exactly as the native tree stores them.
@@ -632,6 +1098,10 @@ fn resolve_dynamic_screen_slots(
             None => Some(None),
         })
         .collect::<Option<Vec<_>>>()?;
+    // The refresh runs for every open mod menu (the resolver is set unconditionally), so this
+    // is also where the client's view of the menu's state is kept for the draw and scroll
+    // callbacks: the items a side panel reads, the data a scroll reads.
+    screen_handler_api_v1::note_menu_state(block, data, &items);
     screen_handler_api_v1::dynamic_slots(block, data, &items)
 }
 
@@ -701,6 +1171,83 @@ fn stack_data_of(_host: &dyn Host, stack: &ItemStack) -> player_api::StackData {
     read_stack(stack)
 }
 
+/// Whether the entity of kind `kind` standing at block position `pos` is on a climbable block, as the game's own
+/// `Mob::on_climbable` works it out: a climbing kind (a spider or cave spider) reads its own climbing flag instead
+/// of the block; kinds that never climb (the equine kinds, ghasts and phantoms) read false; a fall-flying entity
+/// passing a block in `minecraft:can_glide_through` reads false, before the tag is even read; the block at the
+/// entity's feet in the `minecraft:climbable` tag reads true; an open trapdoor over a ladder facing the same way
+/// reads true. The climbing flag comes from the mob's own tick (`pluto_entity_climb_access`, recorded after the
+/// tick); the fall-flying state is the report's `gliding`, which a player's own tick carries too.
+fn entity_on_climbable(host: &dyn Host, kind: &str, pos: [i32; 3], climbing: bool, gliding: bool) -> bool {
+    if matches!(kind, "minecraft:spider" | "minecraft:cave_spider") {
+        return climbing;
+    }
+    if matches!(kind, "minecraft:horse" | "minecraft:donkey" | "minecraft:mule" | "minecraft:skeleton_horse" | "minecraft:zombie_horse" | "minecraft:llama" | "minecraft:trader_llama" | "minecraft:camel" | "minecraft:camel_husk" | "minecraft:ghast" | "minecraft:phantom" | "minecraft:happy_ghast") {
+        return false;
+    }
+    let block = host.block(pos);
+    if gliding && host.block_name_in_tag(&block, "minecraft:can_glide_through").unwrap_or(false) {
+        return false;
+    }
+    if host.block_name_in_tag(&block, "minecraft:climbable").unwrap_or(false) {
+        return true;
+    }
+    // An open trapdoor over a ladder, the trapdoor facing the way the ladder faces (the trapdoor kind is told by
+    // its name's suffix: every trapdoor block id ends in `trapdoor`).
+    let below = [pos[0], pos[1] - 1, pos[2]];
+    block.rsplit(':').next().is_some_and(|name| name.ends_with("trapdoor"))
+        && host.block_property(pos, "open").as_deref() == Some("true")
+        && host.block(below) == "minecraft:ladder"
+        && host.block_property(pos, "facing") == host.block_property(below, "facing")
+}
+
+/// A mob's tick report for the entity the tick event names, or None when it is not a living entity the host can
+/// reach. Every piece the mob wears and holds is reported (a mob's attribute values are worked out from the report
+/// alone), and its effects are reordered to (id, amplifier, ticks left), the order a tick report uses.
+fn build_mob_tick(host: &dyn Host, entity_id: u32, kind: &str, dimension: &str) -> Option<entity_events_v1::MobTick> {
+    let entity = host.entity(entity_id)?;
+    let living = host.living(entity)?;
+    let position = host.entity_position(entity).unwrap_or([0.0; 3]);
+    let feet = host.entity_block_position(entity).unwrap_or([position[0].floor() as i32, position[1].floor() as i32, position[2].floor() as i32]);
+    let mut armor = Vec::new();
+    for (name, slot) in [("feet", EquipmentSlot::Feet), ("legs", EquipmentSlot::Legs), ("chest", EquipmentSlot::Chest), ("head", EquipmentSlot::Head)] {
+        let Some(stack) = host.living_equipment(living, slot) else { continue };
+        if stack.count > 0 { armor.push((name.to_string(), stack_data_of(host, &stack))); }
+    }
+    let mut hands = Vec::new();
+    for (name, hand) in [("mainhand", Hand::Main), ("offhand", Hand::Off)] {
+        let Some(stack) = host.living_hand_item(living, hand) else { continue };
+        if stack.count > 0 { hands.push((name.to_string(), stack_data_of(host, &stack))); }
+    }
+    // A mob's effects come as (id, ticks left, amplifier); the report carries (id, amplifier, ticks left).
+    let effects = host.entity_effects(entity).unwrap_or_default().into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
+    // The climb state the mob's own tick recorded (its climbing flag and whether it glides); an entity with no
+    // record reads false for both, as the report read before.
+    let (climbing, gliding) = horizon_client::mobs::pluto_entity_climb_access::state(entity_id);
+    Some(entity_events_v1::MobTick {
+        entity: entity_id as i32, kind: kind.to_owned(), dimension: dimension.to_owned(), position,
+        velocity: host.entity_velocity(entity).unwrap_or([0.0; 3]),
+        on_ground: host.entity_on_ground(entity).unwrap_or(false),
+        in_water: host.entity_is_in_water(entity).unwrap_or(false),
+        on_climbable: entity_on_climbable(host, kind, feet, climbing, gliding),
+        climbing, gliding,
+        armor, hands, effects,
+    })
+}
+
+fn sky_frame(star_angle: f32, star_brightness: f32, out: &mut Vec<horizon_client::entry::pluto_sky_access::SkyQuad>) -> bool {
+    use crate::pure::sky_api_v1::{SkyRegistry, VanillaStars};
+    // The celestial reach runs only on the overworld sky path, so it serves the overworld's layer.
+    let Some(layer) = SkyRegistry::layer(0) else { return false };
+    static EPOCH: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+    let seconds = EPOCH.get_or_init(std::time::Instant::now).elapsed().as_secs_f32();
+    let frame = crate::pure::sky_api_v1::SkyFrame { star_angle_deg: star_angle, star_brightness, seconds };
+    for quad in crate::pure::sky_api_v1::frame_quads(&layer, &frame) {
+        out.push(horizon_client::entry::pluto_sky_access::SkyQuad { corners: quad.corners, rgba: quad.rgba });
+    }
+    layer.vanilla_stars == VanillaStars::Hide
+}
+
 fn read_stack(stack: &ItemStack) -> player_api::StackData {
     let custom_data = match stack.data().and_then(|d| d.other("minecraft:custom_data")) {
         Some(Tag::Compound(compound)) => compound_from_tag(compound),
@@ -717,6 +1264,14 @@ fn read_stack(stack: &ItemStack) -> player_api::StackData {
 fn read_custom_model_data(stack: &ItemStack) -> Option<player_api::CustomModelData> {
     match stack.data().and_then(|d| d.other("minecraft:custom_model_data")) {
         Some(Tag::Compound(compound)) => Some(player_api::CustomModelData::from_nbt(&compound_from_tag(compound))),
+        _ => None,
+    }
+}
+
+/// The stack's own `minecraft:profile` component (a player head's owner), None when it has none.
+fn read_profile(stack: &ItemStack) -> Option<NbtCompound> {
+    match stack.data().and_then(|d| d.other("minecraft:profile")) {
+        Some(Tag::Compound(compound)) => Some(compound_from_tag(compound)),
         _ => None,
     }
 }
@@ -777,12 +1332,175 @@ struct SpawnView<'a> {
     random:&'a mut dyn spawn_access::Random,
     equipment:&'a mut dyn spawn_access::Equipment,
 }
+struct SplitRandom<'a>(&'a mut dyn horizon_client::entry::pluto_mob_split::Random);
+impl crate::pure::mob_split_api::MobSplitRandom for SplitRandom<'_> {
+    fn next_float(&mut self)->f32 { self.0.next_float() }
+    fn next_int(&mut self,bound:i32)->Result<i32,String> { self.0.next_int(bound) }
+}
+struct SplitChildView<'a> {
+    native:&'a mut Box<dyn horizon_client::entry::pluto_mob_split::Child>,
+    kind:String,
+    dimension:String,
+}
+impl crate::pure::mob_split_api::MobSplitChild for SplitChildView<'_> {
+    fn info(&self)->crate::pure::entity_events_v1::EntityInfo {
+        crate::pure::entity_events_v1::EntityInfo { id:self.native.id(),kind:self.kind.clone(),dimension:self.dimension.clone() }
+    }
+    fn set_equipment(&mut self,slot:&str,stack:player_api::StackData)->Result<(),String> {
+        let mut native=ItemStack::new(&stack.item,stack.count);
+        write_stack(&mut native,&stack);
+        self.native.set_equipment(slot,native)
+    }
+    fn set_custom_name(&mut self,name:Option<String>)->Result<(),String> { self.native.set_custom_name(name) }
+    fn set_no_ai(&mut self,no_ai:bool)->Result<(),String> { self.native.set_no_ai(no_ai) }
+    fn set_invulnerable(&mut self,invulnerable:bool)->Result<(),String> { self.native.set_invulnerable(invulnerable) }
+}
+fn split_context(info:&horizon_client::entry::pluto_mob_split::Info)->crate::pure::mob_split_api::MobSplitContext {
+    crate::pure::mob_split_api::MobSplitContext {
+        parent:crate::pure::entity_events_v1::EntityInfo { id:info.entity,kind:info.entity_type.clone(),dimension:info.dimension.clone() },
+        position:info.position,size:info.size,child_size:info.child_size }
+}
+fn native_split_prepare(info:&horizon_client::entry::pluto_mob_split::Info,count:&mut u32,cancel:&mut bool)->Result<(),String> {
+    crate::pure::mob_split_api::MobSplitCallbacks::prepare(&split_context(info),count,cancel)
+}
+fn native_split_inherit(host:&mut dyn Host,info:&horizon_client::entry::pluto_mob_split::Info,
+    random:&mut dyn horizon_client::entry::pluto_mob_split::Random,
+    children:&mut [Box<dyn horizon_client::entry::pluto_mob_split::Child>])->Result<(),String> {
+    let context=split_context(info);
+    let head=info.head.as_ref().map(read_stack);
+    let mut views:Vec<Box<dyn crate::pure::mob_split_api::MobSplitChild>>=children.iter_mut().map(|child|
+        Box::new(SplitChildView { native:child,kind:info.entity_type.clone(),dimension:info.dimension.clone() })
+            as Box<dyn crate::pure::mob_split_api::MobSplitChild>).collect();
+    let mut split_random=SplitRandom(random);
+    let mut view=crate::pure::mob_split_api::MobSplitInheritance {
+        context:&context,head,head_drop_chance:info.head_drop_chance,
+        custom_name:info.custom_name.clone(),no_ai:info.no_ai,invulnerable:info.invulnerable,
+        random:&mut split_random,children:&mut views };
+    scoped(host,|| crate::pure::mob_split_api::MobSplitCallbacks::inherit(&mut view))
+}
+
+fn spawn_placement_context(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<crate::pure::spawn_placement_api::SpawnPlacementContext> {
+    Some(crate::pure::spawn_placement_api::SpawnPlacementContext {
+        entity_type:Identifier::parse(&facts.entity_type).ok()?,
+        dimension:Identifier::parse(&facts.dimension).ok()?,
+        position:facts.position,reason:facts.reason.clone(),peaceful:facts.peaceful,
+        block_below:Identifier::parse(&facts.block_below).ok()?,
+        fluid_at:Identifier::parse(&facts.fluid_at).ok()?,
+        fluid_below:Identifier::parse(&facts.fluid_below).ok()?,
+        block_below_valid_spawn:facts.block_below_valid_spawn,dark_enough:facts.dark_enough })
+}
+
+fn native_spawn_placement(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or(facts:&horizon_client::entry::pluto_spawn_placement::Facts)->Option<bool> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::evaluate_or(&spawn_placement_context(facts)?)
+}
+
+fn native_spawn_placement_or_types()->Vec<String> {
+    crate::pure::spawn_placement_api::SpawnPlacementRegistry::or_types().into_iter().map(|id|id.to_string()).collect()
+}
+
+fn native_hanging_frame(facts:&crate::pure::hanging_api_v1::FrameVariant)->horizon_client::pluto_hanging_access::FrameFacts {
+    horizon_client::pluto_hanging_access::FrameFacts {
+        item:facts.item.to_string(),entity_type:facts.entity_type.to_string(),variant:facts.variant,
+        rotation_step:facts.rotation_step,winds_down:facts.winds_down,more_rotations:facts.more_rotations,
+        fullbright:facts.fullbright,hidden_when_filled:facts.hidden_when_filled,click_through:facts.click_through,
+        fire_immune:facts.fire_immune }
+}
+
+/// The queued fishing use, in the access module's plain shape (the pure profile, field for field).
+fn native_fishing_take_use()->Option<(u128,horizon_client::entry::pluto_fishing_access::UseProfile)> {
+    let (uuid,profile)=Fishing::take_use()?;
+    Some((uuid,horizon_client::entry::pluto_fishing_access::UseProfile {
+        luck:profile.luck,lure:profile.lure,velocity:profile.velocity,inaccuracy:profile.inaccuracy,
+        power:profile.power,knockback:profile.knockback,
+        grapple:match profile.grapple { Grapple::None=>0,Grapple::Dash=>1,Grapple::Drill=>2 },
+        collecting:profile.collecting }))
+}
+
+/// The finished use, in the access module's plain shape: the pure takeover answers it, with
+/// the player and world scopes open (the sleeves throw summons through them).
+fn native_post_use(host: &mut dyn Host, post: &horizon_client::entry::pluto_sleeves_takeover_access::PostUse) -> bool {
+    let context = events_interaction_v0::AfterUseContext {
+        player: player_api::ServerPlayer { uuid: post.uuid, name: post.name.clone() },
+        dimension: post.dimension.clone(),
+        eye: post.eye,
+        look: post.look,
+        crouching: post.crouching,
+        creative: post.creative,
+        consumed: post.consumed,
+    };
+    scoped(host, || events_interaction_v0::after_use(&context))
+}
+
+fn native_map_tick(_host:&mut dyn horizon_client::mod_api::Host,head:&ItemStack)->Option<i32> {
+    let slot=slot_of(head)?;
+    crate::pure::map_api_v1::map_tick(&crate::pure::map_api_v1::MapTickRequest { head:slot })
+}
+
+fn native_hanging_stand(facts:&crate::pure::hanging_api_v1::StandVariant)->horizon_client::pluto_hanging_access::StandFacts {
+    horizon_client::pluto_hanging_access::StandFacts {
+        item:facts.item.to_string(),entity_type:facts.entity_type.to_string(),variant:facts.variant,
+        small:facts.small,arms:facts.arms,fullbright:facts.fullbright,hidden_when_equipped:facts.hidden_when_equipped }
+}
+
+fn native_hanging_frame_for_item(item:&str)->Option<horizon_client::pluto_hanging_access::FrameFacts> {
+    let id=Identifier::parse(item).ok()?;
+    crate::pure::hanging_api_v1::HangingRegistry::frame_for_item(&id).map(|variant|native_hanging_frame(&variant))
+}
+
+fn native_hanging_frame_for_variant(variant:i32)->Option<horizon_client::pluto_hanging_access::FrameFacts> {
+    crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(variant).map(|variant|native_hanging_frame(&variant))
+}
+
+fn native_hanging_stand_for_item(item:&str)->Option<horizon_client::pluto_hanging_access::StandFacts> {
+    let id=Identifier::parse(item).ok()?;
+    crate::pure::hanging_api_v1::HangingRegistry::stand_for_item(&id).map(|variant|native_hanging_stand(&variant))
+}
+
+fn native_hanging_stand_for_variant(variant:i32)->Option<horizon_client::pluto_hanging_access::StandFacts> {
+    crate::pure::hanging_api_v1::HangingRegistry::stand_for_variant(variant).map(|variant|native_hanging_stand(&variant))
+}
+
+fn native_hanging_frame_rotation(facts:&horizon_client::pluto_hanging_access::FrameFacts,rotation_in:i32)->i32 {
+    crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
+        .map_or(rotation_in,|variant|variant.set_rotation(rotation_in))
+}
+
+fn native_hanging_frame_analog(facts:&horizon_client::pluto_hanging_access::FrameFacts,filled:bool,rotation:i32)->i32 {
+    crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
+        .map_or(0,|variant|variant.analog_output(filled,rotation))
+}
+
+fn native_hanging_frame_tick(facts:&horizon_client::pluto_hanging_access::FrameFacts,timer:i32,rotation:i32)->(i32,Option<i32>,bool) {
+    crate::pure::hanging_api_v1::HangingRegistry::frame_for_variant(facts.variant)
+        .map_or((timer,None,false),|variant|variant.tick_rotation(timer,rotation))
+}
+
+fn native_hanging_stand_hidden(facts:&horizon_client::pluto_hanging_access::StandFacts,any_equipment:bool)->bool {
+    crate::pure::hanging_api_v1::HangingRegistry::stand_for_variant(facts.variant)
+        .map_or(false,|variant|variant.hidden(any_equipment))
+}
+
+/// MobEvent sounds are &'static str; intern each distinct mod sound id once.
+/// The table is bounded by the distinct ids mods actually bounce with.
+fn intern_sound(id:&str)->&'static str {
+    static INTERN:std::sync::Mutex<Vec<&'static str>>=std::sync::Mutex::new(Vec::new());
+    let mut table=INTERN.lock().unwrap();
+    if let Some(found)=table.iter().find(|known|**known==id) { return found; }
+    let leaked:&'static str=Box::leak(id.to_string().into_boxed_str());
+    table.push(leaked);
+    leaked
+}
+
 fn spawn_info(info:&spawn_access::Info)->Result<crate::pure::entity_spawn_api::MobSpawnInfo,String> {
     if !info.position.iter().all(|v|v.is_finite()) { return Err("non-finite mob spawn position".into()); }
     Ok(crate::pure::entity_spawn_api::MobSpawnInfo {
         entity_type:Identifier::parse(&info.entity_type).map_err(|e|e.to_string())?,
         dimension:Identifier::parse(&info.dimension).map_err(|e|e.to_string())?,
-        position:info.position,reason:info.reason.clone(),
+        position:info.position,reason:info.reason.clone(),special_multiplier:info.special_multiplier,
     })
 }
 impl crate::pure::entity_spawn_api::MobSpawnPreparation for SpawnView<'_> {
@@ -803,6 +1521,10 @@ impl crate::pure::entity_spawn_api::MobSpawnCompletion for SpawnView<'_> {
         write_stack(&mut native,&stack);
         self.equipment.set(slot,native)
     }
+    fn set_can_pick_up_loot(&mut self,can:bool)->Result<(),String> { self.equipment.set_pick_up_loot(can) }
+    fn set_drop_chance(&mut self,slot:&str,chance:f32)->Result<(),String> { self.equipment.set_drop_chance(slot,chance) }
+    fn enchant_equipment(&mut self,slot:&str,level:i32)->Result<(),String> { self.equipment.enchant(slot,level) }
+    fn set_attached(&mut self,attachment:&str,json:&str,synced:bool)->Result<(),String> { self.equipment.attach(attachment,json,synced) }
 }
 struct SpawnCompletion(crate::pure::entity_spawn_api::PreparedSpawn);
 impl spawn_access::Completion for SpawnCompletion {
@@ -955,6 +1677,48 @@ fn staged_menu_click(menu: &mut horizon_client::menu::Menu, env: &horizon_client
     true
 }
 
+/// The carried stack's stacked-on-other behaviour (the pure item API's
+/// `StackedOnOtherRegistry`), staged over the native menu: the pure
+/// callback decides from borrowed stack views, and an Apply decision is
+/// written back through the same slot conversions as menu clicks.
+fn staged_stacked_on_other(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>,
+    slot: usize, primary: bool, random: f32) -> bool {
+    use item_api_v1::{StackedOnOtherDecision, StackedOnOtherRequest};
+    if !item_api_v1::has_stacked_on_other() { return false; }
+    let Some(carried_stack) = menu.carried.as_ref() else { return false };
+    let Some(callback) = item_api_v1::stacked_on_other(&carried_stack.item) else { return false };
+    let Some(carried) = slot_of(carried_stack) else { return false };
+    let clicked = menu.slot(slot).and_then(slot_of);
+    let request = StackedOnOtherRequest {
+        carried: &carried,
+        clicked: clicked.as_ref(),
+        // The player of the click session in scope, when one is (see `current_player`); 0 when the menu names none.
+        player: horizon_client::menu::pluto_menu_actions::current_player().map(|(uuid, _)| uuid).unwrap_or(0),
+        secondary: !primary,
+        allow_modification: horizon_client::menu::pluto_menu_actions::allow_modification(menu, env, slot),
+        random,
+    };
+    match callback(&request) {
+        StackedOnOtherDecision::Pass => false,
+        StackedOnOtherDecision::Consume => true,
+        StackedOnOtherDecision::Apply { clicked, carried, give, sound } => {
+            menu.set_slot(env, slot, native_slot(clicked));
+            menu.carried = native_slot(carried);
+            // A stack handed to the player: into their inventory, else dropped (the game's own place-back).
+            if let Some(give) = give {
+                if let Some(mut stack) = native_slot(Some(give)) {
+                    horizon_client::menu::pluto_menu_actions::give_stack(menu, env, &mut stack);
+                }
+            }
+            if let Some(sound) = sound {
+                horizon_client::menu::pluto_menu_actions::push_rich_player_sound(menu,
+                    horizon_client::menu::pluto_menu_actions::RichSound { id: sound.id, volume: sound.volume, pitch: sound.pitch });
+            }
+            true
+        }
+    }
+}
+
 struct HostOps(HostHandle);
 
 impl HostOps {
@@ -993,10 +1757,26 @@ impl WorldOps for HostWorld {
         self.0.get().level_random(dimension).map(|random| random.next_float())
     }
 
+    fn build_height(&mut self, dimension: &str) -> Option<[i32; 2]> {
+        // The host's level handles read any loaded level (API 381): the lowest y and the
+        // height of the level, so the range is [min, min + height).
+        let host = self.0.get();
+        let level = host.level(dimension)?;
+        let (min_y, height) = host.level_height(level)?;
+        Some([min_y, min_y + height])
+    }
+
     fn block_state(&mut self, dimension: &str, pos: [i32; 3]) -> Option<String> {
         let host = self.0.get();
         let level = host.level(dimension)?;
         host.level_block_state(level, pos)
+    }
+
+    fn light(&mut self, _dimension: &str, pos: [i32; 3]) -> Option<(u8, u8)> {
+        // The host's light read names no dimension (it reads the level the current callback
+        // runs in, as the player tick's own light does); world reads are made from inside
+        // such a callback, for that level.
+        Some(self.0.get().light(pos))
     }
 
     fn play_sound(&mut self, _dimension: &str, sound: &str, at: [f64; 3], volume: f32, pitch: f32) -> bool {
@@ -1028,6 +1808,21 @@ impl WorldOps for HostWorld {
         // The mod-facing host has no scheduling call, so the request is queued and the level's
         // own tick seams apply it in that dimension (see world_api_v1::queue_block_tick).
         world_api_v1::queue_block_tick(dimension, pos, block, delay)
+    }
+
+    fn break_block(&mut self, dimension: &str, pos: [i32; 3], drop: bool) -> bool {
+        // The mod-facing host has no destroy call from a use callback either, so the break is
+        // queued the same way and the level's tick seams run it through the game's own destroy
+        // path, drops and all (see world_api_v1::queue_block_action).
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Break { pos, drop })
+    }
+
+    fn use_block(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3], hit: [f64; 3], item: Option<&str>) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::Use { pos, face, hit, item: item.map(str::to_owned) })
+    }
+
+    fn set_block_state_queued(&mut self, dimension: &str, pos: [i32; 3], state: &str) -> bool {
+        world_api_v1::queue_block_action(dimension, world_api_v1::PendingBlockAction::SetState { pos, state: state.to_owned() })
     }
 
     fn block_entity_data(&mut self, dimension: &str, pos: [i32; 3]) -> Option<NbtCompound> {
@@ -1082,6 +1877,40 @@ impl WorldOps for HostWorld {
             world_api_v1::ExplosionInteraction::Tnt => Blast::Tnt,
         };
         horizon_client::entry::pluto_explosion_access::push(dimension, center, radius, fire, blast)
+    }
+
+    fn brush_block(&mut self, dimension: &str, pos: [i32; 3], face: [i32; 3]) -> bool {
+        // The mod-facing host has no brush call either (the game's own `BrushableBlockEntity.brush`
+        // lives inside the game, in its brush module), so the stroke is queued the same way and the
+        // game's creature tick seam applies it in that dimension (see pluto_brush_access).
+        horizon_client::entry::pluto_brush_access::push(dimension, pos, face)
+    }
+
+    fn brush_fallback_sound(&mut self, dimension: &str, pos: [i32; 3]) -> bool {
+        // The generic brush sound of a stroke that brushed nothing rides the same queue as
+        // the strokes: the game's brush seam plays it in that dimension, for the acting
+        // player alone (see pluto_brush_access).
+        horizon_client::entry::pluto_brush_access::push_fallback(dimension, pos)
+    }
+
+    fn send_particles(&mut self, _dimension: &str, particle: &str, data: &crate::pure::particle_api_v1::ParticleData, at: [f64; 3], spread: [f64; 3], speed: f64, count: i32) -> bool {
+        use horizon_client::mod_api::{ParticleOptions, ParticleType};
+        // A vanilla name resolves to the host's own type; any other namespaced name is a mod's own
+        // type, sent by name (the host's API 103): Horizon clients draw it from the sprite set in the
+        // mod's assets, clients without the set draw nothing and vanilla clients are not sent it. The
+        // spawn's data has no channel yet: a fluid-sprite type's sprite is chosen from the fluid at
+        // spawn time, and the host's sprite sets are static per type, so a fluid spawn is sent by name
+        // like any other and draws nothing until the host grows a spawn-time sprite channel.
+        let _ = data;
+        let options = if particle.contains(':') && !particle.starts_with("minecraft:") {
+            ParticleOptions::named(particle)
+        } else {
+            match ParticleType::from_name(particle) {
+                Some(kind) => ParticleOptions::simple(kind),
+                None => return false,
+            }
+        };
+        self.0.get().send_particles(&options, None, at, spread, speed, count)
     }
 }
 
@@ -1139,6 +1968,21 @@ fn book_screen_is_ours(host: &dyn Host, screen_id: &str) -> bool {
     screen_id == "mod" && host.mod_screen() == Some(PLUTO_MOD_ID)
 }
 
+/// The block whose menu a screen event names, when that menu is a mod menu with a window:
+/// every container screen reports the id `inventory` and is told apart by its menu alone.
+fn menu_block(screen: &horizon_client::mod_api::NativeScreenView<'_>) -> Option<String> {
+    if screen.id != "inventory" {
+        return None;
+    }
+    block_entity_api_v1::block_of_menu(screen.menu?)
+}
+
+/// A screen event's cursor position from its window's top left (the event's `rect` is the
+/// container panel itself, so this is the same space the draw callback draws in).
+fn screen_at(screen: &horizon_client::mod_api::NativeScreenView<'_>) -> [f32; 2] {
+    [screen.mouse[0] - screen.rect[0], screen.mouse[1] - screen.rect[1]]
+}
+
 /// The book being read and where the reader is in it, when a book is open.
 fn open_book_view() -> Option<(book_api_v1::Book, BookView)> {
     let view = BOOK_VIEW.lock().ok()?.clone()?;
@@ -1155,6 +1999,11 @@ fn set_book_view(view: BookView) {
 /// The host's face for a PlutoLib one (the same six, in the same order).
 fn host_face(face: block_api_v1::Direction) -> horizon_client::mod_api::Direction {
     horizon_client::mod_api::Direction::ALL[face as usize]
+}
+
+/// A PlutoLib face for the host's one (the same six, in the same order).
+fn pure_face(face: horizon_client::mod_api::Direction) -> block_api_v1::Direction {
+    block_api_v1::Direction::ALL[face as usize]
 }
 
 fn fluid_stack_of(fluid: &str, amount: i32) -> Option<FluidStack> {
@@ -1358,6 +2207,27 @@ struct HostEntities {
     dimension: String,
 }
 
+impl HostEntities {
+    /// The numeric id to queue a push for, when the entity can be named: the host's entity call names
+    /// it, or it is a player the player list names (the entity call does not name every player; see
+    /// `position_of`). The push is queued either way, and the game's own resolution at its rider
+    /// synchronisation has the last word.
+    fn push_target(&mut self, id: u64) -> Option<u32> {
+        let id32 = u32::try_from(id).ok()?;
+        let host = self.host.get();
+        if host.entity(id32).is_some() {
+            return Some(id32);
+        }
+        let wanted = id32 as i32;
+        if host.acting_player().is_some_and(|player| player.entity_id == wanted)
+            || host.server_players().iter().any(|player| player.entity_id == wanted)
+        {
+            return Some(id32);
+        }
+        None
+    }
+}
+
 impl EntityOps for HostEntities {
     fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<entity_api_v1::WorldEntity> {
         let host = self.host.get();
@@ -1453,13 +2323,69 @@ impl EntityOps for HostEntities {
             .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted)).map(|player| player.position)
     }
 
+    fn effects_of(&mut self, id: u64) -> Vec<(String, i32, i32)> {
+        let host = self.host.get();
+        // A mob's effects come as (id, ticks left, amplifier); the reach reports them as (id,
+        // amplifier, ticks left), the order a tick report uses.
+        if let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) {
+            if let Some(effects) = host.entity_effects(entity) {
+                return effects.into_iter().map(|(effect, ticks_left, amplifier)| (effect, amplifier, ticks_left)).collect();
+            }
+        }
+        // The host's entity call does not name every player (the owner of a single-player world is
+        // entity id 0 in the player list); their effects are read from the player list instead.
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        let player = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted));
+        player.and_then(|player| host.effects(player.uuid))
+            .map(|effects| effects.into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect())
+            .unwrap_or_default()
+    }
+
+    fn velocity_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        u32::try_from(id).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_velocity(entity))
+    }
+
+    fn bounds_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let host = self.host.get();
+        u32::try_from(id).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_bounding_box(entity))
+    }
+
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        // The host sets the motion of an item entity or a mob directly; a player is refused (its
+        // client moves it), and a player is pushed instead.
+        let host = self.host.get();
+        let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return false };
+        host.entity_set_velocity(entity, velocity)
+    }
+    fn bounding_box_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let Ok(id) = u32::try_from(id) else { return None };
+        let host = self.host.get();
+        let Some(entity) = host.entity(id) else { return None };
+        host.entity_bounding_box(entity)
+    }
+
     fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
         let Ok(id) = u32::try_from(id) else { return false };
         let host = self.host.get();
         // A mob is teleported by the game's own call (its navigation stops, its fall distance resets);
-        // another entity is moved keeping the way it faces. A player is reached by neither call — the
-        // host has no call that moves a player — so a player's teleport answers false here.
+        // another entity is moved keeping the way it faces. A player is reached by neither of those
+        // calls: the host's own player teleport (the `/tp` path) moves one directly, keeping the way
+        // they face, and a player that call cannot reach is queued through the player teleport
+        // transport, to be applied by the game's own server teleport at the level's rider
+        // synchronisation.
         if host.teleport_mob(&self.dimension, id, pos) {
+            return true;
+        }
+        let wanted = i32::try_from(id).unwrap_or(-1);
+        let direct = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted))
+            .is_some_and(|player| host.teleport_player(player.uuid, &self.dimension, pos, player.yaw, player.pitch));
+        if direct {
+            return true;
+        }
+        if queue_player_teleport(host, &self.dimension, wanted, pos) {
             return true;
         }
         let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
@@ -1488,6 +2414,60 @@ impl EntityOps for HostEntities {
         let Ok(passenger) = u32::try_from(passenger) else { return false };
         horizon_client::game::pluto_entity_ride_access::request_dismount(&self.dimension, passenger)
     }
+
+    fn id_of_uuid(&mut self, uuid: u128) -> Option<u64> {
+        // The host's entity-by-uuid call names the entity a uuid belongs to; its answer for a player is the
+        // id the ride reach and the other entity queries speak of.
+        self.host.get().entity_by_uuid(uuid).map(|(_, id, _)| u64::from(id))
+    }
+
+    fn kind_of(&mut self, id: u64) -> Option<Identifier> {
+        let host = self.host.get();
+        let entity = host.entity(u32::try_from(id).ok()?)?;
+        Identifier::parse(&host.entity_kind(entity)?).ok()
+    }
+
+    fn knockback(&mut self, id: u64, strength: f64, x: f64, z: f64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_knockback(&self.dimension, id, strength, x, z)
+    }
+
+    fn push(&mut self, id: u64, delta: [f64; 3]) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_push(&self.dimension, id, delta)
+    }
+
+    fn leave_ground(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_leave_ground(&self.dimension, id)
+    }
+
+    fn ignite_creeper(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_ignite_access::request_ignite_creeper(&self.dimension, id)
+    }
+
+    fn spin_attack(&mut self, id: u64) -> bool {
+        let Some(id) = self.push_target(id) else { return false };
+        horizon_client::game::pluto_entity_push_access::request_spin_attack(&self.dimension, id)
+    }
+
+    fn add_effect(&mut self, id: u64, effect: &str, duration: i32, amplifier: u8) -> bool {
+        let Ok(id) = u32::try_from(id) else { return false };
+        let host = self.host.get();
+        if host.entity(id).is_none() {
+            return false;
+        }
+        horizon_client::entry::pluto_mob_effect_access::push(id, effect, duration, amplifier.into());
+        true
+    }
+}
+
+/// Whether the effect `id` shows its icon, as PlutoLib's effect-icon reach published it at
+/// the head of the last HUD draw; true when the snapshot names no such effect (no draw yet,
+/// or an effect added since), as vanilla defaults the flag.
+fn effect_shows_icon(id: &str) -> bool {
+    horizon_client::entry::pluto_effect_icon_access::show_icon(id).unwrap_or(true)
 }
 
 /// Runs `f` with the player scope and the world scope both open over the host.
@@ -1533,8 +2513,126 @@ impl PlayerOps for HostOps {
         }
     }
 
+    fn set_stack(&mut self, player: u128, slot: i32, stack: Option<&player_api::StackData>) -> bool {
+        // The main inventory's slots, 0 to 35, take a whole-stack write through the host's checked
+        // inventory slot: the slot must still hold what the caller read there, so a stack that moved
+        // in between is not overwritten, and the player's screen follows with the tick's sync. The
+        // host answers from a scope where the player's state is not swapped in (a packet receiver, a
+        // server tick, a native menu click); inside the player's own turn it refuses, as the
+        // inventory calls do. A count of 0 clears, as the carried read's empty slot does.
+        if (0..36).contains(&slot) {
+            let Some(current) = self.host().player_stacks(player).and_then(|stacks| stacks.get(slot as usize).cloned()) else { return false; };
+            let new = stack.filter(|stack| stack.count > 0).map(|stack| {
+                let mut made = ItemStack::new(&stack.item, stack.count);
+                write_stack(&mut made, stack);
+                made
+            });
+            return self.host().set_inventory_slot(player, horizon_client::game::NativeInventoryKind::Player, slot as usize, current.as_ref(), new).is_ok();
+        }
+        // The carried numbering's equipment slots, and only they, have a host write that creates a stack in
+        // an empty slot: the equipment write behind `/item replace entity` (the carried read names occupied
+        // slots only, which is why update_stack cannot do this). The player is named exactly, through the
+        // host's entity-by-uuid call, not through the acting-player shortcut the inventory reads take.
+        let equipment = match slot {
+            100 => EquipmentSlot::Feet,
+            101 => EquipmentSlot::Legs,
+            102 => EquipmentSlot::Chest,
+            103 => EquipmentSlot::Head,
+            -106 => EquipmentSlot::OffHand,
+            _ => return false,
+        };
+        let host = self.host();
+        let Some((_, id, _)) = host.entity_by_uuid(player) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        let Some(living) = host.living(entity) else { return false };
+        let native = stack.map(|stack| {
+            let mut made = ItemStack::new(&stack.item, stack.count);
+            write_stack(&mut made, stack);
+            made
+        });
+        living.set_equipment(host, equipment, native)
+    }
+
+    fn stack_named(&mut self, player: u128, slot: i32) -> Option<player_api::StackData> {
+        // The main inventory comes from the host's per-player stacks (the carried read names the
+        // acting player only, and a packet receiver has none swapped in); equipment and the off hand
+        // from the host's per-player equipment read. Empty places are left out, as `stack` leaves them.
+        match slot {
+            0..36 => self.host().player_stacks(player)?.get(slot as usize)?.clone().filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            100 => self.host().player_equipment(player, EquipmentSlot::Feet).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            101 => self.host().player_equipment(player, EquipmentSlot::Legs).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            102 => self.host().player_equipment(player, EquipmentSlot::Chest).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            103 => self.host().player_equipment(player, EquipmentSlot::Head).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            -106 => self.host().player_equipment(player, EquipmentSlot::OffHand).filter(|stack| stack.count > 0).map(|stack| read_stack(&stack)),
+            _ => None,
+        }
+    }
+
+    fn open_item_menu(&mut self, player: u128, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        let native = items.into_iter().map(|slot| slot.filter(|slot| slot.count > 0).map(|slot| {
+            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+            write_slot(&mut stack, &slot);
+            stack
+        })).collect();
+        self.host().open_item_menu(player, menu, Text::literal(title.to_owned()), native, extra)
+    }
+
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         self.host().acting_player().map(|acting| i32::from(acting.selected_slot))
+    }
+
+    fn is_item_on_cooldown(&mut self, _player: u128, item: &str) -> bool {
+        // Inside a callback the host reaches the acting player, who is the one the PlutoLib handle names;
+        // the game the takeover holds answers (false outside a provider call).
+        horizon_client::game::pluto_item_cooldown::is_on_cooldown(item)
+    }
+
+    fn start_item_cooldown(&mut self, _player: u128, item: &str, ticks: i32) {
+        horizon_client::game::pluto_item_cooldown::start_cooldown(item, ticks)
+    }
+
+    fn release_use(&mut self, player: u128) -> bool {
+        // The mod-facing host has no call that ends a use either (the game's own `releaseUsingItem`
+        // lives inside the game, in its using_item module), so the end is queued the same way as a
+        // brush stroke is and the game's creature tick seam applies it to the use in progress
+        // (see pluto_use_stop_access).
+        horizon_client::entry::pluto_use_stop_access::push(player, horizon_client::entry::pluto_use_stop_access::End::Release)
+    }
+
+    fn stop_use(&mut self, player: u128) -> bool {
+        horizon_client::entry::pluto_use_stop_access::push(player, horizon_client::entry::pluto_use_stop_access::End::Stop)
+    }
+
+    fn swing_hand(&mut self, player: u128, hand: events_interaction_v0::Hand) -> bool {
+        horizon_client::entry::pluto_player_animate_access::push_swing(
+            player,
+            matches!(hand, events_interaction_v0::Hand::Off),
+        )
+    }
+
+    fn broadcast_item_break(
+        &mut self,
+        player: u128,
+        slot: entity_events_v1::StackSlot,
+        stack: &player_api::StackData,
+    ) -> bool {
+        let native_slot = match slot {
+            entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
+            entity_events_v1::StackSlot::OffHand => EquipmentSlot::OffHand,
+            entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
+            entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
+            entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
+            entity_events_v1::StackSlot::Head => EquipmentSlot::Head,
+        };
+        let mut native = ItemStack::new(&stack.item, stack.count);
+        write_stack(&mut native, stack);
+        horizon_client::entry::pluto_player_animate_access::push_break(player, native_slot, native)
+    }
+    fn attribute_value(&mut self, player: u128, attribute: &str) -> Option<f64> {
+        // The game's own attribute read (native_attribute): the base and the value with
+        // every modifier on it — armour, effects, `/attribute` — of which the caller
+        // wants the value, as `LivingEntity.getAttributeValue` answers it.
+        self.host().attribute(player, attribute).map(|(_, computed)| computed)
     }
 
     fn count_item(&mut self, player: u128, item: &str) -> u32 {
@@ -1606,7 +2704,7 @@ impl PlayerOps for HostOps {
         Some(
             effects
                 .into_iter()
-                .map(|e| EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles })
+                .map(|e| { let show_icon = effect_shows_icon(&e.id); EffectInstance { id: e.id, amplifier: e.amplifier, duration: e.duration, ambient: e.ambient, particles: e.particles, show_icon } })
                 .collect(),
         )
     }
@@ -1725,6 +2823,9 @@ fn read_surroundings(host: &mut dyn Host, state: &mut entity_events_v1::EntitySt
     state.sky_darken = entity_events_v1::sky_darken(rain, thunder, host.day_time());
     state.y = Some(f64::from(block[1]));
     state.rain_exposed = entity_events_v1::rain_exposed(raining, sky_light, biome.as_deref(), block[1]);
+    // The thunder level past the same threshold the rain level is read with: a storm the game
+    // reports, whether or not the rain reaches this entity.
+    state.thundering = thunder > 0.2;
     state.biome_temperature = biome.as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, block[1]));
     state.biome = biome;
     if let Some(eyes) = eyes {
@@ -1760,6 +2861,15 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
         if host.player_equipment(player.uuid, slot).is_some() { equipment.push(name.to_owned()); }
     }
     state.equipment = Some(equipment);
+    // The enchantments on everything held or worn, for the conditions that ask whether an
+    // enchantment is present (mantle:has_enchantment reads an entity's equipment levels).
+    let mut enchantments: Vec<String> = Vec::new();
+    for slot in [EquipmentSlot::MainHand, EquipmentSlot::OffHand, EquipmentSlot::Head, EquipmentSlot::Chest, EquipmentSlot::Legs, EquipmentSlot::Feet] {
+        if let Some(levels) = host.player_equipment(player.uuid, slot).and_then(|stack| read_enchantments(&stack)) {
+            for id in levels.into_keys() { if !enchantments.contains(&id) { enchantments.push(id); } }
+        }
+    }
+    state.enchantments = enchantments;
     let [x, y, z] = player.position;
     let block = [x.floor() as i32, y.floor() as i32, z.floor() as i32];
     read_surroundings(host, &mut state, block, Some([x, y + 1.62, z]));
@@ -1771,7 +2881,7 @@ fn player_entity_state(host: &mut dyn Host, player: &horizon_client::mod_api::Na
 }
 
 /// What the break hook read before the block went, kept for the end of the same break.
-struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32 }
+struct PendingBreak { pos: [i32; 3], dimension: String, state: Option<BlockState>, player: player_api::ServerPlayer, equipment: Vec<(String, player_api::StackData)>, face: Option<block_api_v1::Direction>, yaw: f32, pitch: f32, creative: bool, may_build: bool, offhand_place_on: Vec<String>, offhand_place_predicates: Vec<events_interaction_v0::AdventurePlacePredicate>, mined_block_entity: Option<NbtCompound> }
 static PENDING_BREAKS: std::sync::Mutex<Vec<PendingBreak>> = std::sync::Mutex::new(Vec::new());
 
 /// The face each player last started digging, by uuid: the break hook itself is not told the face, but the dig's start is
@@ -1790,17 +2900,123 @@ fn break_context(host: &mut dyn Host, pos: [i32; 3]) -> events_interaction_v0::B
     let held = acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack));
     let face = acting.as_ref().and_then(|player| LAST_DIG_FACE.lock().ok().and_then(|last| last.get(&player.uuid).copied()));
     let (yaw, pitch) = acting.as_ref().map(|player| (player.yaw, player.pitch)).unwrap_or_default();
+    let equipment = acting.as_ref().map(|player| entity_events_v1::equipment_of(player.uuid)).unwrap_or_default();
+    // The game type as the break starts: creative is mode 1, and mayBuild is the vanilla ability of the type
+    // (survival and creative). An unnamed breaker reads as a survival one.
+    let (creative, may_build) = acting.as_ref().map(|player| (player.game_mode == 1, matches!(player.game_mode, 0 | 1))).unwrap_or((false, true));
+    // The off hand stack is read once, for both the text entries and the structured predicates: a predicate
+    // carrying a block-entity NBT test is dropped from the text entries (the text form cannot carry it) but
+    // kept in the predicates, which are matched against the mined block's block entity below.
+    let offhand = if acting.is_some() { host.carried_stack(-106) } else { None };
+    let offhand_place_on = offhand.as_ref().map(|stack| adventure_place_entries(stack)).unwrap_or_default();
+    let offhand_place_predicates = offhand
+        .as_ref()
+        .and_then(|stack| stack.data())
+        .and_then(|data| data.other("minecraft:can_place_on"))
+        .and_then(nbt_from_tag)
+        .map(|component| events_interaction_v0::adventure_place_predicates(&component))
+        .unwrap_or_default();
+    // The mined block's block entity, as the break's head seam read it: the bridge's own block-entity read
+    // names mod block entities only, so a vanilla one (a chest, a furnace) is read by the woven seam that
+    // runs before this dispatch. None when the block has none, or the seam did not run.
+    let mined_block_entity = horizon_client::entry::pluto_break_context_access::take_block_entity_nbt(&dimension, pos)
+        .and_then(|tag| nbt_from_tag(&tag))
+        .and_then(|tag| match tag { Nbt::Compound(data) => Some(data), _ => None });
     events_interaction_v0::BlockBreakContext {
         pos, dimension, state,
         player: acting.map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
-        held, actions: std::cell::RefCell::new(Vec::new()),
-        face, yaw, pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
+        held, equipment, actions: std::cell::RefCell::new(Vec::new()),
+        face, yaw, pitch, creative, may_build, offhand_place_on, offhand_place_predicates, mined_block_entity, extra_breaks: std::cell::RefCell::new(Vec::new()),
     }
 }
 
-/// Reports the earlier breaks of the player `uuid` to `AFTER`: the game has no hook at the end of a break, so each allowed break waits until the
-/// player's next tick (or their next break) and is heard then if the block at its position is no longer the one that was there. `held` is the
-/// stack the player holds now, and the actions the callbacks queue are done to the player.
+/// The adventure-mode place tag (`minecraft:can_place_on`) of a stack, flattened to the text entries the break
+/// context reports: one per block predicate, a block id, a `#tag`, or an id with a `[key=value,...]` state suffix —
+/// the form the original's own tag strings take. A predicate carrying a block entity NBT test is dropped: the break
+/// reads the block without its block entity, so the test could not be answered honestly.
+fn adventure_place_entries(stack: &ItemStack) -> Vec<String> {
+    let Some(tag) = stack.data().and_then(|data| data.other("minecraft:can_place_on")) else { return Vec::new() };
+    let Some(nbt) = nbt_from_tag(tag) else { return Vec::new() };
+    let mut entries = Vec::new();
+    match &nbt {
+        Nbt::Compound(component) => {
+            if let Some(Nbt::List(predicates)) = component.get("blocks") {
+                for predicate in predicates { adventure_place_entry(predicate, &mut entries); }
+            }
+        }
+        Nbt::List(predicates) => { for predicate in predicates { adventure_place_entry(predicate, &mut entries); } }
+        Nbt::String(spec) => entries.push(spec.clone()),
+        _ => {}
+    }
+    entries
+}
+
+/// One block predicate of a place tag, as its text entries (see `adventure_place_entries`): a compound names its
+/// blocks (one id or a list) and may narrow them with a state test, whose entries ride as the suffix.
+fn adventure_place_entry(predicate: &Nbt, entries: &mut Vec<String>) {
+    match predicate {
+        Nbt::String(spec) => entries.push(spec.clone()),
+        Nbt::Compound(predicate) => {
+            if predicate.get("nbt").is_some() { return; }
+            let suffix = match predicate.get("state") {
+                Some(Nbt::Compound(state)) if !state.is_empty() => {
+                    let mut pairs = Vec::new();
+                    for (key, value) in state.iter() {
+                        let Nbt::String(value) = value else { return };
+                        pairs.push(format!("{key}={value}"));
+                    }
+                    format!("[{}]", pairs.join(","))
+                }
+                _ => String::new(),
+            };
+            match predicate.get("blocks") {
+                Some(Nbt::String(spec)) => entries.push(format!("{spec}{suffix}")),
+                Some(Nbt::List(specs)) => { for spec in specs { if let Nbt::String(spec) = spec { entries.push(format!("{spec}{suffix}")); } } }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+}
+
+/// The break the game's break-completion seam reports (see `pluto_break_complete_access`): the break at
+/// `completed.pos` in `completed.dimension` went through and the block is gone. Runs its `AFTER` now, inside
+/// the break, while the breaking player is still the acting one — before the removal is sent to the players
+/// around. A pending break the seam does not name stays queued for the next tick, as before.
+fn break_complete_sink(
+    host: &mut dyn Host,
+    completed: horizon_client::entry::pluto_break_complete_access::BreakCompleted,
+) {
+    flush_break_complete(host, completed);
+}
+
+/// Runs the `AFTER` of the pending breaks the completion seam confirmed, at `completed`'s position in its
+/// dimension. A break whose block was replaced by another block in between still hears its `AFTER`: the seam
+/// is the proof the break happened, not a re-read of the block.
+fn flush_break_complete(
+    host: &mut dyn Host,
+    completed: horizon_client::entry::pluto_break_complete_access::BreakCompleted,
+) {
+    let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
+        Ok(mut pending) => {
+            let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| {
+                entry.dimension == completed.dimension && entry.pos == completed.pos
+            });
+            *pending = rest;
+            due
+        }
+        Err(_) => return,
+    };
+    for entry in due {
+        run_pending_after(host, entry);
+    }
+}
+
+/// Reports one earlier break to `AFTER`: the break-completion seam (see `break_complete_sink`) runs the `AFTER` of
+/// most breaks inside the break itself; a break the seam did not report — the host returned an error after the removal,
+/// or the seam was not woven — waits here until the player's next tick (or their next break) and is heard then if the
+/// block at its position is no longer the one that was there. `held` is the stack the player holds now, and the actions
+/// the callbacks queue are done to the player.
 fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
     let due: Vec<PendingBreak> = match PENDING_BREAKS.lock() {
         Ok(mut pending) => { let (due, rest) = std::mem::take(&mut *pending).into_iter().partition(|entry| entry.player.uuid == uuid); *pending = rest; due }
@@ -1810,15 +3026,22 @@ fn flush_block_breaks(host: &mut dyn Host, uuid: u128) {
         let now = match host.level(&entry.dimension) { Some(level) => host.level_block_state(level, entry.pos), None => None }.and_then(|text| BlockState::parse(&text).ok());
         // An unreadable block or one that is still the same means the break did not happen (another mod cancelled it later).
         if now.is_none() || now == entry.state { continue; }
-        let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
-        let context = events_interaction_v0::BlockBreakContext {
-            pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, actions: std::cell::RefCell::new(Vec::new()),
-            face: entry.face, yaw: entry.yaw, pitch: entry.pitch, extra_breaks: std::cell::RefCell::new(Vec::new()),
-        };
-        scoped(host, || events_interaction_v0::after_block_break(&context));
-        let actions = context.actions.take();
-        if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
+        run_pending_after(host, entry);
     }
+}
+
+/// Runs `AFTER` for one pending break whose block is gone, with the tool as the break left it, and does the
+/// actions the callbacks queued for the player.
+fn run_pending_after(host: &mut dyn Host, entry: PendingBreak) {
+    let uuid = entry.player.uuid;
+    let held = host.held_stack(uuid).map(|stack| read_stack(&stack));
+    let context = events_interaction_v0::BlockBreakContext {
+        pos: entry.pos, dimension: entry.dimension, state: entry.state, player: Some(entry.player), held, equipment: entry.equipment, actions: std::cell::RefCell::new(Vec::new()),
+        face: entry.face, yaw: entry.yaw, pitch: entry.pitch, creative: entry.creative, may_build: entry.may_build, offhand_place_on: entry.offhand_place_on, offhand_place_predicates: entry.offhand_place_predicates, mined_block_entity: entry.mined_block_entity, extra_breaks: std::cell::RefCell::new(Vec::new()),
+    };
+    scoped(host, || events_interaction_v0::after_block_break(&context));
+    let actions = context.actions.take();
+    if !actions.is_empty() { apply_player_actions(host, uuid, actions); }
 }
 
 fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
@@ -1926,6 +3149,22 @@ fn apply_carried_edits(host: &mut dyn Host, player: u128, edits: Vec<entity_even
     }
 }
 
+/// Queues a server teleport of the player `id` names in `dimension` through the player teleport
+/// transport: the game's own server teleport (the call /tp uses) applies it at the level's rider
+/// synchronisation, so an accepted request answers true and lands by the next tick. The player list
+/// names players by entity id (0 for the owner of a single-player world); the owner match is only
+/// trusted when `id` does not name a reachable non-player entity. False when `id` names no player
+/// on the server or the queue refuses the request.
+fn queue_player_teleport(host: &mut dyn Host, dimension: &str, id: i32, pos: [f64; 3]) -> bool {
+    let names_other_entity = u32::try_from(id).ok().and_then(|id| host.entity(id))
+        .is_some_and(|entity| host.entity_kind(entity).as_deref() != Some("minecraft:player"));
+    if names_other_entity { return false; }
+    let player = host.acting_player().filter(|acting| acting.entity_id == id || acting.entity_id == 0)
+        .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+    let Some(player) = player else { return false };
+    horizon_client::game::pluto_entity_teleport_access::request_teleport(dimension, player.uuid, pos, player.yaw, player.pitch)
+}
+
 /// Does the actions callbacks queued on a hit to its parties: `attacker` and `victim` are the entity ids `ActionTarget::Attacker` and
 /// `Victim` name. Every action is guarded and one the host cannot do (an entity it cannot reach, a player where only mobs are served) is skipped.
 fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, victim: i32, actions: Vec<entity_events_v1::EntityAction>) {
@@ -1981,6 +3220,7 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
                 let (x, z) = match direction {
                     KnockbackDirection::AgainstFacing => match host.entity_rotation(entity) { Some([yaw, _]) => entity_events_v1::facing_direction(yaw), None => continue },
+                    KnockbackDirection::Vector { x, z } => (x, z),
                     KnockbackDirection::AwayFromOther => {
                         let other = if target == ActionTarget::Attacker { victim } else { attacker };
                         let (Some(from), Some(here)) = (position_of(host, other), host.entity_position(entity)) else { continue };
@@ -1993,8 +3233,38 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::EditStackData { target, slot, item, edits } => {
                 // Only the player acting in this hook has a stack the host hands out; a hit on a player lands on that player's own tick.
                 let id = id_of(target);
-                let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) else { continue };
-                edit_player_stack(host, selected, slot, &item, &edits);
+                if let Some(selected) = host.acting_player().filter(|acting| acting.entity_id == id).map(|acting| acting.selected_slot) {
+                    edit_player_stack(host, selected, slot, &item, &edits);
+                    continue;
+                }
+                // A mob's stack is written through the living handle's equipment write (API 382, the `/item replace entity` path):
+                // read the slot as it is when the action lands, edit its custom data, and put the whole stack back, so wear that
+                // happened in between stays. A player that is not the acting one (a LAN guest) is not reached here — their tick
+                // applies their own actions. The off hand is the one slot that path cannot carry: the handle's read builds it
+                // from the item id alone (one item, no damage, no components), while the host keeps the whole stack a mob
+                // holds there in its gear store, so an off-hand edit queues for the off-hand transport instead, which applies
+                // it against the mob itself through the host's own whole-stack read and write for that slot at the rider
+                // synchronisation.
+                let Ok(mob) = u32::try_from(id) else { continue };
+                let Some(entity) = host.entity(mob) else { continue };
+                if host.entity_kind(entity).as_deref() == Some("minecraft:player") { continue; }
+                let Some(living) = host.living(entity) else { continue };
+                let native = match slot {
+                    entity_events_v1::StackSlot::MainHand => EquipmentSlot::MainHand,
+                    entity_events_v1::StackSlot::OffHand => {
+                        horizon_client::game::pluto_mob_offhand_access::push_edit(dimension, mob, item.clone(), edits.iter().map(|edit| (edit.path.clone(), edit.value.as_ref().map(tag_from_nbt))).collect());
+                        continue;
+                    }
+                    entity_events_v1::StackSlot::Feet => EquipmentSlot::Feet,
+                    entity_events_v1::StackSlot::Legs => EquipmentSlot::Legs,
+                    entity_events_v1::StackSlot::Chest => EquipmentSlot::Chest,
+                    entity_events_v1::StackSlot::Head => EquipmentSlot::Head,
+                };
+                let Some(stack) = living.equipment(host, native) else { continue };
+                if &*stack.item != item || stack.count == 0 { continue; }
+                let Some(mut held) = slot_of(&stack) else { continue };
+                if !entity_events_v1::edit_custom_data(&mut held.custom_data, &edits) { continue; }
+                living.set_equipment(host, native, native_slot(Some(held)));
             }
             EntityAction::Hurt { target, amount, damage_type } => {
                 // A player or a mob, hurt with no attacker; the host refuses an entity it cannot hurt (a creative player, a dead mob).
@@ -2004,9 +3274,18 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
             EntityAction::Teleport { target, position } => {
                 // A mob is teleported by the game's own call (its navigation stops, its fall distance
                 // resets); another entity is moved keeping the way it faces. A player is reached by
-                // neither — the host has no call that moves a player — so a player's teleport is skipped.
+                // neither of those calls: the host's own player teleport (the `/tp` path) moves one
+                // directly, keeping the way they face, and a player that call cannot reach is queued
+                // through the player teleport transport, to be applied by the game's own server
+                // teleport at the level's rider synchronisation.
                 let Ok(id) = u32::try_from(id_of(target)) else { continue };
                 if host.teleport_mob(dimension, id, position) { continue; }
+                let wanted = i32::try_from(id).unwrap_or(-1);
+                let direct = host.acting_player().filter(|acting| acting.entity_id == wanted || acting.entity_id == 0)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == wanted))
+                    .is_some_and(|player| host.teleport_player(player.uuid, dimension, position, player.yaw, player.pitch));
+                if direct { continue; }
+                if queue_player_teleport(host, dimension, id_of(target), position) { continue; }
                 let rotation = host.entity(id).and_then(|entity| host.entity_rotation(entity)).unwrap_or([0.0, 0.0]);
                 host.move_entity(dimension, id, position, rotation[0], rotation[1]);
             }
@@ -2021,6 +3300,22 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 host.remove_effect(player.uuid, &effect);
                 host.add_effect(player.uuid, &horizon_client::game::NativeEffect { id: kept.id, amplifier: kept.amplifier, duration, ambient: kept.ambient, particles: kept.particles });
             }
+            EntityAction::MultiplyAttribute { target, attribute, factor } => {
+                if !factor.is_finite() || factor <= 0.0 { continue; }
+                let id = id_of(target);
+                let player = host.acting_player().filter(|acting| acting.entity_id == id)
+                    .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == id));
+                let Some(player) = player else { continue };
+                // The fold is a ratio against the factor already folded in, and it works around the additions on the same attribute:
+                // an addition sits on top of the folded base, so it is taken off before the ratio and put back after, and the unfold
+                // on leaving divides the same way. A player the host cannot reach, or an attribute it does not know, is skipped.
+                for (attribute, ratio, total) in entity_events_v1::multiply_factor_changes(player.uuid, &[(attribute, factor)]) {
+                    if ratio == 1.0 { continue; }
+                    let Some((base, _)) = host.attribute(player.uuid, &attribute) else { continue };
+                    let added = entity_events_v1::attribute_applied_total(player.uuid, &attribute);
+                    if host.set_attribute_base(player.uuid, &attribute, (base - added) * ratio + added) { entity_events_v1::multiply_factor_applied(player.uuid, &attribute, total); }
+                }
+            }
             EntityAction::AddEffect { target, effect, amplifier, duration } => {
                 let id = id_of(target);
                 // A player gets the effect through the host; a mob through the same hand-off the weapon-hit effects use.
@@ -2029,6 +3324,22 @@ fn apply_entity_actions(host: &mut dyn Host, dimension: &str, attacker: i32, vic
                 if let Some(player) = player { give_effect(host, player.uuid, effect, amplifier, duration); continue; }
                 if duration <= 0 || amplifier < 0 { continue; }
                 if let Ok(mob) = u32::try_from(id) { horizon_client::entry::pluto_mob_effect_access::push(mob, &effect, duration, amplifier); }
+            }
+            EntityAction::DropItem { target, stack } => {
+                // The host has no call that spawns an item in the world: the drop is handed to the game,
+                // which spawns it at the entity on its next tick.
+                let Ok(entity) = u32::try_from(id_of(target)) else { continue };
+                let mut native = ItemStack::new(&stack.item, stack.count);
+                write_stack(&mut native, &stack);
+                horizon_client::entry::pluto_damage_facts_access::push_drop(entity, native);
+            }
+            EntityAction::Summon { target, kind } => {
+                // The kind is summoned at the target's own position through the host's summon (the
+                // game's `/summon`: any kind from its data, lightning included).
+                let Ok(id) = u32::try_from(id_of(target)) else { continue };
+                let Some(entity) = host.entity(id) else { continue };
+                let Some(position) = host.entity_position(entity) else { continue };
+                host.summon(dimension, &kind, position, compound_to_tag(&NbtCompound::new()));
             }
         }
     }
@@ -2070,6 +3381,23 @@ fn nbt_value_from_json(value: &serde_json::Value) -> Nbt {
 }
 
 /// A stack as an item slot: item, count, damage, max damage and custom data; None for an item id PlutoLib cannot name.
+/// The face of `hit`'s block the view enters it through, as a unit offset: the hit
+/// point lies on that face's plane, so it is the face whose plane is nearest the
+/// point. A point tied between faces (an edge or a corner) reads as the first of
+/// them in west, east, down, up, north, south order.
+fn hit_face(hit: &horizon_client::mod_api::NativeHit) -> [i32; 3] {
+    let rel = [hit.x - f64::from(hit.block_x), hit.y - f64::from(hit.block_y), hit.z - f64::from(hit.block_z)];
+    let faces: [([i32; 3], f64); 6] = [
+        ([-1, 0, 0], rel[0]),
+        ([1, 0, 0], 1.0 - rel[0]),
+        ([0, -1, 0], rel[1]),
+        ([0, 1, 0], 1.0 - rel[1]),
+        ([0, 0, -1], rel[2]),
+        ([0, 0, 1], 1.0 - rel[2]),
+    ];
+    faces.iter().min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)).map(|(face, _)| *face).unwrap_or([0, 1, 0])
+}
+
 fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     let data = read_stack(stack);
     let mut slot = ItemSlot::new(crate::pure::base::Identifier::parse(&stack.item).ok()?, data.count);
@@ -2080,8 +3408,81 @@ fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     slot.attribute_modifiers = read_attribute_modifiers(stack);
     slot.enchantments = read_enchantments(stack);
     slot.custom_model_data = data.custom_model_data;
+    slot.profile = read_profile(stack);
+    slot.map_id = stack.data().and_then(|d| d.map_id);
     slot.capture(stack.clone());
     Some(slot)
+}
+
+/// A custom data compound in its JSON form, for transports that carry data as JSON (the loot
+/// function's stack keeps its components as JSON). The mirror of `nbt_from_json`: bytes and
+/// booleans have no JSON form of their own, so a byte rides as its number.
+fn json_from_compound(compound: &NbtCompound) -> serde_json::Value {
+    serde_json::Value::Object(compound.iter().map(|(key, value)| (key.clone(), json_value_from_nbt(value))).collect())
+}
+
+fn json_value_from_nbt(nbt: &Nbt) -> serde_json::Value {
+    match nbt {
+        Nbt::Byte(value) => serde_json::Value::from(*value),
+        Nbt::Short(value) => serde_json::Value::from(*value),
+        Nbt::Int(value) => serde_json::Value::from(*value),
+        Nbt::Long(value) => serde_json::Value::from(*value),
+        Nbt::Float(value) => serde_json::Number::from_f64(f64::from(*value)).map_or(serde_json::Value::Null, serde_json::Value::Number),
+        Nbt::Double(value) => serde_json::Number::from_f64(*value).map_or(serde_json::Value::Null, serde_json::Value::Number),
+        Nbt::ByteArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+        Nbt::String(value) => serde_json::Value::from(value.clone()),
+        Nbt::List(values) => serde_json::Value::Array(values.iter().map(json_value_from_nbt).collect()),
+        Nbt::Compound(compound) => json_from_compound(compound),
+        Nbt::IntArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+        Nbt::LongArray(values) => serde_json::Value::Array(values.iter().map(|value| serde_json::Value::from(*value)).collect()),
+    }
+}
+
+/// A loot roll's stack as an item slot: item, count, damage, enchantments and the
+/// `minecraft:custom_data` component (the one a loot function of a mod's own kind reads and
+/// writes); None for an item id PlutoLib cannot name.
+fn loot_slot_of(stack: &horizon_client::mod_api::LootStack) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&stack.item).ok()?, stack.count.max(0) as u32);
+    slot.damage = stack.damage.max(0) as u32;
+    if let Some((_, value)) = stack.components.iter().find(|(id, _)| id == "minecraft:custom_data") {
+        slot.custom_data = nbt_from_json(value);
+    }
+    if !stack.enchantments.is_empty() {
+        slot.enchantments = Some(stack.enchantments.iter().cloned().collect());
+    }
+    Some(slot)
+}
+
+/// Writes an item slot back over a loot roll's stack, the fields `loot_slot_of` read.
+fn write_loot_slot(stack: &mut horizon_client::mod_api::LootStack, slot: &ItemSlot) {
+    stack.item = slot.item.to_string();
+    stack.count = slot.count as i32;
+    stack.damage = slot.damage as i32;
+    stack.components.retain(|(id, _)| id != "minecraft:custom_data");
+    if !slot.custom_data.is_empty() {
+        stack.components.push(("minecraft:custom_data".to_owned(), json_from_compound(&slot.custom_data)));
+    }
+    if let Some(enchantments) = &slot.enchantments {
+        stack.enchantments = enchantments.iter().map(|(id, level)| (id.clone(), *level)).collect();
+    }
+}
+
+/// The dropping entity's own state for the loot callbacks: a mob's age, wool and kind read from its saved data, as the
+/// damage events read it; a player's name and id from the server's player list (the list names a player by entity id, 0
+/// for the owner of a single-player world, who is the acting player). None when the entity is not to be found, and the
+/// drops that depend on the state (a baby's, a sheared sheep's) then do not happen.
+fn loot_entity_facts(host: &mut dyn Host, id: u32, kind: &str) -> Option<loot_api_v2::LootEntityFacts> {
+    if kind == "minecraft:player" {
+        let player = host.server_players().into_iter().find(|player| player.entity_id == id as i32)
+            .or_else(|| host.acting_player().filter(|acting| acting.entity_id == id as i32 || acting.entity_id == 0))?;
+        return Some(loot_api_v2::LootEntityFacts {
+            player: Some(loot_api_v2::PlayerProfile { name: player.name.clone(), uuid: player.uuid }),
+            ..loot_api_v2::LootEntityFacts::default()
+        });
+    }
+    let entity = host.entity(id)?;
+    let data = host.entity_nbt(entity)?;
+    Some(loot_api_v2::facts_from_saved(&compound_from_tag(&data), kind))
 }
 
 /// Restore the source stack, not the destination's components, then apply public edits.
@@ -2118,6 +3519,14 @@ fn write_slot(stack: &mut ItemStack, slot: &ItemSlot) {
     // The stack's own model selection: the item definition's `select`/`range_dispatch`/`condition` read it from here.
     if slot.custom_model_data != read_custom_model_data(stack) {
         stack.data_mut().set_other("minecraft:custom_model_data", custom_model_data_tag(&slot.custom_model_data));
+    }
+    // The stack's own profile: a player head's owner, whose skin the head shows.
+    if slot.profile != read_profile(stack) {
+        stack.data_mut().set_other("minecraft:profile", slot.profile.as_ref().map(|profile| Tag::Compound(compound_to_tag(profile))));
+    }
+    // The stack's own map id: a filled map's identity, which the map tick and the map face read.
+    if slot.map_id != stack.data().and_then(|d| d.map_id) {
+        stack.data_mut().map_id = slot.map_id;
     }
     stack.tidy();
 }
@@ -2402,12 +3811,110 @@ impl ScreenCanvas for HostCanvas<'_> {
         self.host.sprite(self.batch, name, src, dst)
     }
 
+    fn sprite_tinted(&mut self, name: &str, src: [f32; 4], sheet: [f32; 2], dst: [f32; 4], argb: u32) -> bool {
+        // A zero-size probe: it draws nothing and answers whether the texture exists, which the
+        // paint call below (it returns nothing) cannot say.
+        if !self.host.sprite(self.batch, name, [0.0; 4], [0.0; 4]) { return false; }
+        let draw = horizon_client::hud_layout::GuiDraw::Blit {
+            texture: std::borrow::Cow::Owned(name.to_owned()),
+            blend: horizon_client::hud_layout::Blend::Textured,
+            x: dst[0].round() as i32, y: dst[1].round() as i32,
+            w: dst[2].round() as i32, h: dst[3].round() as i32,
+            uv: [src[0], src[1]], src: [src[2].round() as i32, src[3].round() as i32],
+            tex: [sheet[0].round() as i32, sheet[1].round() as i32], color: argb,
+        };
+        self.host.gui_paint(self.batch, &[draw]);
+        true
+    }
+
+    fn atlas_sprite(&mut self, name: &str, dst: [f32; 4], argb: u32) {
+        let draw = horizon_client::hud_layout::GuiDraw::AtlasSprite {
+            sprite: std::borrow::Cow::Owned(name.to_owned()),
+            x: dst[0].round() as i32, y: dst[1].round() as i32,
+            w: dst[2].round() as i32, h: dst[3].round() as i32, color: argb,
+        };
+        self.host.gui_paint(self.batch, &[draw]);
+    }
+
+    fn item(&mut self, item: &ItemSlot, at: [f32; 2], size: f32) -> bool {
+        let mut stack = ItemStack::new(&item.item.to_string(), item.count);
+        write_slot(&mut stack, item);
+        self.host.item_stack(self.batch, &stack, at, size)
+    }
+
     fn text(&mut self, text: &str, at: [f32; 2], rgb: u32, shadow: bool) {
         self.host.text(self.batch, text, at, rgb, shadow);
     }
 
     fn text_width(&self, text: &str) -> f32 {
         self.host.text_width(text)
+    }
+
+    fn scene(&mut self, rect: [f32; 4], blocks: &[screen_handler_api_v1::SceneBlock], view: &screen_handler_api_v1::SceneView) {
+        // The host draws a scene of block states resolved by name. Its state table names a state's
+        // properties only one state at a time (there is no block-plus-properties lookup), so each block
+        // resolves to its block's default state: a scene block whose properties the default state does
+        // not carry draws in the default state. The structure templates this serves are built of default
+        // states but for facings, which the turn of the view makes cosmetic.
+        let entities: Vec<Option<horizon_client::mod_api::ModBlockEntity>> = blocks.iter().map(|block| {
+            block.entity.as_ref().map(|entity| {
+                horizon_client::mod_api::ModBlockEntity::new(horizon_client::containers::ModBlockEntityFields {
+                    id: entity.block.to_string(),
+                    nbt: compound_to_tag(&entity.data),
+                    items: entity.items.iter().map(|slot| {
+                        slot.as_ref().map(|slot| {
+                            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+                            write_slot(&mut stack, slot);
+                            stack
+                        })
+                    }).collect(),
+                    data: Vec::new(),
+                })
+            })
+        }).collect();
+        let native: Vec<horizon_client::mod_api::NativeSceneBlock<'_>> = blocks.iter().zip(&entities).filter_map(|(block, entity)| {
+            let state = self.host.default_state(&block.block.block.to_string())?;
+            Some(horizon_client::mod_api::NativeSceneBlock { pos: block.pos, state, entity: entity.as_ref() })
+        }).collect();
+        if native.is_empty() {
+            return;
+        }
+        self.host.draw_scene(self.batch, rect, &native, horizon_client::mod_api::NativeSceneView {
+            center: view.center,
+            yaw: view.yaw,
+            pitch: view.pitch,
+            scale: view.scale,
+        });
+    }
+
+    fn living(&mut self, rect: [f32; 4], preview: &screen_handler_api_v1::LivingPreview) {
+        // The batch a screen draws into has no living-entity reach of its own: the request is
+        // queued with the host module, whose flush at the end of the screen's draw renders it
+        // with the game's own preview path (the smithing screen's stand) while the game, not
+        // just the batch, is at hand.
+        let item = preview.item.as_ref().map(|slot| {
+            let mut stack = ItemStack::new(&slot.item.to_string(), slot.count);
+            write_slot(&mut stack, slot);
+            stack
+        });
+        horizon_client::game::pluto_living_preview::queue(horizon_client::game::pluto_living_preview::QueuedPreview {
+            rect,
+            kind: preview.kind.to_string(),
+            item,
+            yaw: preview.yaw,
+            arms: preview.arms,
+            base_plate: preview.base_plate,
+        });
+    }
+
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        // As with the living preview, the batch has no map reach of its own: the request is
+        // queued with the host module, whose flush at the end of the HUD's draw renders the
+        // map's face from its texture while the game is at hand. The stack is rebuilt whole,
+        // so the map id it carries in its data reaches the flush with it.
+        let mut native = ItemStack::new(&stack.item.to_string(), stack.count);
+        write_slot(&mut native, stack);
+        horizon_client::game::pluto_map_face::queue(horizon_client::game::pluto_map_face::QueuedMapFace { rect, stack: native });
     }
 }
 
@@ -2621,6 +4128,25 @@ impl<T: horizon_client::entry::pluto_block::RootEdit + ?Sized> crate::pure::worl
     }
 }
 
+/// Place a native tree configuration whose root placer or decorators are
+/// registered component types. The host tree codec decodes only native
+/// component types, so such a configuration cannot be placed natively at
+/// all; decode the components through the worldgen registries and place the
+/// tree explicitly, as the vanilla registries resolve them during configured
+/// feature placement. None means the configuration names no registered
+/// component and native placement keeps it, including its errors.
+fn routed_tree(world: &mut dyn horizon_client::entry::pluto_block::LevelEdit, configuration: &serde_json::Value, origin: [i32; 3]) -> Option<bool> {
+    use crate::pure::block_api_v1::BlockEditor as _;
+    match crate::pure::worldgen_api_v1::native_tree_route(configuration) {
+        Ok(Some(route)) => Some(GameEditor(world).place_tree_with_plan(&route.configuration, origin, route.roots.as_ref(), &route.plan)),
+        Ok(None) => None,
+        Err(error) => {
+            eprintln!("pluto_lib: tree configuration rejected: {error}");
+            Some(false)
+        }
+    }
+}
+
 fn direction(face: u8) -> block_api_v1::Direction {
     block_api_v1::Direction::ALL[usize::from(face).min(5)]
 }
@@ -2686,6 +4212,10 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         let state = to_state(state)?;
         let block = state.block.to_string();
         block_api_v1::can_bonemeal(&block, &block_api_v1::BonemealContext { state, pos, view: &GameView(view) })
+    }
+    fn fire_odds(state: &StateInfo) -> Option<(i32, i32)> {
+        let state = to_state(state)?;
+        block_api_v1::fire_odds(&state.block.to_string())
     }
     fn bonemeal_success(world: &mut dyn LevelEdit, state: &StateInfo, pos: [i32; 3]) -> Option<bool> {
         let state = to_state(state)?;
@@ -2783,6 +4313,7 @@ fn block_sink() -> horizon_client::entry::pluto_block::Sink {
         bonemeal_success,
         bonemeal_perform,
         may_place_on,
+        fire_odds,
     }
 }
 
@@ -2792,6 +4323,79 @@ impl Hooks for PlutoHooks {
     }
     fn client_disconnecting(&self, _host: &dyn Host, _event: &mut horizon_client::mod_api::ClientDisconnectingEvent) {
         networking_api_v1::client_disconnecting();
+    }
+    fn compute_fov_modifier(&self, host: &dyn Host, event: &mut ComputeFovModifierEvent<'_>) {
+        // The FOV callbacks read the local player's own equipment: on a client the
+        // host's `equipment` answers for the player themselves, as a worn overlay
+        // reads it. A slot that holds no stack, or a stack PlutoLib cannot name,
+        // is absent from the facts.
+        let mut held: Vec<(FovSlot, ItemSlot)> = Vec::new();
+        for (slot, fov_slot) in [(EquipmentSlot::Feet, FovSlot::Feet), (EquipmentSlot::Legs, FovSlot::Legs),
+            (EquipmentSlot::Chest, FovSlot::Chest), (EquipmentSlot::Head, FovSlot::Head),
+            (EquipmentSlot::MainHand, FovSlot::MainHand), (EquipmentSlot::OffHand, FovSlot::OffHand)] {
+            if let Some(view) = host.equipment(slot).and_then(|stack| slot_of(&stack)) { held.push((fov_slot, view)); }
+        }
+        let stacks: Vec<FovStack<'_>> = held.iter().map(|(slot, stack)| FovStack { slot: *slot, stack }).collect();
+        let facts = fov_api_v1::FovFacts {
+            base: event.base, flying: event.player.flying, walking_speed: event.player.walking_speed,
+            movement_speed: event.player.movement_speed, stacks: &stacks,
+            using_ticks: event.player.using.map(|(_, ticks)| ticks),
+            keybind_zoom: fov_api_v1::keybind_zoom(),
+        };
+        if let Some(factor) = fov_api_v1::fov_multiplier(&facts) { event.modifier *= factor; }
+    }
+    fn world_primitives(&self, host: &dyn Host, event: &mut WorldPrimitivesEvent<'_>) {
+        // The highlight providers read the local player's own view: the stack in the
+        // main hand, the block the view rests on and the blocks around it, read
+        // through the host on the client, as the FOV transport reads equipment.
+        // A frame with no player in a world outlines nothing; the game never asks
+        // on the title screen, and draws the target's own outline itself.
+        let Some(player) = host.player() else { return };
+        let main_hand = host.equipment(EquipmentSlot::MainHand).and_then(|stack| slot_of(&stack));
+        let target = host.view_hit().and_then(|(distance, hit)| {
+            Some(highlight_api_v1::HighlightTarget {
+                pos: [hit.block_x, hit.block_y, hit.block_z],
+                face: hit_face(&hit),
+                block: Identifier::parse(&hit.block).ok()?,
+                distance,
+            })
+        });
+        // The block reach for the player's game mode: no host read states the local
+        // player's mode on the render path, so the mode is the one the game's mode
+        // setter last left (recorded by the pluto-highlight-mode reach, which runs
+        // on every path that sets the local mode: a world opening, /gamemode, a LAN
+        // mode). The setter runs before the first rendered frame of a world, and
+        // survival is the recorded default, so the reach is current in practice.
+        let block_reach = highlight_api_v1::block_reach_for_mode(horizon_client::entry::pluto_highlight_mode::mode());
+        // The world border the original checks each outlined block against: the
+        // host states it for the player's dimension, and states none off a server
+        // (a remote client has no border of its own) — where there is none, every
+        // position counts as inside, as the original's border is the world's own.
+        // The check is the original's `isWithinBounds` (the border is two
+        // dimensional; height is never checked).
+        let border = host.world_border(player.dimension);
+        let in_world_border = move |pos: [i32; 3]| {
+            let Some([min_x, min_z, max_x, max_z]) = border else { return true };
+            (f64::from(pos[0]) + 1.0) > min_x && f64::from(pos[0]) < max_x && (f64::from(pos[2]) + 1.0) > min_z && f64::from(pos[2]) < max_z
+        };
+        let block_at = |pos: [i32; 3]| Identifier::parse(&host.block(pos)).ok();
+        let in_tag_at = |pos: [i32; 3], tag: &Identifier| {
+            block_at(pos).is_some_and(|block| host.block_name_in_tag(&block.to_string(), &tag.to_string()).unwrap_or(false))
+        };
+        let facts = highlight_api_v1::HighlightFacts {
+            main_hand: main_hand.as_ref(),
+            target,
+            yaw: player.yaw,
+            pitch: player.pitch,
+            block_reach,
+            in_world_border: &in_world_border,
+            block_at: &block_at,
+            in_tag_at: &in_tag_at,
+        };
+        for pos in highlight_api_v1::highlight_positions(&facts) {
+            let min = [f64::from(pos[0]), f64::from(pos[1]), f64::from(pos[2])];
+            event.primitives.box_outline(min, [min[0] + 1.0, min[1] + 1.0, min[2] + 1.0], highlight_api_v1::OUTLINE_ARGB, highlight_api_v1::OUTLINE_WIDTH);
+        }
     }
     fn net_from_client(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::NetFromClientEvent<'_>) {
         scoped(host, || networking_api_v1::from_client(event.player, event.channel, event.data));
@@ -2820,11 +4424,79 @@ impl Hooks for PlutoHooks {
         if event.entity.is_some() || !item_api_v1::has_stack_use(&event.stack.item) { return Flow::Continue; }
         let stack = read_stack(event.stack);
         let acting = host.acting_player();
+        // A new use begins: ends queued for the player's earlier uses go stale (see pluto_use_stop_access).
+        if let Some(player) = &acting { horizon_client::entry::pluto_use_stop_access::begin_use(player.uuid); }
         let (hungry, creative) = match &acting {
             Some(player) => (host.player_food(player.uuid).is_none_or(|(level, _, _)| level < 20), player.game_mode == 1),
             None => (true, false),
         };
         if item_api_v1::stack_use_may_start(&stack, hungry, creative) { Flow::Continue } else { Flow::Cancel }
+    }
+
+    /// A player let go of an item they were using (API 131): the charge a callback throws or shoots by is the use's
+    /// full time less the ticks left, and what it spends from the player's hands is written back as carried edits, as
+    /// an ammunition callback spends its source. Only a player's release is heard, and only when a callback listens.
+    fn release_using(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ReleaseUsingEvent<'_>) {
+        if event.entity.is_some() || !item_api_v1::release_heard() { return; }
+        let Some(player) = host.acting_player() else { return };
+        let stack = read_stack(event.stack);
+        let total = item_api_v1::stack_use_duration(&stack)
+            .or_else(|| item_api_v1::ItemUseRegistry::get(&stack.item).map(|used| used.use_time))
+            .unwrap_or(0);
+        let release = item_api_v1::ReleaseUsing {
+            stack,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            eye: [player.position[0], player.position[1] + f64::from(player.eye_height), player.position[2]],
+            look: {
+                let yaw = f64::from(player.yaw).to_radians();
+                let pitch = f64::from(player.pitch).to_radians();
+                [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+            },
+            creative: player.game_mode == 1,
+            ticks_used: (total - event.time_left as i32).max(0) as u32,
+            main_hand: host.held_stack(player.uuid).and_then(|stack| slot_of(&stack)),
+            off_hand: host.player_equipment(player.uuid, horizon_client::mod_api::EquipmentSlot::OffHand).and_then(|stack| slot_of(&stack)),
+            used: std::cell::Cell::new(false),
+            edits: std::cell::RefCell::new(Vec::new()),
+        };
+        // The callbacks see the world and the entities around the player, as a projectile
+        // impact's do: a release can search for what it acts on (a sling's bonk target).
+        let handle = HostHandle::new(host);
+        let dimension = release.dimension.clone();
+        let (used, edits) = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || item_api_v1::released(&release)));
+        if used { event.used = true; }
+        if !edits.is_empty() { apply_carried_edits(host, player.uuid, edits); }
+    }
+
+    /// One tick of a player's use of an item (API 131): heard only for the using player and only
+    /// when a callback listens, as the release is. The tick itself moves nothing: a callback ends
+    /// the use through the player's release and stop calls, which the game applies at its seam.
+    fn living_entity_use_item_tick(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingEntityUseItemTickEvent<'_>) -> Flow {
+        if event.entity.is_some() || !item_api_v1::use_tick_heard() { return Flow::Continue; }
+        let Some(player) = host.acting_player() else { return Flow::Continue; };
+        let stack = read_stack(event.stack);
+        let total = item_api_v1::stack_use_duration(&stack)
+            .or_else(|| item_api_v1::ItemUseRegistry::get(&stack.item).map(|used| used.use_time))
+            .unwrap_or(0);
+        let tick = item_api_v1::UseTick {
+            stack,
+            player: player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() },
+            dimension: player.dimension.to_string(),
+            position: player.position,
+            eye: [player.position[0], player.position[1] + f64::from(player.eye_height), player.position[2]],
+            look: {
+                let yaw = f64::from(player.yaw).to_radians();
+                let pitch = f64::from(player.pitch).to_radians();
+                [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+            },
+            creative: player.game_mode == 1,
+            ticks_used: (total - event.duration).max(0) as u32,
+            duration: total as u32,
+        };
+        scoped(host, || item_api_v1::using_tick(&tick));
+        Flow::Continue
     }
 
     fn use_animation(&self, _host: &dyn Host, event: &mut UseAnimationEvent<'_>) {
@@ -3026,12 +4698,21 @@ impl Hooks for PlutoHooks {
         if matches!(outcome.result, ActionResult::Pass) { Flow::Continue } else { Flow::Cancel }
     }
 
-    fn menu_button_v2(&self, _host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
+    fn menu_button_v2(&self, host: &mut dyn Host, event: &mut MenuButtonV2Event<'_>) {
         let (pos, button) = (event.pos, event.id);
         let Some(block) = block_entity_api_v1::block_of(&event.entity.id) else { return };
         let mut carried: Option<ItemSlot> = event.carried.as_ref().and_then(slot_of);
         let before = carried.clone();
-        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried));
+        let mut switch: Option<[i32; 3]> = None;
+        with_block_entity(event.entity, |data, items| screen_handler_api_v1::press(&block, pos, button, data, items, &mut carried, &mut switch));
+        // A menu switch the button asked for (a tabbed table's tab): the game-side module
+        // applies it at the end of this press, where the game is at hand (pluto-menu-switch).
+        // The presser travels with it — the acting player is the guest during a guest's press —
+        // so the local flush takes only the local player's switches and the guest flush takes
+        // the guest's.
+        if let Some(target) = switch {
+            horizon_client::game::pluto_menu_switch::queue(pos, target, host.acting_player().map(|player| player.uuid));
+        }
         if carried != before {
             *event.carried = carried.filter(|s| s.count > 0).map(|s| {
                 let mut stack = ItemStack::new(&s.item.to_string(), s.count);
@@ -3078,6 +4759,62 @@ impl Hooks for PlutoHooks {
     fn menu_slot_rules(&self, event: &mut MenuSlotRulesEvent<'_>) {
         let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
         screen_handler_api_v1::slot_rules(&block, event.slot, &event.stack.item, event.stack.count, &mut event.may_place, &mut event.max_stack);
+    }
+
+    /// A click in a menu a mod opened, which moved nothing: the click is the mod's to answer, and
+    /// the menu's slots it holds are the native menu's own.
+    fn menu_clicked(&self, host: &mut dyn Host, event: &mut MenuClickedEvent) {
+        scoped(host, || screen_handler_api_v1::menu_clicked(event.uuid, event.window, event.slot, event.button, event.mode));
+    }
+
+    /// A menu a mod opened closed, for any reason.
+    fn menu_closed(&self, host: &mut dyn Host, event: &mut MenuClosedEvent) {
+        scoped(host, || screen_handler_api_v1::menu_closed(event.uuid, event.window));
+    }
+
+    /// The input slots of a menu a mod opened as the player left them: what the pure callbacks take
+    /// is what the mod keeps, and what stays goes back to the player, so only the taken slots are
+    /// cleared on the host's copy.
+    fn menu_input_closed(&self, host: &mut dyn Host, event: &mut MenuInputClosedEvent<'_>) {
+        let mut slots: Vec<Option<ItemSlot>> = event.slots.iter().map(|stack| stack.as_ref().and_then(slot_of)).collect();
+        // Only a slot the pure side could name and the callbacks took is cleared: a stack no slot
+        // could name stays for the player, never silently dropped.
+        let had = slots.iter().map(Option::is_some).collect::<Vec<_>>();
+        scoped(host, || screen_handler_api_v1::menu_input_closed(event.uuid, event.window, &mut slots));
+        for (index, kept) in slots.iter().enumerate() {
+            if had[index] && kept.is_none() {
+                event.slots[index] = None;
+            }
+        }
+    }
+
+    /// The containers a window's linked slots show: the neighbour block entities its layout
+    /// declares, in declaration order, or — for a window with a menu-links callback — the
+    /// containers the callback names for this menu (it looks for them with the neighbours'
+    /// reach open, as a ticker reads them). The host asks each tick while the menu is open and
+    /// passes by anything that is not a container, so a neighbour slot with nothing behind it
+    /// simply holds nothing and takes nothing.
+    fn menu_links(&self, host: &mut dyn Host, event: &mut MenuLinksEvent<'_>) {
+        let Some(block) = block_entity_api_v1::block_of_menu(event.menu) else { return };
+        if screen_handler_api_v1::has_menu_links(&block) {
+            let dimension = host.dimension().to_owned();
+            let handle = HostHandle::new(host);
+            // A links callback may read block states and tags (a melter's fuel-tanks-only
+            // link asks whether the block below is in a tag): give it the world scope the
+            // neighbours scope nests in, as a placement does.
+            let named = world_api_v1::with_world(&mut HostWorld(handle), || {
+                neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension }, || {
+                    screen_handler_api_v1::menu_links(&block, event.pos)
+                })
+            });
+            if let Some(positions) = named {
+                event.links.extend(positions);
+                return;
+            }
+        }
+        for offset in screen_handler_api_v1::neighbour_sources(&block) {
+            event.links.push([event.pos[0] + offset[0], event.pos[1] + offset[1], event.pos[2] + offset[2]]);
+        }
     }
 
     fn menu_quick_move(&self, _host: &mut dyn Host, event: &mut MenuQuickMoveEvent<'_>) -> Flow {
@@ -3159,15 +4896,39 @@ impl Hooks for PlutoHooks {
         screen.inventory_x = layout.inventory_x;
         screen.own_labels = layout.own_labels;
         screen.own_background = layout.own_background;
-        if screen_handler_api_v1::has_dynamic_slots(event.block) {
-            horizon_client::game::pluto_dynamic_screen_slots::set_resolver(resolve_dynamic_screen_slots);
-        }
+        // The resolver is set for every mod menu, not only the dynamic-slot ones: the refresh
+        // it answers is also what keeps the client's view of the menu's items and data (see
+        // `resolve_dynamic_screen_slots`), which the draw and scroll callbacks read.
+        horizon_client::game::pluto_dynamic_screen_slots::set_resolver(resolve_dynamic_screen_slots);
         Some(screen)
     }
 
     fn screen_draw(&self, host: &dyn Host, event: &mut ScreenDrawEvent<'_>) {
         let mut canvas = HostCanvas { host, batch: &mut *event.batch };
-        screen_handler_api_v1::draw(event.block, event.origin, event.data, &mut canvas);
+        screen_handler_api_v1::draw(event.block, event.origin, event.data, host.cursor(), &mut canvas);
+        // Equipment-sourced slots ride the menu's armor slots over the player's equipment (they
+        // click through the native armor behaviour): draw the acting player's worn pieces at
+        // their places from the live equipment, as the HUD draw reads it — the menu slot mirrors
+        // it, and the live read never lags a sync.
+        let Some(layout) = screen_handler_api_v1::layout(event.block) else { return };
+        if !layout.sources.iter().any(|source| matches!(source, screen_handler_api_v1::SlotSource::PlayerEquipment(_))) {
+            return;
+        }
+        let Some(player) = host.acting_player() else { return };
+        for (index, source) in layout.sources.iter().enumerate() {
+            let screen_handler_api_v1::SlotSource::PlayerEquipment(kind) = source else { continue };
+            let Some(position) = layout.slots.get(index).copied().flatten() else { continue };
+            let slot = match kind {
+                screen_handler_api_v1::EquipmentSlotKind::Head => EquipmentSlot::Head,
+                screen_handler_api_v1::EquipmentSlotKind::Chest => EquipmentSlot::Chest,
+                screen_handler_api_v1::EquipmentSlotKind::Legs => EquipmentSlot::Legs,
+                screen_handler_api_v1::EquipmentSlotKind::Feet => EquipmentSlot::Feet,
+                screen_handler_api_v1::EquipmentSlotKind::OffHand => EquipmentSlot::OffHand,
+            };
+            if let Some(stack) = host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack)) {
+                canvas.item(&stack, [event.origin[0] + position[0], event.origin[1] + position[1]], 16.0);
+            }
+        }
     }
 
     fn screen_click(&self, _host: &dyn Host, event: &mut ScreenClickEvent<'_>) -> Option<i32> {
@@ -3176,6 +4937,46 @@ impl Hooks for PlutoHooks {
 
     fn screen_tooltip(&self, _host: &dyn Host, event: &mut ScreenTooltipEvent<'_>) {
         screen_handler_api_v1::tooltip(event.block, event.at, event.data, event.lines);
+    }
+
+    fn hud(&self, host: &mut dyn Host, event: &mut HudEvent<'_>) {
+        if !hud_api_v1::has_hud() {
+            return;
+        }
+        let size = [event.batch.width, event.batch.height];
+        let inventory: Vec<Option<ItemSlot>> = host
+            .own_inventory()
+            .map(|stacks| stacks.iter().map(|stack| stack.as_ref().and_then(slot_of)).collect())
+            .unwrap_or_default();
+        // The acting player on the client is the local player; without one (a server, a menu
+        // without a world) the equipment simply reads empty and the callbacks draw nothing.
+        let mut equipment = hud_api_v1::HudEquipment { right_handed: true, ..hud_api_v1::HudEquipment::default() };
+        let mut spectator = false;
+        let mut effects: Vec<hud_api_v1::HudEffect> = Vec::new();
+        if let Some(player) = host.acting_player() {
+            spectator = player.game_mode == 3;
+            let worn = |slot| host.player_equipment(player.uuid, slot).filter(|stack| stack.count > 0).and_then(|stack| slot_of(&stack));
+            equipment.head = worn(EquipmentSlot::Head);
+            equipment.chest = worn(EquipmentSlot::Chest);
+            equipment.legs = worn(EquipmentSlot::Legs);
+            equipment.feet = worn(EquipmentSlot::Feet);
+            equipment.offhand = worn(EquipmentSlot::OffHand);
+            equipment.main_hand = worn(EquipmentSlot::MainHand);
+            // The player's active effects, for the original's effect shift at the top right: an
+            // effect the catalog does not know counts as not beneficial (the shift that keeps the
+            // icons from overlapping), and only an effect that shows its icon shifts anything
+            // (ModifierClientEvents.getEffectOffset counts showIcon, not ambient: an ambient
+            // effect with an icon — a beacon's, the piggyback carry — shifts as the original
+            // does. The original also asks the effect's client extension whether it shows in
+            // the GUI; the host carries no such extension, so every effect counts as visible
+            // there, which is the extension's default).
+            effects = host.effects(player.uuid).map(|active| active.iter().map(|effect| {
+                let beneficial = horizon_client::pluto_potions::effect(&effect.id).map(|facts| facts.beneficial).unwrap_or(false);
+                hud_api_v1::HudEffect { beneficial, visible: effect_shows_icon(&effect.id) }
+            }).collect()).unwrap_or_default();
+        }
+        let mut canvas = HostCanvas { host, batch: event.batch };
+        hud_api_v1::draw_hud(&mut canvas, size, &inventory, &equipment, spectator, &effects);
     }
 
     fn screen_render_post(&self, host: &dyn Host, event: &mut ScreenRenderPostEvent<'_>) {
@@ -3197,6 +4998,13 @@ impl Hooks for PlutoHooks {
             book_api_v1::BookClick::NextPage => view.next_page(&book),
             book_api_v1::BookClick::PrevPage => view.prev_page(&book),
             book_api_v1::BookClick::Section(section) => view.goto_section(&book, section),
+            book_api_v1::BookClick::Page(page) => {
+                let moved = page < book.page_count() && view.page != page;
+                if moved {
+                    view.page = page;
+                }
+                moved
+            }
             book_api_v1::BookClick::None => return Flow::Continue,
         };
         if turned {
@@ -3206,6 +5014,15 @@ impl Hooks for PlutoHooks {
     }
 
     fn screen_mouse_scrolled_pre(&self, host: &dyn Host, event: &mut ScreenMouseScrolledPreEvent<'_>) -> Flow {
+        // A mod menu that hears the wheel gets the roll first, over its own scrolling state.
+        if let Some(block) = menu_block(event.screen) {
+            if screen_handler_api_v1::has_scroll(&block)
+                && screen_handler_api_v1::scroll(&block, screen_at(event.screen), [event.scroll[0] as f32, event.scroll[1] as f32])
+            {
+                return Flow::Cancel;
+            }
+            return Flow::Continue;
+        }
         if !book_screen_is_ours(host, event.screen.id) {
             return Flow::Continue;
         }
@@ -3224,7 +5041,30 @@ impl Hooks for PlutoHooks {
         Flow::Cancel
     }
 
+    fn screen_char_typed_pre(&self, host: &dyn Host, event: &mut ScreenCharTypedPreEvent<'_>) -> Flow {
+        // A mod menu with a text field hears the typed characters while it is open.
+        if let Some(block) = menu_block(event.screen) {
+            return if screen_handler_api_v1::has_text_input(&block) && screen_handler_api_v1::char_typed(&block, event.c) {
+                Flow::Cancel
+            } else {
+                Flow::Continue
+            };
+        }
+        let _ = host;
+        Flow::Continue
+    }
+
     fn screen_key_pressed_pre(&self, host: &dyn Host, event: &mut ScreenKeyPressedPreEvent<'_>) -> Flow {
+        // A mod menu with a text field hears key presses (backspace, enter, ...) while open.
+        if let Some(block) = menu_block(event.screen) {
+            return if screen_handler_api_v1::has_text_input(&block)
+                && screen_handler_api_v1::key_pressed(&block, &event.key.to_ascii_lowercase())
+            {
+                Flow::Cancel
+            } else {
+                Flow::Continue
+            };
+        }
         if !book_screen_is_ours(host, event.screen.id) {
             return Flow::Continue;
         }
@@ -3253,6 +5093,11 @@ impl Hooks for PlutoHooks {
     }
 
     fn screen_closing(&self, host: &dyn Host, event: &mut ScreenClosingEvent<'_>) {
+        // A closing container screen forgets the client's view of its menu's state, so a later
+        // menu of the same block never draws with the earlier one's items.
+        if let Some(block) = menu_block(event.screen) {
+            screen_handler_api_v1::forget_menu_state(&block);
+        }
         if event.screen.id != "mod" {
             return;
         }
@@ -3278,8 +5123,15 @@ impl Hooks for PlutoHooks {
 
     fn projectile_impact(&self, host: &mut dyn Host, event: &mut ProjectileImpactEvent<'_>) -> Flow {
         // The native telling names the hit, not the projectile's flight: its motion and its saved data
-        // are read off the live entity while it is still here.
+        // are read off the live entity while it is still here. The target's effects are read the same
+        // way, off the entity it hit: the impact telling carries them so a callback can decide whether
+        // the target may be hit at all (the original's enderference gate).
         let entity = host.entity(event.projectile);
+        let entity_effects = event.entity
+            .and_then(|id| host.entity(id))
+            .and_then(|entity| host.entity_effects(entity))
+            .map(|effects| effects.into_iter().map(|(id, _, _)| id).collect())
+            .unwrap_or_default();
         let hit = ProjectileImpact {
             dimension: event.dimension.to_owned(),
             projectile: event.projectile,
@@ -3287,13 +5139,16 @@ impl Hooks for PlutoHooks {
             owner: i64::from(event.owner),
             entity: event.entity,
             entity_kind: event.entity_kind.to_owned(),
+            entity_effects,
             block: event.block,
             face: event.face,
             at: event.at,
             motion: entity.and_then(|entity| host.entity_velocity(entity)).unwrap_or([0.0; 3]),
             data: entity.and_then(|entity| host.entity_nbt(entity)).map(|data| compound_from_tag(&data)).unwrap_or_default(),
+            piercing_ignored: horizon_client::entry::pluto_projectile_impact_access::take(event.projectile).unwrap_or_default(),
             discard: std::cell::Cell::new(false),
             motion_after: std::cell::RefCell::new(None),
+            ignore_entities: std::cell::RefCell::new(Vec::new()),
             actions: std::cell::RefCell::new(Vec::new()),
         };
         // The callbacks see the world and the entities around the hit, as a block entity tick does;
@@ -3311,7 +5166,16 @@ impl Hooks for PlutoHooks {
         }
         // What the callbacks settled on the projectile itself, done as the hook returns: a discard
         // removes it (the game's own remove call, which discards projectiles), a new motion sends it
-        // flying on — the bounce a cancelled hit turns into.
+        // flying on — the bounce a cancelled hit turns into. And what a callback recorded as passed
+        // through goes to the game's own ignore list, through the impact access: the flight pass adds
+        // it as the tick settles, before the projectile flies again. A discarded projectile needs no
+        // record — it is gone — so only a live one records.
+        if !hit.discard.get() {
+            let recorded: Vec<u32> = hit.ignore_entities.borrow_mut().drain(..).collect();
+            if !recorded.is_empty() {
+                horizon_client::entry::pluto_projectile_impact_access::record(event.projectile, recorded);
+            }
+        }
         if hit.discard.get() {
             host.remove_entity(event.dimension, event.projectile);
         } else if let Some(motion) = hit.motion_after.borrow_mut().take() {
@@ -3323,6 +5187,14 @@ impl Hooks for PlutoHooks {
     }
 
     fn projectile_launch(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::ProjectileLaunchEvent<'_>) {
+        // The launcher's tool is remembered for the kill its projectile may make: the death
+        // report names the projectile, not its float, and the launch is the only moment the
+        // tool is in hand. A launch no player made (a dispenser, a mob) names no tool.
+        if let Some(player) = event.player {
+            if let Some(tool) = host.held_stack(player).map(|stack| read_stack(&stack)) {
+                entity_events_v1::note_projectile_tool(event.entity, tool);
+            }
+        }
         if !projectile_events_v1::launch_heard() { return; }
         let entity = host.entity(event.entity);
         let launch = projectile_events_v1::ProjectileLaunch {
@@ -3400,15 +5272,19 @@ impl Hooks for PlutoHooks {
             return Flow::Continue;
         }
         let player = host.acting_player();
+        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
+        let creative = player.as_ref().map_or(false, |player| player.game_mode == 1);
         let context = events_interaction_v0::UseItemOnEntityContext {
             entity: event.entity,
             kind: event.kind.to_owned(),
+            dimension: dimension.clone(),
             hand: match event.hand { Hand::Off => events_interaction_v0::Hand::Off, _ => events_interaction_v0::Hand::Main },
             held: event.stack.map(read_stack),
             player: player.as_ref().map(|player| player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            player_dimension: dimension.clone(),
+            creative,
             actions: std::cell::RefCell::new(Vec::new()),
         };
-        let dimension = player.as_ref().map_or_else(|| host.dimension().to_owned(), |player| player.dimension.to_string());
         let handle = HostHandle::new(host);
         let handled = scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || events_interaction_v0::use_item_on_entity(&context)));
         let actions = context.actions.take();
@@ -3462,6 +5338,19 @@ impl Hooks for PlutoHooks {
     }
 
     fn entity_tick_post(&self, host: &mut dyn Host, event: &mut EntityTickPostEvent<'_>) {
+        // The actions a damage callback queued for this entity (a mob party of a hit, which no player's tick
+        // can place) land on the entity's own tick, in its dimension.
+        for (attacker, victim, action) in entity_events_v1::take_late_actions(event.entity as i32) {
+            apply_entity_actions(host, event.dimension, attacker, victim, vec![action]);
+        }
+        // A mob's tick is heard here, on the entity's own tick, for every living entity that is not a player; the
+        // report is built only when a callback hears it. The world and entity scopes are open while it runs.
+        if entity_events_v1::mob_tick_heard() && event.kind != "minecraft:player" {
+            if let Some(tick) = build_mob_tick(host, event.entity, event.kind, event.dimension) {
+                let handle = HostHandle::new(host);
+                scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension: event.dimension.to_owned() }, || entity_events_v1::mob_tick(&tick)));
+            }
+        }
         if !entity_events_v1::entity_tick_heard() {
             return;
         }
@@ -3495,14 +5384,21 @@ impl Hooks for PlutoHooks {
     fn loot_drops(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LootDropsEvent<'_>) {
         // The game's own death-loot path (pluto-living-drops-game) calls the hook for a mob's table drops; heads claimed through the living-drops
         // callbacks are appended outside it, so this hook only sees and changes the stacks the game passes here.
+        // The experience report that follows in the same call names no player; the killer this
+        // context names is remembered for it (see entity_events_v1::take_experience_attacker).
+        if let (Some((id, _)), Some(player)) = (event.context.entity, event.context.player) {
+            entity_events_v1::note_experience_attacker(id as i32, player);
+        }
         if !loot_api_v2::drops_heard() { return; }
         let Some(slots) = event.drops.iter().map(slot_of).collect::<Option<Vec<ItemSlot>>>() else { return };
         let before = slots.clone();
         let context = &*event.context;
+        let entity_facts = context.entity.as_ref().and_then(|(id, kind)| loot_entity_facts(host, *id, kind));
         let drops = loot_api_v2::LootDrops {
             table: context.table.to_owned(), dimension: context.dimension.to_owned(), origin: context.origin,
             block: context.block.as_ref().map(|(pos, _)| *pos),
             entity: context.entity.as_ref().map(|(id, kind)| (*id, (*kind).to_owned())),
+            entity_facts,
             player: context.player, tool: context.tool.map(|stack| read_stack(stack)), explosion: context.explosion, used: context.used,
             drops: std::cell::RefCell::new(slots), actions: std::cell::RefCell::new(Vec::new()),
         };
@@ -3512,6 +5408,54 @@ impl Hooks for PlutoHooks {
         if after != before {
             *event.drops = after.into_iter().filter_map(|slot| native_slot(Some(slot))).collect();
         }
+    }
+
+    fn living_experience_drop(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingExperienceDropEvent<'_>) {
+        // The game's experience report names no player: the killer is the one the death loot
+        // report in the same call named (see the note in `loot_drops`).
+        let attacker = entity_events_v1::take_experience_attacker(event.entity as i32);
+        // The killing blow's direct entity, remembered from the damage that landed it: a
+        // projectile there names the stack it was launched from, taken before the heard check
+        // like the attacker above, so an unheard drop leaves no note behind.
+        let direct = entity_events_v1::take_killing_direct(event.entity as i32);
+        let projectile_tool = direct.filter(|direct| *direct >= 0).and_then(|direct| u32::try_from(direct).ok()).and_then(entity_events_v1::take_projectile_tool);
+        if !entity_events_v1::experience_drop_heard() { return; }
+        let player = attacker.and_then(|uuid| host.server_players().into_iter().find(|player| player.uuid == uuid).map(|player| (uuid, player.entity_id)));
+        let looting_slot = player.and_then(|(uuid, _)| entity_events_v1::take_looting_slot(uuid));
+        let effects = host.entity(event.entity).and_then(|entity| host.entity_effects(entity)).unwrap_or_default().into_iter().map(|(id, _, amplifier)| (id, amplifier)).collect();
+        let drop = entity_events_v1::ExperienceDrop {
+            entity: event.entity as i32, kind: event.kind.to_owned(), player, effects,
+            projectile_tool, looting_slot,
+            experience: std::cell::Cell::new(event.xp),
+        };
+        event.xp = scoped(host, || entity_events_v1::experience_drop(&drop));
+    }
+
+    fn block_exp(&self, _level: &dyn LevelHost, event: &mut BlockExpEvent<'_>) {
+        // A broken block is about to drop experience on the level's removal path, which names no
+        // breaker: the breaker is the one `destroy_block` named for this block (see
+        // `note_block_breaker`). With no note the amount is left alone — a break no player made
+        // (an explosion, a piston) has no one to credit, and a break the player's own path already
+        // sampled took its note first, so this never bonuses a break twice. No host is in hand
+        // here, so the callbacks run without one and the held tool reads from the note's snapshot.
+        if !events_interaction_v0::block_experience_heard() { return; }
+        let dimension = match &event.dimension {
+            LevelDimension::Overworld => "minecraft:overworld",
+            LevelDimension::Nether => "minecraft:the_nether",
+            LevelDimension::End => "minecraft:the_end",
+            _ => return,
+        };
+        let Some(breaker) = events_interaction_v0::take_block_breaker(dimension, [event.pos.x, event.pos.y, event.pos.z]) else { return; };
+        if breaker.creative { return; }
+        let context = events_interaction_v0::BlockExperienceContext {
+            pos: [event.pos.x, event.pos.y, event.pos.z],
+            dimension: dimension.to_owned(),
+            player: Some(player_api::ServerPlayer { uuid: breaker.uuid, name: breaker.name.clone() }),
+            player_entity: breaker.entity,
+            held: breaker.held,
+            experience: std::cell::Cell::new(event.experience),
+        };
+        event.experience = events_interaction_v0::block_experience(&context);
     }
 
     fn register_commands(&self, _host: &mut dyn Host, event: &mut RegisterCmds<'_>) {
@@ -3573,12 +5517,26 @@ impl Hooks for PlutoHooks {
         });
     }
 
-    fn level_tick_pre(&self, _host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+    fn level_tick_pre(&self, host: &mut dyn Host, event: &mut LevelTickPreEvent<'_>) {
+        // Every loaded level ticks, so its build range stays published for the readers that run
+        // outside a world callback (a projectile's flight telling): the level's own [min, max).
+        if let Some(level) = host.level(&event.dimension) {
+            if let Some((min_y, height)) = host.level_height(level) {
+                world_api_v1::publish_level_height(&event.dimension, [min_y, min_y + height]);
+            }
+        }
         lifecycle_events_v1::world_tick(true, event.dimension);
     }
 
     fn level_tick_post(&self, _host: &mut dyn Host, event: &mut LevelTickPostEvent<'_>) {
         lifecycle_events_v1::world_tick(false, event.dimension);
+        // The drops damage callbacks asked for at entities are handed to the game, which spawns each at its
+        // entity (the damage events themselves have no world to drop into).
+        for (entity, stack) in entity_events_v1::take_drop_actions() {
+            let mut native = ItemStack::new(&stack.item, stack.count);
+            write_stack(&mut native, &stack);
+            horizon_client::entry::pluto_damage_facts_access::push_drop(entity as u32, native);
+        }
     }
 
     fn chunk_load(&self, _host: &mut dyn Host, event: &mut ChunkLoadEvent<'_>) {
@@ -3595,6 +5553,27 @@ impl Hooks for PlutoHooks {
         scoped(host, || networking_api_v1::player_joined(uuid, name));
     }
 
+    fn player_destroy_item(&self, host: &mut dyn Host, event: &mut PlayerDestroyItemEvent<'_>) {
+        if !player_api::item_break_heard() { return; }
+        // The host names the slot as `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body` or
+        // `saddle`; a player has no body or saddle slot, so those two are not reported.
+        let Some(slot) = (match &*event.slot {
+            "mainhand" => Some(entity_events_v1::StackSlot::MainHand),
+            "offhand" => Some(entity_events_v1::StackSlot::OffHand),
+            "head" => Some(entity_events_v1::StackSlot::Head),
+            "chest" => Some(entity_events_v1::StackSlot::Chest),
+            "legs" => Some(entity_events_v1::StackSlot::Legs),
+            "feet" => Some(entity_events_v1::StackSlot::Feet),
+            _ => None,
+        }) else { return };
+        let broken = player_api::ItemBreak {
+            player: player_api::ServerPlayer { uuid: event.player, name: event.name.to_string() },
+            item: event.item.to_string(),
+            slot,
+        };
+        scoped(host, || player_api::item_break(&broken));
+    }
+
     fn player_tick(&self, host: &mut dyn Host, _event: &mut horizon_client::mod_api::PlayerTickEvent) {
         // Damage hooks get no host, so the armor a player wears is read here each tick for them to find.
         let Some(player) = host.acting_player() else { return };
@@ -3605,17 +5584,57 @@ impl Hooks for PlutoHooks {
             let data = stack_data_of(host, &stack);
             if !data.custom_data.is_empty() { armor.push((name.to_string(), data)); }
         }
+        // Held tools carrying custom data are reported too: a module may key on a hand slot (update health names the
+        // hands), and the tick is heard while either sort is carried. The main hand is read plainly, not from the
+        // custom-data-filtered hands: the attack ticker resets when the held item changes to a different one, even
+        // when neither item carries custom data (a plain sword to a plain axe).
+        let mut hands = Vec::new();
+        let mut main_hand = String::new();
+        for (name, slot) in [("mainhand", horizon_client::mod_api::EquipmentSlot::MainHand), ("offhand", horizon_client::mod_api::EquipmentSlot::OffHand)] {
+            let Some(stack) = host.player_equipment(player.uuid, slot) else { continue };
+            let data = stack_data_of(host, &stack);
+            if name == "mainhand" { main_hand.clone_from(&data.item); }
+            if !data.custom_data.is_empty() { hands.push((name.to_string(), data)); }
+        }
         // Armor that carries custom data may take effects off its wearer (an immunity): the mods hear the tick with the effects.
         let worn = armor.clone();
         // The state of a wearer, for the damage event of a hit on them (their health and surroundings as of this tick).
         let wearer_state = (!armor.is_empty()).then(|| player_entity_state(host, &player));
         entity_events_v1::remember_wearer_state(player.entity_id, wearer_state);
         entity_events_v1::remember_armor(player.uuid, player.entity_id, armor);
-        if entity_events_v1::tick_wanted(player.uuid, !worn.is_empty()) {
-            let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect();
-            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, on_ground: player.on_ground, armor: worn, effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
-            // The world scope is open while the tick runs, so a callback may work on the blocks around the player.
-            for id in scoped(host, || entity_events_v1::player_tick(&tick)) { host.remove_effect(player.uuid, &id); }
+        // The attack ticker the weapon hits read: it advances each tick and resets when the held item changes.
+        entity_events_v1::note_attack_tick(player.uuid, &main_hand);
+        entity_events_v1::remember_offhand(player.uuid, player.entity_id, hands.iter().find(|(name, _)| name == "offhand").map(|(_, stack)| stack.clone()));
+        // The aim a keybind shot fires with: the player's place and look as of this tick, kept
+        // whether or not the tick is wanted (the armor memory's rule, so a helmet's fireball
+        // has something to aim with even when no worn piece carries custom data).
+        let look = {
+            let yaw = f64::from(player.yaw).to_radians();
+            let pitch = f64::from(player.pitch).to_radians();
+            [-yaw.sin() * pitch.cos(), -pitch.sin(), yaw.cos() * pitch.cos()]
+        };
+        let creative = player.game_mode == 1;
+        entity_events_v1::remember_aim(player.uuid, player.entity_id, entity_events_v1::PlayerAim { dimension: player.dimension.to_string(), position: player.position, look, creative });
+        // The effects are read before the gate: the tick is heard while the player carries a mob
+        // effect, even with no gear, so an effect's per-tick behaviour runs (the original's effects
+        // tick whether or not the bearer holds anything).
+        let effects = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier), effect.duration)).collect::<Vec<_>>();
+        if entity_events_v1::tick_wanted(player.uuid, !(worn.is_empty() && hands.is_empty()) || !effects.is_empty()) {
+            // The light where the player stands, sampled half a block up, the point the original's walk modules read.
+            let light_pos = [player.position[0].floor() as i32, (player.position[1] + 0.5).floor() as i32, player.position[2].floor() as i32];
+            let (block_light, sky_light) = host.light(light_pos);
+            let (rain, thunder) = host.weather();
+            // Whether the player stands in water, as the wearer state reads it: the block at their feet holds water.
+            let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+            let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
+            // Whether the player is on a climbable block, as the game's own check works it out; a spectator never counts.
+            let on_climbable = player.game_mode != 3 && entity_on_climbable(host, "minecraft:player", feet, false, player.gliding);
+            let tick = entity_events_v1::PlayerTick { player: player.uuid, entity: player.entity_id, dimension: player.dimension.to_string(), position: player.position, look, creative, on_ground: player.on_ground, sneaking: player.sneaking, gliding: player.gliding, spectator: player.game_mode == 3, in_water, on_climbable, armor: worn, hands, block_light, sky_light, sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()), effects, remove_effects: std::cell::RefCell::new(Vec::new()), attribute_additions: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()) };
+            // The world scope is open while the tick runs, so a callback may work on the blocks around the player;
+            // the entity scope is open too, so a callback may reach the entities around them (a bounce sets a velocity).
+            let handle = HostHandle::new(host);
+            let dimension = player.dimension.to_string();
+            for id in scoped(host, || entity_api_v1::with_entities(&mut HostEntities { host: handle, dimension }, || entity_events_v1::player_tick(&tick))) { host.remove_effect(player.uuid, &id); }
             // What the callbacks queued for the ticking player is done to them now, as `Attacker`; the other party is no one.
             let own = entity_events_v1::take_tick_actions(&tick);
             if !own.is_empty() { apply_entity_actions(host, &player.dimension, player.entity_id, -1, own); }
@@ -3655,11 +5674,27 @@ impl Hooks for PlutoHooks {
         let (uuid, name) = (event.player, event.name.to_string());
         remember_player(uuid, &name, false);
         entity_events_v1::forget_armor(uuid);
+        entity_events_v1::forget_aim(uuid);
+        entity_events_v1::forget_attack_ticks(uuid);
         // The base values are saved with the player, so what the armor added is taken off before they go (best effort: the host may no longer reach them).
         for (attribute, held) in entity_events_v1::forget_attributes(uuid) {
             if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base - held); }
         }
+        // A folded multiply-total payload is unfolded after the additions are taken off: the additions sat on top of the folded base,
+        // so what is left is the folded base itself, which divides back to the plain base.
+        for (attribute, factor) in entity_events_v1::forget_multiply_factors(uuid) {
+            if factor != 1.0 {
+                if let Some((base, _)) = host.attribute(uuid, &attribute) { host.set_attribute_base(uuid, &attribute, base / factor); }
+            }
+        }
         scoped(host, || networking_api_v1::player_left(uuid, name));
+    }
+
+    fn player_attack_cooldown_reset(&self, _host: &mut dyn Host, event: &mut horizon_client::mod_api::PlayerAttackCooldownResetEvent<'_>) {
+        // The swing the host reports after the attack resolved (its `handlePunch` reset): the attack ticker resets, so the
+        // next hit reads its ticks from a fresh swing. The event fires after the weapon-hit hook of the same swing, so that
+        // hit still reads the pre-swing ticks.
+        entity_events_v1::reset_attack_ticks(event.player);
     }
 
     fn entity_join_level(&self, host: &mut dyn Host, event: &mut EntityJoinLevelEvent<'_>) -> Flow {
@@ -3668,13 +5703,58 @@ impl Hooks for PlutoHooks {
     }
 
     fn entity_leave_level(&self, host: &mut dyn Host, event: &mut EntityLeaveLevelEvent<'_>) {
+        horizon_client::mobs::pluto_entity_climb_access::forget(event.entity);
         scoped(host, || entity_events_v1::entity_unloaded(event.entity, event.kind, event.dimension));
     }
 
     fn use_item(&self, host: &mut dyn Host, event: &mut UseItemEvent<'_>) -> Flow {
         // Scoped like use_item_on and the finish event: a callback here may reach for the player, the
         // world and the client reaches (a book item opens its book), which only exist inside the scope.
-        cancel_if(scoped(host, || events_interaction_v0::use_item(&event.stack.item, event.stack.count)))
+        // The stack goes along whole: a use that depends on the stack's own data (a tool's fishing cast)
+        // reads its stats from it. The player is named the way use_item_on names them; the host's use
+        // event itself names neither a player nor a hand.
+        let player = match host.acting_player() {
+            Some(player) => Some(player_api::ServerPlayer { uuid: player.uuid, name: player.name.clone() }),
+            None => sole_player().map(|(uuid, name)| player_api::ServerPlayer { uuid, name }),
+        };
+        let context = events_interaction_v0::UseItemContext {
+            item: event.stack.item.to_string(),
+            count: event.stack.count,
+            stack: stack_data_of(host, &event.stack),
+            player,
+        };
+        cancel_if(scoped(host, || events_interaction_v0::use_item(&context)))
+    }
+
+    fn dispense_item(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::DispenseItemEvent<'_>) -> Option<horizon_client::mod_api::NativeDispensed> {
+        // The game's dispense hook (its native hook 67) asks its mods before it ejects: the first mod that
+        // answers wins, and the answer carries what stays in the slot (nothing empties it) and the level
+        // event played with the smoke. PlutoLib answers for the behaviours in the dispense registry;
+        // anything unclaimed returns None here and keeps the game's own ejection.
+        let stack = read_stack(event.stack);
+        let Some(DispenseBehavior::Shoot { entity, power, .. }) = dispense_api_v1::DispenseRegistry::get(&stack.item) else {
+            return None;
+        };
+        let (origin, motion) = dispense_api_v1::dispense_shot(event.pos, pure_face(event.facing), power);
+        // The projectile carries the item it was shot from, in the layout the game's own thrown items are
+        // summoned with, and starts with the shot's motion.
+        let mut item = NbtCompound::new();
+        item.insert("id".to_owned(), Nbt::String(stack.item.clone()));
+        item.insert("count".to_owned(), Nbt::Int(1));
+        let mut nbt = NbtCompound::new();
+        nbt.insert("Motion".to_owned(), Nbt::List(motion.into_iter().map(Nbt::Double).collect()));
+        nbt.insert("Item".to_owned(), Nbt::Compound(item));
+        host.summon(event.dimension, &entity.to_string(), origin, compound_to_tag(&nbt))?;
+        // One item was shot: what stays is the stack less one (nothing, when it was the last), and the
+        // event played is the game's projectile launch (level event 1002).
+        let rest = if stack.count > 1 {
+            let mut rest = event.stack.clone();
+            rest.count -= 1;
+            Some(rest)
+        } else {
+            None
+        };
+        Some((rest, 1002))
     }
 
     fn use_item_on(&self, host: &mut dyn Host, event: &mut UseItemOnEvent<'_>) -> Flow {
@@ -3692,11 +5772,15 @@ impl Hooks for PlutoHooks {
             count: event.stack.count,
             pos: event.pos,
             face: event.face,
-            dimension,
+            dimension: dimension.clone(),
             creative,
+            sneaking: host.sneaking(),
             player: player_api::ServerPlayer { uuid, name },
         };
-        cancel_if(scoped(host, || events_interaction_v0::use_item_on_block(&context)))
+        // A block use sees the same reach as the block hooks do: its dimension ticking, and the
+        // neighbours' containers and tanks, so a callback can trade fluid with the clicked block.
+        let handle = HostHandle::new(host);
+        cancel_if(scoped(host, || world_api_v1::with_ticking_dimension(&dimension, || neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || events_interaction_v0::use_item_on_block(&context)))))
     }
 
     fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
@@ -3739,16 +5823,32 @@ impl Hooks for PlutoHooks {
             // Entity.isEyeInFluid(water): the block at the eyes holds water (a water block or a waterlogged one).
             let eyes = [player.position[0].floor() as i32, (player.position[1] + f64::from(player.eye_height)).floor() as i32, player.position[2].floor() as i32];
             let eyes_in_water = host.level_block_state(level, eyes).is_some_and(|state| state.starts_with("minecraft:water") || state.contains("waterlogged=true"));
-            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water }
+            // The player's effects with their levels, and whether rain falls on them (the weather, the
+            // sky light over their own block and their biome, as an entity's surroundings are read).
+            let effect_levels = host.effects(player.uuid).unwrap_or_default().into_iter().map(|effect| (effect.id, i32::from(effect.amplifier))).collect();
+            let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+            let (rain, _) = host.weather();
+            let (_, sky_light) = host.light(feet);
+            let rain_exposed = entity_events_v1::rain_exposed(rain > 0.2, sky_light, host.biome(feet).as_deref(), feet[1]);
+            events_interaction_v0::DiggingPlayer { on_ground: player.on_ground, eyes_in_water, effect_levels, rain_exposed }
         });
         // The light at the block being dug and the temperature of the biome it stands in, for the variables that read them.
         // The event names no face, so the light is the dug block's own, not the block on the side that was hit.
         let (block_light, sky_light) = host.light(event.pos);
         let (rain, thunder) = host.weather();
+        // The block's explosion resistance and correct-tool requirement, from the per-state gameplay
+        // facts the game published when its resource tables loaded (pluto_block_facts). Before that
+        // first load both stay unreported and the variables over them take their fallbacks (the same
+        // answer an unreported biome temperature gives).
+        let dig_facts = horizon_client::entry::pluto_block_facts::for_block(&block.block.to_string());
         let facts = events_interaction_v0::DiggingFacts {
             block_light: Some(block_light), sky_light: Some(sky_light),
             sky_darken: entity_events_v1::sky_darken(rain, thunder, host.day_time()),
             biome_temperature: host.biome(event.pos).as_deref().and_then(entity_events_v1::biome_climate).map(|(base, _)| entity_events_v1::temperature_at(base, event.pos[1])),
+            blast_resistance: dig_facts.map(|dig| dig.explosion_resistance),
+            requires_tool: dig_facts.map(|dig| dig.requires_tool),
+            // The build range of the dig's level, published at the head of this very call.
+            build_height: horizon_client::entry::pluto_block_facts::dig_height(),
         };
         // the callbacks may ask whether the block is in a tag: a read-only world over the host for the length of the call
         let mut tags = ReadOnlyTags(host);
@@ -3793,10 +5893,25 @@ impl Hooks for PlutoHooks {
     }
 
     fn destroy_block(&self, host: &mut dyn Host, event: &mut DestroyBlockEvent) -> Flow {
+        // The break's breaker is remembered for the experience its drop is sampled at: the
+        // sampling paths name no breaker on the level's removal path, and this break event is
+        // the one hook that names every player's break (a LAN guest's included). Noted before
+        // the `BEFORE` gate, so it does not depend on `BEFORE` being heard.
+        if events_interaction_v0::block_experience_heard() {
+            if let Some(acting) = host.acting_player() {
+                let held = host.held_stack(acting.uuid).map(|stack| read_stack(&stack));
+                events_interaction_v0::note_block_breaker(&acting.dimension, event.pos, events_interaction_v0::BlockBreaker {
+                    uuid: acting.uuid, name: acting.name.clone(), entity: acting.entity_id, held, creative: acting.game_mode == 1,
+                });
+            }
+        }
         if !events_interaction_v0::block_break_heard() { return Flow::Continue; }
         let context = break_context(host, event.pos);
         if let Some(player) = &context.player { flush_block_breaks(host, player.uuid); }
         let allowed = scoped(host, || events_interaction_v0::before_block_break(&context));
+        // A vetoed break leaves its block standing: forget its breaker, so a later removal of
+        // the same block is not credited to the player whose break was refused.
+        if !allowed { events_interaction_v0::clear_block_breaker(&context.dimension, event.pos); }
         let actions = context.actions.take();
         if let (Some(player), false) = (&context.player, actions.is_empty()) { apply_player_actions(host, player.uuid, actions); }
         // The extra blocks an allowed break's callbacks asked for are broken by the level seams (see the schedule drain in `hooks()`).
@@ -3807,7 +5922,7 @@ impl Hooks for PlutoHooks {
         }
         // `AFTER` hears an allowed break at the player's next tick (see `flush_block_breaks`) with what was read here.
         let pending = match (allowed, context.player) {
-            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, face: context.face, yaw: context.yaw, pitch: context.pitch }),
+            (true, Some(player)) if events_interaction_v0::after_block_break_heard() => Some(PendingBreak { pos: event.pos, dimension: context.dimension.clone(), state: context.state, player, equipment: context.equipment.clone(), face: context.face, yaw: context.yaw, pitch: context.pitch, creative: context.creative, may_build: context.may_build, offhand_place_on: context.offhand_place_on.clone(), offhand_place_predicates: context.offhand_place_predicates.clone(), mined_block_entity: context.mined_block_entity.clone() }),
             _ => None,
         };
         if let (Some(pending), Ok(mut waiting)) = (pending, PENDING_BREAKS.lock()) {
@@ -3841,6 +5956,27 @@ impl Hooks for PlutoHooks {
     fn loot_table_load(&self, event: &mut LootTableLoadEvent<'_>) {
         let edited = loot_api_v2::modify(event.id, event.table.clone());
         *event.table = edited;
+    }
+
+    fn loot_function(&self, event: &mut LootFunctionEvent<'_>) {
+        // A loot table named a function kind outside the game's own: the callbacks answer the
+        // kinds they own (Mantle's `fill_retextured_block` is the first) and change the stack.
+        // The seed is the roll's own random, drawn for a mod's draws and handed through so a
+        // function that rolls (a random tool material) need not touch shared random state.
+        if !loot_api_v2::functions_heard() { return; }
+        let Some(slot) = loot_slot_of(event.stack) else { return };
+        let place = event.ctx.place.as_deref();
+        let context = loot_api_v2::LootFunctionContext {
+            kind: event.kind.to_owned(),
+            data: event.data.clone(),
+            origin: place.and_then(|place| place.origin),
+            dimension: place.and_then(|place| place.level.as_ref()).map(|level| level.dimension.clone()),
+            seed: event.ctx.seed,
+            block_entity: place.and_then(|place| place.block_entity.as_ref()).and_then(nbt_from_tag).and_then(|tag| match tag { Nbt::Compound(data) => Some(data), _ => None }),
+            stack: std::cell::RefCell::new(slot.clone()),
+        };
+        let after = loot_api_v2::apply_function(&context);
+        if after != slot { write_loot_slot(event.stack, &after); }
     }
 
     fn add_server_reload_listeners(&self, _host: &mut dyn Host, event: &mut AddServerReloadListenersEvent<'_>) {
@@ -3940,6 +6076,11 @@ impl Hooks for PlutoHooks {
     }
 
     fn living_damage_pre(&self, event: &mut LivingDamagePreEvent<'_>) {
+        // The killing blow's direct entity is remembered for the experience drop the death works
+        // out in the same call: a projectile there names the launcher's tool (see
+        // `living_experience_drop`). A blow with no direct entity overwrites, so a later
+        // non-projectile kill does not inherit an earlier projectile's float.
+        entity_events_v1::note_killing_direct(event.entity, event.direct);
         let damage = LivingDamage {
             entity: event.entity,
             kind: event.kind.to_owned(),
@@ -3964,7 +6105,96 @@ impl Hooks for PlutoHooks {
         // The hurt stage, as the damage arrives and before armor and enchantment protection take their share: what the
         // callbacks leave of the amount is what the game goes on with.
         event.amount = entity_events_v1::modify_hurt(&damage);
+        // The hurt report a mob's attack opened named the hit before the game worked its damage type out; the damage event that
+        // follows resolves it, so the wearer-hit callbacks run now, with the real type, and the effects they put on the mob are
+        // pushed for the game to apply (pluto-mob-effect-apply), as the weapon-hit effects are.
+        if let Ok(attacker) = u32::try_from(damage.attacker) {
+            for grant in entity_events_v1::resolve_wearer_hit(&damage) {
+                horizon_client::entry::pluto_mob_effect_access::push(attacker, &grant.effect, grant.duration, grant.amplifier);
+            }
+        }
         Flow::Continue
+    }
+
+    fn living_incoming_damage_v3(&self, event: &mut horizon_client::mod_api::LivingIncomingDamageV3Event<'_>) -> Flow {
+        // Observation only: this report names the parties of every hit (a mob's melee attacker included, and
+        // whether the causing entity is a player), which the v1 report cannot; the parties are remembered for
+        // the damage stage that follows in the same call. The amount and the cancellation stay the v1 hook's.
+        if let Some(attacker) = event.attacker {
+            entity_events_v1::note_damage_parties(event.victim as i32, attacker as i32, event.attacker_uuid.is_some());
+        }
+        Flow::Continue
+    }
+
+    fn living_fall(&self, event: &mut LivingFallEvent<'_>) -> Flow {
+        // A living entity is about to handle a fall, for the local player and for mobs alike: what the
+        // callbacks leave of the distance and the multiplier is what the game goes on with, and a
+        // cancellation stands (the block's own fallOn still runs with zero damage). The event carries no
+        // host and no velocity, so a callback that needs the motion reads what it kept from the entity's
+        // last tick.
+        if !living_fall_v1::fall_heard() { return Flow::Continue; }
+        let fall = LivingFall { entity: event.entity, kind: event.kind.to_owned(), distance: std::cell::Cell::new(event.distance), multiplier: std::cell::Cell::new(event.multiplier) };
+        if !living_fall_v1::fall(&fall) { return Flow::Cancel; }
+        event.distance = fall.distance.get();
+        event.multiplier = fall.multiplier.get();
+        Flow::Continue
+    }
+
+    fn critical_hit(&self, host: &mut dyn Host, event: &mut CriticalHitEvent<'_>) {
+        // A player's melee hit on a living target: what the callbacks leave of the critical
+        // and the multiplier is what the game goes on with. The attacker is the acting player;
+        // a hit the game runs for no acting player (a guest's hit on a LAN world) names -1 and
+        // the callbacks leave it alone. Airborne is off the ground and not in water, as the
+        // wearer state reads it: the block at the attacker's feet holds water.
+        let acting = host.acting_player();
+        let (attacker, on_ground, in_water) = match &acting {
+            Some(player) => {
+                let feet = [player.position[0].floor() as i32, player.position[1].floor() as i32, player.position[2].floor() as i32];
+                let in_water = entity_events_v1::holds_water(&host.block(feet), host.block_property(feet, "waterlogged").as_deref() == Some("true"));
+                (player.entity_id, player.on_ground, in_water)
+            }
+            None => (-1, false, false),
+        };
+        let hit = entity_events_v1::CriticalHit { attacker_entity: attacker, attacker_on_ground: on_ground, attacker_in_water: in_water, target_kind: event.target_kind.to_owned(), vanilla_critical: event.vanilla_critical, critical: std::cell::Cell::new(event.critical), damage_multiplier: std::cell::Cell::new(event.damage_multiplier) };
+        entity_events_v1::critical_hit(&hit);
+        event.critical = hit.critical.get();
+        event.damage_multiplier = hit.damage_multiplier.get();
+    }
+
+    fn living_jump(&self, event: &mut LivingJumpEvent<'_>) {
+        // A living entity jumped: the event carries no host and no velocity, so a callback
+        // that needs to move the entity defers the push to the entity's next tick (a player
+        // has no set-velocity: the push lands as the set velocity minus the motion the tick
+        // measured).
+        let jump = entity_events_v1::LivingJump { entity: event.entity as i32, kind: event.kind.to_owned() };
+        entity_events_v1::living_jump(&jump);
+    }
+
+    fn movement_input(&self, host: &dyn Host, event: &mut MovementInputEvent) {
+        // The local player's movement input, after the game read it and before it applies it:
+        // what the callbacks leave of the impulses is what the player moves with. The player is
+        // the acting player; the entity reach is not open here, so a callback that needs to move
+        // the player defers the push to the next tick. The native hook is a `&self` method, so
+        // the host arrives immutable (unlike the `&mut self` hooks, which get `&mut dyn Host`).
+        // The stack being used rides along for the use-item speed its stats carry: the held
+        // (main-hand) stack while the player uses an item, none otherwise. An off-hand use has
+        // no surface here — the native hook names no hand — so it reads as the main hand's stack.
+        let acting = host.acting_player();
+        let (entity, using_item) = match &acting {
+            Some(player) => (player.entity_id, player.using_item),
+            None => (-1, false),
+        };
+        let using = if using_item {
+            acting.as_ref().and_then(|player| host.held_stack(player.uuid)).map(|stack| read_stack(&stack))
+        } else {
+            None
+        };
+        let input = entity_events_v1::MovementInput { entity, forward: std::cell::Cell::new(event.forward), strafe: std::cell::Cell::new(event.strafe), jump: std::cell::Cell::new(event.jump), sneak: std::cell::Cell::new(event.sneak), using_item, using };
+        entity_events_v1::movement_input(&input);
+        event.forward = input.forward.get();
+        event.strafe = input.strafe.get();
+        event.jump = input.jump.get();
+        event.sneak = input.sneak.get();
     }
 
     fn living_incoming_damage_v2(&self, host: &mut dyn Host, event: &mut horizon_client::mod_api::LivingIncomingDamageV2Event<'_>) -> Flow {
@@ -3992,6 +6222,7 @@ impl Hooks for PlutoHooks {
                 state.max_health = saved.max_health;
                 state.armor_coverage = saved.armor_coverage;
                 state.equipment = saved.equipment;
+                state.armor_stacks = saved.armor_stacks;
             }
             let eyes = host.entity_eye_position(entity);
             if let Some(block) = host.entity_block_position(entity) { read_surroundings(host, &mut state, block, eyes); }
@@ -4010,11 +6241,34 @@ impl Hooks for PlutoHooks {
         let attacker_state = state_of(&mut *host, event.causing).or_else(|| player_state(&mut *host));
         let target_state = state_of(&mut *host, event.entity);
         entity_events_v1::hit_states(event.entity, attacker_state.clone(), target_state.clone());
+        // Where the mob stands, for the callbacks that act on the place of the hit (a teleport of the
+        // mob itself, a lightning strike where it stands).
+        let target_position = u32::try_from(event.entity).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity));
+        // Where the attacking player stands, named as the player state above names them: their entity
+        // handle where the game has one, the server's player list otherwise.
+        let attacker_position = u32::try_from(event.causing).ok().and_then(|id| host.entity(id)).and_then(|entity| host.entity_position(entity))
+            .or_else(|| host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+                .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| player.position));
+        // The same places, remembered for the damage event that follows in the same call.
+        entity_events_v1::hit_positions(event.entity, attacker_position, target_position);
         // The mods may put status effects on the mob; the game applies them right after this hook (pluto-mob-effect-apply).
+        // The damage the hit is about to deal, before armor takes its share, and the attacker's ticks as the hit landed: a mob
+        // attacker reads as charged, as mobs keep no strength ticker (see `entity_events_v1::ATTACK_TICKS_CHARGED`).
+        let attack_ticks = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing)).map(|player| entity_events_v1::attack_ticks(player.uuid)).unwrap_or(entity_events_v1::ATTACK_TICKS_CHARGED);
         let hit = entity_events_v1::WeaponHit {
-            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, weapon: event.weapon.map(read_stack),
-            attacker_state, target_state, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
+            entity: event.entity, kind: event.kind.to_owned(), attacker: event.causing, dimension: host.dimension().to_owned(), weapon: event.weapon.map(read_stack),
+            damage_dealt: event.amount, attack_ticks,
+            attacker_state, target_state, target_position, attacker_position, armor: entity_events_v1::armor_worn_by(event.causing), effects: std::cell::RefCell::new(Vec::new()), actions: std::cell::RefCell::new(Vec::new()),
         };
+        // The looting slot this attack claims (canon's `ModifierLootingHandler`: the slot the
+        // attacking tool came from): the weapon matched against the attacker's worn armor and off
+        // hand, else the main hand. The experience drop of a mob this blow kills reads it. Only
+        // a player's attack claims one; a mob's weapon matches nothing it wears.
+        if let Some(uuid) = host.acting_player().filter(|acting| acting.entity_id == event.causing || acting.entity_id == 0).map(|acting| acting.uuid)
+            .or_else(|| host.server_players().into_iter().find(|player| player.entity_id == event.causing).map(|player| player.uuid)) {
+            entity_events_v1::note_looting_slot(uuid, entity_events_v1::looting_slot(hit.weapon.as_ref(), &hit.armor, entity_events_v1::offhand_worn_by(event.causing).as_ref()));
+        }
         if let Ok(entity) = u32::try_from(event.entity) {
             for grant in entity_events_v1::weapon_hit(&hit) {
                 horizon_client::entry::pluto_mob_effect_access::push(entity, &grant.effect, grant.duration, grant.amplifier);

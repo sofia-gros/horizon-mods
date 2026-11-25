@@ -1,0 +1,40 @@
+{
+  "textures": {
+    "pipe": "pipes:block/fluid_extraction_pipe",
+    "particle": "pipes:block/fluid_extraction_pipe"
+  },
+  "elements": [
+    {
+      "from": [
+        5,
+        11,
+        5
+      ],
+      "to": [
+        11,
+        16,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#pipe"
+        },
+        "up": {
+          "texture": "#pipe"
+        },
+        "north": {
+          "texture": "#pipe"
+        },
+        "south": {
+          "texture": "#pipe"
+        },
+        "west": {
+          "texture": "#pipe"
+        },
+        "east": {
+          "texture": "#pipe"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "mantle:fill_retextured_block"
+            }
+          ],
+          "name": "tconstruct:modifier_worktable"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "tconstruct:blocks/modifier_worktable"
+}

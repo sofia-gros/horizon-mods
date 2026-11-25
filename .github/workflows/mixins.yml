@@ -5,13 +5,133 @@ on:
   workflow_call:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Never cancel an in-progress run: every suite must run to completion so a
+  # run always reports the full set of results (owner instruction, 2026-11-24).
+  cancel-in-progress: false
 permissions:
   contents: read
   actions: read
   pull-requests: read
+# All suite jobs below are independent (no needs between them), so GitHub runs
+# them in parallel and no suite's failure can skip or cancel another suite.
+# Multi-suite jobs run every suite step (if: always()) and fail only in a
+# final aggregate step that lists every failure. The summary job runs last
+# (if: always()) and turns the per-suite results into one overall signal.
 jobs:
-  test:
+  lint:
+    name: Lint (5 checks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # This job's steps read only the worktree and the git index
+          # (git ls-files / plain file scans); nothing needs history.
+          fetch-depth: 1
+      - name: check_line_endings
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_line_endings.py || rc=$?
+          echo "check_line_endings=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_line_endings::check_line_endings.py exited with $rc"; fi
+      - name: check_docs_budget
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_docs_budget.py || rc=$?
+          echo "check_docs_budget=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_docs_budget::check_docs_budget.py exited with $rc"; fi
+      - name: check_api_docs
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_api_docs.py || rc=$?
+          echo "check_api_docs=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_api_docs::check_api_docs.py exited with $rc"; fi
+      - name: check_injection_ownership
+        if: always()
+        run: |
+          rc=0
+          python3 tools/check_injection_ownership.py || rc=$?
+          echo "check_injection_ownership=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=check_injection_ownership::check_injection_ownership.py exited with $rc"; fi
+      - name: lint_forbidden_api
+        if: always()
+        run: |
+          rc=0
+          python3 tools/lint_forbidden_api.py || rc=$?
+          echo "lint_forbidden_api=$rc" >> "$RUNNER_TEMP/lint-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=lint_forbidden_api::lint_forbidden_api.py exited with $rc"; fi
+      - name: Lint result
+        if: always()
+        run: |
+          echo 'Per-check exit codes:'
+          cat "$RUNNER_TEMP/lint-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/lint-results"; then
+            echo 'FAILED checks:'
+            grep -v '=0$' "$RUNNER_TEMP/lint-results"
+            exit 1
+          fi
+          echo 'All 5 lint checks passed.'
+  census:
+    name: Census (port.py check + test_clean_port)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # This job's steps read only the worktree and the git index
+          # (git ls-files / plain file scans); nothing needs history.
+          fetch-depth: 1
+      - name: Validate clean Tinkers boundary (port.py check)
+        if: always()
+        run: |
+          rc=0
+          python3 tools/port.py check || rc=$?
+          echo "port_check=$rc" >> "$RUNNER_TEMP/census-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=port.py check::port.py check exited with $rc"; fi
+      - name: Census (test_clean_port.py)
+        if: always()
+        run: |
+          rc=0
+          python3 -m unittest discover -s tests -p test_clean_port.py -v || rc=$?
+          echo "census=$rc" >> "$RUNNER_TEMP/census-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=test_clean_port::test_clean_port.py exited with $rc"; fi
+      - name: Census result
+        if: always()
+        run: |
+          echo 'Per-suite exit codes:'
+          cat "$RUNNER_TEMP/census-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/census-results"; then
+            echo 'FAILED suites:'
+            grep -v '=0$' "$RUNNER_TEMP/census-results"
+            exit 1
+          fi
+          echo 'port.py check and census both passed.'
+  package:
+    name: Package (development hnmod)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # This job's steps read only the worktree and the git index
+          # (git ls-files / plain file scans); nothing needs history.
+          fetch-depth: 1
+      # Independent of every test job on purpose: the package is always built
+      # and uploaded; the manager decides what ships.
+      - name: Build development package
+        run: python3 tools/port.py package --output .local/clean-port/ci-tconstruct.hnmod
+      - name: Upload checked development package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clean-tconstruct-development-${{ github.sha }}
+          path: .local/clean-port/ci-tconstruct.hnmod
+          include-hidden-files: true
+          if-no-files-found: error
+  python-tests:
+    name: Python tests (root + PlutoLib)
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -22,31 +142,48 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - name: Validate clean Tinkers boundary and development package
-        run: |
-          python3 tools/port.py check
-          python3 -m unittest discover -s tests -p test_clean_port.py -v
-          python3 tools/port.py package --output .local/clean-port/ci-tconstruct.hnmod
       - name: Determine validation scope
         id: scope
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 tools/ci_scope.py
-      - name: Forbidden-API lint
-        run: |
-          python3 tools/check_line_endings.py
-          python3 tools/check_docs_budget.py
-          python3 tools/check_api_docs.py
-          python3 tools/check_injection_ownership.py
-          python3 tools/lint_forbidden_api.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
-          rustup toolchain install 1.95.0 --profile minimal
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
           rustup default 1.95.0
-          rustup component add rustfmt --toolchain 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
       - name: Restore Cargo cache
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -61,28 +198,519 @@ jobs:
             ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
       # Frozen Tinkers tests are not executed or counted as clean-port parity.
       # Retained root and PlutoLib contracts remain mandatory; gameplay is R2-R5.
-      - name: Test active package and PlutoLib contracts
+      - name: Root tests (tests/)
+        if: ${{ always() && steps.scope.outputs.docs_only != 'true' }}
+        run: |
+          rc=0
+          python3 -m unittest discover -s tests -v || rc=$?
+          echo "root_tests=$rc" >> "$RUNNER_TEMP/python-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=root tests::unittest discover -s tests exited with $rc"; fi
+      - name: PlutoLib Python tests (pluto-lib/tests)
+        if: ${{ always() && steps.scope.outputs.docs_only != 'true' }}
+        run: |
+          rc=0
+          PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v || rc=$?
+          echo "pluto_tests=$rc" >> "$RUNNER_TEMP/python-results"
+          if [ "$rc" -ne 0 ]; then echo "::error title=PlutoLib Python tests::unittest discover -s pluto-lib/tests exited with $rc"; fi
+      - name: Python tests result
+        if: always()
+        run: |
+          if [ ! -f "$RUNNER_TEMP/python-results" ]; then
+            echo 'No Python suites ran (docs-only scope).'
+            exit 0
+          fi
+          echo 'Per-suite exit codes:'
+          cat "$RUNNER_TEMP/python-results"
+          if grep -vq '=0$' "$RUNNER_TEMP/python-results"; then
+            echo 'FAILED suites:'
+            grep -v '=0$' "$RUNNER_TEMP/python-results"
+            exit 1
+          fi
+          echo 'All Python suites in this job passed.'
+  pure:
+    name: Pure suite (PlutoLib unit tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Install build prerequisites
+        id: prereqs
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          python3 -m unittest discover -s tests -v
-          PLUTO_TEST_FETCH_LOCKED=1 python3 -m unittest discover -s pluto-lib/tests -v
-          cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
+          rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # The unfiltered cargo test run also covered the doctests; they are the
+      # separate doctests job now (--lib here, --doc there).
+      - name: Pure suite (unit tests)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml --lib
+  doctests:
+    name: Doctests (API page examples)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Install build prerequisites
+        id: prereqs
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
+          rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      - name: Doctests (API page examples)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path pluto-lib/tests/pure/Cargo.toml --doc
+  domain:
+    name: Domain suite (Tinkers)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Install build prerequisites
+        id: prereqs
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
+          rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # This suite existed in the tree but was not run by this workflow
+      # before the parallel restructure; it runs here so CI covers it.
+      - name: Domain suite (tests/tconstruct-domain)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path tests/tconstruct-domain/Cargo.toml
+  pipes-domain:
+    name: Domain suite (Pipes)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Install build prerequisites
+        id: prereqs
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
+          rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # Mirrors the domain job for the pipes mod's suite; it exists in the
+      # tree and CI covers it so every test suite runs.
+      - name: Domain suite (tests/pipes-domain)
+        if: steps.scope.outputs.docs_only != 'true'
+        run: cargo test --locked --manifest-path tests/pipes-domain/Cargo.toml
+  mixins-validation:
+    name: Mixins validation (weave plan + guarded build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.local/cargo-target-ci
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
+      # The toolchain directory is a pure function of the pinned version,
+      # the minimal profile, the rustfmt component and the runner platform
+      # (all named in the key), so a hit safely skips the download/install.
+      # `rustup default` still runs: it only writes ~/.rustup/settings.toml,
+      # which is not part of the cached directory. The path names the
+      # x86_64-unknown-linux-gnu toolchain these ubuntu-24.04 jobs use; on
+      # any other platform the path simply misses and the install runs.
+      - name: Cache Rust toolchain 1.95.0
+        id: rust-toolchain-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Install build prerequisites
+        id: prereqs
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          if [ "${{ steps.rust-toolchain-cache.outputs.cache-hit }}" != 'true' ]; then
+            rustup toolchain install 1.95.0 --profile minimal
+            rustup component add rustfmt --toolchain 1.95.0
+          fi
+          rustup default 1.95.0
+      # Split restore/save: the combined actions/cache saves only in a
+      # post step gated on success(), so a job that fails later could
+      # never populate this cache. This save runs under always() once
+      # the prerequisites step has succeeded; continue-on-error keeps a
+      # cache-service failure from changing the job's conclusion.
+      - name: Save Rust toolchain 1.95.0 cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.rust-toolchain-cache.outputs.cache-hit != 'true' && steps.prereqs.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ~/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu
+          key: ${{ runner.os }}-${{ runner.arch }}-rustup-1.95.0-minimal-rustfmt-v1
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            .local/cargo-target-ci
+          key: ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-clean-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
+      # The two upstream source trees are pure functions of the pinned
+      # revisions in tconstruct/compatibility.json (the content at a
+      # git SHA is immutable), so they are cached under an
+      # exact-revision key below and the network fetch runs only on a
+      # cache miss. The revisions are published to $GITHUB_ENV here
+      # because the cache key needs them before the restore step runs.
+      - name: Read pinned upstream revisions
+        id: upstream-pins
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          echo "HORIZON_REVISION=$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')" >> "$GITHUB_ENV"
+          echo "MIXINS_REVISION=$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')" >> "$GITHUB_ENV"
+      # Split restore/save, as with the toolchain and CLI caches: the
+      # combined actions/cache saves only in a post step gated on
+      # success(), and this job is exactly the one that may fail (the
+      # guarded build below), so a combined cache could never be
+      # populated. The save step further down runs under always() once
+      # the fetch itself has succeeded.
+      - name: Cache upstream sources
+        id: upstream-cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ${{ github.workspace }}/../horizon-official
+            ${{ github.workspace }}/../horizon-mixins
+          key: ${{ runner.os }}-upstream-src-${{ env.HORIZON_REVISION }}-${{ env.MIXINS_REVISION }}-v1
+      # A cache hit is trusted only if both restored trees are actually
+      # detached at the pinned revisions; anything else (a stale or
+      # partial restore) falls through to the fetch step, which
+      # rebuilds the trees from scratch.
+      - name: Verify restored upstream sources
+        id: upstream-verify
+        if: steps.scope.outputs.docs_only != 'true' && steps.upstream-cache.outputs.cache-hit == 'true'
+        run: |
+          verified=true
+          if [ "$(git -C ../horizon-official rev-parse HEAD 2>/dev/null || true)" != "$HORIZON_REVISION" ]; then
+            verified=false
+          fi
+          if [ "$(git -C ../horizon-mixins rev-parse HEAD 2>/dev/null || true)" != "$MIXINS_REVISION" ]; then
+            verified=false
+          fi
+          echo "verified=$verified" >> "$GITHUB_OUTPUT"
       - name: Fetch upstream sources
-        if: steps.scope.outputs.docs_only != 'true'
+        id: upstream-fetch
+        if: steps.scope.outputs.docs_only != 'true' && (steps.upstream-cache.outputs.cache-hit != 'true' || steps.upstream-verify.outputs.verified != 'true')
+        env:
+          # A failed fetch must surface as a clean error, never as an
+          # interactive credential prompt (CI rounds 10/10b died with
+          # exit 128, "could not read Username", when an anonymous
+          # fetch was answered with a GitHub 401 auth challenge).
+          GIT_TERMINAL_PROMPT: "0"
         run: |
+          # Anonymous fetch of the two public upstream repos. Do NOT
+          # authenticate with the workflow token: GITHUB_TOKEN is
+          # scoped to this repository, and GitHub answers a credential
+          # that cannot see another owner's repository with a
+          # deterministic existence-hiding 404 ("Repository not
+          # found", round 10c). Anonymous fetches succeeded in rounds
+          # 1-9; from shared runner IPs they intermittently draw a 401
+          # challenge (rounds 10/10b), so each fetch retries up to 5
+          # times and GIT_TERMINAL_PROMPT=0 makes a challenge fail
+          # fast instead of dying on a prompt. On a verified cache hit
+          # this step is skipped entirely (see the cache steps above).
+          # What is fetched is unchanged: the pinned revisions from
+          # tconstruct/compatibility.json, depth 1, detached checkout.
+          fetch_pinned() {
+            for attempt in 1 2 3 4 5; do
+              if git -C "$1" fetch --depth 1 origin "$2"; then
+                return 0
+              fi
+              if [ "$attempt" -lt 5 ]; then
+                sleep 15
+              fi
+            done
+            return 1
+          }
+          rm -rf ../horizon-official ../horizon-mixins
           git init ../horizon-official
-          git -C ../horizon-official remote add origin https://github.com/horizon-rust/horizon.git
-          HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
-          git -C ../horizon-official fetch --depth 1 origin "$HORIZON_REVISION"
+          git -C ../horizon-official remote add origin "https://github.com/horizon-rust/horizon.git"
+          fetch_pinned ../horizon-official "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
           git init ../horizon-mixins
-          git -C ../horizon-mixins remote add origin https://github.com/horizon-rust/horizon-mixins.git
-          MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
-          git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
+          git -C ../horizon-mixins remote add origin "https://github.com/horizon-rust/horizon-mixins.git"
+          fetch_pinned ../horizon-mixins "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
-      - name: Build pinned official Mixins CLI
+      # Split save, mirroring the restore above: runs under always()
+      # so the cache is populated even when a later step (the guarded
+      # build) fails, but only when the fetch itself succeeded.
+      # continue-on-error keeps a cache-service failure from changing
+      # the job's conclusion.
+      - name: Save upstream sources cache
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.upstream-cache.outputs.cache-hit != 'true' && steps.upstream-fetch.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ${{ github.workspace }}/../horizon-official
+            ${{ github.workspace }}/../horizon-mixins
+          key: ${{ runner.os }}-upstream-src-${{ env.HORIZON_REVISION }}-${{ env.MIXINS_REVISION }}-v1
+      - name: Read pinned revisions
+        id: pins
+        run: |
+          echo "mixins_revision=$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')" >> "$GITHUB_OUTPUT"
+      # The CLI binary is a pure function of the pinned horizon-mixins
+      # revision (a git SHA, so it content-addresses the CLI sources and
+      # their locked dependencies), the Rust toolchain version and the
+      # runner platform, all named in the key. Bump the -vN suffix if the
+      # build command below ever changes. On a hit the build step below is
+      # skipped entirely; the restored file lands at the exact path the
+      # guarded build consumes.
+      - name: Cache pinned Mixins CLI build
+        id: mixins-cli-cache
         if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: target/mixins-cli-build/release/horizon-mixins
+          key: ${{ runner.os }}-${{ runner.arch }}-mixins-cli-rust-1.95.0-${{ steps.pins.outputs.mixins_revision }}-v1
+      - name: Build pinned official Mixins CLI
+        id: mixins-cli-build
+        if: steps.scope.outputs.docs_only != 'true' && steps.mixins-cli-cache.outputs.cache-hit != 'true'
         run: cargo +1.95.0 build --locked --release --manifest-path ../horizon-mixins/Cargo.toml -p horizon-mixins-cli --target-dir target/mixins-cli-build
+      # Split restore/save, as with the toolchain cache above: the
+      # combined actions/cache saved in a post step gated on success(),
+      # and this job is exactly the one that may fail (the guarded build
+      # below), so the cache could never be populated (CI rounds 6-7:
+      # post step skipped, the 60 s build re-ran). This save runs under
+      # always() once the build itself has succeeded; continue-on-error
+      # keeps a cache-service failure from changing the job's conclusion.
+      - name: Save pinned Mixins CLI build
+        if: always() && steps.scope.outputs.docs_only != 'true' && steps.mixins-cli-cache.outputs.cache-hit != 'true' && steps.mixins-cli-build.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: target/mixins-cli-build/release/horizon-mixins
+          key: ${{ runner.os }}-${{ runner.arch }}-mixins-cli-rust-1.95.0-${{ steps.pins.outputs.mixins_revision }}-v1
       - name: Fetch locked host dependencies
         if: steps.scope.outputs.docs_only != 'true'
         run: cargo +1.95.0 fetch --locked --manifest-path ../horizon-official/Cargo.toml
@@ -109,10 +737,46 @@ jobs:
             .local/clean-port/ci-native/game-entry-link.log
           include-hidden-files: true
           if-no-files-found: warn
-      - name: Upload checked development package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: clean-tconstruct-development-${{ github.sha }}
-          path: .local/clean-port/ci-tconstruct.hnmod
-          include-hidden-files: true
-          if-no-files-found: error
+  summary:
+    name: Summary (all suites)
+    if: always()
+    needs: [lint, census, package, python-tests, pure, doctests, domain, pipes-domain, mixins-validation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      R_LINT: ${{ needs.lint.result }}
+      R_CENSUS: ${{ needs.census.result }}
+      R_PACKAGE: ${{ needs.package.result }}
+      R_PYTHON: ${{ needs.python-tests.result }}
+      R_PURE: ${{ needs.pure.result }}
+      R_DOCTESTS: ${{ needs.doctests.result }}
+      R_DOMAIN: ${{ needs.domain.result }}
+      R_PIPES: ${{ needs.pipes-domain.result }}
+      R_MIXINS: ${{ needs.mixins-validation.result }}
+    steps:
+      - name: Suite summary
+        run: |
+          {
+            echo '## Suite results'
+            echo ''
+            echo '| Suite | Result |'
+            echo '| --- | --- |'
+            echo "| Lint (5 checks) | $R_LINT |"
+            echo "| Census (port.py check + test_clean_port) | $R_CENSUS |"
+            echo "| Package (development hnmod) | $R_PACKAGE |"
+            echo "| Python tests (root + PlutoLib) | $R_PYTHON |"
+            echo "| Pure suite (PlutoLib unit tests) | $R_PURE |"
+            echo "| Doctests (API page examples) | $R_DOCTESTS |"
+            echo "| Domain suite (Tinkers) | $R_DOMAIN |"
+            echo "| Domain suite (Pipes) | $R_PIPES |"
+            echo "| Mixins validation (weave plan + guarded build) | $R_MIXINS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          for r in "$R_LINT" "$R_CENSUS" "$R_PACKAGE" "$R_PYTHON" "$R_PURE" "$R_DOCTESTS" "$R_DOMAIN" "$R_PIPES" "$R_MIXINS"; do
+            if [ "$r" != 'success' ]; then failed=1; fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo 'At least one suite did not succeed; see the table above and the per-suite jobs.'
+            exit 1
+          fi
+          echo 'All suites succeeded.'

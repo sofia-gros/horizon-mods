@@ -71,9 +71,19 @@ impl Game<'_> {
         Some(false)
     }
 }
+struct ItemEntity {
+    stack: ItemStack,
+    age: i32,
+}
+struct ItemEnvironmentTick {
+    alive: bool,
+    lava_hurt: bool,
+    spilled: Vec<ItemStack>,
+}
 include!("pluto-item-enchantability-head.rs");
 include!("pluto-item-shear-head.rs");
 include!("pluto-item-shear-saddle-head.rs");
+include!("pluto-item-indestructible-head.rs");
 
 #[test]
 fn enchantability_and_tool_action_adapters_delegate_and_answer() {
@@ -132,4 +142,53 @@ fn enchantability_and_tool_action_adapters_delegate_and_answer() {
     assert_eq!(game.sheared, vec![(3, "minecraft:shears".to_string())]);
     assert_eq!(pluto_shear_saddle(&mut game, 4, "test:kama"), Break(Some(false)));
     assert_eq!(game.saddled, vec![(4, "minecraft:shears".to_string())]);
+}
+
+#[test]
+fn indestructible_adapter_stills_the_tick_only_for_a_true_answer() {
+    use horizon_world::level::pluto_item_behavior_access as access;
+    use std::ops::ControlFlow::{Break, Continue};
+    // No dispatcher installed yet: the original tick runs, age untouched.
+    let mut entity = ItemEntity { stack: ItemStack::plain("test:tool"), age: 100 };
+    assert!(matches!(pluto_item_indestructible(&mut entity), Continue(())));
+    assert_eq!(entity.age, 100);
+
+    // Install the dispatcher; a second install fails.
+    access::set_indestructible_dispatcher(|item, data| match item {
+        "test:tool" => Some(data.get("indestructible").is_some()),
+        _ => None,
+    })
+    .unwrap();
+    assert!(access::set_indestructible_dispatcher(|_, _| None).is_err());
+
+    // An unmarked stack of a registered item runs the original tick, age untouched.
+    let mut entity = ItemEntity { stack: ItemStack::plain("test:tool"), age: 100 };
+    assert!(matches!(pluto_item_indestructible(&mut entity), Continue(())));
+    assert_eq!(entity.age, 100);
+    // An unregistered item delegates the same way.
+    let mut entity = ItemEntity {
+        stack: ItemStack::with_custom(
+            "test:other",
+            Tag::Compound(vec![("indestructible".into(), Tag::Int(1))]),
+        ),
+        age: 100,
+    };
+    assert!(matches!(pluto_item_indestructible(&mut entity), Continue(())));
+    assert_eq!(entity.age, 100);
+    // A marked stack stills the tick: alive, no lava hurt, nothing spilled, and the
+    // age is pinned at the unlimited-lifetime value.
+    let mut entity = ItemEntity {
+        stack: ItemStack::with_custom(
+            "test:tool",
+            Tag::Compound(vec![("indestructible".into(), Tag::Int(1))]),
+        ),
+        age: 100,
+    };
+    match pluto_item_indestructible(&mut entity) {
+        Break(result) => {
+            assert!(result.alive && !result.lava_hurt && result.spilled.is_empty());
+        }
+        Continue(()) => panic!("a marked stack must still the tick"),
+    }
+    assert_eq!(entity.age, i16::MIN as i32);
 }

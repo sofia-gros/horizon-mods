@@ -41,11 +41,18 @@ fn named_state(role: &str, name: &str) -> Result<Option<Identifier>, String> {
         "mantle:underwater" => "in_water",
         "tconstruct:airborne" => "airborne",
         "tconstruct:full_health" => "full_health",
-        // What a mob that hurt a wearer was doing is reported without its crouching and its eyes, so these are asked of the target (the wearer,
-        // or what a weapon hit) only.
-        "mantle:crouching" if role == "target" => "crouching",
-        "mantle:eyes_in_water" if role == "target" => "eyes_in_water",
-        "mantle:feet_in_water" if role == "target" => "feet_in_water",
+        // What a mob that hurt a wearer was doing is reported without its crouching, so that is asked of the target (the wearer,
+        // or what a weapon hit) only. The holder of a dig is the exception: the break-speed event reports the digging player's own eyes
+        // and ground, so a condition over the holder as an entity (role `holder`, carried in the attacker slot) may ask them too.
+        "mantle:crouching" if role == "target" || role == "holder" => "crouching",
+        // The water at the eyes and the feet is reported for the attacker too: the hurt report fills the attacker's eyes from the
+        // mob's own fluid state (as read_surroundings fills them for a weapon hit's parties), and the feet are answered from the
+        // water the mob stands in.
+        "mantle:eyes_in_water" if role == "target" || role == "holder" || role == "attacker" => "eyes_in_water",
+        "mantle:feet_in_water" if role == "target" || role == "holder" || role == "attacker" => "feet_in_water",
+        // Rain on the entity is reported for both roles (read_surroundings fills it from the weather,
+        // the sky light and the biome), unlike the crouching and eye facts above.
+        "mantle:raining_at" => "raining",
         _ => return Ok(None),
     };
     state_tag(role, what).map(Some)
@@ -56,6 +63,8 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
     let path = tag.path();
     let (state, what) = match path.split_once('/') {
         Some(("attacker", what)) => (attacker, what),
+        // A condition over the holder of a dig names the holder; the dig's view carries them in the attacker slot.
+        Some(("holder", what)) => (attacker, what),
         Some(("target", what)) => (target, what),
         _ => return false,
     };
@@ -69,6 +78,7 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
         // The eyes are in water, as opposed to a touch of it; the feet are in water when the entity is.
         "eyes_in_water" => state.eyes_in_water,
         "feet_in_water" => state.in_water,
+        "raining" => state.rain_exposed,
         // AIRBORNE: off the ground and not in water (climbing and riding are not reported).
         "airborne" => !state.on_ground && !state.in_water,
         // FULL_HEALTH: the ceiling of the health, as the health bar draws it, reaches the maximum; false when either was not reported.
@@ -81,6 +91,13 @@ pub(crate) fn state_in_tag(tag: &Identifier, attacker: Option<&pluto_lib::Entity
             let entities = crate::entity_facts::Entities { attacker, target };
             let whose = if path.starts_with("attacker/") { crate::entity_facts::Whose::Attacker } else { crate::entity_facts::Whose::Target };
             variable.value(&entities, whose).is_some_and(|value| crate::entity_facts::in_interval(interval, value, min, max))
+        }
+        // `enchantment/<namespace>/<path>`: an enchantment on the entity's equipment, as
+        // mantle:has_enchantment asks (the levels ride along unasked; presence is the question).
+        _ if what.starts_with("enchantment/") => {
+            let effect = &what["enchantment/".len()..];
+            let (namespace, path) = effect.split_once('/').unwrap_or(("minecraft", effect));
+            state.enchantments.iter().any(|id| id == &format!("{namespace}:{path}"))
         }
         _ => what.strip_prefix("effect/").is_some_and(|effect| {
             let (namespace, path) = effect.split_once('/').unwrap_or(("minecraft", effect));
@@ -100,8 +117,11 @@ impl TargetCondition {
     /// `role` is `attacker` or `target`: whose state the state conditions ask about; empty for none.
     pub(crate) fn decode_for(role: &str, value: Option<&Value>) -> Result<Option<Self>, String> {
         let Some(value) = value.filter(|value| !value.is_null()) else { return Ok(Some(Self::Any)); };
-        // A bare string is a predicate type with no fields.
-        if let Some(name) = value.as_str() { return Ok(named_state(role, name)?.map(Self::Tag)); }
+        // A bare string is a predicate type with no fields; `mantle:any` is the one that asks nothing.
+        if let Some(name) = value.as_str() {
+            if name == "mantle:any" { return Ok(Some(Self::Any)); }
+            return Ok(named_state(role, name)?.map(Self::Tag));
+        }
         let Some(object) = value.as_object() else { return Ok(None); };
         let kind = object.get("type").and_then(Value::as_str).ok_or("target type missing")?;
         let list = || -> Result<Option<Vec<Self>>, String> {
@@ -118,6 +138,12 @@ impl TargetCondition {
                 let effect = object.get("effect").and_then(Value::as_str).ok_or("effect must be an effect id")?;
                 let (namespace, path) = effect.split_once(':').unwrap_or(("minecraft", effect));
                 Self::Tag(state_tag(role, &format!("effect/{namespace}/{path}"))?)
+            }
+            "mantle:has_enchantment" => {
+                if role.is_empty() { return Ok(None); }
+                let enchantment = object.get("enchantment").and_then(Value::as_str).ok_or("enchantment must be an enchantment id")?;
+                let (namespace, path) = enchantment.split_once(':').unwrap_or(("minecraft", enchantment));
+                Self::Tag(state_tag(role, &format!("enchantment/{namespace}/{path}"))?)
             }
             "mantle:sprinting" | "mantle:on_fire" | "mantle:fire_immune" | "mantle:underwater" | "tconstruct:airborne" | "tconstruct:full_health" | "mantle:crouching" | "mantle:eyes_in_water" | "mantle:feet_in_water" => match named_state(role, kind)? { Some(tag) => Self::Tag(tag), None => return Ok(None) },
             "tconstruct:variable_range" => {

@@ -1,6 +1,9 @@
 //! The item behaviour answers of every modifiable item: whether a stack may perform a tool action
-//! (ToolActionModifierHook over its modifiers — the query the game's shear gates ask) and how readily it
-//! takes enchantments at a table. SlimeKnights (MIT; see LICENSE).
+//! (ToolActionModifierHook over its modifiers — the query the game's shear gates ask), how readily it
+//! takes enchantments at a table, and whether a dropped stack is indestructible (the volatile flag the
+//! indestructible, worldbound and reclaim modifiers set — the original's `IForgeItem.createEntity`
+//! replacement, which drops such a stack as the never-despawning indestructible item entity instead).
+//! SlimeKnights (MIT; see LICENSE).
 //!
 //! The enchantability answer is the original's own, not an omission: ModifiableItem.isEnchantable and
 //! ModifiableArmorItem.isEnchantable return false with no getEnchantmentValue override, and
@@ -19,10 +22,11 @@ const DISGUISE_HELMETS: [&str; 3] = ["tconstruct:travelers_helmet", "tconstruct:
 
 /// Registers the behaviours. Called once from the product's hooks.
 pub(crate) fn register() {
-    for item in tool_definitions::registered() {
+    for item in tool_definitions::registered().iter().map(|id| tool_definitions::item_for_definition(id)) {
         if DISGUISE_HELMETS.contains(&item.to_string().as_str()) { continue; }
         let behavior = ItemBehavior::new(item.clone())
             .enchantability(|_| Some(0))
+            .indestructible(|query| Some(tool_stack::volatile_flag(&query.custom_data, "tconstruct:indestructible")))
             .can_perform_action(|query| {
                 let stack = StackData {
                     item: query.item.clone(), count: 1, damage: 0, max_damage: None,

@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn a_condition_this_port_cannot_hold_leaves_the_counter_unbound() {
         assert!(counter(Effect::Fire, json!({"chance":{"flat":1.0},"defender":"mantle:sprinting"})).is_none(), "a wearer condition stays unbound");
-        assert!(counter(Effect::Fire, json!({"chance":{"flat":1.0},"attacker":"mantle:raining_at"})).is_none(), "the weather stays unbound");
+        assert!(counter(Effect::Fire, json!({"chance":{"flat":1.0},"attacker":{"type":"mantle:entity_type","entity_type":"minecraft:player"}})).is_none(), "a predicate over the entity type stays unbound");
         assert!(counter(Effect::Fire, json!({"chance":{"flat":1.0},"attacker":"mantle:on_fire"})).is_some());
         assert!(Counter::decode(Effect::Fire, json!({}).as_object().unwrap()).is_err(), "the chance is required");
     }

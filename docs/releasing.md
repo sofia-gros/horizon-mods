@@ -36,3 +36,11 @@ A release is made only when all of this holds; it is never made to have somethin
 Local dry run of the PlutoLib package: `python tools/package_bundle.py pluto-lib/mod dist/pluto-lib.hnmod` then `cargo horizon-mod check dist/pluto-lib.hnmod` (a tool built from Horizon's `cargo-horizon-mod` crate).
 
 No release exists yet.
+
+## Content install and startup cost
+
+Ship the content as `tconstruct.hmod`, one file in the game's `horizon-mods` folder; never ship or document a loose content folder. Measured 2026-11-23 on the development PC with the r11 build (same world copy, offscreen launches, `HORIZON_STARTUP_TRACE` spans; the machine was shared with other work, so read the numbers as proportions):
+
+- Repeat launches are where the package wins. The host lists and stamps every file of a folder install on every start: resources loaded in 39.4 s from a folder vs 21.9 s from the `.hmod`, with the mod-content step itself at ~18 s vs 2.7 s. The remaining gap to a bare start (~13 s) is the host baking the mod's ~9,000 extra block states and ~15,700 models; it is structural, not waste.
+- The first launch after any content change rebuilds the host's merged content root (`.horizon-cache/mod-content/<stamp>`, ~200 MB): about a minute unloaded, more under load. The stamp is file size + mtime per file, so even re-copying an unchanged folder rebuilds. Later starts reuse the root; roots unused for a day are pruned. Set this expectation in the release notes.
+- The shipped content is fully referenced (audit 2026-11-23: 5 orphan models of 15,772, no broken parents, no missing textures), so there is no file-pruning win to be had; the cost is the host's per-file and per-state work, and the cold build's serial file step is slower from a package (84 s vs 28 s of the cold span) while its read/stamp step nearly vanishes — a wash cold, a clear win warm.

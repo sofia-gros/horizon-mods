@@ -75,7 +75,29 @@ pub(crate) fn register() {
         );
         FluidItems::register(FluidItemDef::tank(id(name), TAG_TANK, LANTERN_CAPACITY as u32).scaled());
     }
+    for (block, speed_factor, jump_factor) in MOVEMENT_FACTORS {
+        pluto_lib::movement::register(block, speed_factor, jump_factor).expect("movement factors register once");
+    }
 }
+
+/// The blocks of this unit whose originals set a non-default movement factor, with the factor the host's
+/// movement table must apply. The lanterns themselves set none: `SearedLanternBlock` is built on
+/// `searedNonSolidProps(SoundType.LANTERN)` with only a light level, so both lanterns keep the default
+/// speed and jump factors of 1.0 and need no registration. The soul glass does carry one: the smeltery
+/// pair is built on the same non-solid properties with `.noCollission().speedFactor(0.1f)`, the commons
+/// pair on `glassBuilder(...).speedFactor(0.2F)`, and the commons pane keeps its collision. The cheese
+/// block is the same reach from the commons unit: `HalfTransparentBlock(...).speedFactor(0.4F).jumpFactor(0.5F)`.
+/// The host's block declarations carry no speed-factor key, so these ride in PlutoLib's movement registry
+/// and the `pluto_movement` mixin applies them to the movement table at load.
+const MOVEMENT_FACTORS: [(&str, f32, f32); 7] = [
+    ("tconstruct:seared_soul_glass", 0.1, 1.0),
+    ("tconstruct:scorched_soul_glass", 0.1, 1.0),
+    ("tconstruct:seared_soul_glass_pane", 0.1, 1.0),
+    ("tconstruct:scorched_soul_glass_pane", 0.1, 1.0),
+    ("tconstruct:soul_glass", 0.2, 1.0),
+    ("tconstruct:soul_glass_pane", 0.2, 1.0),
+    ("tconstruct:cheese_block", 0.4, 0.5),
+];
 
 #[cfg(test)]
 mod tests {
@@ -109,6 +131,17 @@ mod tests {
         register();
         assert!(BlockEntityTypeRegistry::get("tconstruct:seared_lantern").is_some());
         assert!(BlockEntityTypeRegistry::get("tconstruct:scorched_lantern").is_some());
+    }
+
+    #[test]
+    fn the_soul_glass_and_cheese_carry_their_canon_movement_factors() {
+        use pluto_lib::movement::{MovementFactors, get};
+        register();
+        for (block, speed_factor, jump_factor) in MOVEMENT_FACTORS {
+            assert_eq!(get(block), Some(MovementFactors { speed_factor, jump_factor }), "{block} carries its canon factors");
+        }
+        assert_eq!(get("tconstruct:seared_lantern"), None, "the lanterns set no factor and keep the default 1.0");
+        assert_eq!(get("tconstruct:scorched_lantern"), None);
     }
 
     #[test]

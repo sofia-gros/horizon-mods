@@ -12,6 +12,11 @@
 //! `place_feature` answers false while they are absent, and advanceTree then restores the sapling, exactly as
 //! the original does when a feature fails to place.
 //!
+//! The slime leaves also live here: SlimeLeavesBlock measures its decay distance against
+//! `tconstruct:slimy_logs` alone (the host's leaves measure from every log), so its updateShape, tick
+//! and placement distance are recomputed below, and TinkerWorld's fire values for the foliage are
+//! registered with them.
+//!
 //! SlimeDirtBlock.canSustainPlant has no PlutoLib counterpart: the API has no ground-side sustain callback
 //! (no "sustain" anywhere in pluto-lib's API sources). The original answers true for the SLIME plant type
 //! (TinkerWorld.SLIME_PLANT_TYPE, returned by SlimeSaplingBlock's and SlimeTallGrassBlock's getPlantType) and
@@ -528,6 +533,62 @@ fn shrink_seed(used: &UseItemOnBlockContext) {
 }
 
 /// Registers everything in this module. Called once from the product's hooks.
+/// The slime leaves, whose distance SlimeLeavesBlock measures (tconstruct:slimy_leaves is a tag of
+/// the same five blocks; the distance rule names the blocks themselves, as the Java instanceof does).
+const SLIME_LEAVES: [&str; 5] = ["tconstruct:earth_slime_leaves", "tconstruct:sky_slime_leaves", "tconstruct:ichor_slime_leaves", "tconstruct:ender_slime_leaves", "tconstruct:blood_slime_leaves"];
+
+/// SlimeLeavesBlock.getDistance: a slimy log holds the leaves up (0), another slime leaf passes its
+/// own distance on, and everything else — vanilla logs and leaves included — is fully far (7). The
+/// host's leaves measure from every log in `minecraft:logs`, which is why this recompute exists.
+fn slime_leaf_distance(view: &dyn BlockView, pos: BlockPos) -> i32 {
+    let Some(state) = view.block_state(pos) else { return 7 };
+    if view.is_in_tag(pos, "tconstruct:slimy_logs") {
+        0
+    } else if SLIME_LEAVES.contains(&state.block.to_string().as_str()) {
+        state.property("distance").and_then(|value| value.parse().ok()).unwrap_or(7)
+    } else {
+        7
+    }
+}
+
+/// SlimeLeavesBlock.updateDistance: the smallest neighbour distance plus one, seven at most.
+fn slime_leaf_update_distance(view: &dyn BlockView, pos: BlockPos) -> i32 {
+    let mut distance = 7;
+    for direction in Direction::ALL {
+        distance = distance.min(slime_leaf_distance(view, direction.relative(pos)) + 1);
+        if distance == 1 {
+            break;
+        }
+    }
+    distance
+}
+
+/// SlimeLeavesBlock.updateShape: the state itself only changes in the tick; the update schedules
+/// it when the changed neighbour's distance says the stored value is stale, and leaves the rest of
+/// the update (the waterlogged handling) to the game.
+fn slime_leaves_update_shape(c: &ShapeUpdateContext<'_>) -> Option<BlockState> {
+    let distance = slime_leaf_distance(c.view, c.neighbour_pos) + 1;
+    if distance != 1 || c.state.property("distance") != Some(distance.to_string().as_str()) {
+        c.schedule_tick(1);
+    }
+    None
+}
+
+/// SlimeLeavesBlock.tick: take the recomputed distance.
+fn slime_leaves_scheduled_tick(c: &mut TickContext<'_>) {
+    let distance = slime_leaf_update_distance(&*c.world, c.pos);
+    let want = distance.to_string();
+    if c.state.property("distance") != Some(want.as_str()) {
+        c.world.set_block_state(c.pos, &c.state.clone().with("distance", &want));
+    }
+}
+
+/// SlimeLeavesBlock.getStateForPlacement: persistent, at the distance the neighbours give now.
+fn slime_leaves_placement(c: &PlacementContext<'_>) -> Placement {
+    let distance = slime_leaf_update_distance(c.view, c.pos);
+    Placement::State(c.state.clone().with("persistent", "true").with("distance", &distance.to_string()))
+}
+
 pub(crate) fn register() {
     let id = |name: &str| Identifier::new("tconstruct", name).expect("a fixed block id");
     // The slime grass: the overworld foliage spreads and decays (SlimeGrassBlock), the nether foliage only
@@ -591,14 +652,30 @@ pub(crate) fn register() {
             }
         })
         .on_bonemeal(propagule_bonemeal_perform));
-    // The propagule's leaves (SlimePropaguleLeavesBlock).
+    // The propagule's leaves (SlimePropaguleLeavesBlock), with the slime leaves' shared fire odds
+    // and slimy-logs decay distance (SlimeLeavesBlock).
     BlockBehaviors::register(BlockBehavior::new(id("ender_slime_leaves"))
         .can_bonemeal(|c: &BonemealContext<'_>| c.view.is_air(below(c.pos)))
         .bonemeal_success(|_| true)
-        .on_bonemeal(propagule_leaves_bonemeal));
-    // The slime vines (SlimeVineBlock).
+        .on_bonemeal(propagule_leaves_bonemeal)
+        .flammable(30, 60)
+        .update_shape(slime_leaves_update_shape)
+        .scheduled_tick(slime_leaves_scheduled_tick)
+        .state_for_placement(|c: &PlacementContext<'_>| slime_leaves_placement(c)));
+    // The other slime leaves (SlimeLeavesBlock): the non-nether foliage burns like oak leaves, the
+    // nether foliage does not burn at all — the original gives it no fire entry, so the (0, 0) is
+    // named rather than left to the dirt template's silence.
+    for (name, ignite, burn) in [("earth_slime_leaves", 30, 60), ("sky_slime_leaves", 30, 60), ("ichor_slime_leaves", 0, 0), ("blood_slime_leaves", 0, 0)] {
+        BlockBehaviors::register(BlockBehavior::new(id(name))
+            .flammable(ignite, burn)
+            .update_shape(slime_leaves_update_shape)
+            .scheduled_tick(slime_leaves_scheduled_tick)
+            .state_for_placement(|c: &PlacementContext<'_>| slime_leaves_placement(c)));
+    }
+    // The slime vines (SlimeVineBlock); their fire odds are vanilla vines' own (15, 100).
     for name in ["sky_slime_vine", "ender_slime_vine"] {
         BlockBehaviors::register(BlockBehavior::new(id(name))
+            .flammable(15, 100)
             .random_tick(vine_random_tick)
             .can_survive(vine_survives)
             .update_shape(|c: &ShapeUpdateContext<'_>| vine_update_shape(c))

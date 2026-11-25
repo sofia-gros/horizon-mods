@@ -1,6 +1,9 @@
 {
   "parent": "tconstruct:block/template/pane/noside_alt",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
-    "pane": "tconstruct:block/clear_stained_glass"
+    "pane": "tconstruct:block/clear_stained_glass_connected",
+    "particle": "tconstruct:block/clear_stained_glass"
   }
 }

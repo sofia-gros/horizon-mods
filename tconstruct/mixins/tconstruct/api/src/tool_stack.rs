@@ -60,7 +60,34 @@ pub(crate) fn rebuild_stats(nbt: &mut NbtCompound, env: &Environment) -> Result<
     let tool = crate::tool_rebuild::Tool { item: env.item, item_tags: env.item_tags, persistent: &persistent, hook_traits: Some(&hook_traits), has_hook: Some(&has_hook), modifier_tags: Some(&env.modifiers.reverse_tags) };
     let Some(rebuilt) = rebuild(readiness, definition, &list, &saved, env.materials, env.modifiers, &tool)? else { return Ok(false); };
     apply(nbt, &rebuilt);
+    apply_raw_data(nbt, env);
+    // TankModule.validateFluid: a tank that shrank under its content clamps to the new capacity.
+    crate::tool_tank::validate_clamp(nbt);
     Ok(true)
+}
+
+/// RawDataModifierHook over the rebuilt tool, run by the caller that owns the stack (see
+/// tool_rebuild): the top-level keys another mod reads, rebuilt from scratch like the volatile
+/// data, and EmbellishmentModule's migration of its stored variant through material redirects.
+fn apply_raw_data(nbt: &mut NbtCompound, env: &Environment) {
+    // The only writers of top-level keys are TheOneProbeModule's two (EmbellishmentModule's raw
+    // data half writes the persistent data instead, below), so those are the keys cleared first.
+    for key in ["theoneprobe", "theoneprobe_hand"] { nbt.remove(key); }
+    let raw = with_tool_facts(nbt, env, |saved, facts| {
+        let mut raw = NbtCompound::new();
+        for (entry, modifier) in saved { modifier.apply_raw_data(entry, facts, &mut raw); }
+        raw
+    });
+    for (key, value) in raw.iter() { nbt.insert(key.clone(), value.clone()); }
+    // EmbellishmentModule.addRawData: the stored variant follows material redirects on build.
+    let persistent = match nbt.get(TAG_PERSISTENT) { Some(Nbt::Compound(data)) => data.clone(), _ => NbtCompound::new() };
+    let edits: Vec<(String, Nbt)> = saved_modifiers(nbt, env.modifiers).iter()
+        .filter_map(|(_, modifier)| modifier.embellish_migration(&persistent, env.materials)).collect();
+    if !edits.is_empty() {
+        let mut persistent = persistent;
+        for (key, value) in edits { persistent.insert(key, value); }
+        nbt.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+    }
 }
 
 /// ToolStack.ensureHasData's material half: a tool holding fewer materials than it has stat
@@ -115,6 +142,51 @@ fn with_tool_facts<R>(nbt: &NbtCompound, env: &Environment, run: impl FnOnce(&[(
     crate::tool_rebuild::with_facts(&tool, &saved, &upgrades, |facts| run(&saved, facts))
 }
 
+/// A tool's tank modules, collected for the tank consumers (`tank_hook`): the modules live inside
+/// the loaded modifier definitions, so a consumer that only holds the tool's data reads them here,
+/// each with the entry that carries it. The spilling levels are already condition-checked and
+/// computed, as SpillingModule's own gate does.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct TankModules {
+    /// SpillingModule levels, in modifier order.
+    pub spilling: Vec<f32>,
+    /// SlurpingModule instances: the entry and the module.
+    pub slurping: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Slurping)>,
+    /// SpittingModule instances.
+    pub spitting: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Spitting)>,
+    /// SplashingModule instances.
+    pub splashing: Vec<(crate::modifier_entries::Entry, crate::tool_tank::Splashing)>,
+    /// BucketModule instances (the `tconstruct:bucket` code-named module data).
+    pub bucket: Vec<crate::tool_tank::Bucket>,
+    /// TankInteractionModule instances.
+    pub tank_interaction: Vec<crate::tool_tank::TankInteraction>,
+}
+
+impl TankModules {
+    /// Whether the tool carries no tank module at all.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.spilling.is_empty() && self.slurping.is_empty() && self.spitting.is_empty() && self.splashing.is_empty() && self.bucket.is_empty() && self.tank_interaction.is_empty()
+    }
+}
+
+/// The tank modules of the tool in `nbt`.
+pub(crate) fn tank_modules(nbt: &NbtCompound, env: &Environment) -> TankModules {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut modules = TankModules::default();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(level) = module.spilling_level(entry, facts) { modules.spilling.push(level); }
+                if let Some(slurping) = module.slurping() { modules.slurping.push((entry.clone(), *slurping)); }
+                if let Some(spitting) = module.spitting() { modules.spitting.push((entry.clone(), *spitting)); }
+                if let Some(splashing) = module.splashing() { modules.splashing.push((entry.clone(), *splashing)); }
+                if let Some(bucket) = module.bucket() { modules.bucket.push(bucket.clone()); }
+                if let Some(interaction) = module.tank_interaction() { modules.tank_interaction.push(*interaction); }
+            }
+        }
+        modules
+    })
+}
+
 /// BreakSpeedModifierHook over every modifier of the tool: each conditional mining speed module in
 /// priority order (highest first, ties in modifier order), starting from `speed`.
 pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate::mining_speed::Context, speed: f32) -> f32 {
@@ -127,7 +199,11 @@ pub(crate) fn break_speed(nbt: &NbtCompound, env: &Environment, context: &crate:
             for (priority, module) in modifier.mining_modules() { modules.push((priority, index, entry, module)); }
         }
         modules.sort_by_key(|(priority, index, _, _)| (std::cmp::Reverse(*priority), *index));
-        let view = crate::mining_speed::ToolView::of(nbt);
+        // The formula's entity variables read the digging player the event reported (the holder).
+        let view = match &context.holder {
+            Some(holder) => crate::mining_speed::ToolView::with(nbt, crate::entity_facts::Entities { attacker: Some(holder), target: None }),
+            None => crate::mining_speed::ToolView::of(nbt),
+        };
         modules.into_iter().fold(speed, |speed, (_, _, entry, module)| module.mining_speed(entry, facts, &view, context, speed))
     })
 }
@@ -186,6 +262,12 @@ pub(crate) fn armor_looting(nbt: &NbtCompound, env: &Environment, slot: &str) ->
     with_tool_facts(nbt, env, |saved, facts| saved.iter().map(|(entry, modifier)| modifier.armor_looting(entry, facts, slot)).sum())
 }
 
+/// HarvestEnchantmentsModifierHook over one worn piece: the enchantments its modifiers lend the
+/// stack its wearer breaks a block with, while the piece sits in `slot`.
+pub(crate) fn armor_harvest_enchantments(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(String, i32)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.armor_harvest_enchantments(entry, facts, slot)).collect())
+}
+
 /// The tool actions the tool's modifiers perform on a right click, in modifier order.
 pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.tool_actions(entry, facts)).collect())
@@ -195,6 +277,27 @@ pub(crate) fn tool_actions(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::
 /// (the wear cause), the action, the sound and the radius at the entry's effective level.
 pub(crate) fn walk_transforms(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_transforms(entry, facts)).collect())
+}
+
+/// The boot walk modules over every modifier of the tool (ArmorWalkModifierHook), in modifier order.
+pub(crate) fn walk_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::modifier_modules::WalkModule)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.walk_modules(entry, facts)).collect())
+}
+
+/// The place glow modules over every modifier of the tool (PlaceGlowModule), in modifier order:
+/// the modifier's id (the wear cause) and the wear each glow it places costs.
+pub(crate) fn place_glow(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
+    with_tool_facts(nbt, env, |saved, _facts| saved.iter().flat_map(|(entry, modifier)| modifier.place_glow_modules(entry)).collect())
+}
+
+/// BlockItemProviderCapability over the tool: the block item its provider modules offer, the wear
+/// consuming one costs and the providing modifier (CapabilityImpl runs the tool's entries in order
+/// and takes the first non-empty answer). A broken tool provides nothing. Consuming is the
+/// consumer's half: it wears the tool by the returned wear under the returned modifier
+/// (BlockItemProviderModule.consumeBlockItem).
+pub(crate) fn block_item_provider(nbt: &NbtCompound, env: &Environment) -> Option<(Identifier, Identifier, i32)> {
+    if is_broken(nbt) { return None; }
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().find_map(|(entry, modifier)| modifier.block_item_provider(entry, facts).map(|(item, damage)| (entry.id.clone(), item, damage))))
 }
 
 /// ToolActionModifierHook over every modifier of the tool: whether one of them lets it perform the named tool action
@@ -241,6 +344,22 @@ pub(crate) fn restores(nbt: &NbtCompound, env: &Environment, source: &crate::pro
     })
 }
 
+/// What the teleport-dodge modules of a worn piece do for `amount` of damage its wearer took: the dodge of each module
+/// whose conditions and chance land, with the modifier it belongs to (the cause of the wear it costs), in modifier
+/// order. `enderference` says whether the wearer already has the effect, which locks the dodge out. The caller
+/// performs the teleport the dodge is named for and prevents the damage. `roll` gives uniform values in [0, 1).
+pub(crate) fn dodges(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, enderference: bool, amount: f32, roll: &mut dyn FnMut() -> f32) -> Vec<(Identifier, crate::teleport_dodge::Dodge)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                if let Some(dodge) = module.teleport_dodge(entry, facts, source, enderference, amount, roll) { found.push((entry.id.clone(), dodge)); }
+            }
+        }
+        found
+    })
+}
+
 /// What taking a worn piece off does to its wearer besides clearing effects: the hurts (damage type, amount) its damage-on-unequip modules deal
 /// and the shares (category, percent) its reduce-effect modules take off the wearer's effects, in modifier order.
 pub(crate) fn unequip_effects(nbt: &NbtCompound, env: &Environment) -> (Vec<(String, f32)>, Vec<(pluto_lib::EffectCategory, f32)>) {
@@ -266,6 +385,13 @@ pub(crate) fn attribute_entries(nbt: &NbtCompound, env: &Environment, wanted: &[
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.attribute_entries(entry, facts, nbt, wanted)).collect())
 }
 
+/// The contributions the tool's modifiers make to declared attributes for the stack's `slot`, as
+/// (attribute, operation, amount) in modifier order: the custom attribute modules only, whose amounts
+/// are worked out by the port (custom_attributes) rather than published on the stack.
+pub(crate) fn custom_attribute_amounts(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(String, pluto_lib::AttributeOperation, f64)> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.custom_attribute_amount(entry, facts, nbt, slot))).collect())
+}
+
 /// MeleeDamageModifierHook over every modifier of the tool: each conditional melee damage module in
 /// priority order (highest first, ties in modifier order), starting from `damage`. `entities` are the attacker and target as PlutoLib
 /// reported them, for the modules that read their health, temperature or effects.
@@ -285,10 +411,17 @@ pub(crate) fn melee_damage(nbt: &NbtCompound, env: &Environment, base: f32, dama
 /// modules by priority, the modifiers in tool order), clamped to the stat's limits. `holder_in_tag` answers the holder's pseudo state tags
 /// and `entities.attacker` is the holder's state, for the variables that read it. A stat the item does not support is returned as stored.
 pub(crate) fn conditional_stat(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat_at(nbt, env, stat, holder_in_tag, entities, None)
+}
+
+/// The same, with the build range of the level the holder stands in for the modules that read the level's max build height
+/// (dwarven velocity: a shot's holder is not digging, so no dig reports it and the caller names the dimension's range).
+pub(crate) fn conditional_stat_at(nbt: &NbtCompound, env: &Environment, stat: Stat, holder_in_tag: &dyn Fn(&Identifier) -> bool, entities: &crate::entity_facts::Entities, build_height: Option<[i32; 2]>) -> f32 {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut value = self::stat(nbt, stat);
         if !crate::modifier_modules::supports(stat, facts) { return stat.clamp(value); }
-        let view = crate::mining_speed::ToolView::with(nbt, *entities);
+        let mut view = crate::mining_speed::ToolView::with(nbt, *entities);
+        view.facts.build_height = build_height;
         let multiplier = view.multiplier(stat);
         for (entry, modifier) in saved {
             let mut modules: Vec<(i32, &crate::modifier_modules::Module)> = modifier.conditional_stat_modules().collect();
@@ -435,6 +568,35 @@ pub(crate) fn max_armor_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crat
     })
 }
 
+/// The claims a worn armor piece makes on armor stats through armor stat modules (plain and max), in modifier order.
+pub(crate) fn armor_stat_claims(nbt: &NbtCompound, env: &Environment) -> Vec<crate::max_armor::ArmorStatClaim> {
+    let broken = is_broken(nbt);
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.armor_stat_modules().filter_map(move |module| module.armor_stat_claim(entry, facts, broken)).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// Whether a worn armor piece carries a golden attribute module.
+pub(crate) fn has_golden_modules(nbt: &NbtCompound, env: &Environment) -> bool {
+    saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.golden_attribute_modules().next().is_some())
+}
+
+/// The (modifier, attribute, operation, amount) claims a worn armor piece makes through golden attribute modules for a
+/// wearer with `total_gold` golden pieces, in modifier order.
+pub(crate) fn golden_amounts(nbt: &NbtCompound, env: &Environment, total_gold: i32) -> Vec<(Identifier, String, pluto_lib::AttributeOperation, f64)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.golden_attribute_modules().filter_map(move |module| module.golden_amount(entry, facts, total_gold).map(|(attribute, operation, amount)| (entry.id.clone(), attribute, operation, amount))).collect::<Vec<_>>()).collect()
+    })
+}
+
+/// The lightspeed modules a worn piece carries, each with its modifier's id and the entry's effective level,
+/// in modifier order.
+pub(crate) fn lightspeed(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, crate::wearer_modules::LightspeedAttribute, f32)> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.lightspeed_attribute_modules().filter_map(move |module| module.lightspeed(entry, facts)).map(|(module, level)| (entry.id.clone(), module.clone(), level)).collect::<Vec<_>>()).collect()
+    })
+}
+
 /// The levels a worn armor piece adds under each armor level key, in modifier order; `slot` is the slot the piece is worn in.
 pub(crate) fn armor_levels(nbt: &NbtCompound, env: &Environment, slot: &str) -> Vec<(Identifier, i32)> {
     let broken = is_broken(nbt);
@@ -446,6 +608,13 @@ pub(crate) fn edible(nbt: &NbtCompound, env: &Environment) -> Option<Vec<crate::
         if !saved.iter().any(|(_, modifier)| modifier.is_edible()) { return None; }
         Some(saved.iter().flat_map(|(entry, modifier)| modifier.edible_effects(entry, facts)).collect())
     })
+}
+
+/// The items the tool's modifiers present as eaten (EdibleRepresentativeItemModule.onToolEaten's
+/// list, in modifier order): what the eating presentation sounds like, and what an integration
+/// would be told was eaten.
+pub(crate) fn representative_items(nbt: &NbtCompound, env: &Environment) -> Vec<Identifier> {
+    with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.representative_items(entry, facts)).collect())
 }
 /// The mob types a worn armor piece makes its wearer pass for, each with the count the piece adds (its modifier's level), in modifier order.
 pub(crate) fn mob_disguises(nbt: &NbtCompound, env: &Environment) -> Vec<(Identifier, i32)> {
@@ -529,6 +698,88 @@ pub(crate) fn launch_capacity_edits(nbt: &NbtCompound, env: &Environment) -> Vec
     })
 }
 
+/// MeltingModule.processLoot for block loot: drops the tool can melt become its tank's fluid, under
+/// the module's temperature and its own ore rates (tool_tank::Melting). `force` is the caller-computed
+/// force-melting state (the volatile flag is set and the tool is effective on the block); `melt`
+/// resolves one dropped stack to (fluid, temperature) for a module and entry level, or None when the
+/// stack has no melting recipe. The original skips a full tank entirely; unforced melting takes only
+/// the copies that fit, forced melting takes them all and deletes what cannot melt. Returns the
+/// tool's persistent-data edits.
+pub(crate) fn melting_loot(
+    nbt: &mut NbtCompound,
+    env: &Environment,
+    loot: &mut Vec<pluto_lib::ItemSlot>,
+    force: bool,
+    melt: &dyn Fn(&pluto_lib::ItemSlot, &crate::tool_tank::Melting, f32) -> Option<(pluto_lib::FluidStack, i32)>,
+) -> Vec<pluto_lib::StackDataEdit> {
+    let mut work = nbt.clone();
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                let Some(module) = module.melting(entry, facts) else { continue; };
+                if crate::tool_tank::capacity(&work) <= 0 { continue; }
+                let mut index = 0;
+                while index < loot.len() {
+                    // The original checks the tank after every drop: a full tank ends the pass.
+                    let current = crate::tool_tank::fluid(&work);
+                    if current.as_ref().is_some_and(|stored| stored.amount as i32 >= crate::tool_tank::capacity(&work)) { break; }
+                    let Some((fluid, temperature)) = melt(&loot[index], module, entry.effective_level()) else {
+                        if force { loot.remove(index); } else { index += 1; }
+                        continue;
+                    };
+                    if temperature > module.temperature(entry.effective_level()) || fluid.amount == 0 {
+                        if force { loot.remove(index); } else { index += 1; }
+                        continue;
+                    }
+                    if current.as_ref().is_some_and(|stored| !stored.same_fluid(&fluid)) {
+                        index += 1;
+                        continue;
+                    }
+                    let per_copy = fluid.amount as i32;
+                    let room = crate::tool_tank::capacity(&work) - current.as_ref().map_or(0, |stored| stored.amount as i32);
+                    let fitting = if force { loot[index].count as i32 } else { (room / per_copy).min(loot[index].count as i32) };
+                    if fitting > 0 {
+                        let mut fill_stack = fluid.clone();
+                        fill_stack.amount = (per_copy * fitting) as u32;
+                        crate::tool_tank::fill(&mut work, &fill_stack, true);
+                        if fitting >= loot[index].count as i32 { loot.remove(index); continue; }
+                        loot[index].count -= fitting as u32;
+                    }
+                    index += 1;
+                }
+            }
+        }
+    });
+    let edits = crate::capacity::persistent_edits(nbt, &work);
+    *nbt = work;
+    edits
+}
+
+/// InventoryTickModifierHook for every overburn module of the tool: burns the tank's fluid as
+/// melting fuel to regrow overslime (tool_tank::overburn_tick). `fuel` resolves a fluid to its
+/// melting fuel facts; `game_time` is the world clock the burn's expiration is measured on. Whether
+/// the tool changed.
+pub(crate) fn overburn_tick(
+    nbt: &mut NbtCompound,
+    env: &Environment,
+    holder_tick: i32,
+    game_time: i64,
+    using_this: bool,
+    fuel: &dyn Fn(&Identifier) -> Option<crate::tool_tank::Fuel>,
+    rolls: &mut dyn FnMut() -> f32,
+) -> bool {
+    let snapshot = nbt.clone();
+    let mut changed = false;
+    with_tool_facts(&snapshot, env, |saved, _facts| {
+        for (entry, modifier) in saved {
+            if modifier.modules().iter().any(|module| module.is_overburn()) {
+                changed |= crate::tool_tank::overburn_tick(nbt, env, entry, holder_tick, game_time, using_this, fuel, rolls);
+            }
+        }
+    });
+    changed
+}
+
 /// The health a critical melee hit with this tool that dealt `damage` gives its wielder through the tool's lifesteal modules (added up, in
 /// modifier order). `blacklisted` says the mob hit is of the necrotic blacklist; the tags answer the entity type and state tags of the player
 /// and of the mob.
@@ -571,11 +822,87 @@ pub(crate) fn overgrowth_tick(nbt: &mut NbtCompound, env: &Environment, holder_t
     })
 }
 
+/// ModifierUtil.getModifierLevel: the tool's level of the named modifier, 0 when it does not carry it.
+pub(crate) fn modifier_level(nbt: &NbtCompound, env: &Environment, name: &str) -> i32 {
+    saved_modifiers(nbt, env.modifiers).iter().find(|(entry, _)| entry.id.to_string() == name).map_or(0, |(entry, _)| entry.level)
+}
+
 /// The total kinetic level of a piece: the plain levels of the entries whose modifier carries a kinetic module, as
 /// SlotInChargeModule totals the equipped pieces. A broken piece's modifiers do not run, so it contributes nothing.
 pub(crate) fn kinetic_level(nbt: &NbtCompound, env: &Environment) -> i32 {
     if is_broken(nbt) { return 0; }
     saved_modifiers(nbt, env.modifiers).iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.kinetic_level(entry))).sum()
+}
+
+/// InsatiableModifier.afterMeleeHit: the grant a melee hit of this tool feeds its holder's
+/// insatiable (melee) effect — one level more than the holder carries, up to the fifth, for
+/// 100 ticks; None when the tool has no insatiable module or is broken. The swing's charge is
+/// not reported, so every hit counts as fully charged, as the lifesteal module reads a swing.
+pub(crate) fn insatiable_hit_grant(nbt: &NbtCompound, env: &Environment, attacker: Option<&pluto_lib::EntityState>) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let carried = saved_modifiers(nbt, env.modifiers).iter()
+        .any(|(_, modifier)| modifier.modules().iter().any(|module| module.is_insatiable()));
+    if !carried { return None; }
+    let level = crate::entity_facts::effect_level_of(attacker, "tconstruct:insatiable_melee");
+    // applyEffect: the new amplifier is the current one plus one, capped at 4 (the fifth level).
+    let amplifier = (level as i32).min(4);
+    Some(crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "insatiable_melee").expect("valid effect id"), amplifier, duration: 100 })
+}
+
+/// The bleeding grant LaceratingModifier.applyEffect builds: the amplifier is the hit's looting,
+/// the duration the modifier's level in seconds (level * 2 * 20 ticks) plus the 19 ticks the
+/// original adds when the effect is not already running at that amplifier. A running bleeding's
+/// remaining ticks are not reported, so the same-amplifier extension (which adds those ticks
+/// instead) cannot be worked out; the 19-tick branch always runs.
+fn bleeding_grant(level: i32, looting: i32) -> crate::weapon_effect::Grant {
+    crate::weapon_effect::Grant { effect: Identifier::new("tconstruct", "bleeding").expect("valid effect id"), amplifier: looting.max(0), duration: level * 40 + 19 }
+}
+
+/// LaceratingModifier.afterMeleeHit: the bleeding grant for the mob a melee hit of this tool
+/// landed on; its looting is the weapon's own looting plus the looting of the armor the attacker
+/// wears (LootingModifierHook and ArmorLootingModifierHook over the hit). None when the tool has
+/// no lacerating module or is broken. The swing's charge is not reported, so every hit counts as
+/// fully charged, as the lifesteal module reads a swing.
+pub(crate) fn lacerating_hit_grant(nbt: &NbtCompound, env: &Environment, armor: &[(String, pluto_lib::StackData)]) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let level = saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.lacerating_level(entry))).next()?;
+    let mut total = looting(nbt, env);
+    for (slot, piece) in armor { total += armor_looting(&piece.custom_data, env, slot); }
+    Some(bleeding_grant(level, total))
+}
+
+/// LaceratingModifier.onAttacked: the bleeding grant a worn piece may put on the mob that hit
+/// its wearer, when the quarter chance lands (doubled on a blocking wearer in the original; the
+/// wearer's blocking is not reported by the hit, so the base chance always runs). Its looting is
+/// the wearer's armor looting over all the worn pieces, this piece's own included. None when the
+/// piece has no lacerating module, is broken, or the chance misses.
+pub(crate) fn lacerating_counter_grant(nbt: &NbtCompound, env: &Environment, armor: &[(String, pluto_lib::StackData)], rolls: &mut dyn FnMut() -> f32) -> Option<crate::weapon_effect::Grant> {
+    if is_broken(nbt) { return None; }
+    let level = saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.lacerating_level(entry))).next()?;
+    if rolls() >= 0.25 { return None; }
+    let mut total = looting(nbt, env);
+    for (slot, piece) in armor { total += armor_looting(&piece.custom_data, env, slot); }
+    Some(bleeding_grant(level, total))
+}
+
+/// EnderclearanceModule: the (chance, diameter) pairs of this stack's enderclearance modules, in
+/// modifier order; empty when it has none or is broken.
+pub(crate) fn enderclearance(nbt: &NbtCompound, env: &Environment) -> Vec<(f32, f32)> {
+    if is_broken(nbt) { return Vec::new(); }
+    saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.enderclearance(entry)))
+        .collect()
+}
+
+/// ChannelingModule (melee form): the (clear, rain, thunder) chances of this stack's channeling
+/// modules that allow melee; empty when it has none, they forbid melee, or it is broken.
+pub(crate) fn channeling_melee(nbt: &NbtCompound, env: &Environment) -> Vec<(f32, f32, f32)> {
+    if is_broken(nbt) { return Vec::new(); }
+    saved_modifiers(nbt, env.modifiers).iter()
+        .flat_map(|(_, modifier)| modifier.modules().iter().filter_map(|module| module.channeling_melee()))
+        .collect()
 }
 
 /// The recurrent protection modules of a piece: the plain level of each entry whose modifier carries one, with the
@@ -593,14 +920,103 @@ pub(crate) fn blocking(nbt: &NbtCompound, env: &Environment) -> bool {
     saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.blocking()))
 }
 
+/// Whether any of the tool's modifiers lets it brush (BrushModule), so a right click on a block
+/// starts the brush use. A broken piece's modifiers do not run, so it contributes nothing.
+pub(crate) fn brush(nbt: &NbtCompound, env: &Environment) -> bool {
+    if is_broken(nbt) { return false; }
+    saved_modifiers(nbt, env.modifiers).iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.brush()))
+}
+
 /// Whether any of the tool's modifiers puts out a lit campfire the tool is used on (ExtinguishCampfireModule).
 pub(crate) fn extinguishes_campfires(nbt: &NbtCompound, env: &Environment) -> bool {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().any(|(entry, modifier)| modifier.modules().iter().any(|module| module.extinguishes_campfires(entry, facts))))
 }
 
+/// Whether any of the tool's modifiers is a place fire module (PlaceFireModule: the flint and
+/// steel behaviour the tool action click and the block-break veto both hear).
+pub(crate) fn place_fire(nbt: &NbtCompound, env: &Environment) -> bool {
+    with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_, modifier)| modifier.modules().iter().any(|module| module.place_fire())))
+}
+
 /// What the tool's damage on shoot modules hurt its holder by for firing it, in modifier order.
 pub(crate) fn damage_on_shoot(nbt: &NbtCompound, env: &Environment) -> Vec<(String, f32)> {
     with_tool_facts(nbt, env, |saved, facts| saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.damage_on_shoot(entry, facts))).collect())
+}
+
+/// The tool's sling modules in modifier order, each with its entry and its modifier's ID:
+/// the release computation runs them in order, as the original's hook iteration does.
+pub(crate) fn sling_modules(nbt: &NbtCompound, env: &Environment) -> Vec<(crate::modifier_entries::Entry, Identifier, crate::sling_modules::Sling)> {
+    if is_broken(nbt) { return Vec::new(); }
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut found = Vec::new();
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(sling) = module.sling(entry, facts) { found.push((entry.clone(), entry.id.clone(), sling.clone())); }
+            }
+        }
+        found
+    })
+}
+
+/// SlingForceModifierHook over the tool: each of the tool's sling force modules reshapes
+/// the force in modifier order, filtered on its predicates against the modifier doing the
+/// slinging (`sling`), the holder and the target.
+pub(crate) fn sling_force(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, holder: &crate::sling_modules::LivingState, target: &crate::sling_modules::LivingState, sling: &Identifier, force: f32, multiplier: f32) -> f32 {
+    let in_tag = |modifier: &Identifier, tag: &Identifier| env.modifiers.reverse_tags.get(modifier).is_some_and(|tags| tags.contains(tag));
+    let view = crate::mining_speed::ToolView::with(nbt, *entities);
+    with_tool_facts(nbt, env, |saved, facts| {
+        let mut force = force;
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                force = module.sling_force(entry, facts, &view, holder, target, sling, &in_tag, force, multiplier);
+            }
+        }
+        force
+    })
+}
+
+/// The power a sling spends (SlingModule.getPower): half the tool's conditional
+/// projectile damage times its conditional velocity, for the holder `entities`. `build_height` is the
+/// build range of the level the holder stands in, for the dwarven velocity half (a shot's holder is not
+/// digging, so no dig reports it); None leaves the dwarven velocity arm at its stored value.
+pub(crate) fn sling_power(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, build_height: Option<[i32; 2]>) -> f32 {
+    conditional_stat_at(nbt, env, Stat::ProjectileDamage, &|_| false, entities, build_height) / 2.0 * conditional_stat_at(nbt, env, Stat::Velocity, &|_| false, entities, build_height)
+}
+
+/// The draw speed a sling charges by (the conditional stat in SlingModule.getDrawtime).
+pub(crate) fn draw_speed(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    conditional_stat(nbt, env, Stat::DrawSpeed, &|_| false, entities)
+}
+
+/// GeneralInteractionModifierHook.getDrawtime, as ticks: the charge a use at `speed_factor`
+/// takes at `draw_speed` — `ceil(20 * speed_factor / draw_speed)`, at least 1 tick (a zero
+/// or negative drawtime would leave no gate at all).
+pub(crate) fn drawtime_ticks(draw_speed: f32, speed_factor: f32) -> i32 {
+    ((20.0 * speed_factor / draw_speed).ceil() as i32).max(1)
+}
+
+/// The drawtime of the tool in `nbt` at `speed_factor` (GeneralInteractionModifierHook.getDrawtime).
+pub(crate) fn drawtime(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities, speed_factor: f32) -> i32 {
+    drawtime_ticks(draw_speed(nbt, env, entities), speed_factor)
+}
+
+/// ModifierUtil.getInaccuracy: `3 * (1 / accuracy - 1)` over the conditional accuracy.
+pub(crate) fn inaccuracy(nbt: &NbtCompound, env: &Environment, entities: &crate::entity_facts::Entities) -> f32 {
+    3.0 * (1.0 / conditional_stat(nbt, env, Stat::Accuracy, &|_| false, entities) - 1.0)
+}
+
+/// The tool's first fireball module whose condition matches, with its entry and its
+/// modifier's ID (FireballModule: one shot per use, from the first that fires).
+pub(crate) fn fireball_module(nbt: &NbtCompound, env: &Environment) -> Option<(crate::modifier_entries::Entry, Identifier, crate::projectile_modules::Fireball)> {
+    if is_broken(nbt) { return None; }
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved.iter() {
+            for module in modifier.modules() {
+                if let Some(fireball) = module.fireball(entry, facts) { return Some((entry.clone(), entry.id.clone(), fireball.clone())); }
+            }
+        }
+        None
+    })
 }
 
 /// The infinity supply of a launcher: the first module in modifier order that fires for this shot (one that
@@ -624,6 +1040,154 @@ pub(crate) fn infinity(nbt: &NbtCompound, env: &Environment, standard_present: b
     })
 }
 
+/// What a tool's in-flight modules do to a projectile fired from it or as it, with every leveling value
+/// already computed at the entry levels the tool carries (the profile is built per projectile, from the
+/// stack that was fired). Read by `flight_hook` on the spawn, flight and impact tellings.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct FlightProfile {
+    /// ArrowPierceModule: the pierce level to set on spawn.
+    pub pierce: Option<u8>,
+    /// ProjectileBounceModule instances, in modifier order: the modifier's id and its bounce limit.
+    pub bounces: Vec<(String, i32)>,
+    /// ProjectileGravityModule: ticks of flight without gravity (the last module's scheduled task wins,
+    /// as the original's tasks share one id).
+    pub gravity_delay: Option<u32>,
+    /// ProjectileFuseModule: the particle to shed and the tick the fuse ends (the last module's task wins).
+    pub fuse: Option<(String, u32)>,
+    /// ProjectileExplosionModule instances: (radius at level, place fire, destroy blocks, efln bonus).
+    pub explosions: Vec<(f32, bool, bool, f32)>,
+    /// ProjectileAttractMobsModule instances: (radius, strength).
+    pub attracts: Vec<(f32, f32)>,
+    /// ProjectilePlaceGlowModule instances: (places on blocks, places on entities, launcher wear).
+    pub glows: Vec<(bool, bool, i32)>,
+    /// RestrictAngleModule: the fan size the shot's direction is clamped to.
+    pub angle_directions: Option<u32>,
+    /// The tool's loyalty level (the `tconstruct:loyalty` modifier), for a thrown tool's return.
+    pub loyalty: i32,
+    /// The tool's magnetic level (the `tconstruct:magnetic` modifier), for a thrown tool's item pull.
+    pub magnet: i32,
+    /// Whether the projectile carries the fins EFLN mark: set by a projectile-bound volatile
+    /// flag on the fired stack (fins), or already present in its persistent data.
+    pub efln: bool,
+    /// Whether the projectile carries the enderference mark: set by a projectile-bound volatile
+    /// flag on the fired stack (enderference). The original reads it on an entity hit to let the
+    /// shot's hit hooks run on an enderman the enderference effect does not protect
+    /// (ToolEvents.projectileHit); the impact telling carries neither the target's kind nor its
+    /// effects, so the mark is carried and readable here but gates nothing yet.
+    pub enderference: bool,
+    /// Whether the tool carries enderporting (the `tconstruct:enderporting` modifier): where its
+    /// projectile lands, the thrower trades places with what it hit.
+    pub enderporting: bool,
+    /// Whether the tool carries the infinity module (the `tconstruct:infinity` modifier): an arrow it
+    /// fires is creative-only pickup, whether the modifier supplied it or the shooter carried it.
+    pub infinity: bool,
+    /// TippedModule: the potion the fired stack was tipped with (its persistent string
+    /// under the modifier's ID, copied at the shot as onProjectileShoot copies it) and
+    /// the entry's int effective level, which sets the hit's divisor.
+    pub tipped: Option<(String, i32)>,
+    /// SpillingModule instances: the computed level and a snapshot of the firing tool's tank
+    /// fluid, which a launcher hit applies to what it hits (the firing tool is out of reach at
+    /// the impact telling, so the fluid travels with the profile as the shot's own copy).
+    pub spilling: Vec<(f32, Option<pluto_lib::FluidStack>)>,
+}
+
+impl FlightProfile {
+    /// Whether nothing in the profile changes a flight (no spawn, flight or impact work to do).
+    pub(crate) fn is_empty(&self) -> bool {
+        self.pierce.is_none() && self.bounces.is_empty() && self.gravity_delay.is_none() && self.fuse.is_none()
+            && self.explosions.is_empty() && self.attracts.is_empty() && self.glows.is_empty() && self.angle_directions.is_none()
+            && !self.enderporting && !self.enderference && self.tipped.is_none() && self.spilling.is_empty() && !self.infinity
+    }
+}
+
+/// The flight profile of the tool in `nbt`, from its saved modifiers.
+pub(crate) fn flight_profile(nbt: &NbtCompound, env: &Environment) -> FlightProfile {
+    let mut profile = with_tool_facts(nbt, env, |saved, facts| {
+        let mut profile = FlightProfile::default();
+        for (entry, modifier) in saved {
+            match entry.id.to_string().as_str() {
+                "tconstruct:loyalty" => profile.loyalty = entry.effective_level() as i32,
+                "tconstruct:magnetic" => profile.magnet = entry.effective_level() as i32,
+                "tconstruct:enderporting" => profile.enderporting = true,
+                _ => {}
+            }
+            for module in modifier.modules() {
+                if let Some(module) = module.arrow_pierce() { profile.pierce = Some(module.pierce(entry)); }
+                if let Some(module) = module.projectile_bounce() { profile.bounces.push((entry.id.to_string(), module.limit(entry))); }
+                if let Some(module) = module.projectile_gravity() { profile.gravity_delay = Some(module.delay(entry)); }
+                if let Some(module) = module.projectile_fuse() { profile.fuse = Some((module.particle().to_owned(), module.ticks(entry))); }
+                if let Some(module) = module.projectile_explosion() {
+                    profile.explosions.push((module.radius(entry, false), module.place_fire(), module.destroy(), module.radius(entry, true) - module.radius(entry, false)));
+                }
+                if let Some(module) = module.projectile_attract() { profile.attracts.push((module.radius(entry), module.strength(entry))); }
+                if let Some(module) = module.projectile_glow() { profile.glows.push((module.blocks(), module.entities(), module.tool_damage())); }
+                if let Some(module) = module.restrict_angle() { profile.angle_directions = Some(module.directions(entry)); }
+                // InfinityModule: the fired arrow is creative-only pickup (the spawn pass marks a
+                // supplied arrow from its stack, the flight pass the weapon's own from this flag).
+                if module.infinity().is_some() { profile.infinity = true; }
+                // VolatileFlagModule's launch half: a flag bound to a projectile hook is written
+                // into the launched projectile's persistent data, which the profile stands in for
+                // here; the explosion form and the enderference mark are the two readers.
+                if let Some(flag) = module.projectile_flag(entry, facts) {
+                    match flag.to_string().as_str() {
+                        "tconstruct:efln" => profile.efln = true,
+                        "tconstruct:enderference" => profile.enderference = true,
+                        _ => {}
+                    }
+                }
+                // TippedModule: the potion is read from the persistent data below; the
+                // modifier's ID stands in as the key until then.
+                if module.is_tipped() { profile.tipped = Some((entry.id.to_string(), entry.int_effective_level())); }
+                // SpillingModule: the level now, the tank's fluid with it.
+                if let Some(level) = module.spilling_level(entry, facts) { profile.spilling.push((level, crate::tool_tank::fluid(nbt))); }
+            }
+        }
+        profile
+    });
+    if let Some(Nbt::Compound(persistent)) = nbt.get(TAG_PERSISTENT) {
+        profile.efln = matches!(persistent.get("tconstruct:efln"), Some(Nbt::Byte(1)) | Some(Nbt::Int(1)));
+        // The tipped potion: the persistent string under the modifier's own ID, as the
+        // tipping casting recipes leave it; no string, no tip.
+        if let Some((key, level)) = profile.tipped.take() {
+            profile.tipped = match persistent.get(&key) {
+                Some(Nbt::String(potion)) if !potion.is_empty() => Some((potion.clone(), level)),
+                _ => None,
+            };
+        }
+    }
+    profile
+}
+
+/// Whether the tool is thrown on release of a charged use (ThrowingModule) and is not broken.
+pub(crate) fn throwing(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_throwing())))
+}
+
+/// Whether the tool carries the enderporting module (EnderportingModifier) and is not broken.
+pub(crate) fn enderporting(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_enderporting())))
+}
+
+/// Whether the tool carries the harvest module (HarvestModule) and is not broken.
+pub(crate) fn harvests(nbt: &NbtCompound, env: &Environment) -> bool {
+    !is_broken(nbt) && with_tool_facts(nbt, env, |saved, _facts| saved.iter().any(|(_entry, modifier)| modifier.modules().iter().any(|module| module.is_harvest())))
+}
+
+/// The stack edits of wearing this tool by `amount` (ToolDamageUtil.damageTool, as the repair and
+/// swap flows apply it directly): the damage value, and the broken mark when the wear breaks it.
+/// Empty when the wear does not land (a broken or unbreakable tool, or nothing to wear).
+pub(crate) fn damage_edits(nbt: &NbtCompound, amount: i32) -> Vec<pluto_lib::StackDataEdit> {
+    let mut work = nbt.clone();
+    let damaged = crate::tool_damage::damage_tool(&mut work, amount, true, true);
+    if damaged.applied <= 0 { return Vec::new(); }
+    let mut edits = vec![pluto_lib::StackDataEdit { path: vec![TAG_DAMAGE.to_string()], value: Some(Nbt::Int(crate::tool_stack::damage_raw(&work))) }];
+    if damaged.broke {
+        crate::tool_damage::break_tool(&mut work);
+        edits.push(pluto_lib::StackDataEdit { path: vec![TAG_BROKEN.to_string()], value: Some(Nbt::Byte(1)) });
+    }
+    edits
+}
+
 /// The loot of a block broken with this tool after its loot to capacity modules ate what they take (each in modifier order, on what the one
 /// before left), and the edits of the persistent data that fill their bars. `in_tag(item, tag)` answers item tag membership.
 pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<pluto_lib::StackDataEdit> {
@@ -639,6 +1203,134 @@ pub(crate) fn loot_capacity(nbt: &NbtCompound, env: &Environment, loot: &mut Vec
         }
         crate::capacity::persistent_edits(nbt, &work)
     })
+}
+
+/// AutosmeltModule.processLoot over the tool's autosmelt modules, in modifier order: each drop a
+/// cooking recipe of one of the module's types takes becomes the cooked result, its count scaled
+/// by the input's; past the first level, each input item rolls the extra drop chance for one more
+/// result, unless the result is plus-blacklisted. A blacklisted drop is never converted. The
+/// result is a plain stack of the result item: the recipe result's own components are not carried
+/// by the cooking lookup. `in_tag(item, tag)` answers item tag membership; `rolls` gives uniform
+/// values in [0, 1).
+pub(crate) fn autosmelt_loot(nbt: &NbtCompound, env: &Environment, loot: &mut Vec<pluto_lib::ItemSlot>, in_tag: &dyn Fn(&Identifier, &Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) {
+    let blacklist = Identifier::parse("tconstruct:autosmelt_blacklist").expect("valid tag");
+    let plus_blacklist = Identifier::parse("tconstruct:autosmelt_plus_blacklist").expect("valid tag");
+    with_tool_facts(nbt, env, |saved, _facts| {
+        for (entry, modifier) in saved {
+            for module in modifier.modules() {
+                let Some((types, chance)) = module.autosmelt() else { continue; };
+                for stack in loot.iter_mut() {
+                    if in_tag(&stack.item, &blacklist) { continue; }
+                    let Some(recipe) = types.iter().find_map(|kind| pluto_lib::recipe_api_v1::cooking_recipe(kind, &stack.item.to_string())) else { continue; };
+                    let Ok(result) = Identifier::parse(&recipe.result) else { continue; };
+                    let input_count = stack.count;
+                    let mut count = recipe.result_count * input_count;
+                    if entry.level > 1 && chance > 0.0 && !in_tag(&result, &plus_blacklist) {
+                        let extra = input_count as i32 * (entry.level - 1);
+                        let bonus = if chance >= 1.0 { extra } else { (0..extra).filter(|_| rolls() < chance).count() as i32 };
+                        count += bonus as u32;
+                    }
+                    *stack = pluto_lib::ItemSlot::new(result, count);
+                }
+            }
+        }
+    });
+}
+
+/// SmeltingModule.cookItems over the tool's smelting modules: `amount` of heat (a hit's damage,
+/// a harvested count, a shot's power) times each module's multiplier is the cooking power every
+/// stored input stack is measured against: a stack whose remaining time runs out gives one item
+/// to the output inventory (the same slot), and starts its next item at the recipe's full time.
+/// Mutates `nbt` (the tool's custom data) in place; returns how many items finished cooking.
+/// Reductions against the original: a finished item's experience and sound are not granted (no
+/// port action awards experience orbs or plays a sound at the holder), and the output slot's cap
+/// is the module's slot limit alone (an item's own max stack size is not reported).
+pub(crate) fn cook_smelting(nbt: &mut NbtCompound, env: &Environment, amount: f32) -> u32 {
+    if amount < 0.0 { return 0; }
+    let plans = with_tool_facts(nbt, env, |saved, facts| {
+        saved.iter().flat_map(|(entry, modifier)| modifier.modules().iter().filter_map(|module| module.smelting_parts(entry, facts))
+            .map(|(input, output, kind, multiplier)| (input, output, kind.to_owned(), multiplier)).collect::<Vec<_>>()).collect::<Vec<_>>()
+    });
+    let mut cooked = 0;
+    for (input, output, recipe_type, multiplier) in plans {
+        if !input.is_active() { continue; }
+        let power = amount * multiplier;
+        let output_inventory = crate::tool_inventory::ToolInventory::new(vec![output]);
+        with_persistent(nbt, |persistent| {
+            let mut entries = input.entries(persistent);
+            let mut changed = false;
+            let mut index = 0;
+            while index < entries.len() {
+                let slot = entries[index].0;
+                let Some(mut stack) = crate::tool_inventory::read_stack(&entries[index].1) else { index += 1; continue; };
+                let mut time = entries[index].1.get("tic_remaining_time").and_then(Nbt::as_i64).unwrap_or(0) as i32;
+                let mut recipe = None;
+                if time == 0 {
+                    recipe = pluto_lib::recipe_api_v1::cooking_recipe(&recipe_type, &stack.item.to_string());
+                    time = recipe.as_ref().map_or(-1, |recipe| recipe.time as i32);
+                    entries[index].1.insert("tic_remaining_time".into(), Nbt::Int(time));
+                    changed = true;
+                }
+                if time >= 0 {
+                    if time as f32 > power {
+                        entries[index].1.insert("tic_remaining_time".into(), Nbt::Int((time as f32 - power) as i32));
+                        changed = true;
+                    } else {
+                        // The output slot this input slot cooks into: a full one freezes the item at 1 tick left.
+                        let current = output_inventory.stack(persistent, slot);
+                        let mut max_size = 0;
+                        if let Some(current) = &current {
+                            max_size = output_inventory.slot_limit(slot);
+                            if current.count as i32 >= max_size {
+                                entries[index].1.insert("tic_remaining_time".into(), Nbt::Int(1));
+                                changed = true;
+                                index += 1;
+                                continue;
+                            }
+                        }
+                        if recipe.is_none() { recipe = pluto_lib::recipe_api_v1::cooking_recipe(&recipe_type, &stack.item.to_string()); }
+                        match recipe {
+                            None => {
+                                entries[index].1.insert("tic_remaining_time".into(), Nbt::Int(-1));
+                                changed = true;
+                            }
+                            Some(recipe) => {
+                                let Ok(result_id) = Identifier::parse(&recipe.result) else { index += 1; continue; };
+                                let mut result = pluto_lib::ItemSlot::new(result_id, recipe.result_count);
+                                if max_size == 0 { max_size = output_inventory.slot_limit(slot); }
+                                let blocked = result.count as i32 + current.as_ref().map_or(0, |current| current.count as i32) > max_size
+                                    || current.as_ref().is_some_and(|current| !crate::tool_inventory::same_stack(current, &result));
+                                if blocked {
+                                    entries[index].1.insert("tic_remaining_time".into(), Nbt::Int(1));
+                                    changed = true;
+                                } else {
+                                    if let Some(mut current) = current { current.count += result.count; result = current; }
+                                    output_inventory.set_stack(persistent, slot, Some(&result));
+                                    cooked += 1;
+                                    changed = true;
+                                    stack.count -= 1;
+                                    if stack.count == 0 { entries.remove(index); continue; }
+                                    let mut rewritten = crate::tool_inventory::write_stack(&stack, slot);
+                                    rewritten.insert("tic_remaining_time".into(), Nbt::Int(recipe.time as i32));
+                                    entries[index].1 = rewritten;
+                                }
+                            }
+                        }
+                    }
+                }
+                index += 1;
+            }
+            if changed { input.set_entries(persistent, entries); }
+        });
+    }
+    cooked
+}
+
+/// cook_smelting as stack edits, for the flows that land their changes as actions on the holder.
+pub(crate) fn smelting_edits(nbt: &NbtCompound, env: &Environment, amount: f32) -> Vec<pluto_lib::StackDataEdit> {
+    let mut work = nbt.clone();
+    cook_smelting(&mut work, env, amount);
+    crate::capacity::persistent_edits(nbt, &work)
 }
 
 /// The damage a worn armor piece lets through after its damage to capacity modules took what their bars hold (in priority order, highest
@@ -674,14 +1366,14 @@ pub(crate) fn counter_actions(nbt: &NbtCompound, env: &Environment, in_tag: &dyn
     })
 }
 
-/// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `in_tag` answers the entity type tags and the
-/// pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
-pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
+/// The mob effects a worn armor piece puts on the mob that hit its wearer, in modifier order. `source` is the hit's damage; `in_tag`
+/// answers the entity type tags and the pseudo state tags of the attacking mob; `rolls` gives uniform values in [0, 1).
+pub(crate) fn counter_effects(nbt: &NbtCompound, env: &Environment, source: &crate::protection::DamageSource, in_tag: &dyn Fn(&Identifier) -> bool, rolls: &mut dyn FnMut() -> f32) -> Vec<(crate::weapon_effect::Whom, crate::weapon_effect::Grant)> {
     with_tool_facts(nbt, env, |saved, facts| {
         let mut grants = Vec::new();
         for (entry, modifier) in saved {
             for module in modifier.counter_effect_modules() {
-                if let Some(grant) = module.counter_effect(entry, facts, in_tag, rolls) { grants.push(grant); }
+                if let Some(grant) = module.counter_effect(entry, facts, source, in_tag, rolls) { grants.push(grant); }
             }
         }
         grants
@@ -802,13 +1494,16 @@ pub(crate) fn draw_quiver_ammo(nbt: &mut NbtCompound, env: &Environment, vanilla
     None
 }
 
-/// One step of an armor keybind interact (ArmorInteractModifierHook), in the merger's order: the strap and
-/// belt modules of every entry in modifier order first (their module priority is the default), then the
-/// inventory menu modules (InventoryMenuModule.getPriority is 75, so a menu opens only when no strap or
-/// belt module answered the key).
+/// One step of an armor keybind interact (ArmorInteractModifierHook), in the merger's order: the strap,
+/// belt and minimap modules of every entry in modifier order first (their module priority is the
+/// default), then the inventory menu modules (InventoryMenuModule.getPriority is 75, so a menu opens
+/// only when no strap, belt or minimap module answered the key).
 pub(crate) enum InteractPlan {
     Strap { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
     Belt { keys: Vec<crate::tool_inventory::MenuKey>, inventory: crate::tool_inventory::ToolInventory },
+    /// MinimapModule: the keybind cycles the minimap inventory's selected map (its own keys are the
+    /// tooltip keys it answers, decided in armor_interact_hook's `interact`).
+    MinimapSelect { inventory: crate::tool_inventory::ToolInventory },
     Menu { key: crate::tool_inventory::MenuKey },
 }
 
@@ -823,6 +1518,7 @@ pub(crate) fn armor_interact_plan(nbt: &NbtCompound, env: &Environment) -> Vec<I
                 let step = match module {
                     crate::modifier_modules::Module::ShieldStrap { keys } => Some(InteractPlan::Strap { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
                     crate::modifier_modules::Module::ToolBelt { keys } => Some(InteractPlan::Belt { keys: keys.clone(), inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
+                    crate::modifier_modules::Module::Minimap => Some(InteractPlan::MinimapSelect { inventory: inventory.get_or_insert_with(|| crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts))).clone() }),
                     _ => None,
                 };
                 if let Some(step) = step { plan.push(step); }
@@ -832,6 +1528,20 @@ pub(crate) fn armor_interact_plan(nbt: &NbtCompound, env: &Environment) -> Vec<I
             for key in modifier.inventory_menu_keys() { plan.push(InteractPlan::Menu { key }); }
         }
         plan
+    })
+}
+
+/// SleevesModule's reach into a piece: the inventory of the modifier entry carrying a sleeves
+/// module, as the module reads its own entry's inventory capability (the sibling inventory module
+/// of the same modifier supplies the slots). None when no entry carries one.
+pub(crate) fn sleeves_inventory(nbt: &NbtCompound, env: &Environment) -> Option<crate::tool_inventory::ToolInventory> {
+    with_tool_facts(nbt, env, |saved, facts| {
+        for (entry, modifier) in saved {
+            if modifier.modules().iter().any(|module| matches!(module, crate::modifier_modules::Module::Sleeves)) {
+                return Some(crate::tool_inventory::ToolInventory::new(modifier.inventory_parts(entry, facts)));
+            }
+        }
+        None
     })
 }
 
@@ -1019,6 +1729,42 @@ mod tests {
         assert!(!is_broken(&nbt));
     }
     #[test]
+    fn flight_profile_carries_the_projectile_bound_flags() {
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:fins").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})),
+            (Identifier::parse("test:enderference").unwrap(), json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]}]})),
+            (Identifier::parse("test:explosive").unwrap(), json!({"modules":[{"type":"tconstruct:projectile_explosion","block_interaction":"destroy","efln_bonus":0.5,"knockback":{"flat":1.0},"place_fire":false,"radius":{"each_level":1.0,"flat":1.0},"hooks":["tconstruct:projectile_hit"]}]})),
+            (Identifier::parse("test:infinity").unwrap(), json!({"modules":[{"type":"tconstruct:infinity","ammo":"minecraft:arrow","durability_usage":1,"hooks":["tconstruct:projectile_shot"]}]})),
+            (Identifier::parse("test:plain").unwrap(), json!({})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let mut nbt = NbtCompound::new();
+        let list = List::default()
+            .with_modifier(Identifier::parse("test:fins").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:enderference").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:explosive").unwrap(), 1).unwrap()
+            .with_modifier(Identifier::parse("test:infinity").unwrap(), 1).unwrap();
+        nbt.insert(TAG_MODIFIERS.into(), list.to_nbt());
+        let profile = flight_profile(&nbt, &env);
+        // Launching with fins bound marks the projectile efln: the explosion consumer adds the
+        // module's efln bonus to the radius for a marked projectile (the EFLN form). The
+        // enderference mark rides the profile the same way.
+        assert!(profile.efln, "fins marks the launched projectile");
+        assert!(profile.enderference, "enderference marks the launched projectile");
+        assert!(profile.infinity, "the infinity module rides the profile, for the fired arrow's pickup");
+        assert_eq!(profile.explosions.len(), 1);
+        assert_eq!(profile.explosions[0].3, 0.5, "the efln bonus the marked form adds");
+        assert!(!profile.is_empty());
+        // A stack with none of them carries neither mark.
+        let mut bare = NbtCompound::new();
+        bare.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse("test:plain").unwrap(), 1).unwrap().to_nbt());
+        let profile = flight_profile(&bare, &env);
+        assert!(!profile.efln && !profile.enderference && !profile.infinity);
+    }
+    #[test]
     fn ensure_materials_fills_missing_materials_but_rebuild_alone_does_not() {
         let mut registry = Registry::default();
         registry.reload(&[], &Always);
@@ -1116,6 +1862,26 @@ mod tests {
         assert_eq!(try_validate(&nbt, &env), None, "the requirement reads the tool's full modifier list");
     }
     #[test]
+    fn armor_stat_claims_read_worn_pieces_for_their_tinker_data_keys() {
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:light").unwrap(), json!({"modules":[{"type":"tconstruct:armor_stat","key":"tconstruct:jump_boost","each_level":0.5,"hooks":["tconstruct:equipment_change"]}]})),
+            (Identifier::parse("test:heavy").unwrap(), json!({"modules":[{"type":"tconstruct:max_armor_stat","key":"tconstruct:critical_damage","flat":0.1,"each_level":0.05,"hooks":["tconstruct:equipment_change"]}]})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let mut nbt = NbtCompound::new();
+        let list = List::default()
+            .with_modifier(Identifier::parse("test:light").unwrap(), 2).unwrap()
+            .with_modifier(Identifier::parse("test:heavy").unwrap(), 3).unwrap();
+        nbt.insert(TAG_MODIFIERS.into(), list.to_nbt());
+        let claims = armor_stat_claims(&nbt, &env);
+        assert_eq!(claims.len(), 2, "{claims:?}");
+        let totals = crate::max_armor::armor_stat_totals(claims);
+        assert_eq!(totals, vec![("tconstruct:critical_damage".to_owned(), 0.25), ("tconstruct:jump_boost".to_owned(), 1.0)], "0.1 flat and 0.05 a level at 3, and 0.5 a level at 2: {totals:?}");
+    }
+    #[test]
     fn unready_environment_changes_nothing() {
         let registry = Registry::default();
         let materials = loaded_materials();
@@ -1129,5 +1895,64 @@ mod tests {
         // A fresh registry has not loaded dynamic modifiers, which is also a gate.
         env.item_tags_loaded = true;
         assert!(!rebuild_stats(&mut nbt, &env).unwrap());
+    }
+
+    #[test]
+    fn drawtime_is_the_ceiling_of_twenty_over_draw_speed() {
+        assert_eq!(drawtime_ticks(1.0, 1.0), 20);
+        assert_eq!(drawtime_ticks(2.0, 1.0), 10);
+        assert_eq!(drawtime_ticks(0.5, 1.0), 40);
+        assert_eq!(drawtime_ticks(3.0, 1.0), 7, "a partial tick still takes a whole one");
+        assert_eq!(drawtime_ticks(1.0, 2.0), 40, "the speed factor scales the drawtime");
+        assert_eq!(drawtime_ticks(0.0, 1.0), i32::MAX, "no draw speed means no end to the gate");
+        assert_eq!(drawtime_ticks(-1.0, 1.0), 1, "a negative drawtime is floored to one tick");
+        assert_eq!(drawtime_ticks(1.0, 0.0), 1, "a zero factor still gates one tick");
+    }
+
+    #[test]
+    fn melee_capacity_fills_the_bar_on_a_hit_and_answers_its_conditions() {
+        // The grant the monster melee hit wires: a bar of 10 and a flat grant of 3 per hit.
+        let mut registry = Registry::default();
+        registry.reload(&[
+            (Identifier::parse("test:charge").unwrap(), json!({"modules":[
+                {"type":"tconstruct:capacity_bar","hooks":["tconstruct:capacity_bar"],"flat":10},
+                {"type":"tconstruct:melee_capacity","hooks":["tconstruct:melee_hit"],"grant":{"flat":3}}
+            ]})),
+            (Identifier::parse("test:picky").unwrap(), json!({"modules":[
+                {"type":"tconstruct:capacity_bar","hooks":["tconstruct:capacity_bar"],"flat":10},
+                {"type":"tconstruct:melee_capacity","hooks":["tconstruct:melee_hit"],"grant":{"flat":5},"target":{"type":"mantle:tag","tag":"minecraft:undead"}}
+            ]})),
+        ], &Always);
+        let materials = loaded_materials();
+        let data = Data::default();
+        let env = environment(&data, &materials, &registry);
+        let tool = |id: &str| {
+            let mut nbt = NbtCompound::new();
+            nbt.insert(TAG_MODIFIERS.into(), List::default().with_modifier(Identifier::parse(id).unwrap(), 1).unwrap().to_nbt());
+            nbt
+        };
+        let yes = |_: &Identifier| true;
+        // An empty bar fills by the flat grant, as one persistent edit on the bar's own key.
+        let nbt = tool("test:charge");
+        let edits = melee_capacity_edits(&nbt, &env, &yes, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].path, vec![TAG_PERSISTENT.to_string(), "test:charge".to_string()]);
+        assert_eq!(edits[0].value, Some(Nbt::Int(3)));
+        // The fill caps at the bar's capacity, as the bar's own set does.
+        let mut full = tool("test:charge");
+        let mut persistent = NbtCompound::new();
+        persistent.insert("test:charge".into(), Nbt::Int(9));
+        full.insert(TAG_PERSISTENT.into(), Nbt::Compound(persistent));
+        let edits = melee_capacity_edits(&full, &env, &yes, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].value, Some(Nbt::Int(10)), "nine plus three is capped at ten");
+        // A target condition the hit does not meet grants nothing; one it meets grants the flat amount.
+        let undead = Identifier::parse("minecraft:undead").unwrap();
+        let nbt = tool("test:picky");
+        assert!(melee_capacity_edits(&nbt, &env, &|tag: &Identifier| *tag != undead, &yes).is_empty(), "a living target is not undead");
+        let edits = melee_capacity_edits(&nbt, &env, &|tag: &Identifier| *tag == undead, &yes);
+        assert_eq!(edits.len(), 1);
+        assert_eq!(edits[0].path, vec![TAG_PERSISTENT.to_string(), "test:picky".to_string()]);
+        assert_eq!(edits[0].value, Some(Nbt::Int(5)));
     }
 }

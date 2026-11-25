@@ -1,6 +1,9 @@
 // Queued custom advancement events are handed to the native sink at the
-// head of the advancement tick, in the scope of the current actor.
+// head of the advancement tick, in the scope of the current actor. Owner
+// tag snapshots are driven first, so this tick's evaluations resolve tags
+// against the snapshots that were current when the tick began.
 fn pluto_advancement_event_drain(game: &mut Game<'_>) {
+    super::pluto_advancement_tags::drive(game);
     let events = super::pluto_advancement_event_source::take_events();
     if events.is_empty() {
         return;

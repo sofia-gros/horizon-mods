@@ -10,8 +10,9 @@ use pluto_lib::{Identifier, JsonResourceStack, Nbt, NbtCompound};
 use serde_json::{Value, json};
 
 use crate::shaped_materials::{
-    Data, KeyIngredient, Predicate, decode_predicate, decode_recipe, find_materials, grid_matches,
-    load_recipes, predicate_matches, value_recipe_matches,
+    Data, KeyIngredient, Predicate, decode_predicate, decode_recipe, decode_shapeless_recipe,
+    find_materials, find_materials_shapeless, grid_matches, load_recipes, load_shapeless_recipes,
+    predicate_matches, value_recipe_matches,
 };
 use crate::tool_materials::MaterialVariant;
 
@@ -193,7 +194,7 @@ fn find_materials_agrees_disagrees_and_discards_variants_like_the_original() {
         "same material, differing variants: the variant is discarded",
     );
     // And a grid that does not fit the pattern is not this recipe's grid.
-    let facts = RecipeFacts { form: RecipeForm::Shaped { width: 2, height: 1 }, result_item: Some("tconstruct:fake_storage_block"), result_count: 1 };
+    let facts = RecipeFacts { form: RecipeForm::Shaped { width: 2, height: 1 }, result_item: Some("tconstruct:fake_storage_block"), result_count: 1, id: None };
     let request = AssemblyRequest {
         recipe: &facts,
         grid: GridFacts { width: 2, height: 1, left: 0, top: 0, cells: &cells },
@@ -250,6 +251,148 @@ fn all_ten_shipped_shaped_materials_recipes_decode() {
         assert!(
             recipe.key.values().any(keeps_material),
             "{stem} keeps a material ingredient",
+        );
+    }
+}
+
+#[test]
+fn the_shipped_shapeless_materials_recipe_decodes_and_finds_its_material() {
+    // The one shipped shapeless-materials conversion: fake_block_to_ingots.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/recipe");
+    let path = content.join("tools/parts/fake_block_to_ingots.json");
+    let value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"))).unwrap();
+    let file = (id("tconstruct:tools/parts/fake_block_to_ingots"), value);
+    let registered = load_shapeless_recipes(std::slice::from_ref(&file));
+    let candidates = &registered[&id("tconstruct:fake_ingot")];
+    assert_eq!(candidates.len(), 1, "the conversion registers under its result item");
+    let recipe = &candidates[0];
+    assert_eq!(recipe.part_count, 1);
+    // The shaped loader does not claim it (its parts is a count, not symbols).
+    assert!(load_recipes(&[file.clone()]).is_empty());
+    // The serializer's bounds: parts must be between 1 and the ingredient count.
+    assert!(decode_shapeless_recipe(&json!({"type": "minecraft:crafting_shapeless", "ingredients": [{"item": "minecraft:stone"}], "parts": 0, "result": {"id": "minecraft:stone"}})).is_err());
+    assert!(decode_shapeless_recipe(&json!({"type": "minecraft:crafting_shapeless", "ingredients": [{"item": "minecraft:stone"}], "parts": 2, "result": {"id": "minecraft:stone"}})).is_err());
+
+    // A registry where mythril has a block form (value 9) but no ingot form,
+    // so the fake ingot may stand in for it; iron has both.
+    let mut definitions = crate::materials::Definitions::default();
+    definitions.server_loaded = true;
+    definitions
+        .tags
+        .insert(id("tconstruct:compatibility_metals"), vec![id("tconstruct:mythril"), id("tconstruct:iron")]);
+    let files = vec![
+        (id("tconstruct:tools/materials/mythril_block"), json!({"type": "tconstruct:material", "ingredient": {"item": "tconstruct:mythril_block"}, "material": "tconstruct:mythril", "needed": 1, "value": 9})),
+        (id("tconstruct:tools/materials/iron_ingot"), json!({"type": "tconstruct:material", "ingredient": {"item": "minecraft:iron_ingot"}, "material": "tconstruct:iron", "needed": 1, "value": 1})),
+    ];
+    let material_recipes = crate::material_recipes::Recipes::load(&files, &crate::original_data::conditions());
+    assert!(material_recipes.problems.is_empty(), "{:?}", material_recipes.problems);
+    let loaded = Data { definitions, material_recipes, casting: crate::casting_recipes::MaterialCasting::default(), items: None };
+    let block = |material: &str| {
+        let mut data = NbtCompound::new();
+        data.insert("Material".into(), Nbt::String(material.into()));
+        Nbt::Compound(data)
+    };
+    let mythril = block("tconstruct:mythril");
+    let cells = [Some(stack("tconstruct:fake_storage_block", Some(&mythril))), None, None];
+    assert_eq!(
+        find_materials_shapeless(recipe, &cells, &loaded).unwrap().iter().map(ToString::to_string).collect::<Vec<_>>(),
+        ["tconstruct:mythril"],
+        "the block's material carries into the ingots",
+    );
+    // Iron already has an ingot form, so the fake ingot cannot stand in for
+    // it: the ingredient refuses the stack and the part is never found.
+    let iron = block("tconstruct:iron");
+    let cells = [Some(stack("tconstruct:fake_storage_block", Some(&iron))), None, None];
+    assert!(find_materials_shapeless(recipe, &cells, &loaded).is_none());
+}
+
+#[test]
+fn shipped_material_value_ingredients_resolve_once_the_data_has_loaded() {
+    // The host asks each mod ingredient kind for its load-time item list
+    // while it parses the recipe table, and drops the recipe when the
+    // answer is empty. Before the reload listeners apply, the material
+    // data has not loaded and the answer is empty — the parse-order bug
+    // the data workaround routes around. With the data loaded (the state
+    // the listeners leave behind, which the host now reaches before the
+    // parse), every material_value ingredient in the shipped grid
+    // recipes names at least one item, so the recipes survive the parse.
+    let content = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/data/tconstruct/recipe");
+    let stems = [
+        "tools/parts/pick_head",
+        "tools/parts/tool_binding",
+        "tools/parts/tool_handle",
+        "tools/armor/travelers/boots",
+        "tools/armor/travelers/chestplate",
+        "tools/armor/travelers/goggles",
+        "tools/armor/travelers/pants",
+        "tools/armor/travelers/shield",
+    ];
+    fn collect(value: &Value, out: &mut Vec<Value>) {
+        match value {
+            Value::Object(fields) => {
+                if fields.get("type").and_then(Value::as_str) == Some("tconstruct:material_value") {
+                    out.push(value.clone());
+                }
+            }
+            Value::Array(members) => members.iter().for_each(|member| collect(member, out)),
+            _ => {}
+        }
+    }
+    let mut ingredients: Vec<Value> = Vec::new();
+    for stem in stems {
+        let path = content.join(format!("{stem}.json"));
+        let recipe: Value = serde_json::from_slice(&std::fs::read(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"))).unwrap();
+        let before = ingredients.len();
+        for member in recipe["key"].as_object().unwrap().values() {
+            collect(member, &mut ingredients);
+        }
+        assert!(ingredients.len() > before, "{stem} keys a material_value ingredient");
+    }
+    // The registries as the reload listeners leave them: the shipped
+    // material definitions, stats and traits, the shipped material
+    // recipes, the shipped casting tables, and the item snapshot the
+    // host hands over with them (declared items and flattened item
+    // tags, built the way casting_loop builds it), which is what a
+    // tag-keyed material ingredient enumerates through.
+    let mut definitions = crate::materials::Definitions::load(
+        &crate::original_data::files("materials/definition"),
+        &crate::original_data::conditions(),
+    );
+    let mut problems = Vec::new();
+    definitions.stats = crate::material_stats::load(&crate::original_data::stacks("materials/stats"), &mut problems);
+    definitions.traits = crate::material_traits::load(&crate::original_data::stacks("materials/traits"), &mut problems);
+    assert!(problems.is_empty(), "{problems:?}");
+    definitions.server_loaded = true;
+    let mut material_recipes = crate::material_recipes::Recipes::load(
+        &crate::original_data::recursive_files("tools/materials", "tools/materials"),
+        &crate::original_data::conditions(),
+    );
+    assert!(material_recipes.problems.is_empty(), "{:?}", material_recipes.problems);
+    material_recipes.loaded = true;
+    let loaded = Data {
+        definitions,
+        material_recipes,
+        casting: crate::original_data::fluid_recipes(false).material_casting,
+        items: Some(std::sync::Arc::new(crate::casting_loop::item_registry())),
+    };
+    for ingredient in &ingredients {
+        assert!(
+            !crate::shaped_materials::material_value_items_with(ingredient, &loaded).is_empty(),
+            "{ingredient} names at least one item once the material data has loaded",
+        );
+    }
+    // And before any of it loads, the same questions answer empty: the
+    // state the host's recipe parse used to run against.
+    let unloaded = Data {
+        definitions: crate::materials::Definitions::default(),
+        material_recipes: crate::material_recipes::Recipes::load(&[], &crate::original_data::conditions()),
+        casting: crate::casting_recipes::MaterialCasting::default(),
+        items: None,
+    };
+    for ingredient in &ingredients {
+        assert!(
+            crate::shaped_materials::material_value_items_with(ingredient, &unloaded).is_empty(),
+            "{ingredient} names nothing before the material data loads",
         );
     }
 }

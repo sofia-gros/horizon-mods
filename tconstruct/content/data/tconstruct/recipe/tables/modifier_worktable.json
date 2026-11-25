@@ -9,6 +9,8 @@
     "r r",
     "r r"
   ],
+  "texture": "r",
+  "match_all": true,
   "result": {
     "id": "tconstruct:modifier_worktable"
   }

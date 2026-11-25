@@ -5,11 +5,12 @@
 //! them. The window is laid out and drawn on the client and answers button presses on the server.
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
-use super::base::{Identifier, NbtCompound};
+use super::base::{Event, Identifier, NbtCompound};
 use super::block_api_v1::Direction;
 use super::block_entity_api_v1::{BlockPos, ItemSlot};
+use super::world_api_v1::BlockState;
 
 /// The surface a screen draws on, in GUI pixels. PlutoLib passes one to the draw callback; a test can implement it to check what a screen
 /// draws.
@@ -18,10 +19,202 @@ pub trait ScreenCanvas {
     fn fill(&mut self, rect: [f32; 4], argb: u32);
     /// Draws the part `src` (`[x, y, width, height]`, in texture pixels) of the GUI texture `name` into `dst`; false if there is no such texture.
     fn sprite(&mut self, name: &str, src: [f32; 4], dst: [f32; 4]) -> bool;
+    /// Draws the part `src` (in texture pixels) of the GUI texture `name`, a sheet of `sheet` pixels, into `dst`, tinted by `argb`:
+    /// `sprite` with a colour, for the translucent shades and covers of the original screens. False if there is no such texture.
+    fn sprite_tinted(&mut self, name: &str, src: [f32; 4], sheet: [f32; 2], dst: [f32; 4], argb: u32) -> bool {
+        let _ = (name, src, sheet, dst, argb);
+        false
+    }
+    /// Draws the block/item atlas sprite `name` (such as `tconstruct:gui/tinker_pattern/pick_head`) stretched into `dst`, tinted
+    /// by `argb`. The host gives no answer for a missing sprite: an unknown name draws nothing.
+    fn atlas_sprite(&mut self, name: &str, dst: [f32; 4], argb: u32) {
+        let _ = (name, dst, argb);
+    }
+    /// Draws `stack`'s item icon with its top left at `at`, `size` GUI pixels square, as the game draws it in a slot (model and
+    /// decorations, without the count). False when nothing was drawn (an unknown item or an empty stack).
+    fn item(&mut self, stack: &ItemSlot, at: [f32; 2], size: f32) -> bool {
+        let _ = (stack, at, size);
+        false
+    }
     /// Draws `text` with its top left at `at`, in colour `rgb`, with a shadow if asked.
     fn text(&mut self, text: &str, at: [f32; 2], rgb: u32, shadow: bool);
     /// The width of `text` in GUI pixels.
     fn text_width(&self, text: &str) -> f32;
+    /// Draws a 3D scene of `blocks` into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the
+    /// `[x, y, width, height]` of the flat draws), seen as `view` says. Each block is drawn with its model;
+    /// a block carrying a [`SceneEntity`] is drawn by that block's block-entity renderer, with its baked
+    /// entity-model layers, as in the world — which is how a screen shows a small structure (a book's
+    /// multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The scene
+    /// has a depth of its own inside the rect and never covers the screen's other drawing. The default
+    /// draws nothing: a canvas with no scene reach (a test's recording canvas, a server) simply skips it.
+    fn scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
+        let _ = (rect, blocks, view);
+    }
+    /// Draws a living entity's preview into `rect` (`[x0, y0, x1, y1]` corner coordinates, as
+    /// [`ScreenCanvas::scene`] takes): the figure [`LivingPreview`] names, wearing or holding
+    /// its item, as the smithing screen draws its preview stand. The default draws nothing: a
+    /// canvas with no living reach (a test's recording canvas, a server) simply skips it.
+    fn living(&mut self, rect: [f32; 4], preview: &LivingPreview) {
+        let _ = (rect, preview);
+    }
+    /// Draws the face of the filled map `stack` carries into `rect` (`[x, y, width, height]`,
+    /// as [`ScreenCanvas::fill`] takes): the map's own colours at the rect's size, as a HUD
+    /// minimap shows them. The map's decorations (player markers, banners) are not drawn.
+    /// The default draws nothing: a canvas with no map reach (a test's recording canvas, a
+    /// server) simply skips it.
+    fn map(&mut self, rect: [f32; 4], stack: &ItemSlot) {
+        let _ = (rect, stack);
+    }
+}
+
+/// A living entity drawn as a screen preview (the station windows' armor stand, wearing the
+/// piece being made): which entity it is, the one item it wears or holds, and how the figure
+/// stands. The host places the item by the item's own equipment slot, exactly as its smithing
+/// screen's preview does — a worn piece on its part of the figure, anything else in the left
+/// hand. Today the host has a renderer for the armor stand only; another `kind` draws nothing.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LivingPreview {
+    /// The entity type drawn, such as `minecraft:armor_stand`.
+    pub kind: Identifier,
+    /// The item the figure wears or holds, if any.
+    pub item: Option<ItemSlot>,
+    /// The figure's turn, in degrees.
+    pub yaw: f32,
+    /// Whether an armor stand figure shows its arms.
+    pub arms: bool,
+    /// Whether an armor stand figure shows its base plate.
+    pub base_plate: bool,
+}
+
+impl LivingPreview {
+    /// An armor stand preview holding or wearing `item`, standing as the smithing screen's
+    /// preview stand stands: turned to 210 degrees, arms shown, no base plate.
+    pub fn armor_stand(item: ItemSlot) -> Self {
+        Self {
+            kind: Identifier::parse("minecraft:armor_stand").expect("valid entity id"),
+            item: Some(item),
+            yaw: 210.0,
+            arms: true,
+            base_plate: false,
+        }
+    }
+}
+
+/// One block of a scene drawn by [`ScreenCanvas::scene`]: its state, where it stands in the scene's own
+/// coordinates (the view's centre is measured in the same ones), and the block entity drawn with it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SceneBlock {
+    /// The block's position in scene coordinates.
+    pub pos: [i32; 3],
+    /// The block's state (its id and properties).
+    pub block: BlockState,
+    /// The block entity drawn at this block, if any.
+    pub entity: Option<SceneEntity>,
+}
+
+/// The block entity a scene draws at a block: which block's entity it is, the data it renders from, and
+/// the items it holds (an armor stand's worn pieces). The block's registered block-entity renderer draws
+/// it, exactly as it draws the entity in the world.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SceneEntity {
+    /// The block whose block entity this is.
+    pub block: Identifier,
+    /// The entity's data, as its renderer reads it.
+    pub data: NbtCompound,
+    /// The items the entity holds, in its slot order.
+    pub items: Vec<Option<ItemSlot>>,
+}
+
+/// Where a scene is seen from (the host's scene view): `center` is the scene point the rect's middle
+/// shows, `yaw` and `pitch` turn it in degrees (unturned, the scene is seen from the north, as a player at
+/// yaw 0 sees it; a positive pitch tilts its top towards the viewer), and `scale` is how many GUI pixels
+/// one block spans.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SceneView {
+    /// The scene point at the rect's centre.
+    pub center: [f32; 3],
+    /// The turn around the vertical axis, in degrees.
+    pub yaw: f32,
+    /// The tilt, in degrees.
+    pub pitch: f32,
+    /// GUI pixels per block.
+    pub scale: f32,
+}
+
+impl Default for SceneView {
+    /// A single block at the origin, seen turned halfway round with its top tilted to the viewer, sixteen
+    /// pixels to a block: the smithing screen's way of showing one thing.
+    fn default() -> Self {
+        SceneView { center: [0.5, 0.5, 0.5], yaw: 45.0, pitch: 30.0, scale: 16.0 }
+    }
+}
+
+/// A piece of the opening player's own equipment, as a slot of a window can show it. The station
+/// windows of the original carry the player's armor and offhand slots beside the block's own slots
+/// (`TinkerStationContainerMenu`: "add armor and offhand slots, for convenience").
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum EquipmentSlotKind {
+    /// The head's armor piece.
+    Head,
+    /// The chest's armor piece.
+    Chest,
+    /// The legs' armor piece.
+    Legs,
+    /// The feet's armor piece.
+    Feet,
+    /// The off hand.
+    OffHand,
+}
+
+impl EquipmentSlotKind {
+    /// The host's equipment index of this piece (the entity equipment numbering the host's own
+    /// equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
+    pub fn host_slot(self) -> i32 {
+        match self {
+            Self::Feet => 100,
+            Self::Legs => 101,
+            Self::Chest => 102,
+            Self::Head => 103,
+            Self::OffHand => -106,
+        }
+    }
+}
+
+/// What a container slot of a window is backed by. Most slots are backed by the opened block
+/// entity's own item slots; a slot can instead show a piece of the opening player's equipment
+/// ([`SlotSource::PlayerEquipment`]), a slot of a neighbouring block entity
+/// ([`SlotSource::NeighbourBlockEntity`]) or a slot of the containers the window's menu-links
+/// callback names ([`SlotSource::LinkedContainer`]) — the extra inventories the original's
+/// station and melter windows carry. A neighbour slot rides the host's linked slots (its menu
+/// type declares `links` over the neighbour slots, in order, and PlutoLib answers the host's
+/// menu-links question with the declared neighbours' positions), so what a player takes out of
+/// it leaves the neighbour in the same step. A linked-container slot rides the same linked
+/// slots, but the containers are the callback's answer rather than fixed offsets: the window
+/// declares a range of them and the host fills the range from the named containers in order,
+/// which is how a window shows an inventory it has to look for first (a station's neighbouring
+/// chest, whose side varies). An equipment slot is drawn from the opening player's live
+/// equipment; the menu carries it as an armor slot over the player's equipment (registered with
+/// the window, see pluto-menu-equipment), so it clicks through the native armor behaviour.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SlotSource {
+    /// The opened block entity's own item slot of the same index.
+    BlockEntity,
+    /// A piece of the opening player's equipment.
+    PlayerEquipment(EquipmentSlotKind),
+    /// A slot of the block entity at this offset from the opened block's position, in slot order
+    /// among the layout's neighbour slots (the host fills the menu type's linked slots from the
+    /// answered containers in order).
+    NeighbourBlockEntity([i32; 3]),
+    /// A slot of the window's linked range: it shows the containers the window's menu-links
+    /// callback (`ScreenHandlerType::on_menu_links`) names, in order (the host fills the menu
+    /// type's linked slots from the answered containers in order).
+    LinkedContainer,
+}
+
+impl Default for SlotSource {
+    fn default() -> Self {
+        Self::BlockEntity
+    }
 }
 
 /// Where things are in a window, in GUI pixels from its top left (Minecraft: `Slot.x`, `Slot.y`).
@@ -30,7 +223,7 @@ pub trait ScreenCanvas {
 /// the matching entry of `dynamic` is set — at the position the window's dynamic-slot callback
 /// (`ScreenHandlerType::on_dynamic_slots`) gives it for the menu's current state. A slot that is
 /// neither is hidden: it is not in the menu at all, on the server either, so no click reaches it and
-/// shift-clicks skip it.
+/// shift-clicks skip it. What backs each slot is the matching entry of `sources`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScreenLayout {
     /// The window's width; vanilla container windows are 176.
@@ -42,6 +235,8 @@ pub struct ScreenLayout {
     /// Which slots the dynamic-slot callback positions: such a slot is in the menu though the static
     /// layout has no position for it. Parallel to `slots`, one entry per slot.
     pub dynamic: Vec<bool>,
+    /// What backs each container slot. Parallel to `slots`, one entry per slot.
+    pub sources: Vec<SlotSource>,
     /// The left column of the player's inventory (vanilla's is 8).
     pub inventory_x: f32,
     /// The top row of the player's inventory (vanilla's is 84; the hotbar is 58 below it).
@@ -55,13 +250,14 @@ pub struct ScreenLayout {
 impl ScreenLayout {
     /// A window `width` by `height` with no slots, the inventory at vanilla's place and the game drawing the panel and the labels.
     pub fn new(width: f32, height: f32) -> Self {
-        Self { width, height, slots: Vec::new(), dynamic: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
+        Self { width, height, slots: Vec::new(), dynamic: Vec::new(), sources: Vec::new(), inventory_x: 8.0, inventory_y: 84.0, own_labels: false, own_background: false }
     }
 
     /// The same layout with one more container slot at `(x, y)`.
     pub fn slot(mut self, x: f32, y: f32) -> Self {
         self.slots.push(Some([x, y]));
         self.dynamic.push(false);
+        self.sources.push(SlotSource::BlockEntity);
         self
     }
 
@@ -71,6 +267,7 @@ impl ScreenLayout {
     pub fn hidden_slot(mut self) -> Self {
         self.slots.push(None);
         self.dynamic.push(false);
+        self.sources.push(SlotSource::BlockEntity);
         self
     }
 
@@ -82,7 +279,51 @@ impl ScreenLayout {
     pub fn dynamic_slot(mut self) -> Self {
         self.slots.push(None);
         self.dynamic.push(true);
+        self.sources.push(SlotSource::BlockEntity);
         self
+    }
+
+    /// The same layout with one more slot at `(x, y)` showing a piece of the opening player's own
+    /// equipment (the original station windows' armor and offhand slots). The slot is drawn from
+    /// the player's live equipment; the menu carries it as an armor slot over the player's
+    /// equipment, so clicks reach it through the native armor behaviour (see
+    /// [`SlotSource::PlayerEquipment`]).
+    pub fn equipment_slot(mut self, x: f32, y: f32, kind: EquipmentSlotKind) -> Self {
+        self.slots.push(Some([x, y]));
+        self.dynamic.push(false);
+        self.sources.push(SlotSource::PlayerEquipment(kind));
+        self
+    }
+
+    /// The same layout with one more slot at `(x, y)` backed by the block entity at `offset` from
+    /// the opened block (a melter's fuel slot, which is the heater below's own slot). The window's
+    /// menu type must declare `links` over its neighbour slots in the order they are declared
+    /// here; the slot then is a real slot of the menu, filled from the neighbour's container (see
+    /// [`SlotSource::NeighbourBlockEntity`]).
+    pub fn neighbour_slot(mut self, x: f32, y: f32, offset: [i32; 3]) -> Self {
+        self.slots.push(Some([x, y]));
+        self.dynamic.push(false);
+        self.sources.push(SlotSource::NeighbourBlockEntity(offset));
+        self
+    }
+
+    /// The same layout with one more slot of the window's linked range: a slot the dynamic-slot
+    /// callback positions, backed by the containers the window's menu-links callback names (see
+    /// [`SlotSource::LinkedContainer`]). The window's menu type must declare `links` over the
+    /// linked slots in the order they are declared here; a linked slot the callback positions
+    /// nowhere (it answers `None` for it) is hidden, which is how a window shows only as many of
+    /// them as the named containers hold.
+    pub fn linked_slot(mut self) -> Self {
+        self.slots.push(None);
+        self.dynamic.push(true);
+        self.sources.push(SlotSource::LinkedContainer);
+        self
+    }
+
+    /// What backs container slot `slot`; the block entity's own slots back any slot the layout
+    /// does not declare a source for.
+    pub fn source(&self, slot: usize) -> SlotSource {
+        self.sources.get(slot).copied().unwrap_or_default()
     }
 
     /// The same layout with the player's inventory at `(x, y)`.
@@ -119,8 +360,32 @@ pub struct ScreenDraw<'a> {
     pub origin: [f32; 2],
     /// The menu's data slots (what the block entity set); empty until the server's first values arrive, so read it with `get`.
     pub data: &'a [i32],
+    /// The cursor's position in GUI pixels from the window's top left (outside it too: a sidebar
+    /// left of the window reads negative x). The original's screens draw hover faces and fluid
+    /// highlights from it.
+    pub mouse: [f32; 2],
+    /// The menu's container slots as the client last saw them synced, in slot order (the block
+    /// entity's item slots only, not the player's). Empty until the first sync arrives, and on a
+    /// screen whose menu never synced items; read it with `get`. The window's own server-side
+    /// state stays in the menu data — this is the client's view for drawing (side info panels
+    /// that read the tool in the slots, say), never an authority.
+    pub items: &'a [Option<ItemSlot>],
     /// Where to draw.
     pub canvas: &'a mut dyn ScreenCanvas,
+}
+
+/// What the scroll callback receives: the mouse wheel turned over the window. Its `at` is where
+/// the cursor is, its `delta` the wheel's movement, and its `data` the menu's data slots. Scroll
+/// state is the window's own (client-side) business — no scroll reaches the server — so a window
+/// whose list scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
+pub struct ScreenScroll<'a> {
+    /// Where the cursor is, in GUI pixels from the window's top left.
+    pub at: [f32; 2],
+    /// The wheel's movement, in notches: a positive y is a roll up (toward the user at the top
+    /// of the wheel, Minecraft's `mouseScrolled` sign flipped to "up is positive").
+    pub delta: [f32; 2],
+    /// The menu's data slots.
+    pub data: &'a [i32],
 }
 
 /// What the click callback receives: a left or right press on the window over no slot.
@@ -155,12 +420,34 @@ pub struct MenuButton<'a> {
     pub items: &'a mut Vec<Option<ItemSlot>>,
     /// The stack on the pressing player's cursor, which the callback may change (Minecraft: `Player.containerMenu.getCarried`).
     pub carried: &'a mut Option<ItemSlot>,
+    /// The menu switch the callback asked for with [`MenuButton::open_menu`], if any: read back
+    /// by the transport once the callback returns.
+    pub switch: Option<BlockPos>,
 }
 
 impl MenuButton<'_> {
+    /// Asks for the pressing player's menu to be switched to the menu of the block at `pos`:
+    /// this menu closes and that block's opens in its place, keeping what the player carries
+    /// (the original's `StationTabPacket`, which a tabbed table's tab sends). The switch is
+    /// carried out after the callback returns; asking twice keeps the last position.
+    pub fn open_menu(&mut self, pos: BlockPos) {
+        self.switch = Some(pos);
+    }
     /// Sets menu data slot `index` (0..256); the content menu must declare it. Values are clamped to the signed 16-bit wire range.
     pub fn set_data(&mut self, index: usize, value: i32) {
         super::block_entity_api_v1::set_menu_data(self.data, index, value);
+    }
+
+    /// The fluid in the block entity's tank `index`, if it holds any (tanks are declared with
+    /// `BlockEntityType::fluid_tanks`): a tank a player clicked with a held container is filled
+    /// or emptied here, as the original's `clickMenuButton` does.
+    pub fn fluid(&self, index: usize) -> Option<super::block_entity_api_v1::FluidStack> {
+        super::block_entity_api_v1::read_fluid(self.data, index)
+    }
+
+    /// Puts `stack` in the block entity's tank `index`, or empties the tank with `None`.
+    pub fn set_fluid(&mut self, index: usize, stack: Option<super::block_entity_api_v1::FluidStack>) {
+        super::block_entity_api_v1::write_fluid(self.data, index, stack);
     }
 }
 
@@ -260,9 +547,21 @@ pub struct ContainerAccept<'a> {
     pub face: Option<Direction>,
 }
 
+/// What the menu-links callback receives: the opened block entity's position. The containers
+/// around it are read through [`Neighbours`](super::neighbour_api_v1::Neighbours), whose scope
+/// the host holds open for the call, exactly as for a ticking block entity.
+pub struct MenuLinkContext {
+    /// The opened block entity's position.
+    pub pos: BlockPos,
+}
+
 type Draw = Arc<dyn Fn(&mut ScreenDraw<'_>) + Send + Sync>;
+type Links = Arc<dyn Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync>;
 type DynamicSlots = Arc<dyn Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync>;
 type Click = Arc<dyn Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync>;
+type Scroll = Arc<dyn Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync>;
+type Char = Arc<dyn Fn(char) -> bool + Send + Sync>;
+type Key = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 type Tooltip = Arc<dyn Fn(&mut ScreenTooltip<'_>) + Send + Sync>;
 type Button = Arc<dyn Fn(&mut MenuButton<'_>) + Send + Sync>;
 type Rule = Arc<dyn Fn(&mut SlotRule<'_>) + Send + Sync>;
@@ -277,8 +576,12 @@ pub struct ScreenHandlerType {
     /// The window's layout.
     pub layout: ScreenLayout,
     draw: Option<Draw>,
+    links: Option<Links>,
     dynamic_slots: Option<DynamicSlots>,
     click: Option<Click>,
+    scroll: Option<Scroll>,
+    char_typed: Option<Char>,
+    key_pressed: Option<Key>,
     tooltip: Option<Tooltip>,
     button: Option<Button>,
     rule: Option<Rule>,
@@ -291,12 +594,25 @@ pub struct ScreenHandlerType {
 impl ScreenHandlerType {
     /// A window for `block`'s menu with the given layout and nothing drawn beyond the game's panel.
     pub fn new(block: Identifier, layout: ScreenLayout) -> Self {
-        Self { block, layout, draw: None, dynamic_slots: None, click: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
+        Self { block, layout, draw: None, links: None, dynamic_slots: None, click: None, scroll: None, char_typed: None, key_pressed: None, tooltip: None, button: None, rule: None, quick_move: None, accepts: None, slot_clicks: HashMap::new(), pick_all_exclusions: std::collections::HashSet::new() }
     }
 
     /// The same window, `draw` drawing it each frame over the panel and the slot frames and under the items (Fabric: `HandledScreen.drawBackground`).
     pub fn on_draw(mut self, draw: impl Fn(&mut ScreenDraw<'_>) + Send + Sync + 'static) -> Self {
         self.draw = Some(Arc::new(draw));
+        self
+    }
+
+    /// The same window, `links` naming the containers its linked slots show: the positions of
+    /// the block entities whose slots fill the menu type's linked range, in fill order. The
+    /// host asks while the menu is open (each tick), with the neighbours' reach open, and
+    /// passes by anything that is not a container, so a named position with nothing behind it
+    /// simply holds nothing. A window with a links callback answers the host's question with
+    /// the callback's positions alone; its declared neighbour slots (if any) are not also
+    /// answered. Use it for a linked inventory the window has to look for (a station's
+    /// neighbouring chest); a fixed neighbour (a melter's heater) is a neighbour slot instead.
+    pub fn on_menu_links(mut self, links: impl Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync + 'static) -> Self {
+        self.links = Some(Arc::new(links));
         self
     }
 
@@ -317,6 +633,34 @@ impl ScreenHandlerType {
     /// The same window, `tooltip` adding lines when the mouse is over something of the screen's own and no item.
     pub fn on_tooltip(mut self, tooltip: impl Fn(&mut ScreenTooltip<'_>) + Send + Sync + 'static) -> Self {
         self.tooltip = Some(Arc::new(tooltip));
+        self
+    }
+
+    /// The same window, `scroll` hearing the mouse wheel over the window (client-side, while this
+    /// window is the open one). Answer `true` to consume the roll (the game's own scrolling —
+    /// hotbar selection with no screen, recipe book paging — is then skipped). Nothing a scroll
+    /// does reaches the server: a window that scrolls a server-published list keeps the offset
+    /// itself and windows the list in its draw, click and tooltip callbacks.
+    pub fn on_scroll(mut self, scroll: impl Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.scroll = Some(Arc::new(scroll));
+        self
+    }
+
+    /// The same window, `char_typed` hearing each character typed while this window is the open
+    /// one (a text field's input). Answer `true` to consume the character. Key presses that are
+    /// not characters (backspace, arrows, enter, escape) arrive through [`Self::on_key`]. The
+    /// text a field collects is the window's own client-side state; the surface carries input,
+    /// not a channel to the server.
+    pub fn on_char(mut self, char_typed: impl Fn(char) -> bool + Send + Sync + 'static) -> Self {
+        self.char_typed = Some(Arc::new(char_typed));
+        self
+    }
+
+    /// The same window, `key_pressed` hearing each named key press while this window is the open
+    /// one (the game's own key names, lower-cased: `backspace`, `enter`, `escape`, `left`, ...).
+    /// Answer `true` to consume the press. See [`Self::on_char`] for character input.
+    pub fn on_key(mut self, key_pressed: impl Fn(&str) -> bool + Send + Sync + 'static) -> Self {
+        self.key_pressed = Some(Arc::new(key_pressed));
         self
     }
 
@@ -385,6 +729,46 @@ impl ScreenHandlerRegistry {
     pub fn get(block: &str) -> Option<ScreenHandlerType> {
         HANDLERS.lock().ok()?.as_ref()?.get(block).cloned()
     }
+
+    /// Registers `menu`'s equipment: the player's armor and offhand slots the window carries
+    /// beside the block's own, in layout order (the original station windows' armor and offhand
+    /// slots). `first` is the layout index the equipment starts at, `kinds` the pieces' names
+    /// (`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`). Registering the same menu again
+    /// replaces the earlier entry. The game inserts the pieces at the menu's build, so the menu's
+    /// slot indices match the layout's.
+    pub fn set_menu_equipment(menu: &'static str, first: usize, kinds: &'static [&'static str]) {
+        if let Some(sink) = MENU_EQUIPMENT_SINK.get() {
+            sink(menu, first, kinds);
+        }
+        if let Ok(mut all) = MENU_EQUIPMENT.lock() {
+            let all = all.get_or_insert_with(Vec::new);
+            if let Some(entry) = all.iter_mut().find(|(id, _, _)| *id == menu) {
+                *entry = (menu, first, kinds);
+            } else {
+                all.push((menu, first, kinds));
+            }
+        }
+    }
+
+    /// The equipment registered for `menu`, if any: the layout index it starts at and the pieces
+    /// in layout order.
+    pub fn menu_equipment(menu: &str) -> Option<(usize, Vec<&'static str>)> {
+        MENU_EQUIPMENT.lock().ok()?.as_ref()?.iter().find(|(id, _, _)| *id == menu).map(|(_, first, kinds)| (*first, kinds.to_vec()))
+    }
+}
+
+static MENU_EQUIPMENT: Mutex<Option<Vec<(&'static str, usize, &'static [&'static str])>>> = Mutex::new(None);
+static MENU_EQUIPMENT_SINK: OnceLock<fn(&'static str, usize, &'static [&'static str])> = OnceLock::new();
+
+/// Tells the game side about every menu-equipment registration, those already made and those to come. Called once by the game-facing half.
+pub(crate) fn set_menu_equipment_sink(sink: fn(&'static str, usize, &'static [&'static str])) {
+    if MENU_EQUIPMENT_SINK.set(sink).is_ok() {
+        if let Ok(all) = MENU_EQUIPMENT.lock() {
+            for (menu, first, kinds) in all.iter().flatten() {
+                sink(menu, *first, kinds);
+            }
+        }
+    }
 }
 
 /// Whether a registered screen has opted into dynamic container-slot positions.
@@ -406,13 +790,113 @@ pub(crate) fn layout(block: &str) -> Option<ScreenLayout> {
     ScreenHandlerRegistry::get(block).map(|h| h.layout)
 }
 
-/// Draws the block's window; false if it has none or draws nothing.
-pub(crate) fn draw(block: &str, origin: [f32; 2], data: &[i32], canvas: &mut dyn ScreenCanvas) -> bool {
+/// What backs each container slot of a block's window, in slot order; empty if it has no window.
+pub(crate) fn slot_sources(block: &str) -> Vec<SlotSource> {
+    layout(block).map(|layout| (0..layout.slots.len()).map(|slot| layout.source(slot)).collect()).unwrap_or_default()
+}
+
+/// The neighbour offsets a block's window declares, in the order its neighbour slots are
+/// declared: the containers the host's menu-links question is answered with, whose slots fill
+/// the menu type's linked slots in order.
+pub(crate) fn neighbour_sources(block: &str) -> Vec<[i32; 3]> {
+    slot_sources(block)
+        .into_iter()
+        .filter_map(|source| match source {
+            SlotSource::NeighbourBlockEntity(offset) => Some(offset),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Whether a block's window names its linked containers through a callback.
+pub(crate) fn has_menu_links(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|handler| handler.links.is_some())
+}
+
+/// The containers a block's window's linked slots show, as its menu-links callback names them
+/// for the menu open at `pos`; `None` if it has no callback (the declared neighbour slots are
+/// the answer then, see [`neighbour_sources`]).
+pub(crate) fn menu_links(block: &str, pos: BlockPos) -> Option<Vec<BlockPos>> {
+    let handler = ScreenHandlerRegistry::get(block)?;
+    let links = handler.links?;
+    Some(links(&MenuLinkContext { pos }))
+}
+
+/// The state the client last saw synced for each block's open menu: its menu data and its
+/// container items, in slot order. The dynamic-slot refresh (which runs on the client whenever
+/// a menu's slots or data change) records it; the draw and scroll callbacks read it back.
+/// Client-side state only: the server never sees this map, and a menu that never refreshed
+/// simply draws with no items.
+static MENU_STATE: Mutex<Option<HashMap<String, (Vec<i32>, Vec<Option<ItemSlot>>)>>> = Mutex::new(None);
+
+/// Records the state of the menu of `block` the client just saw (see [`MENU_STATE`]).
+pub(crate) fn note_menu_state(block: &str, data: &[i32], items: &[Option<ItemSlot>]) {
+    if let Ok(mut all) = MENU_STATE.lock() {
+        all.get_or_insert_with(HashMap::new).insert(block.to_owned(), (data.to_vec(), items.to_vec()));
+    }
+}
+
+/// Forgets the recorded state of `block`'s menu (its screen closed).
+pub(crate) fn forget_menu_state(block: &str) {
+    if let Ok(mut all) = MENU_STATE.lock() {
+        if let Some(all) = all.as_mut() {
+            all.remove(block);
+        }
+    }
+}
+
+/// The recorded state of `block`'s open menu, if the client has seen a sync of it.
+fn menu_state(block: &str) -> Option<(Vec<i32>, Vec<Option<ItemSlot>>)> {
+    MENU_STATE.lock().ok().and_then(|all| all.as_ref().and_then(|all| all.get(block).cloned()))
+}
+
+/// Draws the block's window; false if it has none or draws nothing. `mouse` is the cursor in GUI
+/// pixels (absolute); the callback receives it from the window's top left.
+pub(crate) fn draw(block: &str, origin: [f32; 2], data: &[i32], mouse: [f32; 2], canvas: &mut dyn ScreenCanvas) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.draw) {
         Some(draw) => {
-            draw(&mut ScreenDraw { origin, data, canvas });
+            let items = menu_state(block).map_or_else(Vec::new, |(_, items)| items);
+            draw(&mut ScreenDraw { origin, data, mouse: [mouse[0] - origin[0], mouse[1] - origin[1]], items: &items, canvas });
             true
         }
+        None => false,
+    }
+}
+
+/// Whether the block's window hears the mouse wheel.
+pub(crate) fn has_scroll(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|h| h.scroll.is_some())
+}
+
+/// Offers a wheel roll over the block's window; true when the window consumed it. The menu
+/// data the callback reads is the state the client last saw synced (see [`MENU_STATE`]).
+pub(crate) fn scroll(block: &str, at: [f32; 2], delta: [f32; 2]) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.scroll) {
+        Some(scroll) => {
+            let data = menu_state(block).map_or_else(Vec::new, |(data, _)| data);
+            scroll(&mut ScreenScroll { at, delta, data: &data })
+        }
+        None => false,
+    }
+}
+
+/// Whether the block's window hears typed characters or key presses.
+pub(crate) fn has_text_input(block: &str) -> bool {
+    ScreenHandlerRegistry::get(block).is_some_and(|h| h.char_typed.is_some() || h.key_pressed.is_some())
+}
+
+/// Offers a typed character to the block's window; true when the window consumed it.
+pub(crate) fn char_typed(block: &str, c: char) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.char_typed) {
+        Some(char_typed) => char_typed(c),
+        None => false,
+    }
+}
+
+/// Offers a key press to the block's window; true when the window consumed it.
+pub(crate) fn key_pressed(block: &str, key: &str) -> bool {
+    match ScreenHandlerRegistry::get(block).and_then(|h| h.key_pressed) {
+        Some(key_pressed) => key_pressed(key),
         None => false,
     }
 }
@@ -429,11 +913,14 @@ pub(crate) fn tooltip(block: &str, at: [f32; 2], data: &[i32], lines: &mut Vec<S
     }
 }
 
-/// Runs the button callback of the window of the block entity type whose block is `block`.
-pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, carried: &mut Option<ItemSlot>) -> bool {
+/// Runs the button callback of the window of the block entity type whose block is `block`;
+/// a menu switch the callback asked for is written to `switch`.
+pub(crate) fn press(block: &str, pos: BlockPos, id: i32, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, carried: &mut Option<ItemSlot>, switch: &mut Option<BlockPos>) -> bool {
     match ScreenHandlerRegistry::get(block).and_then(|h| h.button) {
         Some(button) => {
-            button(&mut MenuButton { pos, id, data, items, carried });
+            let mut press = MenuButton { pos, id, data, items, carried, switch: None };
+            button(&mut press);
+            *switch = press.switch;
             true
         }
         None => false,
@@ -474,6 +961,85 @@ pub(crate) fn accepts(block: &str, pos: BlockPos, slot: usize, item: &str, count
     }
 }
 
+/// A click in a menu a mod opened (a native menu: `native_menu_clicked`), which moved nothing:
+/// the player, the window, the menu slot clicked (the menu's own first, then the player's
+/// inventory, -999 outside), the button and the click's mode (`ClickType`'s id).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeMenuClicked {
+    /// The player who clicked.
+    pub player: u128,
+    /// The window the click was in.
+    pub window: i32,
+    /// The menu slot clicked.
+    pub slot: i32,
+    /// The button used.
+    pub button: i32,
+    /// The click's mode.
+    pub mode: i32,
+}
+
+/// A menu a mod opened closed, for any reason: the player closed it, the server, a mod or
+/// another menu did, or the player died or left.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativeMenuClosed {
+    /// The player whose menu closed.
+    pub player: u128,
+    /// The window that closed.
+    pub window: i32,
+}
+
+/// The input slots of a menu a mod opened as the player left them, on its closing: the slots the
+/// handler takes (`Option::take`) are what the mod keeps, and what stays goes back to the player
+/// as vanilla's `clearContainer` gives a crafting grid's items back. Heard before the menu's
+/// close event for the same window. The slots ride a [`RefCell`](std::cell::RefCell), as the
+/// player tick's write-backs do: the event's callbacks share the event, so what they take is
+/// taken through the cell.
+pub struct NativeMenuInputClosed {
+    /// The player whose menu closed.
+    pub player: u128,
+    /// The window that closed.
+    pub window: i32,
+    /// The menu's input slots, in order.
+    pub slots: std::cell::RefCell<Vec<Option<ItemSlot>>>,
+}
+
+static NATIVE_MENU_CLICKED: Event<NativeMenuClicked, ()> = Event::void();
+static NATIVE_MENU_CLOSED: Event<NativeMenuClosed, ()> = Event::void();
+static NATIVE_MENU_INPUT_CLOSED: Event<NativeMenuInputClosed, ()> = Event::void();
+
+/// Clicks in menus a mod opened, and their closings (see [`NativeMenuClicked`],
+/// [`NativeMenuClosed`], [`NativeMenuInputClosed`]).
+pub struct NativeMenuEvents;
+
+impl NativeMenuEvents {
+    /// A click in a menu a mod opened.
+    pub const CLICKED: &'static Event<NativeMenuClicked, ()> = &NATIVE_MENU_CLICKED;
+    /// A menu a mod opened closed.
+    pub const CLOSED: &'static Event<NativeMenuClosed, ()> = &NATIVE_MENU_CLOSED;
+    /// The input slots of a menu a mod opened, on its closing.
+    pub const INPUT_CLOSED: &'static Event<NativeMenuInputClosed, ()> = &NATIVE_MENU_INPUT_CLOSED;
+}
+
+/// Reports a native menu click to the callbacks.
+pub(crate) fn menu_clicked(player: u128, window: i32, slot: i32, button: i32, mode: i32) {
+    NATIVE_MENU_CLICKED.invoke(&NativeMenuClicked { player, window, slot, button, mode });
+}
+
+/// Reports a native menu closing to the callbacks.
+pub(crate) fn menu_closed(player: u128, window: i32) {
+    NATIVE_MENU_CLOSED.invoke(&NativeMenuClosed { player, window });
+}
+
+/// Reports a native menu's input slots on its closing to the callbacks, and writes back what
+/// they took into `slots` (what stays there goes back to the player).
+pub(crate) fn menu_input_closed(player: u128, window: i32, slots: &mut [Option<ItemSlot>]) {
+    let event = NativeMenuInputClosed { player, window, slots: std::cell::RefCell::new(slots.to_vec()) };
+    NATIVE_MENU_INPUT_CLOSED.invoke(&event);
+    if let Ok(kept) = event.slots.try_borrow() {
+        slots.clone_from_slice(&kept);
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,6 +1064,32 @@ mod tests {
         fn text_width(&self, text: &str) -> f32 {
             text.len() as f32 * 6.0
         }
+    }
+
+    #[test]
+    fn a_canvas_without_a_scene_reach_skips_a_scene_and_the_view_defaults_to_one_block() {
+        let mut canvas = Recorder::default();
+        let blocks = [SceneBlock {
+            pos: [0, 0, 0],
+            block: BlockState::new(Identifier::parse("minecraft:stone").unwrap()),
+            entity: Some(SceneEntity { block: Identifier::parse("minecraft:armor_stand").unwrap(), data: NbtCompound::new(), items: vec![None] }),
+        }];
+        // The default scene draw is a no-op: nothing is recorded and nothing panics.
+        canvas.scene([0.0, 0.0, 32.0, 32.0], &blocks, &SceneView::default());
+        assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
+        let view = SceneView::default();
+        assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45.0, 30.0, 16.0));
+    }
+
+    #[test]
+    fn a_canvas_without_a_living_reach_skips_a_living_preview() {
+        let mut canvas = Recorder::default();
+        let preview = LivingPreview::armor_stand(ItemSlot::new(Identifier::parse("minecraft:iron_chestplate").unwrap(), 1));
+        assert_eq!(preview.kind.to_string(), "minecraft:armor_stand");
+        assert_eq!((preview.yaw, preview.arms, preview.base_plate), (210.0, true, false), "the smithing preview stand's stance");
+        // The default living draw is a no-op: nothing is recorded and nothing panics.
+        canvas.living([0.0, 0.0, 50.0, 70.0], &preview);
+        assert!(canvas.fills.is_empty() && canvas.texts.is_empty());
     }
 
     #[test]
@@ -597,10 +1189,10 @@ mod tests {
         assert!(super::layout("test:none").is_none());
 
         let mut canvas = Recorder::default();
-        assert!(draw("test:oven", [100.0, 50.0], &[30], &mut canvas));
+        assert!(draw("test:oven", [100.0, 50.0], &[30], [100.0, 50.0], &mut canvas));
         assert_eq!(canvas.fills, vec![([110.0, 60.0, 30.0, 4.0], 0xFFFF0000)]);
         assert_eq!(canvas.texts, ["Oven"]);
-        assert!(!draw("test:none", [0.0; 2], &[], &mut canvas));
+        assert!(!draw("test:none", [0.0; 2], &[], [0.0; 2], &mut canvas));
 
         assert_eq!(click("test:oven", [120.0, 10.0], false, &[]), Some(7));
         assert_eq!(click("test:oven", [120.0, 10.0], true, &[]), None);
@@ -613,12 +1205,14 @@ mod tests {
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
         let mut carried = Some(ItemSlot::new(Identifier::parse("test:fuel").unwrap(), 3));
-        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried));
+        let mut switch = None;
+        assert!(press("test:oven", [1, 2, 3], 7, &mut data, &mut items, &mut carried, &mut switch));
+        assert_eq!(switch, None, "the oven button asks for no switch");
         assert_eq!(data.get_int("pressed", 0), 7);
         assert_eq!(data.get("pluto:menu_data"), Some(&Nbt::IntArray(vec![7, 32767])));
         assert_eq!(items.len(), 1);
         assert_eq!(carried, None, "the button took what was on the cursor");
-        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried));
+        assert!(!press("test:none", [0; 3], 1, &mut data, &mut items, &mut carried, &mut switch));
 
         let (mut may, mut max) = (true, 99);
         slot_rules("test:oven", 2, "test:coal", 1, &mut may, &mut max);
@@ -644,6 +1238,87 @@ mod tests {
     }
 
     #[test]
+    fn draw_sees_the_cursor_and_the_synced_items_and_scroll_and_text_input_reach_the_window() {
+        use std::sync::Mutex as StdMutex;
+        let seen: Arc<StdMutex<Vec<String>>> = Arc::new(StdMutex::new(Vec::new()));
+        let record = seen.clone();
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:panel").unwrap(), ScreenLayout::new(176.0, 166.0))
+                .on_draw(move |d| {
+                    record.lock().unwrap().push(format!("mouse {:?} items {}", d.mouse, d.items.len()));
+                })
+                .on_scroll(|s| s.delta[1] > 0.0)
+                .on_char(|c| c == 'a')
+                .on_key(|key| key == "backspace"),
+        );
+        let mut canvas = Recorder::default();
+        // No sync seen yet: the draw runs with no items and the cursor relative to the window.
+        assert!(draw("test:panel", [100.0, 50.0], &[], [130.0, 90.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().as_slice(), ["mouse [30.0, 40.0] items 0"]);
+        // After a sync the recorded items are what the draw reads; forgetting empties them again.
+        let item = ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3);
+        note_menu_state("test:panel", &[7], &[Some(item), None]);
+        assert!(draw("test:panel", [100.0, 50.0], &[], [100.0, 50.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().last().unwrap(), "mouse [0.0, 0.0] items 2");
+        forget_menu_state("test:panel");
+        assert!(draw("test:panel", [100.0, 50.0], &[], [100.0, 50.0], &mut canvas));
+        assert_eq!(seen.lock().unwrap().last().unwrap(), "mouse [0.0, 0.0] items 0");
+
+        assert!(has_scroll("test:panel"));
+        assert!(scroll("test:panel", [0.0; 2], [0.0, 1.0]), "a roll up is consumed");
+        assert!(!scroll("test:panel", [0.0; 2], [0.0, -1.0]), "a roll down is not");
+        assert!(!has_scroll("test:none"));
+        assert!(has_text_input("test:panel"));
+        assert!(char_typed("test:panel", 'a'));
+        assert!(!char_typed("test:panel", 'b'));
+        assert!(key_pressed("test:panel", "backspace"));
+        assert!(!key_pressed("test:panel", "enter"));
+        assert!(!has_text_input("test:none"));
+    }
+
+    #[test]
+    fn linked_slots_ride_the_menu_links_callback_and_a_button_can_ask_for_a_switch() {
+        let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).linked_slot().linked_slot();
+        assert_eq!(declared.source(1), SlotSource::LinkedContainer);
+        assert_eq!(declared.source(2), SlotSource::LinkedContainer);
+        assert!(declared.dynamic[1] && declared.dynamic[2], "a linked slot's place is the dynamic callback's to give");
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:linked_window").unwrap(), declared)
+                .on_menu_links(|context| vec![[context.pos[0] + 1, context.pos[1], context.pos[2]]])
+                .on_button(|b| b.open_menu([b.pos[0], b.pos[1] + 1, b.pos[2]])),
+        );
+        assert!(has_menu_links("test:linked_window"));
+        assert!(!has_menu_links("test:none"));
+        assert_eq!(menu_links("test:linked_window", [10, 64, -3]), Some(vec![[11, 64, -3]]));
+        assert_eq!(menu_links("test:none", [0; 3]), None);
+        // Linked slots are not neighbour slots: the declared offsets stay the melter's answer alone.
+        assert_eq!(neighbour_sources("test:linked_window"), Vec::<[i32; 3]>::new());
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        let mut switch = None;
+        assert!(press("test:linked_window", [4, 5, 6], 1, &mut data, &mut items, &mut carried, &mut switch));
+        assert_eq!(switch, Some([4, 6, 6]), "the button's switch request reaches the transport");
+    }
+
+    #[test]
+    fn a_menu_button_reads_and_writes_the_block_entity_tanks() {
+        ScreenHandlerRegistry::register(
+            ScreenHandlerType::new(Identifier::parse("test:tank_button").unwrap(), ScreenLayout::new(176.0, 166.0))
+                .on_button(|b| {
+                    let held = b.fluid(0).map_or(0, |stack| stack.amount);
+                    b.set_fluid(0, Some(crate::pure::block_entity_api_v1::FluidStack::new(Identifier::parse("minecraft:water").unwrap(), held + 250)));
+                }),
+        );
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let mut carried = None;
+        assert!(press("test:tank_button", [0; 3], 1, &mut data, &mut items, &mut carried, &mut None));
+        let tank = crate::pure::block_entity_api_v1::read_fluid(&data, 0).expect("the button filled the tank");
+        assert_eq!((tank.fluid.to_string().as_str(), tank.amount), ("minecraft:water", 250));
+    }
+
+    #[test]
     fn dynamic_slots_are_in_the_menu_without_a_static_position_and_hidden_ones_are_not() {
         let declared = ScreenLayout::new(176.0, 166.0).slot(8.0, 8.0).dynamic_slot().hidden_slot();
         assert_eq!(declared.slots, vec![Some([8.0, 8.0]), None, None], "neither kind has a static position");
@@ -651,5 +1326,53 @@ mod tests {
         ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::parse("test:dynamic_layout").unwrap(), declared));
         let layout = layout("test:dynamic_layout").unwrap();
         assert_eq!(layout.dynamic, vec![false, true, false], "the registry hands the declaration back whole");
+    }
+
+    #[test]
+    fn slot_sources_name_what_backs_each_slot_and_neighbours_answer_in_declaration_order() {
+        let declared = ScreenLayout::new(176.0, 184.0)
+            .slot(8.0, 8.0)
+            .equipment_slot(152.0, 20.0, EquipmentSlotKind::Head)
+            .neighbour_slot(151.0, 32.0, [0, -1, 0])
+            .dynamic_slot()
+            .neighbour_slot(24.0, 8.0, [1, 0, 0]);
+        assert_eq!(declared.source(0), SlotSource::BlockEntity);
+        assert_eq!(declared.source(1), SlotSource::PlayerEquipment(EquipmentSlotKind::Head));
+        assert_eq!(declared.source(2), SlotSource::NeighbourBlockEntity([0, -1, 0]));
+        assert_eq!(declared.source(3), SlotSource::BlockEntity, "a dynamic slot is the block entity's own");
+        assert_eq!(declared.source(9), SlotSource::BlockEntity, "an undeclared slot defaults to the block entity");
+        ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::parse("test:sourced_layout").unwrap(), declared));
+        assert_eq!(slot_sources("test:sourced_layout").len(), 5);
+        assert_eq!(neighbour_sources("test:sourced_layout"), vec![[0, -1, 0], [1, 0, 0]], "declaration order is the linked slots' fill order");
+        assert_eq!(neighbour_sources("test:none"), Vec::<[i32; 3]>::new());
+        // The host's equipment numbering, as its own equipment access spells it.
+        assert_eq!(
+            [EquipmentSlotKind::Feet, EquipmentSlotKind::Legs, EquipmentSlotKind::Chest, EquipmentSlotKind::Head, EquipmentSlotKind::OffHand].map(|kind| kind.host_slot()),
+            [100, 101, 102, 103, -106],
+        );
+    }
+
+    #[test]
+    fn a_native_menu_close_hands_its_input_slots_to_the_callbacks_that_take_them() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        // The callback only answers for its own window, so another test's close never takes here.
+        static TOOK: AtomicBool = AtomicBool::new(false);
+        NativeMenuEvents::INPUT_CLOSED.register(|event| {
+            if event.window == 4242 {
+                event.slots.borrow_mut()[0] = None;
+                TOOK.store(true, Ordering::Relaxed);
+            }
+        });
+        let mut slots = vec![Some(ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3)), Some(ItemSlot::new(Identifier::parse("test:coal").unwrap(), 1))];
+        menu_input_closed(9, 4242, &mut slots);
+        assert!(TOOK.load(Ordering::Relaxed), "the callback heard the close");
+        assert_eq!(slots, vec![None, Some(ItemSlot::new(Identifier::parse("test:coal").unwrap(), 1))], "the taken slot is gone and the kept one stays");
+        // A click and a close with no taker change nothing.
+        menu_clicked(9, 4242, 0, 0, 0);
+        menu_closed(9, 4242);
+        let mut kept = vec![Some(ItemSlot::new(Identifier::parse("test:ingot").unwrap(), 3))];
+        menu_input_closed(9, 7, &mut kept);
+        assert_eq!(kept.len(), 1);
+        assert!(kept[0].is_some(), "another window's close takes nothing");
     }
 }

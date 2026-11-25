@@ -14,10 +14,12 @@
 //! - The canvas has no light parameter, so `FluidRenderer.withBlockLight` (raising the quad light to the fluid's
 //!   light level) cannot be applied; the host lights the geometry, and the blocks' own `light` state already
 //!   follows the fluid for the tanks.
-//! - A renderer sees only its own block entity: no neighbouring blocks. `RenderingHelper.renderFaucetFluids` (the
-//!   stream below a faucet or a channel's down side, which walks the blocks below and draws each block's own
-//!   `faucet_fluid` data) cannot be drawn, and the channel's edge cuboid — drawn by the original only against a
-//!   neighbour that is not the same channel — is drawn unconditionally.
+//! - A renderer sees only its own block entity: no neighbouring blocks. The faucet's stream below it is drawn
+//!   anyway: its client tick walks the blocks below through the client world view and keeps their states in transient
+//!   client data (`stream`), and the renderer draws each block's own `faucet_fluid` cuboids translated down (Mantle's
+//!   `RenderingHelper.renderFaucetFluids`). The channel's down stream is not drawn yet — it needs the same client tick
+//!   of its own — and the channel's edge cuboid — drawn by the original only against a neighbour that is not the same
+//!   channel — is drawn unconditionally.
 //! - The display contexts of `TinkerItemDisplays` (melter, casting table, casting basin) are custom; the canvas
 //!   knows only the vanilla contexts, so an item is drawn with the original context's fallback (fixed for the
 //!   casting table, none for the melter and the basin), at the position, rotation and size of its RenderItem data.
@@ -31,7 +33,7 @@
 //!   undelivered: no block entity use or menu context here carries a player to send it to.
 use crate::render_data::{self, Cuboid, Face};
 use pluto_lib::{
-    BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, Direction, FluidRegistry, FluidStack, Identifier, ItemDisplayContext, ItemSlot,
+    BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, BlockState, Direction, FluidRegistry, FluidStack, Identifier, ItemDisplayContext, ItemSlot,
     NbtCompound, NbtCompoundExt,
 };
 
@@ -69,11 +71,13 @@ pub(crate) fn host_tank(data: &NbtCompound, index: usize) -> Option<FluidStack> 
     Some(FluidStack { fluid: Identifier::parse(name).ok()?, amount: amount as u32, tag })
 }
 
-/// The block state variant of `variants` the canvas's state asks for: the first whose properties all match, else
-/// the default (the variant that asks for nothing).
+/// The block state variant of `variants` the canvas's state asks for: the specific variant whose properties all
+/// match, else the default (the variant that asks for nothing). A specific variant must win: the default asks for
+/// nothing, so it matches every state and would hide every specific variant behind it (the faucet's `facing=down`
+/// column, the fluid cannons' down and up placements).
 pub(crate) fn variant_data<'a, T>(variants: &'a [render_data::Variant<T>], canvas: &dyn BlockEntityCanvas) -> &'a [T] {
     variants.iter()
-        .find(|variant| variant.when.iter().all(|(name, wanted)| canvas.state_property(name).as_deref() == Some(*wanted)))
+        .find(|variant| !variant.when.is_empty() && variant.when.iter().all(|(name, wanted)| canvas.state_property(name).as_deref() == Some(*wanted)))
         .or_else(|| variants.iter().find(|variant| variant.when.is_empty()))
         .map_or(&[], |variant| variant.data)
 }
@@ -309,8 +313,8 @@ fn render_casting(render: &mut BlockEntityRender<'_>) {
 }
 
 /// FaucetBlockEntityRenderer: while pouring, the render fluid in the faucet's own cuboids, turned to its facing
-/// (the `facing=down` variant when it hangs). The stream into the blocks below is `renderFaucetFluids`, which
-/// needs the blocks below — a renderer sees only its own block entity, so it is not drawn (see the module docs).
+/// (the `facing=down` variant when it hangs), and the stream into the blocks below, which the client tick measured
+/// (see `draw_faucet_stream`).
 fn render_faucet(render: &mut BlockEntityRender<'_>) {
     let state = crate::faucet::State::load(render.data);
     if !state.is_pouring() { return; }
@@ -322,7 +326,33 @@ fn render_faucet(render: &mut BlockEntityRender<'_>) {
     canvas.push();
     if facing != "down" { rotate_to_facing(canvas, &facing); }
     for cuboid in variant_data(cuboids, canvas) { draw_cuboid(canvas, cuboid, &visual); }
+    draw_faucet_stream(canvas, &facing, &visual);
     canvas.pop();
+}
+
+/// The stream below a pouring faucet (Mantle's `RenderingHelper.renderFaucetFluids`): the blocks the client tick
+/// measured below the faucet, each drawn with its own `faucet_fluid` cuboids — the side form for a side-facing faucet,
+/// the center form when it hangs — translated down by its depth, in the faucet's turned frame, as the original draws
+/// the stream inside the faucet's rotation. A block with no cuboids for the facing draws nothing, as the original
+/// skips it; without client data (an unsupported canvas) there is no stream to draw.
+fn draw_faucet_stream(canvas: &mut dyn BlockEntityCanvas, facing: &str, visual: &Visual) {
+    // The stream is copied out of the client data: the canvas is drawn to while it is read.
+    let Some(stream) = canvas.client_data().and_then(|data| data.get("stream")).and_then(|stream| stream.as_list()).map(|stream| stream.to_vec())
+    else {
+        return;
+    };
+    let center = facing == "down" || facing == "up";
+    for (index, entry) in stream.iter().enumerate() {
+        let Some(text) = entry.as_str() else { continue };
+        let Ok(state) = BlockState::parse(text) else { continue };
+        let fluid = render_data::faucet_fluid(&state);
+        let cuboids = if center { fluid.center } else { fluid.side };
+        if cuboids.is_empty() { continue; }
+        canvas.push();
+        canvas.translate([0.0, -(index as f32 + 1.0), 0.0]);
+        for cuboid in cuboids { draw_cuboid(canvas, cuboid, visual); }
+        canvas.pop();
+    }
 }
 
 /// Which side of a channel the center flows toward (ChannelBlockEntityRenderer): nowhere (up) while no out side
@@ -514,12 +544,13 @@ mod tests {
     use pluto_lib::Nbt;
 
     #[derive(Default)]
-    struct Recorder { log: Vec<String>, props: Vec<(&'static str, &'static str)> }
+    struct Recorder { log: Vec<String>, props: Vec<(&'static str, &'static str)>, client: Option<NbtCompound> }
 
     fn point(v: [f32; 3]) -> String { format!("[{:.4}, {:.4}, {:.4}]", v[0], v[1], v[2]) }
 
     impl BlockEntityCanvas for Recorder {
         fn state_property(&self, name: &str) -> Option<String> { self.props.iter().find(|(key, _)| *key == name).map(|(_, value)| value.to_string()) }
+        fn client_data(&self) -> Option<&NbtCompound> { self.client.as_ref() }
         fn push(&mut self) { self.log.push("push".into()); }
         fn pop(&mut self) { self.log.push("pop".into()); }
         fn translate(&mut self, by: [f32; 3]) { self.log.push(format!("translate {}", point(by))); }
@@ -557,8 +588,12 @@ mod tests {
     }
 
     fn run(block: &'static str, data: &NbtCompound, items: &[Option<ItemSlot>], props: Vec<(&'static str, &'static str)>) -> Vec<String> {
+        run_with_client(block, data, items, props, None)
+    }
+
+    fn run_with_client(block: &'static str, data: &NbtCompound, items: &[Option<ItemSlot>], props: Vec<(&'static str, &'static str)>, client: Option<NbtCompound>) -> Vec<String> {
         crate::fluids::register();
-        let mut recorder = Recorder { props, ..Recorder::default() };
+        let mut recorder = Recorder { props, client, ..Recorder::default() };
         {
             let mut render = BlockEntityRender { pos: [0, 64, 0], block, data, items, canvas: &mut recorder };
             match block {
@@ -688,6 +723,65 @@ mod tests {
         let mut data = NbtCompound::new();
         data.insert("state".into(), Nbt::Int(0));
         assert!(run("tconstruct:seared_faucet", &data, &[], vec![("facing", "east")]).is_empty());
+    }
+
+    #[test]
+    fn a_specific_variant_wins_over_the_default_and_the_default_covers_the_rest() {
+        let variants = [
+            render_data::Variant { when: &[], data: &[1] },
+            render_data::Variant { when: &[("facing", "down")], data: &[2] },
+        ];
+        let down = Recorder { props: vec![("facing", "down")], ..Recorder::default() };
+        assert_eq!(variant_data(&variants, &down), [2].as_slice());
+        let east = Recorder { props: vec![("facing", "east")], ..Recorder::default() };
+        assert_eq!(variant_data(&variants, &east), [1].as_slice());
+    }
+
+    #[test]
+    fn a_pouring_faucet_draws_the_stream_into_the_table_below() {
+        let mut render_fluid = NbtCompound::new();
+        render_fluid.insert("Fluid".into(), Nbt::String("tconstruct:molten_iron".into()));
+        render_fluid.insert("Amount".into(), Nbt::Int(90));
+        let mut data = NbtCompound::new();
+        data.insert("state".into(), Nbt::Int(1));
+        data.insert("render_fluid".into(), Nbt::Compound(render_fluid));
+        let mut client = NbtCompound::new();
+        client.insert("stream".into(), Nbt::List(vec![Nbt::String("tconstruct:seared_table".into())]));
+        let log = run_with_client("tconstruct:seared_faucet", &data, &[], vec![("facing", "east")], Some(client));
+        // the faucet's own seven quads, then the table's stream: the side cuboid [6, 15, 6] to [10, 16, 8], one
+        // flowing face a side, drawn a block down inside the faucet's turn
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 11, "{log:?}");
+        let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
+        assert_eq!(log[at - 1], "push");
+        assert_eq!(log[at + 5], "pop");
+        let stream = &log[at + 1..at + 5];
+        assert!(stream.iter().all(|line| line.contains("tconstruct:fluid/molten/ore/iron/flowing")), "{log:?}");
+        assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.9375, 0.3750] [0.3750, 0.9375, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 1.00]"), "{}", stream[0]);
+        // without client data there is no stream to draw: the faucet's own cuboids only
+        let log = run("tconstruct:seared_faucet", &data, &[], vec![("facing", "east")]);
+        assert_eq!(log.iter().filter(|line| line.starts_with("quad")).count(), 7);
+    }
+
+    #[test]
+    fn a_hanging_faucet_draws_the_streams_center_form() {
+        let mut render_fluid = NbtCompound::new();
+        render_fluid.insert("Fluid".into(), Nbt::String("tconstruct:molten_iron".into()));
+        render_fluid.insert("Amount".into(), Nbt::Int(90));
+        let mut data = NbtCompound::new();
+        data.insert("state".into(), Nbt::Int(1));
+        data.insert("render_fluid".into(), Nbt::Compound(render_fluid));
+        let mut client = NbtCompound::new();
+        client.insert("stream".into(), Nbt::List(vec![Nbt::String("tconstruct:seared_basin".into())]));
+        let log = run_with_client("tconstruct:seared_faucet", &data, &[], vec![("facing", "down")], Some(client));
+        // the hanging faucet is not turned: its own down cuboid draws five quads, and the basin's center cuboid
+        // [6, 4, 6] to [10, 16, 10] four more, a block down
+        assert!(!log.iter().any(|line| line.starts_with("rotate")), "{log:?}");
+        let quads: Vec<&String> = log.iter().filter(|line| line.starts_with("quad")).collect();
+        assert_eq!(quads.len(), 9, "{log:?}");
+        let at = log.iter().position(|line| line == "translate [0.0000, -1.0000, 0.0000]").expect("the stream is translated down");
+        let stream = &log[at + 1..at + 5];
+        assert!(stream[0].starts_with("quad tconstruct:fluid/molten/ore/iron/flowing [0.6250, 1.0000, 0.3750] [0.6250, 0.2500, 0.3750] [0.3750, 0.2500, 0.3750] [0.3750, 1.0000, 0.3750] uv [6.00, 0.00, 10.00, 12.00]"), "{}", stream[0]);
     }
 
     #[test]

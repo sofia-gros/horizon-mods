@@ -79,8 +79,97 @@ pub trait PlayerOps {
     fn update_stack(&mut self, _player: u128, _slot: i32, _expected_item: &str, _new: &StackData) -> bool {
         false
     }
+    /// Sets the stack carried in a slot named by the carried numbering (see
+    /// [`crate::pure::entity_events_v1::carried_slot_number`]), creating it in an empty slot, or clearing it
+    /// when `stack` is None. The host reaches a stack this way in the equipment slots (feet 100, legs
+    /// 101, chest 102, head 103, offhand -106) and in the main inventory slots (0 to 35): the main
+    /// slots go through the host's checked inventory write, which needs the slot to still hold
+    /// what the caller read there, so a stack that moved in between is not overwritten. The
+    /// equipment write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that
+    /// equips a copy of itself on an entity's chest (the piggyback pack) needs. Any other slot, an
+    /// unknown player and a client answer false. The memory backend keeps no such restriction and
+    /// answers for every slot.
+    fn set_stack(&mut self, _player: u128, _slot: i32, _stack: Option<&StackData>) -> bool {
+        false
+    }
+    /// The stack the NAMED player carries in `slot` (the carried numbering, as in
+    /// [`Self::set_stack`]), with its custom data; None for an empty slot, an unknown player, or
+    /// outside a callback that carries a player scope. Unlike [`ServerPlayer::stack`], this names
+    /// the player, so it also answers where no player's state is swapped in (a packet receiver,
+    /// a server tick, a native menu click), which is what a keybind packet's server half reads
+    /// the sender's worn piece and off hand through.
+    fn stack_named(&mut self, _player: u128, _slot: i32) -> Option<StackData> {
+        None
+    }
+    /// Opens a mod menu for the player's item (not a block): the menu type `menu` (a content menu
+    /// type, such as a tool's container), with `items` in its slots and `extra` as its menu-extra
+    /// data, titled `title`. The window id, or None when the player is not here, the menu type is
+    /// unknown, or the call runs inside the player's own turn (call it from a packet receiver, a
+    /// server tick or a native menu click, where the player's state is not swapped in). The
+    /// menu's slots are the mod's input slots: the player moves items in them by vanilla's rules,
+    /// and what they hold when the menu closes comes back through the native-menu close event.
+    /// The extra data's first bytes mark an item menu for the client screen: they must begin with
+    /// `PLUTO\x01`, the versioned item-menu magic, followed by whatever the mod's screen needs
+    /// (the worn slot's carried number, for one).
+    fn open_item_menu(&mut self, _player: u128, _menu: &str, _title: &str, _items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, _extra: Vec<u8>) -> Option<i32> {
+        None
+    }
     /// The player's selected hotbar slot (0 to 8); None if unknown.
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
+        None
+    }
+    /// Whether `item` is on the player's item cooldown (the item's own `use_cooldown`
+    /// component, else the item's default); false for an item with no cooldown, or when the
+    /// game does not report cooldowns. The default answers false.
+    fn is_item_on_cooldown(&mut self, _player: u128, _item: &str) -> bool {
+        false
+    }
+    /// Starts the player's cooldown for `item` for `ticks` ticks (the item's own
+    /// `use_cooldown` component, else the item's default, names the group); nothing happens
+    /// for an item with no cooldown, or when the game does not report cooldowns.
+    fn start_item_cooldown(&mut self, _player: u128, _item: &str, _ticks: i32) {}
+    /// Ends the player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own
+    /// release runs first (a callback's Stop may skip that part, never the end itself), then the use is
+    /// over. The game applies the end at its next tick seam, so a use that already ended is untouched
+    /// and an end ordered during one use never lands on a later use of a mod's. True when the end was
+    /// taken; false when this backend cannot end uses (the default) or the player is not known.
+    fn release_use(&mut self, _player: u128) -> bool {
+        false
+    }
+    /// Ends the player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply
+    /// over, with no release run — what an item breaking in the hand does to its use. Applied at the
+    /// game's next tick seam like [`PlayerOps::release_use`]. True when the end was taken; false by default.
+    fn stop_use(&mut self, _player: u128) -> bool {
+        false
+    }
+    /// Swings the player's arm in `hand` (`LivingEntity.swing`): the arm moves on their own screen and, for a
+    /// guest, the players around them are told. False when the swing could not be queued (no player, no host).
+    /// The swing plays when the game next reaches the player — inside their break, or at their next tick.
+    fn swing_hand(&mut self, _player: u128, _hand: super::events_interaction_v0::Hand) -> bool {
+        false
+    }
+    /// Broadcasts that the stack in `slot` broke (`LivingEntity.onEquippedItemBroken`): the break statistic,
+    /// the break sound and crumbs where the player stands, and the item-break event for the players around.
+    /// False when the broadcast could not be queued. The game's own wear already broadcasts the breaks it
+    /// applies (mining, hurt armor), so only a break the port itself applied — a tool worn by a modifier —
+    /// is broadcast this way; calling it for a host break would sound the break twice.
+    fn broadcast_item_break(
+        &mut self,
+        _player: u128,
+        _slot: super::entity_events_v1::StackSlot,
+        _stack: &StackData,
+    ) -> bool {
+        false
+    }
+    /// The value of the host attribute `attribute` for `player` with every modifier on it
+    /// (armour, effects, `/attribute`), as `LivingEntity.getAttributeValue` answers it:
+    /// `minecraft:block_interaction_range` is the range a use that aims traces over,
+    /// `minecraft:max_health` the health cap. None when the game cannot answer — the
+    /// attribute is not one players have, or the player is not reached or between bodies
+    /// (just respawned, not yet ticked) — or when this backend cannot read attributes
+    /// (the default). The caller falls back to the attribute's base value then, as the
+    /// game's own range reads do.
+    fn attribute_value(&mut self, _player: u128, _attribute: &str) -> Option<f64> {
         None
     }
 }
@@ -240,12 +329,17 @@ pub struct EffectInstance {
     pub ambient: bool,
     /// Whether the effect shows particles.
     pub particles: bool,
+    /// Whether the effect's icon shows in the GUI (vanilla's `MobEffectInstance.showIcon`,
+    /// `/effect`'s default true). This is the read's flag, published by PlutoLib's
+    /// effect-icon reach at the head of every HUD draw: giving an effect always shows its
+    /// icon, as the host's add path carries no flag and defaults it to shown.
+    pub show_icon: bool,
 }
 
 impl EffectInstance {
-    /// An effect of level I lasting `duration` ticks (20 are one second; -1 never ends), with particles.
+    /// An effect of level I lasting `duration` ticks (20 are one second; -1 never ends), with particles and its icon showing.
     pub fn new(id: &str, duration: i32) -> Self {
-        Self { id: id.to_owned(), amplifier: 0, duration, ambient: false, particles: true }
+        Self { id: id.to_owned(), amplifier: 0, duration, ambient: false, particles: true, show_icon: true }
     }
 
     /// The same effect at another level (0 is level I).
@@ -361,9 +455,98 @@ impl ServerPlayer {
         with_current(false, |ops| ops.update_stack(self.uuid, slot, &new.item, new))
     }
 
+    /// Sets the stack carried in a slot named by the carried numbering, creating it in an empty slot, or
+    /// clearing it with None. The host answers for the equipment slots (feet 100, legs 101, chest 102,
+    /// head 103, offhand -106) and for the main inventory slots (0 to 35); see [`PlayerOps::set_stack`].
+    /// False outside a callback or for another slot.
+    pub fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool {
+        with_current(false, |ops| ops.set_stack(self.uuid, slot, stack))
+    }
+
+    /// The stack the player carries in `slot` (see [`PlayerOps::stack_named`]); None for an empty slot
+    /// or outside a callback. Unlike [`Self::stack`], this names the player, so it answers in a packet
+    /// receiver too.
+    pub fn stack_named(&self, slot: i32) -> Option<StackData> {
+        with_current(None, |ops| ops.stack_named(self.uuid, slot))
+    }
+
+    /// Opens a mod menu for the player's item (see [`PlayerOps::open_item_menu`]); the window id, or
+    /// None outside a callback, for an unknown player or menu type, or inside the player's own turn.
+    pub fn open_item_menu(&self, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        with_current(None, |ops| ops.open_item_menu(self.uuid, menu, title, items, extra))
+    }
+
+    /// Sets one equipment slot's stack by its [`StackSlot`](crate::pure::entity_events_v1::StackSlot), creating
+    /// it in an empty slot or clearing it with None: the carried-numbering form of [`ServerPlayer::set_stack`].
+    /// The main hand has no equipment write and answers false (use [`ServerPlayer::update_stack`] there).
+    pub fn set_equipment(&self, slot: crate::pure::entity_events_v1::StackSlot, stack: Option<&StackData>) -> bool {
+        if matches!(slot, crate::pure::entity_events_v1::StackSlot::MainHand) {
+            return false;
+        }
+        // The main hand returned above, so the selected slot the numbering reads only for it is moot here.
+        self.set_stack(crate::pure::entity_events_v1::carried_slot_number(slot, 0), stack)
+    }
+
     /// The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
     pub fn selected_slot(&self) -> Option<i32> {
         with_current(None, |ops| ops.selected_slot(self.uuid))
+    }
+
+    /// Whether `item` is on the player's item cooldown (the item's own `use_cooldown`
+    /// component, else the item's default). False for an item with no cooldown, or outside a
+    /// callback that carries this player.
+    pub fn is_item_on_cooldown(&self, item: &str) -> bool {
+        with_current(false, |ops| ops.is_item_on_cooldown(self.uuid, item))
+    }
+
+    /// Starts the player's cooldown for `item` for `ticks` ticks (the item's own
+    /// `use_cooldown` component, else the item's default, names the group). Nothing happens
+    /// outside a callback that carries this player, or for an item with no cooldown.
+    pub fn start_item_cooldown(&self, item: &str, ticks: i32) {
+        with_current((), |ops| ops.start_item_cooldown(self.uuid, item, ticks))
+    }
+
+    /// Ends this player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own
+    /// release runs first (a callback's Stop may skip that part, never the end itself), then the use is
+    /// over — what letting go of the use button does, asked for from inside a callback such as a use
+    /// tick. The game applies the end at its next tick seam; a use that already ended is untouched.
+    /// False outside a callback that carries the player, or when the game cannot end uses.
+    pub fn release_use(&self) -> bool {
+        with_current(false, |ops| ops.release_use(self.uuid))
+    }
+
+    /// Ends this player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply
+    /// over, with no release run, as when the item in use breaks in the hand. Applied at the game's
+    /// next tick seam like [`ServerPlayer::release_use`]. False outside a callback that carries the player.
+    pub fn stop_use(&self) -> bool {
+        with_current(false, |ops| ops.stop_use(self.uuid))
+    }
+
+    /// Swings the player's arm in `hand` (`LivingEntity.swing`): the arm moves on their own screen and, for a
+    /// guest, the players around them are told. False outside a callback that carries this player, or when the
+    /// game could not queue the swing. The swing plays when the game next reaches the player — inside their
+    /// break, or at their next tick.
+    pub fn swing_hand(&self, hand: super::events_interaction_v0::Hand) -> bool {
+        with_current(false, |ops| ops.swing_hand(self.uuid, hand))
+    }
+
+    /// Broadcasts that the stack in `slot` broke (`LivingEntity.onEquippedItemBroken`): the break statistic,
+    /// the break sound and crumbs where the player stands, and the item-break event for the players around.
+    /// `stack` is the stack as it broke. False outside a callback that carries this player, or when the game
+    /// could not queue the broadcast. Only a break the port itself applied is broadcast this way — the game's
+    /// own wear already broadcasts the breaks it applies.
+    pub fn broadcast_item_break(
+        &self,
+        slot: super::entity_events_v1::StackSlot,
+        stack: &StackData,
+    ) -> bool {
+        with_current(false, |ops| ops.broadcast_item_break(self.uuid, slot, stack))
+    }
+    /// The value of the host attribute `attribute` for this player with every modifier on it,
+    /// as `LivingEntity.getAttributeValue` answers it (see [`PlayerOps::attribute_value`]).
+    /// None outside a callback that carries the player, or when the game cannot answer.
+    pub fn attribute_value(&self, attribute: &str) -> Option<f64> {
+        with_current(None, |ops| ops.attribute_value(self.uuid, attribute))
     }
 
     /// The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback.
@@ -410,6 +593,42 @@ pub(crate) fn key_heard() -> bool {
 /// Reports a key press to the callbacks.
 pub(crate) fn key_press(press: &KeyPress) {
     KEY_PRESS.invoke(press);
+}
+
+/// A player's item broke (NeoForge's `PlayerDestroyItemEvent` carries the original stack and a hand, which
+/// armour has not; Bukkit's `PlayerItemBreakEvent`). Heard on a server when the game's own wear breaks a
+/// player's stack — the host names the break only for a guest (its `player_equipment_broke` fires the hook
+/// from a guest's turn, never for the host player, whose break still sounds and shows its crumbs locally).
+/// `item` is the item that broke, `slot` the equipment slot it broke in. A break the port itself applied
+/// and broadcast (see [`PlayerOps::broadcast_item_break`]) is heard the same way, once the game plays it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemBreak {
+    /// The player whose item broke.
+    pub player: ServerPlayer,
+    /// The item that broke, such as `tconstruct:pickaxe`.
+    pub item: String,
+    /// The equipment slot the stack broke in.
+    pub slot: super::entity_events_v1::StackSlot,
+}
+
+static ITEM_BREAK: Event<ItemBreak, ()> = Event::void();
+
+/// A player's item breaking (see [`ItemBreak`]).
+pub struct PlayerItemBreakEvents;
+
+impl PlayerItemBreakEvents {
+    /// The event: every callback runs, in registration order.
+    pub const EVENT: &'static Event<ItemBreak, ()> = &ITEM_BREAK;
+}
+
+/// Whether any callback hears item breaks (the host adapter skips its work when none does).
+pub(crate) fn item_break_heard() -> bool {
+    !ITEM_BREAK.is_empty()
+}
+
+/// Reports a player's broken item to the callbacks.
+pub(crate) fn item_break(broken: &ItemBreak) {
+    ITEM_BREAK.invoke(broken);
 }
 
 /// One inventory slot of a player ticked (NeoForge: `PlayerTickEvent` has no slot-level counterpart; the closest is
@@ -477,8 +696,41 @@ pub struct MemoryPlayerOps {
     pub food: Option<FoodStatus>,
     /// The main inventory slots of every player, by player; a missing player has none.
     pub stacks: std::collections::HashMap<u128, Vec<Option<StackData>>>,
+    /// The stacks set through the carried numbering (equipment slots and any other slot `set_stack` was
+    /// given), by `(player, carried slot)`. Kept apart from `stacks`: the main inventory vector is indexed by
+    /// its own numbering, and the memory backend keeps no equipment restriction of its own.
+    pub carried: std::collections::BTreeMap<(u128, i32), StackData>,
     /// The selected hotbar slot of every player (0 to 8).
     pub selected_slot: i32,
+    /// The item cooldowns started for each player, by `(player, item id)` to ticks left.
+    /// The memory backend does not tick them down; a started cooldown stays on until a test
+    /// clears it.
+    pub cooldowns: std::collections::HashMap<(u128, String), i32>,
+    /// Every player whose use a `release_use` ended, in the order they were ended.
+    pub released_uses: Vec<u128>,
+    /// Every player whose use a `stop_use` ended, in the order they were ended.
+    pub stopped_uses: Vec<u128>,
+    /// The item menus opened, in order, as (player, menu type, title, items, extra data).
+    pub opened_item_menus: Vec<OpenedItemMenu>,
+    /// The host attribute values a test set for a player, by `(player, attribute)`: what
+    /// `attribute_value` answers. A player with nothing set answers None, as a player the
+    /// game cannot reach does.
+    pub attributes: std::collections::BTreeMap<(u128, String), f64>,
+}
+
+/// An item menu opened through the memory backend, as [`MemoryPlayerOps::opened_item_menus`] records it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct OpenedItemMenu {
+    /// The player it opened for.
+    pub player: u128,
+    /// The menu type, such as `tconstruct:tool_container_3`.
+    pub menu: String,
+    /// The title shown.
+    pub title: String,
+    /// The items in its slots, in order.
+    pub items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>,
+    /// Its menu-extra data.
+    pub extra: Vec<u8>,
 }
 
 impl MemoryPlayerOps {
@@ -593,8 +845,52 @@ impl PlayerOps for MemoryPlayerOps {
             _ => false,
         }
     }
+    fn set_stack(&mut self, player: u128, slot: i32, stack: Option<&StackData>) -> bool {
+        // The memory backend models the carried slots apart from the main inventory vector and, unlike the
+        // host, refuses nothing: a test that needs the host's equipment-only rule checks the answer against
+        // the slot numbers the trait documents.
+        match stack {
+            Some(stack) if stack.count > 0 => {
+                self.carried.insert((player, slot), stack.clone());
+            }
+            _ => {
+                self.carried.remove(&(player, slot));
+            }
+        }
+        true
+    }
+    fn stack_named(&mut self, player: u128, slot: i32) -> Option<StackData> {
+        // What `set_stack` wrote answers first (the carried map is where its writes land); the main
+        // inventory vector answers the rest, as `stack` reads it.
+        if let Some(stack) = self.carried.get(&(player, slot)) {
+            return Some(stack.clone()).filter(|stack| stack.count > 0);
+        }
+        self.stack(player, slot)
+    }
+    fn open_item_menu(&mut self, player: u128, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        self.opened_item_menus.push(OpenedItemMenu { player, menu: menu.to_owned(), title: title.to_owned(), items, extra });
+        Some(self.opened_item_menus.len() as i32)
+    }
     fn selected_slot(&mut self, _player: u128) -> Option<i32> {
         Some(self.selected_slot)
+    }
+    fn is_item_on_cooldown(&mut self, player: u128, item: &str) -> bool {
+        self.cooldowns.get(&(player, item.to_owned())).is_some_and(|ticks| *ticks > 0)
+    }
+    fn start_item_cooldown(&mut self, player: u128, item: &str, ticks: i32) {
+        self.cooldowns.insert((player, item.to_owned()), ticks);
+    }
+
+    fn release_use(&mut self, player: u128) -> bool {
+        self.released_uses.push(player);
+        true
+    }
+    fn stop_use(&mut self, player: u128) -> bool {
+        self.stopped_uses.push(player);
+        true
+    }
+    fn attribute_value(&mut self, player: u128, attribute: &str) -> Option<f64> {
+        self.attributes.get(&(player, attribute.to_owned())).copied()
     }
 }
 
@@ -622,6 +918,25 @@ mod stack_tests {
     }
 
     #[test]
+    fn an_item_cooldown_starts_and_reads_back_until_cleared() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        assert!(!player.is_item_on_cooldown("minecraft:ender_pearl"));
+        with_ops(&mut ops, || {
+            assert!(!player.is_item_on_cooldown("minecraft:ender_pearl"));
+            player.start_item_cooldown("minecraft:ender_pearl", 10);
+            assert!(player.is_item_on_cooldown("minecraft:ender_pearl"));
+            assert!(!player.is_item_on_cooldown("minecraft:chorus_fruit"), "another item is not cooling down");
+        });
+        assert_eq!(ops.cooldowns[&(1, "minecraft:ender_pearl".to_owned())], 10);
+        // Outside a callback nothing starts, and a cleared entry reads as off cooldown.
+        player.start_item_cooldown("minecraft:chorus_fruit", 10);
+        assert!(!ops.cooldowns.contains_key(&(1, "minecraft:chorus_fruit".to_owned())));
+        ops.cooldowns.remove(&(1, "minecraft:ender_pearl".to_owned()));
+        assert!(!with_ops(&mut ops, || player.is_item_on_cooldown("minecraft:ender_pearl")));
+    }
+
+    #[test]
     fn custom_model_data_saves_as_the_games_compound_and_reads_every_form_the_game_writes() {
         let data = CustomModelData { strings: vec!["wood".into(), String::new()], floats: vec![0.5], flags: vec![true, false], colors: vec![0x00a0_a0a0] };
         let saved = data.to_nbt();
@@ -643,6 +958,26 @@ mod stack_tests {
     }
 
     #[test]
+    fn a_carried_stack_can_be_created_in_an_empty_equipment_slot_and_cleared() {
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 7, name: "Alex".into() };
+        let pack = StackData { item: "tconstruct:piggy_backpack".into(), count: 1, ..StackData::default() };
+        with_ops(&mut ops, || {
+            // the chest slot (carried number 102) starts empty; set_stack creates the stack there
+            assert!(player.set_equipment(crate::pure::entity_events_v1::StackSlot::Chest, Some(&pack)));
+            // the main hand has no equipment write
+            assert!(!player.set_equipment(crate::pure::entity_events_v1::StackSlot::MainHand, Some(&pack)));
+        });
+        assert_eq!(ops.carried.get(&(7, 102)), Some(&pack));
+        // growing the carried stack replaces it, and None clears it
+        let grown = StackData { count: 3, ..pack.clone() };
+        with_ops(&mut ops, || assert!(player.set_stack(102, Some(&grown))));
+        assert_eq!(ops.carried.get(&(7, 102)), Some(&grown));
+        with_ops(&mut ops, || assert!(player.set_stack(102, None)));
+        assert!(!ops.carried.contains_key(&(7, 102)));
+    }
+
+    #[test]
     fn a_stack_keeps_its_custom_model_data_through_give_and_read() {
         let mut ops = MemoryPlayerOps::default();
         let player = ServerPlayer { uuid: 1, name: "Alex".into() };
@@ -651,6 +986,48 @@ mod stack_tests {
             assert_eq!(player.give_stack(stack.clone()), None);
             assert_eq!(player.stack(0).unwrap().custom_model_data, stack.custom_model_data);
         });
+    }
+
+    #[test]
+    fn a_named_player_stack_reads_what_set_stack_wrote_in_any_carried_slot() {
+        let mut ops = MemoryPlayerOps::default();
+        ops.stacks.insert(1, vec![None, Some(pickaxe(0))]);
+        let player = ServerPlayer { uuid: 1, name: "Alex".into() };
+        with_ops(&mut ops, || {
+            // the main inventory vector answers through the named read too
+            assert_eq!(player.stack_named(1).unwrap().damage, 0);
+            assert_eq!(player.stack_named(0), None, "an empty main slot");
+            assert_eq!(player.stack_named(103), None, "an empty head slot");
+            // a whole-stack write lands where the named read looks, main and equipment alike
+            let torch = StackData { item: "minecraft:torch".into(), count: 5, ..StackData::default() };
+            assert!(player.set_stack(5, Some(&torch)));
+            assert_eq!(player.stack_named(5), Some(torch));
+            let helmet = StackData { item: "tconstruct:helmet".into(), count: 1, ..StackData::default() };
+            assert!(player.set_stack(103, Some(&helmet)));
+            assert_eq!(player.stack_named(103), Some(helmet));
+            // clearing takes the named read with it
+            assert!(player.set_stack(5, None));
+            assert_eq!(player.stack_named(5), None);
+        });
+        assert_eq!(player.stack_named(1), None, "outside a callback there is nothing");
+    }
+
+    #[test]
+    fn an_item_menu_open_is_recorded_with_its_menu_and_items() {
+        use crate::pure::base::Identifier;
+        use crate::pure::block_entity_api_v1::ItemSlot;
+        let mut ops = MemoryPlayerOps::default();
+        let player = ServerPlayer { uuid: 3, name: "Alex".into() };
+        let items = vec![Some(ItemSlot::new(Identifier::parse("minecraft:torch").unwrap(), 5)), None];
+        let window = with_ops(&mut ops, || player.open_item_menu("tconstruct:tool_container_1", "Pickaxe", items.clone(), vec![b'P', b'L', b'U', b'T', b'O', 0x01, 103]));
+        assert_eq!(window, Some(1));
+        assert_eq!(ops.opened_item_menus.len(), 1);
+        let opened = &ops.opened_item_menus[0];
+        assert_eq!((opened.player, opened.menu.as_str(), opened.title.as_str()), (3, "tconstruct:tool_container_1", "Pickaxe"));
+        assert_eq!(opened.items, items);
+        assert_eq!(opened.extra, vec![b'P', b'L', b'U', b'T', b'O', 0x01, 103]);
+        assert_eq!(with_ops(&mut ops, || player.open_item_menu("tconstruct:tool_container_2", "Pickaxe", vec![], vec![])), Some(2), "a second open gets the next window");
+        assert_eq!(player.open_item_menu("tconstruct:tool_container_1", "Pickaxe", vec![], vec![]), None, "outside a callback nothing opens");
     }
 
     #[test]
@@ -771,6 +1148,16 @@ mod tests {
     }
 
     #[test]
+    fn an_effect_carries_whether_its_icon_shows() {
+        assert!(EffectInstance::new("minecraft:speed", 100).show_icon, "a fresh effect shows its icon, as vanilla defaults it");
+        let mut ops = MemoryPlayerOps::default();
+        with_ops(&mut ops, || {
+            assert!(player().add_effect(&EffectInstance { show_icon: false, ..EffectInstance::new("minecraft:darkness", 100) }));
+            assert_eq!(player().effects().iter().map(|effect| effect.show_icon).collect::<Vec<_>>(), [false], "the read keeps a hidden effect hidden");
+        });
+    }
+
+    #[test]
     fn inventory_questions_are_answered_inside_a_scope_and_by_zero_outside() {
         let mut ops = Recorder::default();
         let inside = with_ops(&mut ops, || (player().count_item("minecraft:stick"), player().take_item("minecraft:stick", 5), player().empty_slots()));
@@ -805,5 +1192,74 @@ mod tests {
         inventory_tick(&InventoryTick { player: None, slot: 100, selected: false, stack: Some(StackData { item: "minecraft:torch".into(), count: 12, damage: 0, max_damage: None, custom_data: crate::pure::base::NbtCompound::new(), custom_model_data: None, enchantments: std::collections::BTreeMap::new() }) });
         let seen = SEEN.lock().unwrap().clone();
         assert_eq!(seen, vec![(3, true, None), (100, false, Some("minecraft:torch".into()))]);
+    }
+
+    #[test]
+    fn item_breaks_reach_their_callbacks_with_player_item_and_slot() {
+        use std::sync::Mutex;
+        static SEEN: Mutex<Vec<(u128, String, String)>> = Mutex::new(Vec::new());
+        PlayerItemBreakEvents::EVENT.register(|broken| {
+            SEEN.lock().unwrap().push((
+                broken.player.uuid,
+                broken.item.clone(),
+                format!("{:?}", broken.slot),
+            ));
+        });
+        assert!(item_break_heard());
+        item_break(&ItemBreak {
+            player: player(),
+            item: "tconstruct:pickaxe".into(),
+            slot: crate::pure::entity_events_v1::StackSlot::MainHand,
+        });
+        assert_eq!(
+            SEEN.lock().unwrap().clone(),
+            vec![(7, "tconstruct:pickaxe".to_string(), "MainHand".to_string())]
+        );
+    }
+
+    #[test]
+    fn a_swing_and_a_break_broadcast_answer_false_without_a_host() {
+        let mut ops = Recorder::default();
+        let held = player();
+        assert!(!with_ops(&mut ops, || held.swing_hand(crate::pure::events_interaction_v0::Hand::Off)));
+        let stack = StackData {
+            item: "tconstruct:pickaxe".into(),
+            count: 1,
+            damage: 60,
+            max_damage: Some(60),
+            custom_data: crate::pure::base::NbtCompound::new(),
+            custom_model_data: None,
+            enchantments: std::collections::BTreeMap::new(),
+        };
+        assert!(!with_ops(&mut ops, || held
+            .broadcast_item_break(crate::pure::entity_events_v1::StackSlot::MainHand, &stack)));
+        assert!(!held.swing_hand(crate::pure::events_interaction_v0::Hand::Main), "outside a callback nothing swings");
+    }
+
+    #[test]
+    fn use_ends_are_recorded_by_the_memory_game_and_unheard_outside_a_scope() {
+        let player = player();
+        assert!(!player.release_use(), "outside a scope nothing is ended");
+        assert!(!player.stop_use(), "outside a scope nothing is ended");
+        let mut game = MemoryPlayerOps::default();
+        with_ops(&mut game, || {
+            assert!(player.release_use());
+            assert!(player.stop_use());
+            assert!(player.release_use());
+        });
+        assert_eq!(game.released_uses, [7u128, 7u128], "every release is recorded, in order");
+        assert_eq!(game.stopped_uses, [7u128]);
+    }
+
+    #[test]
+    fn attribute_values_are_read_from_the_memory_game_and_unheard_outside_a_scope() {
+        let player = player();
+        assert_eq!(player.attribute_value("minecraft:block_interaction_range"), None, "outside a scope nothing is read");
+        let mut game = MemoryPlayerOps::default();
+        game.attributes.insert((7, "minecraft:block_interaction_range".to_owned()), 6.0);
+        with_ops(&mut game, || {
+            assert_eq!(player.attribute_value("minecraft:block_interaction_range"), Some(6.0));
+            assert_eq!(player.attribute_value("minecraft:entity_interaction_range"), None, "an attribute nothing set stays unread");
+        });
     }
 }

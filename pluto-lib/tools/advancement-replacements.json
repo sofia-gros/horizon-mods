@@ -57,7 +57,7 @@
       "injection_id": "pluto-advancement-event-drain",
       "file_sha256": "a15053aee938826d4181c32fb2a6882ef7b524dffaac5c9e951a8fb95f42f3c9",
       "helper": "pluto-advancement-event-drain-head.rs",
-      "helper_sha256": "12bdee4976de3860e7f2e3f1ce5d8988c9f97878ea6f14012bc1fb6ddff890fc"
+      "helper_sha256": "502b18d34ff25c0581ea79ea77b9d30a6fd75c2dc59da8cea1e5bbd2f489270f"
     },
     {
       "target": "horizon_client::game::advancements::Game<'_>::check_inventory_trigger",

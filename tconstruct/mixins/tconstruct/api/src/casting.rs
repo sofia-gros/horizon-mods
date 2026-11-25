@@ -336,7 +336,7 @@ impl<'a> Live<'a> {
     }
 
     /// The definition of a tool item, while tool definitions are loaded.
-    fn definition_of(&self, item: &Identifier) -> Option<&crate::tool_definitions::Data> { self.tool_defs?.get(item) }
+    fn definition_of(&self, item: &Identifier) -> Option<&crate::tool_definitions::Data> { self.tool_defs?.get(&crate::tool_definitions::definition_id_for_item(item)) }
 
     /// The tool domain's environment for a stack of `item`, while materials and modifiers are loaded.
     fn tool_env<'e>(&self, item: &'e Identifier, definition: &'e crate::tool_definitions::Data) -> Option<crate::tool_stack::Environment<'e>> where 'a: 'e {

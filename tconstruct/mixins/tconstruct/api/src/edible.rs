@@ -5,8 +5,10 @@
 //! (`edible_remove_effect`).
 //!
 //! Not carried over: the armor counter-attack of EdibleModule (`onAttacked`, which eats a worn piece when its wearer is hit), because the game
-//! gives no way to wear or change a worn armor piece from that event, and the representative item (`edible_representative_item`), whose only
-//! effects are item particles and eating sounds while the use runs and the Diet integration, which this port does not include.
+//! gives no way to wear or change a worn armor piece from that event. The representative item (`edible_representative_item`) is carried over
+//! for its eating sounds while the use runs (EdibleRepresentativeItemModule.onUsingTick, over the use tick PlutoLib reports); its item
+//! particles ride the same call in the original and are not spawned, as the port's particle spawn carries no per-spawn item, and the Diet
+//! integration it feeds on eating is not included in this port.
 use crate::modifier_entries::Entry;
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -67,6 +69,15 @@ pub(crate) fn sounds(rolls: &mut dyn FnMut() -> f32) -> [(&'static str, f32, f32
     let bite = 1.0 + (rolls() - rolls()) * 0.4;
     let burp = rolls() * 0.1 + 0.9;
     [("minecraft:entity.generic.eat", 1.0, bite), ("minecraft:entity.player.burp", 0.5, burp)]
+}
+
+/// EdibleRepresentativeItemModule.eatEffects' sound (the particles of the same call are not
+/// spawned: see the file's head note): the generic eat, at a volume of 0.5 or 1.0 (a coin flip)
+/// and a pitch within 0.2 of 1.0, from rolls in [0, 1).
+pub(crate) fn eat_sound(rolls: &mut dyn FnMut() -> f32) -> (&'static str, f32, f32) {
+    let volume = 0.5 + 0.5 * ((rolls() * 2.0) as i32 as f32);
+    let pitch = (rolls() - rolls()) * 0.2 + 1.0;
+    ("minecraft:entity.generic.eat", volume, pitch)
 }
 
 /// CheeseItem.removeRandomEffect: the effect to remove, chosen uniformly from the player's effects with `roll` in [0, 1). Every effect the game

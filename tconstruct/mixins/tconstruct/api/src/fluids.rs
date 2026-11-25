@@ -9,8 +9,8 @@
 //! snow's bucket is the vanilla item, registered in `fluid_items`. Fluids with a negative density (ichor,
 //! molten cinderslime) rise, as the original's inverted fluids do. Entity contact (`BurningLiquidBlock`, `MobEffectLiquidBlock`) runs
 //! through the fluid block's `entity_inside`: the callback queues the contact actions and PlutoLib applies them once the
-//! movement seams are done with the entity (a mob's effect and fire land; a hurt and anything aimed at the player still
-//! wait for a game-context reach, see pluto_contact_access).
+//! movement seams are done with the entity: a mob's effect and fire land, and a hurt too — the contact drains deal it
+//! through the native hurt reach (see pluto_contact_access).
 //! The fluid tags (`data/tconstruct/tags/fluid`) are read by the host and reach this mod through `reload_registry("minecraft:fluid")`.
 use pluto_lib::{ActionTarget, BlockBehaviors, ColorProviderRegistry, EntityAction, FluidDef, FluidRegistry, FluidWorld, Identifier};
 use crate::fluid_defs::{Contact, FLUIDS, FluidSpec};

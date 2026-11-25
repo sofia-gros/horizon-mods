@@ -29,7 +29,7 @@ impl DamageSource<'_> {
 
 /// IJsonPredicate over the damage source.
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>), Attacker(crate::melee_damage::TargetCondition) }
+pub(crate) enum SourceCondition { Any, CanProtect, Indirect, Tag(Identifier), Type(Identifier), Not(Box<SourceCondition>), And(Vec<SourceCondition>), Or(Vec<SourceCondition>), Attacker(crate::melee_damage::TargetCondition), HasEntity }
 
 impl SourceCondition {
     /// `None` when the predicate needs state this port does not hold (the attacker's type, say).
@@ -50,6 +50,7 @@ impl SourceCondition {
             "mantle:any" => Self::Any,
             "mantle:can_protect" => Self::CanProtect,
             "mantle:is_indirect" => Self::Indirect,
+            "mantle:has_entity" => Self::HasEntity,
             "mantle:tag" => {
                 let tag = fields.and_then(|f| f.get("tag")).and_then(Value::as_str).ok_or("tag predicate needs a tag")?;
                 Self::Tag(Identifier::parse(tag).map_err(|e| e.to_string())?)
@@ -60,7 +61,19 @@ impl SourceCondition {
             }
             "mantle:inverted" => {
                 let inner = fields.and_then(|f| f.get("inverted_type")).ok_or("inverted predicate needs inverted_type")?;
-                match Self::decode(inner)? { Some(condition) => Self::Not(Box::new(condition)), None => return Ok(None) }
+                // A named inverted type reads the rest of this object as its own fields
+                // (enderdodging's inverted tag names its tag beside the kind); an object
+                // inverted type is decoded as it stands.
+                let decoded = match inner {
+                    Value::String(name) => {
+                        let mut object = fields.cloned().unwrap_or_default();
+                        object.remove("inverted_type");
+                        object.insert("type".into(), Value::String(name.clone()));
+                        Self::decode(&Value::Object(object))?
+                    }
+                    _ => Self::decode(inner)?,
+                };
+                match decoded { Some(condition) => Self::Not(Box::new(condition)), None => return Ok(None) }
             }
             // The entity that caused the damage, by its type tags and what it was doing; the direct entity of an arrow is not reported.
             "mantle:attacker" => {
@@ -79,6 +92,7 @@ impl SourceCondition {
             // Vanilla's enchantment protection ignores damage that bypasses invulnerability, and so does this.
             Self::CanProtect => !source.tags.contains_vanilla("bypasses_invulnerability", source.damage_type),
             Self::Indirect => source.indirect,
+            Self::HasEntity => source.entities.attacker.is_some(),
             Self::Tag(tag) => source.tags.contains(tag, source.damage_type),
             Self::Type(name) => source.damage_type == name,
             Self::Not(inner) => !inner.matches(source),
@@ -138,6 +152,10 @@ pub(crate) const PROTECTION_CAP: f32 = 20.0;
 /// never above 95% of the 25.
 pub(crate) fn protection_cap(added: f32) -> f32 { ((0.8 + added) * 25.0).min(25.0 * 0.95) }
 
+/// ToolEvents.getProtectionModifier: a victim in `forge:small_armor` counts its protection fourfold — the
+/// enchantment points and the modifiers' together, as they were accumulated into the one total.
+pub(crate) fn small_armor_total(total: f32) -> f32 { total * 4.0 }
+
 /// ArmorUtil.getDamageForEvent without the armor inverse: the event here fires after vanilla armor and enchantment
 /// protection took their share, so the damage is returned to what the vanilla protection alone left (`vanilla` points of
 /// the 25), then reduced by the modifiers' `total` (which includes the vanilla points) capped at `cap`.
@@ -169,4 +187,43 @@ pub(crate) fn enchantment_points(enchantment: &str, level: i32, source: &DamageS
 pub(crate) fn host_enchantment_points<'a>(pieces: impl IntoIterator<Item = &'a std::collections::BTreeMap<String, i32>>, source: &DamageSource) -> f32 {
     if source.tags.contains_vanilla("bypasses_enchantments", source.damage_type) { return 0.0; }
     pieces.into_iter().flat_map(|levels| levels.iter()).map(|(name, level)| enchantment_points(name, *level, source)).sum()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{damage_tags::DamageTags, entity_facts::Entities};
+    use pluto_lib::EntityState;
+    use serde_json::json;
+
+    fn with_source<R>(damage_type: &str, attacker: Option<&EntityState>, run: impl FnOnce(&DamageSource) -> R) -> R {
+        let tags = DamageTags::load(&[]).0;
+        let damage_type = Identifier::parse(damage_type).unwrap();
+        let none = |_: &Identifier| false;
+        run(&DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &none, entities: Entities { attacker, target: None } })
+    }
+
+    #[test]
+    fn has_entity_matches_only_a_source_with_a_causing_entity() {
+        // mantle:has_entity (enderdodging's second module): the bare and object forms decode
+        // alike, and the condition holds exactly when the source reports a causing entity.
+        let bare = SourceCondition::decode(&json!("mantle:has_entity")).unwrap().unwrap();
+        let object = SourceCondition::decode(&json!({"type": "mantle:has_entity"})).unwrap().unwrap();
+        assert_eq!(bare, object);
+        let attacker = EntityState::default();
+        assert!(with_source("minecraft:mob_attack", Some(&attacker), |source| bare.matches(source)));
+        assert!(!with_source("minecraft:fall", None, |source| bare.matches(source)));
+    }
+
+    #[test]
+    fn inverted_reads_the_sibling_fields_of_a_named_inverted_type() {
+        // enderdodging's second module names the inverted tag beside the kind; the tag is a
+        // field of the same object, not of the inverted_type value.
+        let condition = SourceCondition::decode(&json!({"type": "mantle:inverted", "inverted_type": "mantle:tag", "tag": "minecraft:is_projectile"})).unwrap().unwrap();
+        assert!(!with_source("minecraft:arrow", None, |source| condition.matches(source)), "a projectile is not inverted-matching");
+        assert!(with_source("minecraft:mob_attack", None, |source| condition.matches(source)));
+        // The field-less named form keeps its meaning (melee protection's indirect inversion).
+        let indirect = SourceCondition::decode(&json!({"type": "mantle:inverted", "inverted_type": "mantle:is_indirect"})).unwrap().unwrap();
+        assert!(with_source("minecraft:mob_attack", None, |source| indirect.matches(source)), "a direct source is not indirect");
+    }
 }

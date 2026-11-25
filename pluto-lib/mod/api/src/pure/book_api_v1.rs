@@ -1,6 +1,7 @@
 //! Books a reader opens on the client (Mantle: `mantle:book`): a mod registers a book's sections and pages once, and any
 //! callback that carries a player can ask for the book to open. The content model follows the original book data format
-//! (an index of sections, an appearance, and pages of text, image-and-text and crafting kinds); the drawing and the page
+//! (an index of sections, an appearance, and pages of text, image-and-text and crafting kinds, plus table pages a mod
+//! builds from its registries — a row per material, tool or modifier, say); the drawing and the page
 //! turning are done here, over the same [`ScreenCanvas`] the menu screens draw on, so they can be tested without the game.
 //!
 //! Opening is a client act: the host opens PlutoLib's own mod screen and the screen hooks draw the current page into it.
@@ -14,7 +15,9 @@ use std::marker::PhantomData;
 use std::sync::Mutex;
 
 use super::base::{Identifier, Nbt, NbtCompound};
-use super::screen_handler_api_v1::ScreenCanvas;
+use super::block_entity_api_v1::ItemSlot;
+use super::screen_handler_api_v1::{SceneBlock, SceneView, ScreenCanvas};
+use super::world_api_v1::BlockState;
 
 /// One run of text on a page (Mantle: one entry of a page's `text` list). `paragraph` asks for a blank line before it.
 #[derive(Clone, Debug, PartialEq)]
@@ -77,9 +80,114 @@ impl GridSize {
     }
 }
 
-/// One page of a book. The first three kinds are the ones this renderer draws in full; any other Mantle page kind
-/// (a smelting page, a material page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a book loses
-/// nothing by being registered before its kind has a renderer.
+/// One row of a [`BookPage::Table`]: a header naming what follows, or one entry of the table. A row is one line
+/// tall when drawn; a producer whose table is longer than a page splits it into several table pages itself
+/// (the original's contents do the same across a two-page spread).
+#[derive(Clone, Debug, PartialEq)]
+pub enum BookRow {
+    /// A header row (a group title, a stat block's name): drawn underlined, with its icon when it has one.
+    Header {
+        /// The row's icon, if it has one.
+        icon: Option<BookIcon>,
+        /// The header's text.
+        text: String,
+    },
+    /// One entry of the table: a label, an optional value drawn after it, and an optional link to another
+    /// page of the same book (the flat page index, as the original's index and listing pages link).
+    Entry {
+        /// The row's icon, if it has one.
+        icon: Option<BookIcon>,
+        /// The entry's label.
+        label: String,
+        /// The entry's value, drawn right-aligned on the same line, if it has one.
+        value: Option<String>,
+        /// The flat index of the page a click on this row opens, if the row is a link.
+        link: Option<usize>,
+    },
+}
+
+/// A structure a book page shows: the blocks of a vanilla structure template (the file a `mantle:structure`
+/// page's `data` names, read as binary NBT — see [`super::nbt_binary`]), as scene blocks ready for
+/// [`ScreenCanvas::scene`].
+#[derive(Clone, Debug, PartialEq)]
+pub struct BookStructure {
+    /// The template's size in blocks, per axis.
+    pub size: [i32; 3],
+    /// The template's blocks in scene coordinates, air left out (a scene draws nothing for air, and the
+    /// template's air is most of its volume).
+    pub blocks: Vec<SceneBlock>,
+}
+
+impl BookStructure {
+    /// Reads a structure template compound (the root of the binary document) into scene blocks. The
+    /// palette's names and properties become each block's state; a block entry's own `nbt` becomes its
+    /// scene entity's data, so a block entity in the template renders as it does in the world. A malformed
+    /// template is an error naming the field, never a partial structure.
+    pub fn from_template(template: &NbtCompound) -> Result<Self, String> {
+        let palette = template.get("palette").and_then(Nbt::as_list).ok_or("structure template has no palette")?;
+        let mut states: Vec<BlockState> = Vec::with_capacity(palette.len());
+        for (index, entry) in palette.iter().enumerate() {
+            let entry = entry.as_compound().ok_or_else(|| format!("structure palette entry {index} is not a compound"))?;
+            let name = entry.get("Name").and_then(Nbt::as_str).ok_or_else(|| format!("structure palette entry {index} has no Name"))?;
+            let mut state = BlockState::new(Identifier::parse(name).map_err(|e| format!("structure palette entry {index}: {e}"))?);
+            if let Some(properties) = entry.get("Properties").and_then(Nbt::as_compound) {
+                for (key, value) in properties {
+                    let value = value.as_str().ok_or_else(|| format!("structure palette entry {index} property {key} is not a string"))?;
+                    state = state.with(key, value);
+                }
+            }
+            states.push(state);
+        }
+        let entries = template.get("blocks").and_then(Nbt::as_list).ok_or("structure template has no blocks")?;
+        let mut blocks: Vec<SceneBlock> = Vec::new();
+        let mut max = [0i32; 3];
+        for (index, entry) in entries.iter().enumerate() {
+            let entry = entry.as_compound().ok_or_else(|| format!("structure block {index} is not a compound"))?;
+            let pos_list = entry.get("pos").and_then(Nbt::as_list).ok_or_else(|| format!("structure block {index} has no pos"))?;
+            if pos_list.len() != 3 {
+                return Err(format!("structure block {index} pos is not three numbers"));
+            }
+            let mut pos = [0i32; 3];
+            for (axis, value) in pos_list.iter().enumerate() {
+                pos[axis] = i32::try_from(value.as_i64().ok_or_else(|| format!("structure block {index} pos is not numbers"))?)
+                    .map_err(|_| format!("structure block {index} pos out of range"))?;
+            }
+            let state_index = usize::try_from(entry.get("state").and_then(Nbt::as_i64).ok_or_else(|| format!("structure block {index} has no state"))?)
+                .map_err(|_| format!("structure block {index} state out of range"))?;
+            let state = states.get(state_index).ok_or_else(|| format!("structure block {index} state {state_index} is past the palette"))?;
+            for axis in 0..3 {
+                max[axis] = max[axis].max(pos[axis] + 1);
+            }
+            if state.block.to_string() == "minecraft:air" {
+                continue;
+            }
+            let entity = entry.get("nbt").and_then(Nbt::as_compound).map(|data| super::screen_handler_api_v1::SceneEntity {
+                block: state.block.clone(),
+                data: data.clone(),
+                items: Vec::new(),
+            });
+            blocks.push(SceneBlock { pos, block: state.clone(), entity });
+        }
+        let size = match template.get("size").and_then(Nbt::as_list) {
+            Some(list) if list.len() == 3 => {
+                let mut size = [0i32; 3];
+                for (axis, value) in list.iter().enumerate() {
+                    size[axis] = i32::try_from(value.as_i64().ok_or("structure size is not numbers")?).map_err(|_| "structure size out of range")?;
+                }
+                size
+            }
+            _ => max,
+        };
+        Ok(BookStructure { size, blocks })
+    }
+}
+
+/// One page of a book. Text, image-and-text, crafting and table pages are the kinds this renderer draws in full;
+/// any other Mantle page kind (a smelting page, ...) is kept as [`BookPage::Opaque`] with its data intact, so a
+/// book loses nothing by being registered before its kind has a renderer.
+/// One page of a book. Text, image-and-text, text-image, showcase, crafting and table pages are the kinds this
+/// renderer draws in full; any other Mantle page kind (a smelting page, a structure page, ...) is kept as
+/// [`BookPage::Opaque`] with its data intact, so a book loses nothing by being registered before its kind has a renderer.
 #[derive(Clone, Debug, PartialEq)]
 pub enum BookPage {
     /// Text only (Mantle: `mantle:text`).
@@ -106,8 +214,68 @@ pub enum BookPage {
         recipe: Identifier,
         /// How big the grid is drawn.
         grid_size: GridSize,
+        /// The grid's nine cells (row-major), each the stacks that cell accepts; a cell with no
+        /// stacks is empty. Decoding the page leaves this empty (a page's JSON names the recipe,
+        /// not its contents); the mod that owns the recipe fills it from its own data.
+        ingredients: Vec<Vec<ItemSlot>>,
+        /// The recipe's result, drawn beside the grid; filled the same way as `ingredients`.
+        result: Option<ItemSlot>,
         /// The text under the grid.
         description: Vec<BookText>,
+    },
+    /// Text beside an image (Mantle: `mantle:text_image`): the image in a column at the left,
+    /// the text flowing beside and below it.
+    TextImage {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The page's image.
+        image: BookImage,
+        /// The page's text, in order.
+        text: Vec<BookText>,
+    },
+    /// One item shown large with its tooltip lines and a text (Mantle: `mantle:showcase`).
+    Showcase {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The item the page shows.
+        item: Option<ItemSlot>,
+        /// The item's tooltip lines, drawn beside it (the page JSON's own lines).
+        tooltip: Vec<String>,
+        /// The page's text, under the item.
+        text: Vec<BookText>,
+    },
+    /// A table of registry entries (a page a mod generates from its registries: one row per material of a
+    /// material page, per tool of an index page, ...). The page keeps the `kind` of the content it stands for
+    /// (a material page keeps `tconstruct:melee_harvest_material`, say), so a book's pages keep the original's
+    /// kinds even though one renderer draws them all.
+    Table {
+        /// The page kind's id, such as `tconstruct:melee_harvest_material`.
+        kind: String,
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// Text drawn above the rows.
+        intro: Vec<BookText>,
+        /// The table's rows, in order.
+        rows: Vec<BookRow>,
+        /// Text drawn below the rows.
+        text: Vec<BookText>,
+        /// The page's sidebar: display items drawn in a column at the page's right edge (a
+        /// material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's
+        /// bucket). Empty for a page with no sidebar; the rows and text narrow to make room.
+        sidebar: Vec<ItemSlot>,
+    },
+    /// A structure display (Mantle: `mantle:structure`): a 3D scene of a structure template, drawn
+    /// turning slowly. The page names its template in `data` (a resource id such as
+    /// `tconstruct:book/structures/smeltery.nbt`); the loader that reads the page fills `structure` from
+    /// that file's binary NBT (a page decoded from JSON alone carries no structure yet and draws its
+    /// title over an empty scene).
+    Structure {
+        /// The page's title, if it has one.
+        title: Option<String>,
+        /// The structure template resource the page's `data` names.
+        data: Identifier,
+        /// The template's blocks, filled by the loader; empty until then.
+        structure: Option<BookStructure>,
     },
     /// A page kind this renderer does not draw yet; `data` is the page's own data, converted from its JSON.
     Opaque {
@@ -115,6 +283,16 @@ pub enum BookPage {
         kind: String,
         /// The page's data (its localized JSON, as NBT).
         data: NbtCompound,
+    },
+    /// A padding marker, which draws nothing itself: Mantle's page-list filler that exists only
+    /// to place the pages around it on the right halves of a two-page spread. `mantle:blank`
+    /// (`right` false) takes the next free half of a spread, left or right; `mantle:right_padding`
+    /// (`right` true) must occupy a right half, so a spread whose left is still free closes
+    /// without it. The spread pairing ([`spreads`]) consumes the markers; a book is never
+    /// rendered one marker to a view.
+    Padding {
+        /// Whether the marker must sit on a spread's right half (`mantle:right_padding`).
+        right: bool,
     },
 }
 
@@ -124,16 +302,22 @@ impl BookPage {
         match self {
             Self::Text { .. } => "mantle:text",
             Self::ImageText { .. } => "mantle:image_text",
+            Self::TextImage { .. } => "mantle:text_image",
+            Self::Showcase { .. } => "mantle:showcase",
             Self::Crafting { .. } => "mantle:crafting",
+            Self::Table { kind, .. } => kind,
+            Self::Structure { .. } => "mantle:structure",
             Self::Opaque { kind, .. } => kind,
+            Self::Padding { right } => if *right { "mantle:right_padding" } else { "mantle:blank" },
         }
     }
 
     /// The page's title, if it has one. An opaque page's title is read from its data's `title` string, if it has one.
     pub fn title(&self) -> Option<&str> {
         match self {
-            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::Crafting { title, .. } => title.as_deref(),
+            Self::Text { title, .. } | Self::ImageText { title, .. } | Self::TextImage { title, .. } | Self::Showcase { title, .. } | Self::Crafting { title, .. } | Self::Table { title, .. } | Self::Structure { title, .. } => title.as_deref(),
             Self::Opaque { data, .. } => data.get("title").and_then(Nbt::as_str),
+            Self::Padding { .. } => None,
         }
     }
 
@@ -156,6 +340,35 @@ impl BookPage {
                     text: text_list(data.get("text"))?,
                 })
             }
+            "mantle:text_image" => {
+                let image = data.get("image").ok_or("text_image page has no image")?;
+                let file = image.get("file").and_then(serde_json::Value::as_str).ok_or("text_image page's image has no file")?;
+                let width = image.get("width").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                let height = image.get("height").and_then(serde_json::Value::as_u64).unwrap_or(0);
+                Ok(Self::TextImage {
+                    title,
+                    image: BookImage { file: file.to_owned(), width: u32::try_from(width).map_err(|_| "image width out of range")?, height: u32::try_from(height).map_err(|_| "image height out of range")? },
+                    text: text_list(data.get("text"))?,
+                })
+            }
+            "mantle:showcase" | "tconstruct:showcase" => {
+                // The shown item is an ingredient object (`{"type": "forge:nbt", "item": id,
+                // "nbt": {...}}`), which is the flat form the icon decoder reads.
+                let item = data.get("item").and_then(|item| BookIcon::from_json(item).ok()).map(|icon| icon_slot(&icon));
+                let tooltip = match data.get("tooltip") {
+                    Some(serde_json::Value::Array(lines)) => lines
+                        .iter()
+                        .filter_map(|line| match line {
+                            serde_json::Value::String(text) => Some(text.clone()),
+                            serde_json::Value::Object(_) => line.get("text").and_then(serde_json::Value::as_str).map(str::to_owned),
+                            _ => None,
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                Ok(Self::Showcase { title, item, tooltip, text: text_list(data.get("text"))? })
+            }
+            "mantle:blank" | "mantle:right_padding" => Ok(Self::Padding { right: kind == "mantle:right_padding" }),
             "mantle:crafting" => {
                 // A crafting page either names a recipe or spells out a literal grid and result instead; the grid
                 // form references no recipe, so it is kept whole as an opaque page (its title still reads). A page
@@ -170,7 +383,17 @@ impl BookPage {
                     title,
                     recipe: Identifier::parse(recipe).map_err(|e| format!("crafting page's recipe: {e}"))?,
                     grid_size: GridSize::parse(data.get("grid_size").and_then(serde_json::Value::as_str).unwrap_or("small")),
+                    ingredients: Vec::new(),
+                    result: None,
                     description: text_list(data.get("description"))?,
+                })
+            }
+            "mantle:structure" => {
+                let data_id = data.get("data").and_then(serde_json::Value::as_str).ok_or("structure page has no data")?;
+                Ok(Self::Structure {
+                    title,
+                    data: Identifier::parse(data_id).map_err(|e| format!("structure page's data: {e}"))?,
+                    structure: None,
                 })
             }
             _ => Ok(Self::Opaque { kind: kind.to_owned(), data: json_compound(data) }),
@@ -396,13 +619,70 @@ impl Book {
     }
 }
 
+/// One two-page spread of a book: the flat page indices on its left and right halves. A half is
+/// `None` when the spread ends the book or a padding marker leaves it blank; a half naming a
+/// [`BookPage::Padding`] page draws blank (a `mantle:blank` page that took the half).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BookSpread {
+    /// The flat index of the left half's page, if any.
+    pub left: Option<usize>,
+    /// The flat index of the right half's page, if any.
+    pub right: Option<usize>,
+}
+
+impl BookSpread {
+    /// Whether this spread is the one a reader of flat page `page` is looking at.
+    pub fn contains(&self, page: usize) -> bool {
+        self.left == Some(page) || self.right == Some(page)
+    }
+
+    /// Whether either half shows a real page (a spread of padding alone shows nothing and is
+    /// not a stop a reader turns to).
+    fn shows_a_page(&self, book: &Book) -> bool {
+        [self.left, self.right].into_iter().flatten().any(|page| book.page(page).is_some_and(|page| !matches!(page, BookPage::Padding { .. })))
+    }
+}
+
+/// Pairs a book's flat pages into the two-page spreads a reader turns through, consuming its
+/// padding markers as Mantle's book layout does: pages fill a spread's left half, then its
+/// right; a `mantle:blank` page takes whichever half comes next (and draws blank there); a
+/// `mantle:right_padding` page must take a right half, so with no left half pending it is
+/// dropped (the next page starts a fresh spread's left, which is all the marker exists to
+/// arrange). Spreads that would show nothing at all — padding alone — are left out.
+pub fn spreads(book: &Book) -> Vec<BookSpread> {
+    let mut paired = Vec::new();
+    let mut left: Option<usize> = None;
+    for page in 0..book.page_count() {
+        let is_right_padding = matches!(book.page(page), Some(BookPage::Padding { right: true }));
+        if is_right_padding {
+            if left.is_some() {
+                paired.push(BookSpread { left, right: Some(page) });
+                left = None;
+            }
+            continue;
+        }
+        if left.is_none() {
+            left = Some(page);
+        } else {
+            paired.push(BookSpread { left, right: Some(page) });
+            left = None;
+        }
+    }
+    if left.is_some() {
+        paired.push(BookSpread { left, right: None });
+    }
+    paired.retain(|spread| spread.shows_a_page(book));
+    paired
+}
+
 #[derive(Default)]
 struct Registry {
     books: BTreeMap<String, Book>,
 }
 
 impl Registry {
-    fn register(&mut self, book: Book) -> Result<(), String> {
+    /// The shape every registered book must have, shared by registration and replacement.
+    fn validate(book: &Book) -> Result<(), String> {
         if book.sections.is_empty() {
             return Err(format!("book {} has no sections", book.id));
         }
@@ -414,11 +694,22 @@ impl Registry {
                 return Err(format!("book {}'s section {} has no pages", book.id, section.name));
             }
         }
+        Ok(())
+    }
+
+    fn register(&mut self, book: Book) -> Result<(), String> {
+        Self::validate(&book)?;
         let key = book.id.to_string();
         if self.books.contains_key(&key) {
             return Err(format!("book {key} already registered"));
         }
         self.books.insert(key, book);
+        Ok(())
+    }
+
+    fn replace(&mut self, book: Book) -> Result<(), String> {
+        Self::validate(&book)?;
+        self.books.insert(book.id.to_string(), book);
         Ok(())
     }
 
@@ -444,6 +735,15 @@ impl BookRegistry {
         BOOKS.lock().map_err(|_| "book registry poisoned")?.register(book)
     }
 
+    /// Registers a book, replacing any earlier registration of the same id (or registering it fresh when
+    /// there is none): a mod whose book content is generated from its registries rebuilds the book when
+    /// those registries reload, and the rebuild takes the first build's place. Fails, keeping the earlier
+    /// registration, for a book with no sections, a section with no name or a section with no pages. A
+    /// book already open keeps the copy it opened with, so a reader's pages never change mid-read.
+    pub fn replace(book: Book) -> Result<(), String> {
+        BOOKS.lock().map_err(|_| "book registry poisoned")?.replace(book)
+    }
+
     /// The book registered under `id`, if any.
     pub fn get(id: &Identifier) -> Option<Book> {
         BOOKS.lock().ok()?.get(id)
@@ -455,13 +755,14 @@ impl BookRegistry {
     }
 }
 
-/// Where a reader is in a book: the book and the flat index of the page showing. The host keeps one
-/// while the book screen is open; the turning rules are here so they can be tested without the game.
+/// Where a reader is in a book: the book and the flat index of the page the current spread
+/// starts at (its left half's page). The host keeps one while the book screen is open; the
+/// turning rules are here so they can be tested without the game.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BookView {
     /// The book being read.
     pub book: Identifier,
-    /// The flat index of the page showing.
+    /// The flat index of the current spread's left page.
     pub page: usize,
 }
 
@@ -471,31 +772,55 @@ impl BookView {
         Self { book, page: 0 }
     }
 
-    /// Turns to the next page; false when already on the last.
+    /// The spreads a reader turns through, and the index of the one this view is on (the first
+    /// spread at or after the view's page, so a view left on a consumed padding marker still
+    /// lands on a real spread).
+    fn spread_at(&self, book: &Book) -> (Vec<BookSpread>, usize) {
+        let all = spreads(book);
+        let at = all.iter().position(|spread| spread.contains(self.page)).unwrap_or_else(|| {
+            all.iter().position(|spread| spread.left.is_some_and(|left| left > self.page)).unwrap_or(all.len().saturating_sub(1))
+        });
+        (all, at)
+    }
+
+    /// Turns to the next spread; false when already on the last.
     pub fn next_page(&mut self, book: &Book) -> bool {
-        if self.page + 1 < book.page_count() {
-            self.page += 1;
-            true
-        } else {
-            false
+        let (all, at) = self.spread_at(book);
+        match all.get(at + 1) {
+            Some(spread) => {
+                self.page = spread.left.or(spread.right).unwrap_or(self.page);
+                true
+            }
+            None => false,
         }
     }
 
-    /// Turns to the previous page; false when already on the first.
+    /// Turns to the previous spread; false when already on the first.
     pub fn prev_page(&mut self, book: &Book) -> bool {
-        if self.page > 0 {
-            self.page -= 1;
-            true
-        } else {
-            false
+        let (all, at) = self.spread_at(book);
+        if at == 0 {
+            return false;
+        }
+        match all.get(at - 1) {
+            Some(spread) => {
+                self.page = spread.left.or(spread.right).unwrap_or(self.page);
+                true
+            }
+            None => false,
         }
     }
 
-    /// Jumps to a section's first page; false for a section the book does not have.
+    /// Jumps to the spread a section starts on; false for a section the book does not have.
+    /// (The book's own padding places a section's first page on a left half; should one land on
+    /// a right half anyway, the spread showing it is what opens.)
     pub fn goto_section(&mut self, book: &Book, section: usize) -> bool {
         match book.flat_index(section, 0) {
             Some(page) => {
-                self.page = page;
+                let all = spreads(book);
+                match all.iter().find(|spread| spread.contains(page)) {
+                    Some(spread) => self.page = spread.left.or(spread.right).unwrap_or(page),
+                    None => self.page = page,
+                }
                 true
             }
             None => false,
@@ -519,7 +844,15 @@ pub enum BookClick {
     PrevPage,
     /// A section's row in the section list.
     Section(usize),
+    /// A table row's link: the flat index of the page it opens.
+    Page(usize),
 }
+
+/// The link rows of the page most recently drawn: the book and flat page they belong to, and each link
+/// row's rect with the flat page it opens. [`draw_book`] records them and [`book_click`] reads them, so
+/// a click is read against exactly the layout that was drawn — a table page's text runs wrap, so where a
+/// row sits cannot be recomputed without the canvas that measured the text.
+static LINK_ROWS: Mutex<Option<(Identifier, usize, Vec<([f32; 4], usize)>)>> = Mutex::new(None);
 
 /// The renderer's geometry, in GUI pixels: the book panel is centered in the screen area and capped at
 /// Mantle-like proportions; inside it, a section rail on the left (when the book has more than one
@@ -543,6 +876,8 @@ const PAD: f32 = 10.0;
 const LINE: f32 = 10.0;
 /// A section row's height in the rail.
 const ROW: f32 = 12.0;
+/// A table row's height: the row's icon is 10 tall, with one of leading above and below.
+const TABLE_ROW: f32 = 12.0;
 
 fn layout(area: [f32; 4], book: &Book) -> Layout {
     let width = area[2].min(PANEL_MAX[0]).max(0.0);
@@ -568,10 +903,11 @@ fn inside(rect: [f32; 4], at: [f32; 2]) -> bool {
 /// What a click at `at` (GUI pixels, in the same space as `area`) means for the book in `view`.
 pub fn book_click(book: &Book, view: &BookView, area: [f32; 4], at: [f32; 2]) -> BookClick {
     let layout = layout(area, book);
-    if view.page + 1 < book.page_count() && inside(layout.next_arrow, at) {
+    let (all, spread) = view.spread_at(book);
+    if spread + 1 < all.len() && inside(layout.next_arrow, at) {
         return BookClick::NextPage;
     }
-    if view.page > 0 && inside(layout.prev_arrow, at) {
+    if spread > 0 && inside(layout.prev_arrow, at) {
         return BookClick::PrevPage;
     }
     if let Some(rail) = layout.rail {
@@ -579,6 +915,17 @@ pub fn book_click(book: &Book, view: &BookView, area: [f32; 4], at: [f32; 2]) ->
             let row = ((at[1] - rail[1]) / ROW) as usize;
             if row < book.sections.len() {
                 return BookClick::Section(row);
+            }
+        }
+    }
+    if let Ok(rows) = LINK_ROWS.lock() {
+        if let Some((book_id, page, rows)) = &*rows {
+            if *book_id == book.id && *page == view.page {
+                for (rect, target) in rows {
+                    if inside(*rect, at) {
+                        return BookClick::Page(*target);
+                    }
+                }
             }
         }
     }
@@ -593,6 +940,20 @@ const INK: u32 = 0xFF2E_2015;
 const FADED_INK: u32 = 0xFF6B_5636;
 /// The colour behind a grid cell's item.
 const CELL: u32 = 0xFFC9_B586;
+/// The colour a table row's link is drawn in.
+const LINK_INK: u32 = 0xFF2F_4E9E;
+
+/// The stack a row's icon draws as: the icon's item, with its data as the stack's custom data.
+fn icon_slot(icon: &BookIcon) -> ItemSlot {
+    match icon {
+        BookIcon::Item(item) => ItemSlot::new(item.clone(), 1),
+        BookIcon::ItemWithData { item, data } => {
+            let mut slot = ItemSlot::new(item.clone(), 1);
+            slot.custom_data = data.clone();
+            slot
+        }
+    }
+}
 
 /// Wraps `text` to lines of at most `width` GUI pixels, measured by the canvas. A word longer than a
 /// line is split by characters; an empty text gives no lines.
@@ -650,11 +1011,13 @@ fn draw_text_block(canvas: &mut dyn ScreenCanvas, text: &[BookText], x: f32, mut
     y
 }
 
-/// Draws the page `view` shows of `book` into `area` (the mod screen's panel rect, GUI pixels): the
-/// panel, the section rail, the page's title and content, and the page arrows. The canvas's one text
-/// size means `large_page_titles` cannot scale a title, and the canvas has no item drawing, so a
-/// crafting page draws its grid and recipe id but not the recipe's items; both are renderer limits,
-/// not data limits — the book keeps everything.
+/// Draws the spread `view` shows of `book` into `area` (the mod screen's panel rect, GUI pixels): the
+/// panel, the section rail, the two pages of the spread side by side, and the page arrows. The canvas's one text
+/// size means `large_page_titles` cannot scale a title, and a crafting page draws its grid and recipe
+/// id but not the recipe's items (resolving a recipe to its items is the consumer's side of the
+/// screen); both are renderer limits, not data limits — the book keeps everything. A table page's
+/// rows draw their icons as items and their links in the link colour, and the rows' places are
+/// recorded for [`book_click`].
 pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, area: [f32; 4]) {
     let layout = layout(area, book);
     let appearance = &book.appearance;
@@ -677,17 +1040,48 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             if index == current {
                 canvas.fill([rail[0] - 2.0, y - 1.0, rail[2] + 4.0, ROW], CELL);
             }
-            // The rail names its sections; a section's icon is book data for a canvas that can draw
-            // items, which this one cannot, so the name stands in for it either way.
+            // The rail shows each section's icon beside its (localized) name, as the original's
+            // book screen does.
+            let mut label_x = rail[0];
+            if let Some(icon) = &section.icon {
+                canvas.item(&icon_slot(icon), [rail[0], y], 10.0);
+                label_x += 14.0;
+            }
             let label = section.name.as_str();
             let color = if index == current { INK } else { FADED_INK };
-            canvas.text(label, [rail[0], y], color, false);
+            canvas.text(label, [label_x, y], color, false);
         }
     }
     let content = layout.content;
     let bottom = content[1] + content[3] - 16.0;
+    // The spread the view is on, drawn as two pages side by side with a gutter between them.
+    let (all, at) = view.spread_at(book);
+    let Some(spread) = all.get(at) else { return };
+    let half = ((content[2] - SPREAD_GUTTER) / 2.0).max(0.0);
+    if let Some(page) = spread.left.and_then(|index| book.page(index)) {
+        draw_page(&mut *canvas, book, page, view.page, [content[0], content[1], half, content[3]], bottom, appearance);
+    }
+    if let Some(page) = spread.right.and_then(|index| book.page(index)) {
+        draw_page(canvas, book, page, view.page, [content[0] + half + SPREAD_GUTTER, content[1], half, content[3]], bottom, appearance);
+    }
+    let arrow_color = if appearance.arrow_color != 0 { appearance.arrow_color } else { INK };
+    if at > 0 {
+        canvas.text("<", [layout.prev_arrow[0] + 3.0, layout.prev_arrow[1]], arrow_color, false);
+    }
+    if at + 1 < all.len() {
+        canvas.text(">", [layout.next_arrow[0] + 3.0, layout.next_arrow[1]], arrow_color, false);
+    }
+}
+
+/// The gutter between a spread's two pages, in GUI pixels.
+const SPREAD_GUTTER: f32 = 8.0;
+
+/// Draws one page of a spread into its half: `content` is the half's rect and `bottom` the y
+/// its content stops above. `link_key` is the view's page, under which a table page's link
+/// rows are recorded, so a click reads the spread that was drawn whichever half the table
+/// stood on (two table pages in one spread share the record; the right one's rows win).
+fn draw_page(canvas: &mut dyn ScreenCanvas, book: &Book, page: &BookPage, link_key: usize, content: [f32; 4], bottom: f32, appearance: &BookAppearance) {
     let mut y = content[1];
-    let Some(page) = book.page(view.page) else { return };
     if let Some(title) = page.title() {
         let x = if appearance.center_page_titles {
             content[0] + ((content[2] - canvas.text_width(title)) / 2.0).max(0.0)
@@ -714,7 +1108,36 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
             }
             draw_text_block(canvas, text, content[0], y, content[2], bottom, INK);
         }
-        BookPage::Crafting { recipe, grid_size, description, .. } => {
+        BookPage::TextImage { image, text, .. } => {
+            // The image in a column at the left, the text flowing beside it (and below it when
+            // the text runs longer than the image is tall).
+            let mut text_x = content[0];
+            let mut text_width = content[2];
+            if image.width > 0 && image.height > 0 {
+                let width = (content[2] * 0.38).min(image.width as f32);
+                let height = (width * image.height as f32 / image.width as f32).min(bottom - y);
+                if height > 0.0 && canvas.sprite(&image.file, [0.0, 0.0, image.width as f32, image.height as f32], [content[0], y, width, height]) {
+                    text_x += width + 6.0;
+                    text_width -= width + 6.0;
+                }
+            }
+            draw_text_block(canvas, text, text_x, y, text_width, bottom, INK);
+        }
+        BookPage::Showcase { item, tooltip, text, .. } => {
+            // The item large at the left, its tooltip lines beside it, the text below both.
+            let mut text_y = y;
+            if let Some(item) = item {
+                canvas.item(item, [content[0], y], 32.0);
+                let mut line_y = y;
+                for line in tooltip {
+                    canvas.text(line, [content[0] + 38.0, line_y], INK, false);
+                    line_y += LINE;
+                }
+                text_y = (y + 36.0).max(line_y + 2.0);
+            }
+            draw_text_block(canvas, text, content[0], text_y, content[2], bottom, INK);
+        }
+        BookPage::Crafting { recipe, grid_size, ingredients, result, description, .. } => {
             let cell = grid_size.cell();
             let slot = if appearance.slot_color != 0 { appearance.slot_color } else { CELL };
             for row in 0..3 {
@@ -723,23 +1146,101 @@ pub fn draw_book(canvas: &mut dyn ScreenCanvas, book: &Book, view: &BookView, ar
                     let yy = y + row as f32 * (cell + 2.0);
                     canvas.fill([x, yy, cell, cell], slot);
                     canvas.fill([x + 1.0, yy + 1.0, cell - 2.0, cell - 2.0], PARCHMENT);
+                    if let Some(stack) = ingredients.get(row * 3 + col).and_then(|cell| cell.first()) {
+                        canvas.item(stack, [x + 1.0, yy + 1.0], cell - 2.0);
+                    }
                 }
+            }
+            // The arrow and the result, at the grid's middle row.
+            let grid_width = 3.0 * (cell + 2.0);
+            let middle = y + cell + 2.0;
+            canvas.text(">", [content[0] + grid_width + 2.0, middle + 2.0], INK, false);
+            if let Some(result) = result {
+                let x = content[0] + grid_width + 14.0;
+                canvas.fill([x, middle, cell, cell], slot);
+                canvas.fill([x + 1.0, middle + 1.0, cell - 2.0, cell - 2.0], PARCHMENT);
+                canvas.item(result, [x + 1.0, middle + 1.0], cell - 2.0);
             }
             y += 3.0 * (cell + 2.0) + 2.0;
             canvas.text(&recipe.to_string(), [content[0], y], FADED_INK, false);
             y += LINE + 2.0;
             draw_text_block(canvas, description, content[0], y, content[2], bottom, INK);
         }
+        BookPage::Table { intro, rows, text, sidebar, .. } => {
+            // The sidebar's items stand in a column at the page's right edge; the rows and text
+            // narrow to make room for it.
+            let width = if sidebar.is_empty() { content[2] } else { content[2] - 22.0 };
+            if !sidebar.is_empty() {
+                let mut item_y = y;
+                for item in sidebar {
+                    if item_y + 18.0 > bottom + 4.0 {
+                        break;
+                    }
+                    canvas.item(item, [content[0] + content[2] - 18.0, item_y], 16.0);
+                    item_y += 18.0;
+                }
+            }
+            y = draw_text_block(canvas, intro, content[0], y, width, bottom, INK);
+            let mut links = Vec::new();
+            for row in rows {
+                if y + TABLE_ROW > bottom + 4.0 {
+                    break;
+                }
+                let (icon, label, value, link, header) = match row {
+                    BookRow::Header { icon, text } => (icon, text.as_str(), None, None, true),
+                    BookRow::Entry { icon, label, value, link } => (icon, label.as_str(), value.as_deref(), *link, false),
+                };
+                let mut x = content[0];
+                if let Some(icon) = icon {
+                    canvas.item(&icon_slot(icon), [x, y + 1.0], 10.0);
+                    x += 14.0;
+                }
+                let color = if link.is_some() { LINK_INK } else { INK };
+                canvas.text(label, [x, y + 1.0], color, false);
+                if header {
+                    let width = canvas.text_width(label);
+                    canvas.fill([x, y + TABLE_ROW - 1.5, width, 1.0], FADED_INK);
+                }
+                if let Some(value) = value {
+                    let value_x = content[0] + width - canvas.text_width(value);
+                    canvas.text(value, [value_x.max(x), y + 1.0], INK, false);
+                }
+                if let Some(target) = link {
+                    links.push(([content[0], y, width, TABLE_ROW], target));
+                }
+                y += TABLE_ROW;
+            }
+            if let Ok(mut recorded) = LINK_ROWS.lock() {
+                *recorded = Some((book.id.clone(), link_key, links));
+            }
+            draw_text_block(canvas, text, content[0], y + 2.0, width, bottom, INK);
+        }
+        BookPage::Structure { structure, .. } => {
+            if let Some(structure) = structure {
+                let height = (bottom - y).max(0.0);
+                // Fit the template into the area left under the title: the scale answers the wider of
+                // the footprint's span and the height's share of it, capped so a one-block template
+                // does not fill the page.
+                let span = (structure.size[0].max(structure.size[2])) as f32 + structure.size[1] as f32 * 0.5;
+                let scale = if span > 0.0 { (content[2].min(height * 1.4) / span).clamp(2.0, 24.0) } else { 16.0 };
+                // Mantle turns the structure slowly as the page is read; the turn is the wall clock's,
+                // one revolution a minute, so two draws a moment apart agree.
+                let millis = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|elapsed| elapsed.as_millis()).unwrap_or(0);
+                let view = SceneView {
+                    center: [structure.size[0] as f32 / 2.0, structure.size[1] as f32 / 2.0, structure.size[2] as f32 / 2.0],
+                    yaw: (millis % 60_000) as f32 / 60_000.0 * 360.0,
+                    pitch: 30.0,
+                    scale,
+                };
+                canvas.scene([content[0], y, content[0] + content[2], y + height], &structure.blocks, &view);
+            }
+        }
         BookPage::Opaque { kind, .. } => {
             canvas.text(kind, [content[0], y], FADED_INK, false);
         }
-    }
-    let arrow_color = if appearance.arrow_color != 0 { appearance.arrow_color } else { INK };
-    if view.page > 0 {
-        canvas.text("<", [layout.prev_arrow[0] + 3.0, layout.prev_arrow[1]], arrow_color, false);
-    }
-    if view.page + 1 < book.page_count() {
-        canvas.text(">", [layout.next_arrow[0] + 3.0, layout.next_arrow[1]], arrow_color, false);
+        BookPage::Padding { .. } => {
+            // A padding marker that took a half (a `mantle:blank` page) draws nothing there.
+        }
     }
 }
 
@@ -846,6 +1347,7 @@ mod tests {
         fills: Vec<([f32; 4], u32)>,
         texts: Vec<(String, [f32; 2])>,
         sprites: Vec<String>,
+        scenes: Vec<(Vec<SceneBlock>, SceneView)>,
     }
 
     impl ScreenCanvas for Recorder {
@@ -861,6 +1363,9 @@ mod tests {
         }
         fn text_width(&self, text: &str) -> f32 {
             text.len() as f32 * 6.0
+        }
+        fn scene(&mut self, _: [f32; 4], blocks: &[SceneBlock], view: &SceneView) {
+            self.scenes.push((blocks.to_vec(), *view));
         }
     }
 
@@ -880,6 +1385,8 @@ mod tests {
                         title: Some("Table".into()),
                         recipe: Identifier::parse("minecraft:crafting_table").unwrap(),
                         grid_size: GridSize::Small,
+                        ingredients: vec![vec![ItemSlot::new(Identifier::parse("minecraft:oak_planks").unwrap(), 1)]; 4],
+                        result: Some(ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1)),
                         description: vec![BookText::plain("craft things")],
                     }],
                 },
@@ -916,12 +1423,61 @@ mod tests {
         let mut view = BookView::new(book.id.clone());
         assert!(!view.prev_page(&book));
         assert!(view.next_page(&book));
-        assert!(view.next_page(&book));
-        assert!(!view.next_page(&book), "the last page does not turn");
+        assert_eq!(view.page, 2, "a turn moves a whole spread: the first two pages show together");
+        assert!(!view.next_page(&book), "the last spread does not turn");
         assert_eq!(view.section(&book), 1);
         assert!(view.goto_section(&book, 0));
         assert_eq!(view.page, 0);
         assert!(!view.goto_section(&book, 5));
+    }
+
+    #[test]
+    fn spreads_pair_pages_and_consume_the_padding_markers() {
+        let text = |title: &str| BookPage::Text { title: Some(title.into()), text: Vec::new() };
+        let book = Book::new(
+            Identifier::parse("test:spreads").unwrap(),
+            vec![
+                BookSection { name: "One".into(), icon: None, pages: vec![text("a"), BookPage::Padding { right: false }, text("b")] },
+                BookSection { name: "Two".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("c"), text("d"), BookPage::Padding { right: true }] },
+            ],
+        );
+        // Flat pages: 0 a, 1 blank, 2 b | 3 right_padding, 4 c, 5 d, 6 right_padding.
+        // The blank takes the right half beside a; the first right_padding closes b's spread;
+        // the last one closes d's, and no spread of padding alone survives.
+        assert_eq!(
+            spreads(&book),
+            vec![
+                BookSpread { left: Some(0), right: Some(1) },
+                BookSpread { left: Some(2), right: Some(3) },
+                BookSpread { left: Some(4), right: Some(5) },
+            ],
+        );
+        // A right_padding with no left pending is dropped, not a spread of its own.
+        let book = Book::new(
+            Identifier::parse("test:spreads_lead").unwrap(),
+            vec![BookSection { name: "One".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("a")] }],
+        );
+        assert_eq!(spreads(&book), vec![BookSpread { left: Some(1), right: None }]);
+        // Turning walks the spreads, and a section jump lands on its spread's left.
+        let mut view = BookView::new(book.id.clone());
+        assert!(!view.next_page(&book));
+        let book = Book::new(
+            Identifier::parse("test:spreads").unwrap(),
+            vec![
+                BookSection { name: "One".into(), icon: None, pages: vec![text("a"), BookPage::Padding { right: false }, text("b")] },
+                BookSection { name: "Two".into(), icon: None, pages: vec![BookPage::Padding { right: true }, text("c"), text("d"), BookPage::Padding { right: true }] },
+            ],
+        );
+        let mut view = BookView::new(book.id.clone());
+        assert!(view.next_page(&book));
+        assert_eq!(view.page, 2);
+        assert!(view.next_page(&book));
+        assert_eq!(view.page, 4);
+        assert!(!view.next_page(&book));
+        assert!(view.prev_page(&book));
+        assert_eq!(view.page, 2);
+        assert!(view.goto_section(&book, 1));
+        assert_eq!(view.page, 2, "section two's first page (flat 3) is a consumed marker; its spread starts at flat 2");
     }
 
     #[test]
@@ -955,6 +1511,99 @@ mod tests {
         assert!(BookPage::from_json("mantle:crafting", &serde_json::json!({})).is_err(), "a crafting page without a recipe is an error, not an opaque page");
     }
 
+    fn template() -> NbtCompound {
+        let entry = |name: &str, properties: Option<NbtCompound>| {
+            let mut entry = NbtCompound::new();
+            entry.insert("Name".into(), Nbt::String(name.into()));
+            if let Some(properties) = properties {
+                entry.insert("Properties".into(), Nbt::Compound(properties));
+            }
+            Nbt::Compound(entry)
+        };
+        let block = |pos: [i32; 3], state: i32, nbt: Option<NbtCompound>| {
+            let mut block = NbtCompound::new();
+            block.insert("pos".into(), Nbt::List(pos.iter().map(|axis| Nbt::Int(*axis)).collect()));
+            block.insert("state".into(), Nbt::Int(state));
+            if let Some(nbt) = nbt {
+                block.insert("nbt".into(), Nbt::Compound(nbt));
+            }
+            Nbt::Compound(block)
+        };
+        let mut facing = NbtCompound::new();
+        facing.insert("facing".into(), Nbt::String("north".into()));
+        let mut burn = NbtCompound::new();
+        burn.insert("BurnTime".into(), Nbt::Short(5));
+        let mut root = NbtCompound::new();
+        root.insert("size".into(), Nbt::List(vec![Nbt::Int(3), Nbt::Int(1), Nbt::Int(1)]));
+        root.insert("palette".into(), Nbt::List(vec![
+            entry("minecraft:stone", None),
+            entry("minecraft:furnace", Some(facing)),
+            entry("minecraft:air", None),
+        ]));
+        root.insert("blocks".into(), Nbt::List(vec![
+            block([0, 0, 0], 0, None),
+            block([1, 0, 0], 1, Some(burn)),
+            block([2, 0, 0], 2, None),
+        ]));
+        root
+    }
+
+    #[test]
+    fn a_structure_page_decodes_and_its_template_becomes_scene_blocks() {
+        let page = BookPage::from_json("mantle:structure", &serde_json::json!({"title": "Smeltery", "data": "tconstruct:book/structures/smeltery.nbt"})).unwrap();
+        assert_eq!(page.kind(), "mantle:structure");
+        assert_eq!(page.title(), Some("Smeltery"));
+        match &page {
+            BookPage::Structure { data, structure, .. } => {
+                assert_eq!(data.to_string(), "tconstruct:book/structures/smeltery.nbt");
+                assert!(structure.is_none(), "the loader fills the structure, not the JSON decode");
+            }
+            other => panic!("expected a structure page, got {other:?}"),
+        }
+        let structure = BookStructure::from_template(&template()).unwrap();
+        assert_eq!(structure.size, [3, 1, 1]);
+        assert_eq!(structure.blocks.len(), 2, "the air block is left out");
+        assert_eq!(structure.blocks[0].block.block.to_string(), "minecraft:stone");
+        let furnace = &structure.blocks[1];
+        assert_eq!(furnace.pos, [1, 0, 0]);
+        assert_eq!(furnace.block.property("facing"), Some("north"), "the palette's properties ride along");
+        let entity = furnace.entity.as_ref().expect("the block's nbt becomes its scene entity");
+        assert_eq!(entity.data.get("BurnTime"), Some(&Nbt::Short(5)));
+        // A palette index past the end is an error, not a shorter structure.
+        let mut broken = template();
+        if let Some(Nbt::List(blocks)) = broken.get_mut("blocks") {
+            if let Some(Nbt::Compound(first)) = blocks.first_mut() {
+                first.insert("state".into(), Nbt::Int(9));
+            }
+        }
+        assert!(BookStructure::from_template(&broken).is_err());
+    }
+
+    #[test]
+    fn a_structure_page_draws_its_scene_under_its_title() {
+        let structure = BookStructure::from_template(&template()).unwrap();
+        let book = Book::new(
+            Identifier::parse("test:structures").unwrap(),
+            vec![BookSection {
+                name: "Builds".into(),
+                icon: None,
+                pages: vec![BookPage::Structure {
+                    title: Some("Smeltery".into()),
+                    data: Identifier::parse("test:book/structures/smeltery.nbt").unwrap(),
+                    structure: Some(structure),
+                }],
+            }],
+        );
+        let view = BookView::new(book.id.clone());
+        let mut canvas = Recorder::default();
+        draw_book(&mut canvas, &book, &view, [0.0, 0.0, 200.0, 200.0]);
+        assert_eq!(canvas.scenes.len(), 1, "the page draws one scene");
+        let (blocks, scene_view) = &canvas.scenes[0];
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(scene_view.center, [1.5, 0.5, 0.5], "the view centres the template");
+        assert_eq!(scene_view.pitch, 30.0);
+    }
+
     #[test]
     fn appearance_and_section_refs_decode_from_the_original_files() {
         let appearance = BookAppearance::from_json(&serde_json::json!({
@@ -975,6 +1624,37 @@ mod tests {
         let icon = BookIcon::from_json(&serde_json::json!({"type": "forge:nbt", "item": "tconstruct:pickaxe", "nbt": {"tic_materials": "x"}})).unwrap();
         assert_eq!(icon.item().to_string(), "tconstruct:pickaxe");
         assert!(matches!(icon, BookIcon::ItemWithData { .. }));
+    }
+
+    #[test]
+    fn the_showcase_text_image_and_padding_kinds_decode_to_drawn_pages() {
+        let showcase = BookPage::from_json("mantle:showcase", &serde_json::json!({
+            "title": "Pattern",
+            "item": {"type": "forge:nbt", "item": "tconstruct:pattern", "nbt": {"Material": "tconstruct:wood"}},
+            "tooltip": ["Pattern", "Used to cast parts"],
+            "text": [{"text": "A pattern."}],
+        })).unwrap();
+        match &showcase {
+            BookPage::Showcase { title, item, tooltip, text } => {
+                assert_eq!(title.as_deref(), Some("Pattern"));
+                assert_eq!(item.as_ref().map(|stack| stack.item.to_string()), Some("tconstruct:pattern".to_owned()));
+                assert_eq!(tooltip, &vec!["Pattern".to_owned(), "Used to cast parts".to_owned()]);
+                assert_eq!(text.len(), 1);
+            }
+            other => panic!("a showcase page decodes as a showcase, not {other:?}"),
+        }
+        assert_eq!(showcase.kind(), "mantle:showcase");
+        let text_image = BookPage::from_json("mantle:text_image", &serde_json::json!({
+            "title": "Melting",
+            "image": {"file": "tconstruct:textures/gui/book/melting.png", "width": 100, "height": 50},
+            "text": [{"text": "Melt things."}],
+        })).unwrap();
+        assert!(matches!(text_image, BookPage::TextImage { .. }), "a text_image page decodes as one: {text_image:?}");
+        assert_eq!(text_image.kind(), "mantle:text_image");
+        let blank = BookPage::from_json("mantle:right_padding", &serde_json::json!({})).unwrap();
+        assert!(matches!(blank, BookPage::Padding { right: true }), "right padding decodes to a padding marker: {blank:?}");
+        let blank = BookPage::from_json("mantle:blank", &serde_json::json!({})).unwrap();
+        assert!(matches!(blank, BookPage::Padding { right: false }), "a blank decodes to a padding marker: {blank:?}");
     }
 
     #[test]
@@ -1005,9 +1685,66 @@ mod tests {
         view.page = 2;
         let mut canvas = Recorder::default();
         draw_book(&mut canvas, &book, &view, area);
-        assert_eq!(canvas.fills.len(), 1 + 1 + 18, "panel, current-section marker and 9 cells with inners");
+        assert_eq!(canvas.fills.len(), 1 + 1 + 20, "panel, current-section marker, 9 cells with inners and the result cell");
         let drawn: Vec<&str> = canvas.texts.iter().map(|(text, _)| text.as_str()).collect();
         assert!(drawn.contains(&"minecraft:crafting_table") && drawn.contains(&"craft things"));
+    }
+
+    #[test]
+    fn replace_swaps_a_registration_and_keeps_it_on_a_bad_book() {
+        let mut registry = Registry::default();
+        registry.register(sample_book()).unwrap();
+        let id = Identifier::parse("test:field_guide").unwrap();
+        let mut rebuilt = sample_book();
+        rebuilt.sections.truncate(1);
+        registry.replace(rebuilt).unwrap();
+        assert_eq!(registry.get(&id).unwrap().page_count(), 2, "the rebuild took the first build's place");
+        let mut bad = sample_book();
+        bad.sections.clear();
+        assert!(registry.replace(bad).is_err(), "a book with no sections is refused");
+        assert_eq!(registry.get(&id).unwrap().page_count(), 2, "the earlier registration stands");
+        let fresh = Book::new(Identifier::parse("test:fresh").unwrap(), sample_book().sections);
+        registry.replace(fresh).unwrap();
+        assert_eq!(registry.all().len(), 2, "replace also registers a book that was not there");
+    }
+
+    #[test]
+    fn a_table_page_draws_its_rows_and_its_link_rows_click_through() {
+        let icon = BookIcon::Item(Identifier::parse("minecraft:iron_ingot").unwrap());
+        let book = Book::new(
+            Identifier::parse("test:tables").unwrap(),
+            vec![BookSection {
+                name: "Materials".into(),
+                icon: None,
+                pages: vec![
+                    BookPage::Table {
+                        kind: "mantle:index".into(),
+                        title: Some("Materials".into()),
+                        intro: vec![BookText::plain("pick one")],
+                        rows: vec![
+                            BookRow::Header { icon: None, text: "Metals".into() },
+                            BookRow::Entry { icon: Some(icon), label: "Iron".into(), value: Some("tier 2".into()), link: Some(1) },
+                            BookRow::Entry { icon: None, label: "Stone".into(), value: None, link: None },
+                        ],
+                        text: vec![],
+                        sidebar: vec![ItemSlot::new(Identifier::parse("minecraft:iron_block").unwrap(), 1)],
+                    },
+                    text_page("Iron", "the iron page"),
+                ],
+            }],
+        );
+        assert_eq!(book.page(0).map(|page| page.kind()), Some("mantle:index"), "a table page keeps its content's kind");
+        let area = [0.0, 0.0, 400.0, 300.0];
+        let view = BookView::new(book.id.clone());
+        let mut canvas = Recorder::default();
+        draw_book(&mut canvas, &book, &view, area);
+        let drawn: Vec<&str> = canvas.texts.iter().map(|(text, _)| text.as_str()).collect();
+        assert!(drawn.contains(&"Metals") && drawn.contains(&"Iron") && drawn.contains(&"tier 2") && drawn.contains(&"Stone"), "header, entries and values are drawn: {drawn:?}");
+        // The Iron row's own drawn position clicks as a link to its page; the Stone row's does not.
+        let (_, at) = canvas.texts.iter().find(|(text, _)| text == "Iron").unwrap();
+        assert_eq!(book_click(&book, &view, area, [at[0] + 1.0, at[1] + 1.0]), BookClick::Page(1));
+        let (_, at) = canvas.texts.iter().find(|(text, _)| text == "Stone").unwrap();
+        assert_eq!(book_click(&book, &view, area, [at[0] + 1.0, at[1] + 1.0]), BookClick::None);
     }
 
     #[test]

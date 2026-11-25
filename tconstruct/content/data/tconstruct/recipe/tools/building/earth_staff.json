@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "tconstruct:earth_slime_crystal",
+    "I": [
+      "tconstruct:cobalt_ingot"
+    ],
+    "W": [
+      "tconstruct:greenheart_log",
+      "tconstruct:stripped_greenheart_log",
+      "tconstruct:greenheart_wood",
+      "tconstruct:stripped_greenheart_wood"
+    ]
+  },
+  "pattern": [
+    "CWC",
+    " I ",
+    " W "
+  ],
+  "result": {
+    "id": "tconstruct:earth_staff"
+  }
+}

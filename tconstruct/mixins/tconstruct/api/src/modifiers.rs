@@ -7,7 +7,7 @@ use std::{collections::{BTreeMap, BTreeSet}, sync::{Arc, RwLock}};
 
 pub(crate) const FOLDER: &str = "tinkering/modifiers";
 /// Module types only code-defined modifiers use; the original ships no data for them.
-const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override"];
+const CODE_MODULES: &[&str] = &["tconstruct:creative_slots", "tconstruct:stat_override", "tconstruct:conducting", "tconstruct:insatiable", "tconstruct:lacerating", "tconstruct:momentum", "tconstruct:dwarven", "tconstruct:exchanging", "tconstruct:enderporting", "tconstruct:self_destructive", "tconstruct:strong_bones", "tconstruct:tank"];
 pub(crate) const TAG_FOLDER: &str = "tinkering/tags/modifiers";
 #[derive(Clone, Debug)]
 pub(crate) struct Modifier {
@@ -184,6 +184,15 @@ impl Modifier {
     pub fn apply_volatile_with(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
         for module in &self.modules { module.apply_volatile(entry, facts, data); }
     }
+    /// The raw-data hook with tool facts: contributions to the tool's top-level data.
+    pub fn apply_raw_data(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, data: &mut NbtCompound) {
+        for module in &self.modules { module.apply_raw_data(entry, facts, data); }
+    }
+    /// EmbellishmentModule's raw data half over this modifier's modules: the persistent edit that
+    /// migrates the stored variant through material redirects, if any module asks for one.
+    pub fn embellish_migration(&self, persistent: &NbtCompound, materials: &crate::materials::Definitions) -> Option<(String, Nbt)> {
+        self.modules.iter().find_map(|module| module.embellish_migration(&self.id, persistent, materials))
+    }
     /// ModifierRemovalHook: clears persistent data this modifier's modules own after it left the tool.
     pub fn on_removed(&self, persistent: &mut NbtCompound) {
         for module in &self.modules { module.on_removed(&self.id, persistent); }
@@ -216,6 +225,10 @@ impl Modifier {
     pub fn armor_looting(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> i32 {
         self.modules.iter().map(|module| module.armor_looting(entry, facts, slot)).sum()
     }
+    /// HarvestEnchantmentsModifierHook over this modifier's modules for a piece worn in `slot`: the enchantments they lend the breaking stack.
+    pub fn armor_harvest_enchantments(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, slot: &str) -> Vec<(String, i32)> {
+        self.modules.iter().filter_map(|module| module.armor_harvest_enchantment(entry, facts, slot)).collect()
+    }
     /// The tool actions this modifier's transform modules perform on a right click.
     pub fn tool_actions(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(crate::tool_actions::ToolAction, String, bool)> {
         self.modules.iter().filter_map(|module| module.tool_action(entry, facts)).collect()
@@ -223,6 +236,19 @@ impl Modifier {
     /// The walk transforms of this modifier, each with the modifier's id (the wear cause), its action, sound and radius.
     pub fn walk_transforms(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::tool_actions::ToolAction, String, f32)> {
         self.modules.iter().filter_map(|module| module.walk_transform(entry, facts)).map(|(action, sound, radius)| (entry.id.clone(), action, sound, radius)).collect()
+    }
+    /// The boot walk modules of this modifier (ArmorWalkRadiusModule), in module order.
+    pub fn walk_modules(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<(Identifier, crate::modifier_modules::WalkModule)> {
+        self.modules.iter().filter_map(|module| module.walk_module(entry, facts)).map(|walk| (entry.id.clone(), walk)).collect()
+    }
+    /// The place glow modules of this modifier (PlaceGlowModule), each with the entry's id (the wear cause).
+    pub fn place_glow_modules(&self, entry: &Entry) -> Vec<(Identifier, i32)> {
+        self.modules.iter().filter_map(|module| module.place_glow()).map(|damage| (entry.id.clone(), damage)).collect()
+    }
+    /// BlockItemProviderModifierHook over this modifier's modules: the first block item they provide
+    /// and the wear consuming one costs.
+    pub fn block_item_provider(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Option<(Identifier, i32)> {
+        self.modules.iter().find_map(|module| module.block_item_provider(entry, facts))
     }
     /// ToolActionModifierHook: whether any tool actions module of this modifier lets the tool perform `name`.
     pub fn can_perform_action(&self, entry: &Entry, facts: &crate::tool_predicate::Facts, name: &str) -> bool {
@@ -276,7 +302,7 @@ impl Modifier {
     }
     /// The inventory modules, in module order.
     pub fn inventory_parts(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::tool_inventory::Part> {
-        self.modules.iter().filter_map(|module| module.inventory_part(entry, facts)).collect()
+        self.modules.iter().flat_map(|module| module.inventory_parts(entry, facts)).collect()
     }
     /// The keys of the inventory menu modules.
     pub fn inventory_menu_keys(&self) -> Vec<crate::tool_inventory::MenuKey> {
@@ -291,6 +317,18 @@ impl Modifier {
     pub fn max_armor_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_max_armor_attribute())
     }
+    /// The armor stat modules (plain and max).
+    pub fn armor_stat_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_armor_stat())
+    }
+    /// The golden attribute modules.
+    pub fn golden_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_golden_attribute())
+    }
+    /// The lightspeed attribute modules.
+    pub fn lightspeed_attribute_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
+        self.modules.iter().filter(|module| module.is_lightspeed_attribute())
+    }
     /// The armor level modules.
     pub fn armor_level_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
         self.modules.iter().filter(|module| module.is_armor_level())
@@ -304,6 +342,10 @@ impl Modifier {
     /// What eating a tool does for this modifier's edible effect modules, in module order.
     pub fn edible_effects(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<crate::edible::Effect> {
         self.modules.iter().filter_map(|module| module.edible_effect(entry, facts)).collect()
+    }
+    /// The representative items this modifier presents as eaten (EdibleRepresentativeItemModule), in module order.
+    pub fn representative_items(&self, entry: &Entry, facts: &crate::tool_predicate::Facts) -> Vec<Identifier> {
+        self.modules.iter().filter_map(|module| module.representative_item(entry, facts)).cloned().collect()
     }
     /// The thorns modules.
     pub fn thorns_modules(&self) -> impl Iterator<Item = &crate::modifier_modules::Module> {
@@ -613,13 +655,29 @@ mod tests {
         // A predicate this port lacks, or another hook binding, is recorded as unbound, never installed.
         for gated in [
             json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","tool":{"type":"tconstruct:has_hook","hook":"a:b"}}]}),
-            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:projectile_launch"]}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"test:x","hooks":["tconstruct:melee_hit"]}]}),
         ] {
             let modifier = Modifier::decode(name("test:gated"), &gated).unwrap();
             assert_eq!(modifier.unbound.iter().map(Identifier::to_string).collect::<Vec<_>>(), vec!["tconstruct:volatile_flag"]);
             let mut data = NbtCompound::new();
             modifier.apply_volatile(&Entry::new(name("test:gated"), 1), &mut data);
             assert!(data.is_empty(), "an unbound flag writes nothing");
+        }
+    }
+    #[test]
+    fn projectile_bound_flags_install_with_nothing_unbound() {
+        // The shipped fins and enderference flag modules: bound to the projectile hooks, they
+        // install fully (the launch half marks the projectile), and write no volatile data.
+        for shipped in [
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]}),
+            json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:enderference","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot","tconstruct:projectile_thrown"]}]}),
+        ] {
+            let modifier = Modifier::decode(name("test:shipped"), &shipped).unwrap();
+            assert!(modifier.unbound.is_empty(), "nothing stays unbound: {:?}", modifier.unbound);
+            assert_eq!(modifier.modules().len(), 1);
+            let mut data = NbtCompound::new();
+            modifier.apply_volatile(&Entry::new(name("test:shipped"), 1), &mut data);
+            assert!(data.is_empty(), "a projectile-bound flag writes no volatile data");
         }
     }
     #[test]
@@ -686,12 +744,45 @@ mod tests {
     }
 }
 
-/// The modifiers the original defines only in code (a Java class, no data file) that a material trait names and Tinkers has not ported:
-/// DwarvenModifier (copper), StrongBonesModifier (bone), ConductingModifier (blazing bone), EnderportingModifier (ender pearl and ender slime
-/// vine), InsatiableModifier (jadeite), LaceratingModifier (nahuatl), MomentumModifier (hepatizon) and SelfDestructiveModifier (gunpowder).
+/// The modifiers the original defines only in code (a Java class, no data file) whose behaviour
+/// Tinkers has ported: ConductingModifier (blazing bone, priority 90), InsatiableModifier (jadeite),
+/// LaceratingModifier (nahuatl), MomentumModifier (hepatizon, priority 75), DwarvenModifier
+/// (copper, priority 85), ExchangingModifier (exchanging, priority -32788: Short.MIN_VALUE - 20,
+/// so it runs after the shears ability and the other remove-block hooks), EnderportingModifier
+/// (ender pearl, priority 45), SelfDestructiveModifier (gunpowder) and StrongBonesModifier (bone).
+/// Each is built from its code module kind at its class's priority.
+pub(crate) fn ported_code_modifiers() -> Result<Vec<Modifier>, String> {
+    let build = |name: &str, definition: serde_json::Value| -> Result<Modifier, String> {
+        let id = Identifier::new("tconstruct", name).map_err(|e| e.to_string())?;
+        Modifier::decode(id, &definition)
+    };
+    Ok(vec![
+        build("conducting", serde_json::json!({"priority": 90, "modules": [{"type": "tconstruct:conducting"}]}))?,
+        build("insatiable", serde_json::json!({"modules": [{"type": "tconstruct:insatiable"}]}))?,
+        build("lacerating", serde_json::json!({"modules": [{"type": "tconstruct:lacerating"}]}))?,
+        build("momentum", serde_json::json!({"priority": 75, "modules": [{"type": "tconstruct:momentum"}]}))?,
+        build("dwarven", serde_json::json!({"priority": 85, "modules": [{"type": "tconstruct:dwarven"}]}))?,
+        build("exchanging", serde_json::json!({"priority": -32788, "modules": [{"type": "tconstruct:exchanging"}]}))?,
+        build("enderporting", serde_json::json!({"priority": 45, "modules": [{"type": "tconstruct:enderporting"}]}))?,
+        build("self_destructive", serde_json::json!({"modules": [{"type": "tconstruct:self_destructive"}]}))?,
+        build("strong_bones", serde_json::json!({"modules": [{"type": "tconstruct:strong_bones"}]}))?,
+    ])
+}
+
+/// The code-defined modifiers that a material trait names and Tinkers has not ported.
+/// The same registration covers the code-defined modifiers whose classes the audit found absent
+/// from the registry entirely: the offhand family (sinistral, dual_wielding,
+/// ambidextrous, parrying, offhand_attack — a second hand's hits and blocks reach no event here;
+/// the dagger definition and the blockade trait name two of them, so their tools must still
+/// build), bursting and wetting (their behaviours run on interactions no surface here reaches),
+/// piercing (the projectile side's), and plague,
+/// wildfire, breathtaking, firebreath, olympic and energy_handler, which the original itself
+/// gives no grant path — registry parity is all they ask.
 /// Each is registered with no behaviour and its own id in `unbound`, so a tool of those materials builds (as the original's lookup of a modifier with
 /// no behaviour does) and the missing behaviour is listed rather than made up; the traits' effects wait for their classes.
-pub(crate) const CODE_MODIFIERS: &[&str] = &["conducting", "dwarven", "enderporting", "insatiable", "lacerating", "momentum", "self_destructive", "strong_bones"];
+pub(crate) const CODE_MODIFIERS: &[&str] = &[
+    "sinistral", "bursting", "wetting", "dual_wielding", "ambidextrous", "parrying", "offhand_attack",
+    "piercing", "plague", "wildfire", "breathtaking", "firebreath", "olympic", "energy_handler"];
 
 pub(crate) fn unported_code_modifiers() -> Result<Vec<Modifier>, String> {
     CODE_MODIFIERS.iter().map(|name| {
@@ -706,6 +797,9 @@ pub(crate) fn register<C: Conditions + 'static>(context: impl Fn() -> Result<C, 
     // Overslime is defined in code in the original; it survives every reload as a static modifier.
     let mut registry = Registry::default();
     for modifier in crate::overslime::code_modifiers()? { registry.register_static(modifier)?; }
+    for modifier in ported_code_modifiers()? { registry.register_static(modifier)?; }
+    // The tank handler (TinkerModifiers: the tank trait's own code modifier, priority 300).
+    for modifier in crate::tool_tank::code_modifiers()? { registry.register_static(modifier)?; }
     for modifier in unported_code_modifiers()? { registry.register_static(modifier)?; }
     let state = Arc::new(RwLock::new(registry));
     let output = state.clone();

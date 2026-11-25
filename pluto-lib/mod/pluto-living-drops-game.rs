@@ -9,6 +9,46 @@ use crate::game::pluto_living_drops as access;
 fn killer_id(m:&Mob)->Option<u32> {
     match m.last_damage.and_then(|(damage,_)|damage.attacker) {Some(Who::Mob(id))=>Some(id),_=>None}
 }
+/// The killing blow's Looting level (`EnchantmentHelper.getMobLooting`):
+/// the attacker's main-hand Looting. A mob attacker's hand is read from its
+/// equipment; a player attacker's is the main hand the host already resolved
+/// into the killer `LootEntity` (`Game::killer_loot_entity` in the pinned
+/// host: the local player's hand for a local kill, the guest's own hand —
+/// read through `as_guest` — for a LAN guest's kill), so the drop-chance
+/// context sees the guest's Looting instead of the host's.
+fn killer_looting(game:&Game<'_>,killer:&horizon_world::loot::LootEntity,m:&Mob)->i32 {
+    match m.last_damage.and_then(|(damage,_)|damage.attacker) {
+        Some(Who::Mob(id))=>game.mobs.iter().find(|other|other.id==id).and_then(|mob|mob.extra.main_hand_stack())
+            .map_or(0,|stack|stack.enchantment_level("minecraft:looting") as i32),
+        Some(Who::Player)=>access::killer_mainhand_looting(killer),
+        _=>0,
+    }
+}
+/// The class-adjusted equipment drop chances for this death, when a living
+/// behaviour overrides any slot's chance for this kind. Built from the
+/// effective chances the death roll itself reads.
+fn pluto_drop_chance_override(m:&Mob,looting:i32)->Option<Box<[f32;8]>> {
+    let sink=horizon_client::mobs::pluto_living_entity_access::sink()?;
+    if !(sink.has_drop_chance)(&m.kind.id) {return None;}
+    let slots=horizon_world::loot::EQUIPMENT_SLOTS;
+    let size=match m.species() {
+        Species::Slime|Species::MagmaCube|Species::SulfurCube=>Some(m.extra.size),
+        _=>None,
+    };
+    let mut adjusted=Box::new(std::array::from_fn(|i|drops::drop_chance(m,slots[i])));
+    let mut changed=false;
+    for (index,slot) in slots.iter().enumerate() {
+        if let Some(chance)=(sink.drop_chance)(&m.kind.id,slot,size,adjusted[index],looting) {
+            // The class's own roll is (nextFloat - looting*0.01) < chance;
+            // the native roll tests nextFloat >= chance with no looting
+            // term and skips a chance of exactly 0. Folding the looting
+            // term into the swapped chance keeps the same probability and
+            // lets a class chance of 0 roll when looting is positive.
+            adjusted[index]=chance+looting as f32*0.01;changed=true;
+        }
+    }
+    changed.then_some(adjusted)
+}
 fn can_claim(game:&Game<'_>,killer:Option<u32>)->std::result::Result<bool,String> {
     let Some(id)=killer else {return Ok(false)};
     if let Some(mob)=game.mobs.iter().find(|mob|mob.id==id) {
@@ -85,11 +125,21 @@ impl Game<'_> {
             mob_drops:self.ui.rules.bool("mob_drops"),world_seed:self.level.seed};
         let origin=[m.position.x,m.position.y,m.position.z];
         let place=self.loot_place_at(origin,None);
+        // A class drop-chance override (e.g. the armored slime head cap)
+        // replaces the recorded chances for this death's rolls only; the
+        // mob's own record is restored untouched afterwards.
+        let chance_override=pluto_drop_chance_override(m,killer_looting(self,&killer,m));
+        let saved_chances=chance_override.map(|adjusted| {
+            let saved=m.extra.drop_chances.clone();
+            m.extra.drop_chances=Some(adjusted);
+            saved
+        });
         let (items,skulls)=horizon_world::loot::with_native_loot_place(place,|| {
             horizon_client::mobs::nav::pluto_entity_spawn_state::with_head_drop_eligibility(eligible,|| {
                 drops::die(m,&death,&mut self.rand_sequences,&mut self.world.random)
             })
         });
+        if let Some(saved)=saved_chances {m.extra.drop_chances=saved;}
         if skulls && let Err(error)=claim(self,source_id) {eprintln!("PlutoLib: native head claim failed: {error}");}
         let raider=horizon_client::mobs::raider::is_raider(m.species());
         let mut stacks=Vec::new();let mut rest=Vec::new();

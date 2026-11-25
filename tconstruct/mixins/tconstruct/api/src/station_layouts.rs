@@ -105,17 +105,72 @@ impl Layout {
         })
     }
 
-    /// The window position of every station slot under this layout: the tool slot first, then the
-    /// inputs, `None` for a slot the layout leaves out. The tool slot falls back to `main`'s when this
-    /// layout has none (see the module note); inputs beyond this layout's list stay hidden.
-    pub(crate) fn positions(&self, main: &Layout, input_count: usize) -> Vec<Option<(i32, i32)>> {
+    /// The layout's slots as the station menu stages them: the tool slot first (this layout's, or
+    /// the main layout's when this one hides it — the original keeps the main tool slot for every
+    /// layout), then one entry per input up to the station's input count, `None` for a slot the
+    /// layout leaves out; inputs beyond this layout's list stay hidden.
+    pub(crate) fn slots<'a>(&'a self, main: &'a Layout, input_count: usize) -> Vec<Option<&'a Slot>> {
         let tool = self.tool_slot.as_ref().filter(|slot| !slot.hidden()).or_else(|| main.tool_slot.as_ref().filter(|slot| !slot.hidden()));
-        let mut positions = vec![tool.map(|slot| (slot.x, slot.y))];
+        let mut slots = vec![tool];
         for index in 0..input_count {
-            positions.push(self.input_slots.get(index).filter(|slot| !slot.hidden()).map(|slot| (slot.x, slot.y)));
+            slots.push(self.input_slots.get(index).filter(|slot| !slot.hidden()));
         }
-        positions
+        slots
     }
+
+    /// The window position of every slot `slots` stages, in the same order.
+    pub(crate) fn positions(&self, main: &Layout, input_count: usize) -> Vec<Option<(i32, i32)>> {
+        self.slots(main, input_count).into_iter().map(|slot| slot.map(|slot| (slot.x, slot.y))).collect()
+    }
+}
+
+/// The pattern sprites the station windows draw. `Pattern.getTexture` names a pattern's sprite
+/// `gui/tinker_pattern/<path>` in the pattern's own namespace; the table holds every pattern the
+/// shipped layouts use as a slot or layout icon and every pattern the part builder offers as a
+/// button, so the windows can pass a pattern between the block entity and the screen as a menu-data
+/// code (below). A pattern outside the table simply draws no icon.
+pub(crate) const PATTERN_SPRITES: &[&str] = &[
+    "tconstruct:gui/tinker_pattern/adze_head", "tconstruct:gui/tinker_pattern/arrow_head",
+    "tconstruct:gui/tinker_pattern/arrow_part", "tconstruct:gui/tinker_pattern/arrow_shaft",
+    "tconstruct:gui/tinker_pattern/block", "tconstruct:gui/tinker_pattern/boots_plating",
+    "tconstruct:gui/tinker_pattern/bow_grip", "tconstruct:gui/tinker_pattern/bow_limb",
+    "tconstruct:gui/tinker_pattern/bowstring", "tconstruct:gui/tinker_pattern/broad_axe_head",
+    "tconstruct:gui/tinker_pattern/broad_blade", "tconstruct:gui/tinker_pattern/button_repair",
+    "tconstruct:gui/tinker_pattern/chestplate_plating", "tconstruct:gui/tinker_pattern/coin",
+    "tconstruct:gui/tinker_pattern/crystal", "tconstruct:gui/tinker_pattern/dust",
+    "tconstruct:gui/tinker_pattern/fletching", "tconstruct:gui/tinker_pattern/gear",
+    "tconstruct:gui/tinker_pattern/gem", "tconstruct:gui/tinker_pattern/hammer_head",
+    "tconstruct:gui/tinker_pattern/helmet_plating", "tconstruct:gui/tinker_pattern/ingot",
+    "tconstruct:gui/tinker_pattern/laces", "tconstruct:gui/tinker_pattern/lapis",
+    "tconstruct:gui/tinker_pattern/large_plate", "tconstruct:gui/tinker_pattern/leggings_plating",
+    "tconstruct:gui/tinker_pattern/maille", "tconstruct:gui/tinker_pattern/nugget",
+    "tconstruct:gui/tinker_pattern/pick_head", "tconstruct:gui/tinker_pattern/pickaxe",
+    "tconstruct:gui/tinker_pattern/plate", "tconstruct:gui/tinker_pattern/plate_armor",
+    "tconstruct:gui/tinker_pattern/plating", "tconstruct:gui/tinker_pattern/quartz",
+    "tconstruct:gui/tinker_pattern/repair_kit", "tconstruct:gui/tinker_pattern/ribcage",
+    "tconstruct:gui/tinker_pattern/rod", "tconstruct:gui/tinker_pattern/scale",
+    "tconstruct:gui/tinker_pattern/shard", "tconstruct:gui/tinker_pattern/shell",
+    "tconstruct:gui/tinker_pattern/shield_core", "tconstruct:gui/tinker_pattern/small_axe_head",
+    "tconstruct:gui/tinker_pattern/small_blade", "tconstruct:gui/tinker_pattern/thrown_ammo",
+    "tconstruct:gui/tinker_pattern/tool_binding", "tconstruct:gui/tinker_pattern/tool_handle",
+    "tconstruct:gui/tinker_pattern/tough_binding", "tconstruct:gui/tinker_pattern/tough_handle",
+    "tconstruct:gui/tinker_pattern/wire",
+];
+
+/// The menu-data code of a pattern's sprite: its table index plus one, 0 for a pattern with none.
+pub(crate) fn pattern_sprite_code(pattern: &Identifier) -> i32 {
+    let name = format!("{}:gui/tinker_pattern/{}", pattern.namespace(), pattern.path());
+    PATTERN_SPRITES.iter().position(|sprite| *sprite == name).map_or(0, |index| index as i32 + 1)
+}
+
+/// The sprite a menu-data code names (see `pattern_sprite_code`).
+pub(crate) fn pattern_sprite(code: i32) -> Option<&'static str> {
+    usize::try_from(code - 1).ok().and_then(|index| PATTERN_SPRITES.get(index)).copied()
+}
+
+/// The sprite of a pattern, for a window that holds the pattern itself.
+pub(crate) fn pattern_sprite_of(pattern: &Identifier) -> Option<&'static str> {
+    pattern_sprite(pattern_sprite_code(pattern))
 }
 
 /// The main layout of a station block, baked from the shipped data: the window needs positions before
@@ -268,5 +323,24 @@ mod tests {
         let anvil = baked_main("tinkers_anvil");
         assert_eq!(anvil.positions(&anvil, 6), vec![Some((33, 41)), Some((11, 37)), Some((33, 19)), Some((55, 37)), Some((51, 62)), Some((15, 62)), None]);
         assert_eq!(baked_main("scorched_anvil").positions(&anvil, 6), anvil.positions(&anvil, 6));
+    }
+
+    #[test]
+    fn pattern_sprite_codes_round_trip_and_cover_the_shipped_icons() {
+        assert_eq!(PATTERN_SPRITES.len(), 49);
+        for (index, sprite) in PATTERN_SPRITES.iter().enumerate() {
+            assert_eq!(pattern_sprite(index as i32 + 1), Some(*sprite), "{sprite}");
+        }
+        assert_eq!(pattern_sprite(0), None);
+        assert_eq!(pattern_sprite_of(&id("tconstruct:pick_head")), Some("tconstruct:gui/tinker_pattern/pick_head"));
+        assert_eq!(pattern_sprite_code(&id("tconstruct:button_repair")), 12);
+        assert_eq!(pattern_sprite_code(&id("tconstruct:not_a_pattern")), 0);
+        // Every icon the baked mains and the decoded layouts above use has a sprite.
+        for layout in [baked_main("tinker_station"), baked_main("tinkers_anvil")] {
+            for slot in layout.tool_slot.iter().chain(&layout.input_slots) {
+                let icon = slot.icon.as_ref().expect("baked slots carry icons");
+                assert!(pattern_sprite_code(icon) > 0, "{icon}");
+            }
+        }
     }
 }

@@ -4,7 +4,10 @@
 //! original's TriggeringBaseContainerMenu and TriggeringMultiModuleContainerMenu when a player
 //! opens a block entity menu). The advancement data itself ships in the content package and
 //! the game owns the tree, progress and rewards; this module owns only the Tinkers-shaped
-//! evaluation, registered through PlutoLib's advancement API. Forms the original's loaders
+//! evaluation, registered through PlutoLib's advancement API. It also resolves the internal
+//! advancements' function rewards: the original ships each as a one-line data pack function
+//! granting a vanilla advancement, and the game's function store never sees a mod package's
+//! files, so the grants are registered here in code instead. Forms the original's loaders
 //! accept but this port does not implement are rejected at decode, never treated as true.
 use crate::{common, modifier_entries::List, tool_definitions, tool_materials::{MaterialList, MaterialVariant}, tool_stack};
 use pluto_lib::advancement_api_v1::{PredicateRequest, PredicateResult, TagLookup};
@@ -19,13 +22,51 @@ pub(crate) const BLOCK_CONTAINER_OPENED: &str = "tconstruct:block_container_open
 /// so a stack that is not a modifiable tool never has its data read as a tool.
 const MODIFIABLE: &str = "tconstruct:modifiable";
 
-/// Registers the tool_stack item predicate. Called once from the product's hooks.
+/// Registers the tool_stack item predicate and the internal advancements'
+/// function rewards. Called once from the product's hooks.
 pub(crate) fn register() {
     let _ = pluto_lib::advancement_api_v1::register_item_predicate(pluto_lib::advancement_api_v1::PredicateRegistration {
         id: "tconstruct:advancements",
         callback: tool_stack_predicate,
         inventory_components: true,
     });
+    for (function, _) in FUNCTION_REWARD_GRANTS {
+        let _ = pluto_lib::advancement_api_v1::register_function_reward(pluto_lib::advancement_api_v1::FunctionRewardRegistration {
+            id: function,
+            function,
+            callback: function_reward_grants,
+        });
+    }
+}
+
+/// The function rewards of the shipped internal advancements
+/// (`data/tconstruct/advancement/internal/*.json`): each names a
+/// `tconstruct:grant_advancement/<name>` function whose data form ships
+/// beside it (`data/tconstruct/function/grant_advancement/<name>.mcfunction`,
+/// one line: `advancement grant @s only <target>`). The game's function
+/// store is built from data pack files only, so the shipped files never
+/// execute; the grants are resolved in code through PlutoLib's function
+/// reward registry instead, with the same targets the files name.
+const FUNCTION_REWARD_GRANTS: [(&str, &str); 8] = [
+    ("tconstruct:grant_advancement/adventure_walk_on_powder_snow_with_leather_boots", "minecraft:adventure/walk_on_powder_snow_with_leather_boots"),
+    ("tconstruct:grant_advancement/husbandry_obtain_netherite_hoe", "minecraft:husbandry/obtain_netherite_hoe"),
+    ("tconstruct:grant_advancement/nether_netherite_armor", "minecraft:nether/netherite_armor"),
+    ("tconstruct:grant_advancement/story_iron_tools", "minecraft:story/iron_tools"),
+    ("tconstruct:grant_advancement/story_obtain_armor", "minecraft:story/obtain_armor"),
+    ("tconstruct:grant_advancement/story_root", "minecraft:story/root"),
+    ("tconstruct:grant_advancement/story_shiny_gear", "minecraft:story/shiny_gear"),
+    ("tconstruct:grant_advancement/story_upgrade_tools", "minecraft:story/upgrade_tools"),
+];
+
+/// The function reward callback of every FUNCTION_REWARD_GRANTS entry:
+/// the one vanilla advancement the named function grants, or none when
+/// the function is not one of the eight.
+fn function_reward_grants(function: &str) -> Vec<String> {
+    FUNCTION_REWARD_GRANTS
+        .iter()
+        .find(|(name, _)| *name == function)
+        .map(|(_, grant)| vec![(*grant).to_string()])
+        .unwrap_or_default()
 }
 
 fn tool_stack_predicate(request: &PredicateRequest<'_>) -> PredicateResult {
@@ -95,6 +136,40 @@ pub(crate) fn container_opened(block_entity_type: &str) -> bool {
         serde_json::json!({ "type": block_entity_type }),
         container_opened_matches,
     )
+}
+
+/// The owner id this mod publishes its advancement tag overlay under.
+const TAG_OWNER: &str = "tconstruct";
+
+/// The advancement tag overlay snapshot of a captured item lookup: every resolved tag
+/// with its members, in the advancement API's snapshot form. The shipped criteria resolve
+/// `#tag` references (tconstruct's own tags, the Forge convention tags the lookup adds,
+/// the vanilla tags it captured) against this snapshot through the native adapter's
+/// per-world store, because the engine's own tag table never sees the mod's data; the
+/// overlay is the same world-resolved data the rest of the port reads.
+fn tag_snapshot(
+    tags: &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>,
+) -> pluto_lib::advancement_api_v1::TagSnapshot {
+    tags.iter()
+        .map(|(tag, members)| (tag.to_string(), Some(members.iter().map(ToString::to_string).collect())))
+        .collect()
+}
+
+/// Publish a captured item lookup's tags as this mod's advancement overlay snapshot.
+/// Called from the shared item capture on every data reload, so a reload re-drives the
+/// current world's store before the next criteria evaluation.
+pub(crate) fn publish_tags(items: &pluto_lib::RegistryLookup) {
+    pluto_lib::advancement_api_v1::publish_tag_snapshot(TAG_OWNER, tag_snapshot(items.tags()));
+}
+
+/// Release the overlay ownership: the server stopped, so the snapshot the world stores
+/// were driven from no longer exists (the stores themselves die with their worlds, and
+/// the tags-clear boundary resets them if a world is reloaded).
+pub(crate) fn release_tags() {
+    pluto_lib::advancement_api_v1::publish_tag_snapshot(
+        TAG_OWNER,
+        pluto_lib::advancement_api_v1::TagSnapshot::new(),
+    );
 }
 
 /// What a tool predicate may ask about: the stack's own saved data, its item, and — only for
@@ -433,6 +508,30 @@ mod tests {
     }
 
     #[test]
+    fn the_grant_functions_resolve_to_the_vanilla_advancements_their_files_name() {
+        assert_eq!(FUNCTION_REWARD_GRANTS.len(), 8, "one entry per shipped grant function");
+        let mut functions: Vec<&str> = FUNCTION_REWARD_GRANTS.iter().map(|(function, _)| *function).collect();
+        functions.sort_unstable();
+        functions.dedup();
+        assert_eq!(functions.len(), 8, "the eight function ids are distinct");
+        for (function, grant) in FUNCTION_REWARD_GRANTS {
+            assert!(function.starts_with("tconstruct:grant_advancement/"), "{function}");
+            assert!(grant.starts_with("minecraft:"), "{grant}");
+            assert_eq!(function_reward_grants(function), vec![grant.to_string()], "{function}");
+        }
+        assert_eq!(
+            function_reward_grants("tconstruct:grant_advancement/story_root"),
+            vec!["minecraft:story/root".to_string()]
+        );
+        assert_eq!(
+            function_reward_grants("tconstruct:grant_advancement/adventure_walk_on_powder_snow_with_leather_boots"),
+            vec!["minecraft:adventure/walk_on_powder_snow_with_leather_boots".to_string()]
+        );
+        assert!(function_reward_grants("tconstruct:grant_advancement/not_shipped").is_empty());
+        assert!(function_reward_grants("minecraft:load").is_empty());
+    }
+
+    #[test]
     fn container_opened_submits_an_event_the_criterion_matcher_decides() {
         let _ = pluto_lib::advancement_api_v1::take_queued_events();
         assert!(container_opened("tconstruct:smeltery"));
@@ -441,5 +540,24 @@ mod tests {
         assert_eq!(queued[0].trigger, BLOCK_CONTAINER_OPENED);
         assert!((queued[0].matches)(&queued[0].payload, &json!({"type": "tconstruct:smeltery"})));
         assert!(!(queued[0].matches)(&queued[0].payload, &json!({"type": "tconstruct:foundry"})));
+    }
+
+    #[test]
+    fn the_tag_snapshot_carries_every_resolved_tag_with_its_members() {
+        let id = |text: &str| Identifier::parse(text).unwrap();
+        let mut tags = std::collections::BTreeMap::new();
+        tags.insert(
+            id("tconstruct:modifiable"),
+            [id("tconstruct:pickaxe"), id("tconstruct:axe")].into_iter().collect(),
+        );
+        tags.insert(id("tconstruct:casts/gold"), std::collections::BTreeSet::new());
+        let snapshot = tag_snapshot(&tags);
+        assert_eq!(snapshot.len(), 2);
+        assert_eq!(
+            snapshot["tconstruct:modifiable"],
+            Some(vec!["tconstruct:axe".to_string(), "tconstruct:pickaxe".to_string()]),
+            "members travel in the lookup's set order"
+        );
+        assert_eq!(snapshot["tconstruct:casts/gold"], Some(Vec::new()), "a known empty tag stays known");
     }
 }

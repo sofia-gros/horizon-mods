@@ -1,6 +1,9 @@
 {
   "parent": "minecraft:block/cube_all",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
-    "all": "tconstruct:block/smeltery/soul_glass"
+    "all": "tconstruct:block/smeltery/soul_glass_connected",
+    "particle": "tconstruct:block/smeltery/soul_glass"
   }
 }

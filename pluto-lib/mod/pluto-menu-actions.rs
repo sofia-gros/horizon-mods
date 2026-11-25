@@ -2,7 +2,7 @@
 pub mod pluto_menu_actions {
     use super::{Env, Input, Kind, Menu};
     use horizon_world::nbt::Compound;
-    use std::cell::RefCell;
+    use std::cell::{Cell, RefCell};
     use std::sync::RwLock;
 
     pub struct Context {
@@ -31,6 +31,10 @@ pub mod pluto_menu_actions {
     }
     thread_local! {
         static CURRENT: RefCell<Option<Context>> = const { RefCell::new(None) };
+        // The click session's draw from the game's own random stream, set
+        // by `scope` for the session's clicks (the original reads the
+        // level's random inside a click, for a sound's pitch).
+        static CLICK_RANDOM: Cell<f32> = const { Cell::new(0.0) };
     }
 
     pub fn set_handler(handler: Handler) {
@@ -39,21 +43,81 @@ pub mod pluto_menu_actions {
         }
     }
 
+    pub type StackedHandler = fn(&mut Menu, &Env<'_>, usize, bool, f32) -> bool;
+    static STACKED_HANDLER: RwLock<Option<StackedHandler>> = RwLock::new(None);
+
+    pub fn set_stacked_handler(handler: StackedHandler) {
+        if let Ok(mut installed) = STACKED_HANDLER.write() { *installed = Some(handler); }
+    }
+
+    /// The carried stack's own click behaviour, asked before the bundle
+    /// handling inside a pickup: the game asks the carried item first
+    /// (its stacked-on-other override), in every menu kind, unlike the
+    /// mod-menu click bridge above. No carried stack or no installed
+    /// handler leaves the click to the engine.
+    pub(super) fn stacked_on_other(menu: &mut Menu, env: &Env<'_>, s: usize, primary: bool) -> bool {
+        if menu.carried.is_none() { return false; }
+        let handler = STACKED_HANDLER.read().ok().and_then(|installed| *installed);
+        let Some(handler) = handler else { return false };
+        handler(menu, env, s, primary, CLICK_RANDOM.with(|random| random.get()))
+    }
+
+    /// The clicked slot's own modification gate, for stacked-on-other
+    /// handlers staged outside this module.
+    pub fn allow_modification(menu: &Menu, env: &Env<'_>, s: usize) -> bool {
+        menu.allow_modification(env, s)
+    }
+
+    /// Queue a sound for the menu's player. Menu sounds carry only the
+    /// event id; volume and pitch are the engine's own.
+    pub fn push_player_sound(menu: &mut Menu, sound: &'static str) {
+        menu.player_sounds.push(sound);
+    }
+
+    /// A menu sound with its own volume and pitch (the original's
+    /// `Player.playSound` arguments), queued beside the menu's own
+    /// sounds: the menu session plays the queue at the player with
+    /// those values and routes it through the guest sound queue, so a
+    /// hosted game broadcasts it with them.
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub struct RichSound {
+        pub id: &'static str,
+        pub volume: f32,
+        pub pitch: f32,
+    }
+
+    /// Queue a rich sound for the menu's player.
+    pub fn push_rich_player_sound(menu: &mut Menu, sound: RichSound) {
+        menu.rich_player_sounds.push(sound);
+    }
+
     // A nested scope must not overwrite its caller's staged data, even on unwind.
-    struct Restore(Option<Context>);
+    struct Restore(Option<Context>, f32);
     impl Drop for Restore {
         fn drop(&mut self) {
             CURRENT.with(|current| *current.borrow_mut() = self.0.take());
+            CLICK_RANDOM.with(|random| random.set(self.1));
         }
     }
 
-    pub fn scope<R>(context: Option<Context>, run: impl FnOnce() -> R) -> (R, Option<Context>) {
+    /// Runs `run` with `context` as the current menu context and `random`
+    /// as the click session's draw from the game's own random stream;
+    /// both are restored afterwards, so a nested scope keeps its caller's.
+    pub fn scope<R>(context: Option<Context>, random: f32, run: impl FnOnce() -> R) -> (R, Option<Context>) {
         let previous = CURRENT.with(|current| current.replace(context));
-        let restore = Restore(previous);
+        let previous_random = CLICK_RANDOM.with(|cell| cell.replace(random));
+        let restore = Restore(previous, previous_random);
         let result = run();
         let finished = CURRENT.with(|current| current.take());
         drop(restore);
         (result, finished)
+    }
+
+    /// The player of the click session in scope (its uuid and name), if any: the staged context the
+    /// session's clicks run in, read the way the stacked call reads the click session's random.
+    /// None outside a session (a click the game made with no player, or a test).
+    pub fn current_player() -> Option<(u128, String)> {
+        CURRENT.with(|current| current.borrow().as_ref().map(|context| (context.player_uuid, context.player_name.clone())))
     }
 
     pub(super) fn click(menu: &mut Menu, env: &Env<'_>, slot: i32, button: i32, input: Input) -> bool {
@@ -75,7 +139,7 @@ pub mod pluto_menu_actions {
         let Some(handler) = handler else { return false };
         // Take the context out before calling external code: no RefCell borrow
         // crosses the callback, and nested menu scopes restore independently.
-        let mut restore = Restore(CURRENT.with(|current| current.take()));
+        let mut restore = Restore(CURRENT.with(|current| current.take()), CLICK_RANDOM.with(|random| random.get()));
         let Some(context) = restore.0.as_mut() else { return false };
         let handled = handler(menu, env, context, slot, button, input);
         context.changed |= handled;

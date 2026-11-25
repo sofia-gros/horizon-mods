@@ -216,15 +216,15 @@ impl DamageOnUnequip {
     }
 }
 
-/// UpdateHealthModule: armor that refreshes its wearer's health when it goes on or comes off, by the bonus the
+/// UpdateHealthModule: a piece that refreshes its wearer's health when it goes on or comes off, by the bonus the
 /// piece grants (the revitalizing attribute raises the maximum by the same amount, so going on heals and coming
-/// off hurts by that much). Only armor slots are ported: the tick that reports equipment changes reports no
-/// held tools, so a module naming a hand slot stays unbound.
+/// off hurts by that much). The player tick reports held tools as it reports worn armor, so a module naming a
+/// hand slot binds as one naming an armor slot does.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UpdateHealth { bonus: Leveling, slots: Vec<String> }
 
 impl UpdateHealth {
-    /// `None` for a module naming a hand slot, whose changes no event reports. An unknown slot name rejects.
+    /// An unknown slot name rejects; every named slot binds.
     pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
         // LevelingValue.ZERO when the bonus field is absent.
         let bonus = match fields.get("bonus").filter(|value| !value.is_null()) {
@@ -237,7 +237,6 @@ impl UpdateHealth {
                 _ => Err("unknown equipment slot".to_owned()),
             })
             .collect::<Result<Vec<_>, _>>()?;
-        if slots.iter().any(|slot| matches!(slot.as_str(), "mainhand" | "offhand")) { return Ok(None); }
         Ok(Some(Self { bonus, slots }))
     }
 
@@ -248,6 +247,62 @@ impl UpdateHealth {
         if !self.slots.iter().any(|named| named == slot) { return 0.0; }
         let bonus = self.bonus.compute(entry.effective_level());
         if equipped { bonus } else { -bonus }
+    }
+}
+
+/// LightspeedAttributeModule: boots that grant an attribute while their wearer walks in light above a minimum,
+/// scaled by the light above the minimum and the level, and that wear with a chance per walk step scaled by the
+/// same excess. The player tick reports the light where the player stands, so the walk form binds; the unequip
+/// half is the tick's own letting go of an amount no callback names any more. Only a vanilla attribute with the
+/// `addition` operation is honored, as for max armor attributes: the host can only move a player's base value,
+/// which is exact for an addition.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct LightspeedAttribute { attribute: String, layer: Option<crate::entity_facts::LightLayer>, min_light: i32, per_level: f32, damage_chance: f32 }
+
+impl LightspeedAttribute {
+    /// `None` for an attribute the host lacks (a Tinkers or Forge one) or an operation other than `addition`.
+    pub(crate) fn decode(fields: &Map<String, Value>) -> Result<Option<Self>, String> {
+        let name = fields.get("attribute").and_then(Value::as_str).ok_or("attribute missing")?;
+        let operation = fields.get("operation").and_then(Value::as_str).ok_or("operation missing")?;
+        let Some(path) = name.strip_prefix("minecraft:") else { return Ok(None); };
+        if operation != "addition" { return Ok(None); }
+        let path = path.strip_prefix("generic.").or_else(|| path.strip_prefix("player.")).unwrap_or(path);
+        let layer = match fields.get("light_layer").filter(|value| !value.is_null()).map(Value::as_str) {
+            None => None,
+            Some(Some("sky")) => Some(crate::entity_facts::LightLayer::Sky),
+            Some(Some("block")) => Some(crate::entity_facts::LightLayer::Block),
+            Some(_) => return Err("light_layer must be sky or block".into()),
+        };
+        // IntLoadable.range(0, 14): the minimum light is required and bounded.
+        let min_light = match fields.get("min_light").filter(|value| !value.is_null()) {
+            Some(value) => { let light = value.as_i64().ok_or("min_light must be an integer")?; if !(0..=14).contains(&light) { return Err("min_light must be between 0 and 14".into()); } light as i32 }
+            None => return Err("min_light missing".into()),
+        };
+        let number = |key: &str| fields.get(key).filter(|value| !value.is_null()).and_then(Value::as_f64).map(|value| value as f32).ok_or_else(|| format!("{key} must be a number"));
+        let per_level = number("per_level")?;
+        let damage_chance = number("damage_chance")?;
+        if damage_chance < 0.0 { return Err("damage_chance must not be negative".into()); }
+        Ok(Some(Self { attribute: format!("minecraft:{path}"), layer, min_light, per_level, damage_chance }))
+    }
+
+    /// The attribute the module grants.
+    pub(crate) fn attribute(&self) -> &str { &self.attribute }
+
+    /// The light the module reads, in its layer (the larger of the two when it names none); the sky light is read
+    /// against the sky darken, as the original's light variable reads it on a server.
+    pub(crate) fn light(&self, block_light: u8, sky_light: u8, sky_darken: u8) -> i32 {
+        let sky = (i32::from(sky_light) - i32::from(sky_darken)).max(0);
+        match self.layer { Some(crate::entity_facts::LightLayer::Sky) => sky, Some(crate::entity_facts::LightLayer::Block) => i32::from(block_light), None => sky.max(i32::from(block_light)) }
+    }
+
+    /// The attribute amount for standing in `light` at effective level `level`: nothing at or below the minimum.
+    pub(crate) fn boost(&self, light: i32, level: f32) -> Option<f32> {
+        (light > self.min_light).then(|| (light - self.min_light) as f32 * self.per_level * level)
+    }
+
+    /// The chance a walk step in `light` wears the boots by one point: the damage chance times the excess light.
+    pub(crate) fn wear_chance(&self, light: i32) -> f32 {
+        if light > self.min_light { self.damage_chance * (light - self.min_light) as f32 } else { 0.0 }
     }
 }
 
@@ -416,14 +471,37 @@ mod tests {
         // 2 per level for the hands.
         let armor = UpdateHealth::decode(&fields(json!({"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
         assert_eq!((armor.delta(&entry(3), "chest", true), armor.delta(&entry(3), "chest", false)), (0.0, 0.0), "no bonus, no change");
-        let hands = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["mainhand","offhand"]}))).unwrap();
-        assert!(hands.is_none(), "held tools are not reported, so a hand module stays unbound");
+        let hands = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["mainhand","offhand"]}))).unwrap().unwrap();
+        assert_eq!(hands.delta(&entry(2), "mainhand", true), 4.0, "the tick reports held tools, so the hand module binds");
+        assert_eq!(hands.delta(&entry(2), "offhand", false), -4.0);
         let mixed = UpdateHealth::decode(&fields(json!({"bonus":{"each_level":2.0},"slots":["feet","legs","chest","head"]}))).unwrap().unwrap();
         assert_eq!(mixed.delta(&entry(2), "feet", true), 4.0);
         assert_eq!(mixed.delta(&entry(2), "feet", false), -4.0);
         assert_eq!(mixed.delta(&entry(2), "mainhand", true), 0.0, "a slot the module does not name");
         assert!(UpdateHealth::decode(&fields(json!({"slots":["pocket"]}))).is_err());
         assert!(UpdateHealth::decode(&fields(json!({"bonus":2.0,"slots":["feet"]}))).is_err(), "the bonus is a leveling object");
+    }
+
+    #[test]
+    fn lightspeed_grants_by_the_light_above_its_minimum_and_wears_by_the_same_excess() {
+        // The shipped lightspeed: movement speed, block light, minimum 5, 0.0009 per level, wear chance 0.005.
+        let module = LightspeedAttribute::decode(&fields(json!({"attribute":"minecraft:generic.movement_speed","operation":"addition","light_layer":"block","min_light":5,"per_level":9.0e-4,"damage_chance":0.005}))).unwrap().unwrap();
+        assert_eq!(module.attribute(), "minecraft:movement_speed");
+        assert_eq!(module.light(9, 15, 11), 9, "the block layer reads the block light");
+        assert_eq!(module.boost(5, 2.0), None, "at the minimum there is no boost");
+        assert_eq!(module.boost(4, 2.0), None, "nor below it");
+        assert!((module.boost(15, 2.0).unwrap() - 0.018).abs() < 1e-6, "ten above the minimum, times per level, times the level");
+        assert!((module.wear_chance(15) - 0.05).abs() < 1e-6, "the chance scales with the excess");
+        assert_eq!(module.wear_chance(5), 0.0);
+        // The sky layer reads the sky light against the darken; no layer reads the larger of the two.
+        let sky = LightspeedAttribute::decode(&fields(json!({"attribute":"minecraft:generic.movement_speed","operation":"addition","light_layer":"sky","min_light":5,"per_level":9.0e-4,"damage_chance":0.005}))).unwrap().unwrap();
+        assert_eq!(sky.light(9, 15, 11), 4, "15 less the 11 the night takes");
+        let both = LightspeedAttribute::decode(&fields(json!({"attribute":"minecraft:generic.movement_speed","operation":"addition","min_light":5,"per_level":9.0e-4,"damage_chance":0.005}))).unwrap().unwrap();
+        assert_eq!(both.light(9, 15, 11), 9);
+        // A Tinkers attribute and a multiply operation stay unbound, as for max armor attributes.
+        assert!(LightspeedAttribute::decode(&fields(json!({"attribute":"tconstruct:player.use_item_speed","operation":"addition","min_light":5,"per_level":9.0e-4,"damage_chance":0.005}))).unwrap().is_none());
+        assert!(LightspeedAttribute::decode(&fields(json!({"attribute":"minecraft:generic.movement_speed","operation":"multiply_base","min_light":5,"per_level":9.0e-4,"damage_chance":0.005}))).unwrap().is_none());
+        assert!(LightspeedAttribute::decode(&fields(json!({"attribute":"minecraft:generic.movement_speed","operation":"addition","min_light":15,"per_level":9.0e-4,"damage_chance":0.005}))).is_err(), "the minimum is bounded at 14");
     }
 
     #[test]

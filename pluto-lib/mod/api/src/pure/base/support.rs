@@ -138,6 +138,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment source/plan review of Plan::override_gameplay, then consolidated native piston/loot/save/LAN validation; vanilla/unregistered settings reject content-root generation",
     },
     SupportEntry {
+        api: "block_api_v1::BlockBehavior::flammable / flammable_odds",
+        support: Support::Stub,
+        behaviour: "static fire odds (ignite, burn) are registered with the block behaviour and answered through the native fire-odds hook as a plain registry lookup; (0, 0) never burns and a block without odds keeps its declaration template's table odds; the native weave and in-game fire spread remain unvalidated",
+        unblocked_by: "consolidated native build and fire-spread validation; the hook is asked hundreds of times per fire tick, so the answer must stay a plain lookup",
+    },
+    SupportEntry {
         api: "item_api_v1::StandingAndWallBlockItem::register",
         support: Support::Stub,
         behaviour: "records owned floor/wall/attachment declarations; owned-table overlay and cache-suppression policy are pure-tested, native resolver/helpers are drafted, provider and symbolic resource-export hooks are source-wired with transactional ID-name validation and declaration-keyed roots; the old numeric STORE remains undeclared because build()? is unsupported; real plan/site/native placement validation remains pending",
@@ -208,6 +214,24 @@ pub const MATRIX: &[SupportEntry] = &[
         support: Support::Stub,
         behaviour: "owned item-factory stack registration/copy lookup work; native client named-request bridge and Ground-model resolution are source-declared, with trace-helper tests only; exact-type cube landing kind overrides and shared host/remote zero-count event consumption are source-wired; actual selector/event/constructor chain is trace-tested, not native conversion/model/filters/RNG/rendering; other engine-direct emitters/bursts/network paths incomplete",
         unblocked_by: "native attachment source/site review, native client adapter validation and real original-factory sprite/physics/RNG gates; connect actual entity emission and network/type consumers",
+    },
+    SupportEntry {
+        api: "particle_api_v1::ParticleTypeRegistry::{register,factory,registered,register_entity_particle}",
+        support: Support::Stub,
+        behaviour: "particle-type declarations are pure-tested: item-crumb factories validate and store through the item-factory registry (whose named-request bridge and cube-landing override are the transports), sprite-set factories are declarations over the sprite set the mod ships in its particle assets (the host engine loads those itself), fluid-sprite factories declare a per-spawn fluid sprite; entity-particle replacement delegates to the factory registry's override rules",
+        unblocked_by: "native attachment validation of the consumers the declarations feed (the item-factory transports above and the host's mod sprite-set loading); a host spawn-time sprite channel for the fluid factory's per-spawn texture and tint",
+    },
+    SupportEntry {
+        api: "world_api_v1::World::send_particles / WorldOps::send_particles",
+        support: Support::Stub,
+        behaviour: "validation and the memory host are pure-tested; the HostWorld adapter is source-declared over the level bridge's send: a vanilla name resolves to the host's own type, any other namespaced name is sent by name for clients to draw from the mod's sprite set; the spawn's data is not carried (no host channel), so a fluid-sprite spawn draws nothing yet",
+        unblocked_by: "native attachment validation of the bridge send call (the combined build is the first compile of the adapter), then native/game verification of a named send; a host spawn-time data channel for fluid sprites",
+    },
+    SupportEntry {
+        api: "sky_api_v1::SkyRegistry::{register,layer,registered_worlds} / frame_quads",
+        support: Support::Stub,
+        behaviour: "dynamic sky layers are pure-tested: registration validates whole and replaces per world, the celestial frame mathematics (equatorial directions against the layer's meridian phase, twinkle, horizon extinction, darkening rings) is unit-tested; the transport is source-declared: a return reach on the game's celestial-geometry builder hands the frame's star angle and brightness to the sink the transport installs, appends the layer's quads to the bodies' vertex list on the atlas white texel at the moon's light tier, and drops the vanilla star frame when the layer hides the vanilla stars; no native compile or game check yet",
+        unblocked_by: "native attachment: the combined build is the first compile of the celestial reach, the access module and the sink; then game verification of twinkling bright stars, a darkening over the galactic centre, and the vanilla stars' absence",
     },
     SupportEntry {
         api: "color_provider_api_v1::ColorProviderRegistry::{register_item,item_color}",

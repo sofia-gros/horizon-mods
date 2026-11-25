@@ -98,7 +98,7 @@ fn every_original_trim_material_is_shipped_as_data() {
 #[test]
 fn every_shipped_tool_definition_decodes() {
     let definitions = files("tool_definitions");
-    assert_eq!(definitions.len(), 44, "45 original definitions minus the other-mod minotaur axe");
+    assert_eq!(definitions.len(), 45, "all 45 original definitions, the minotaur axe included");
     let failures: Vec<String> = definitions.iter()
         .filter_map(|(id, value)| Data::decode(value).err().map(|error| format!("{id}: {error}"))).collect();
     assert!(failures.is_empty(), "definitions that do not decode: {failures:#?}");
@@ -137,7 +137,11 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     let mut kinds = std::collections::BTreeSet::new();
     for id in registry.dynamic_ids() { if let Some(modifier) = registry.get(id) { for kind in &modifier.unbound { kinds.insert(kind.to_string()); } } }
     // Modifiers with at least one unported module; it only shrinks as modules are ported.
-    assert_eq!((unbound, kinds.len()), (87, 56), "modifiers carrying unported modules, and the kinds: {kinds:?}");
+    // Settled at INTEGRATION-4: the 11-kind wave bound the last 12 modifiers (sling_force,
+    // counter_mob_effect, thorns, volatile_flag, attribute/max_armor_attribute swim-speed
+    // bridge, teleport_dodge, replace_fluid, place_fire, sleeves, brush, severing's 7
+    // stateful recipes, banner + armor trim, hidden fluid tag + recipe_removal table).
+    assert_eq!((unbound, kinds.len()), (0, 0), "modifiers carrying unported modules, and the kinds: {kinds:?}");
     // Presentation modules and tool actions are bound, and show_offhand counts into the armor level totals over worn pieces; the boot walk
     // transform binds over the player tick, which runs with the world scope open so the callback can work on the block below the player.
     for bound in ["show_interaction_source", "variant_color", "variant_name", "material_variant_color", "durability_color", "stat_tooltip", "tool_actions", "tool_action_walk_transform", "mob_effect", "armor_attack_mob_effect", "fiery_attack", "fiery_counter", "freezing_attack", "freezing_counter", "knockback_counter", "tool_usage_mob_effect", "enchantment_ignoring_protection", "clear_effect_on_unequip", "mining_capacity", "loot_to_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
@@ -145,59 +149,113 @@ fn shipped_modifiers_report_exactly_the_modules_that_are_not_ported() {
     // The projectile pair binds over the shoot and ammo hooks, the campfire douse over the tool action transform, blocking over
     // the per-stack use pose, and dye, banner and trim bind as the display variants the original also only presents.
     for bound in ["recurrent_protection", "damage_on_shoot", "infinity", "campfire_extinguish", "blocking", "dye", "banner", "trim"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The in-flight modules bind on the projectile spawn, flight and impact tellings, and throwing on
+    // the release telling (the thrown tool's charge gate).
+    for bound in ["arrow_pierce", "projectile_bounce", "projectile_gravity", "projectile_fuse", "projectile_explosion", "projectile_attract_mobs", "projectile_place_glow", "restrict_projectile_angle", "throwing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // Restore lost health bound to the modify hurt hook runs as the damage arrives, before armor, and stalwart's protection
     // reads the equipment the attacker holds, which the hit reports: both bind now.
     for bound in ["restore_lost_health", "protection"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    for unbound in ["embellishment"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
+    // Embellishment binds as a display variant whose raw data half migrates the stored variant through
+    // material redirects on build, and flame barrier as a protection module scaled by the wearer's fire.
+    // The one probe binds too, but its modifier is gated by a mod_loaded condition this context fails,
+    // so it never loads here (as in the original without The One Probe installed).
+    for bound in ["embellishment", "flame_barrier"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // Enderclearance binds over the weapon and wearer hits (the hit now reports where each side
+    // stands), and channeling binds with it: its shipped data forbids melee, so the melee half
+    // stays inert by data and the launcher half is the projectile side's.
+    for bound in ["enderclearance", "channeling"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for bound in ["depth_protection", "overshield", "damage_on_unequip", "reduce_effect_on_unequip", "reduce_tool_damage", "lifesteal", "launch_capacity"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The craft count, material repair, volatile float and quiver inventory modules are bound; revitalizing's
-    // update health binds for its armor slots but its hand module stays unbound (held tools are not reported).
-    for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    assert!(kinds.contains("tconstruct:update_health"), "update_health is still unbound for the hand slots");
+    // update health binds for its armor slots and its hand slots alike (the player tick reports held tools).
+    for bound in ["craft_count", "material_repair", "volatile_float", "quiver_inventory", "update_health"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // FOV and zoom bind over PlutoLib's field-of-view surface: the product recomputes from the
+    // player's current equipment on every ask, and a used tool narrows the view by its style.
+    for bound in ["fov", "zoom"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     let unbound_of = |name: &str| registry.get(&Identifier::parse(&format!("tconstruct:{name}")).unwrap()).unwrap().unbound.iter().map(|kind| kind.to_string()).collect::<Vec<_>>();
     assert!(unbound_of("stalwart").is_empty(), "stalwart's protection counts the attacker's filled equipment slots, which the hit reports");
+    assert!(unbound_of("enderclearance").is_empty(), "enderclearance is fully bound");
+    assert!(unbound_of("channeling").is_empty(), "channeling is fully bound");
     assert!(unbound_of("restore").is_empty(), "restore runs on the modify hurt hook, before armor");
     // The mining speed forms over the facts of the dig bind: temperate reads the temperature of the biome at the block and
-    // lightspeed the block light. The forms over a block property (blasting's blast resistance, crumbling's requires-tool)
-    // and over the holder as an entity (hydraulic) stay unbound; lightspeed keeps only its own attribute kind.
+    // lightspeed the block light. The forms over a block property bind too: the break-speed event carries the block's
+    // blast resistance and its correct-tool requirement, so blasting's formula variable and crumbling's inverted
+    // requires-tool predicate read the dig report (an unreported fact leaves the variable on its fallback and the
+    // predicate's leaf unmatched). The form over the holder as an entity (hydraulic) binds now that the break-speed event reports the
+    // digging player: their effects, the rain on them and the enchantments on the tool they dig with, which is what
+    // hydraulic's aqua affinity branch and its raining branch read. Lightspeed's attribute binds over the light the player
+    // tick reports at the wearer, and gold guard's golden attribute over the tick's count of the wearer's golden pieces;
+    // chrysophilite's golden attribute names Tinkers' own attribute, which binds now that PlutoLib can register an
+    // attribute the host does not have and Tinkers declares its twelve with it.
     assert!(unbound_of("temperate").is_empty(), "temperate is fully bound");
-    assert_eq!(unbound_of("lightspeed"), ["tconstruct:lightspeed_attribute"]);
-    assert_eq!(unbound_of("lightspeed_armor"), ["tconstruct:lightspeed_attribute"]);
-    for name in ["blasting", "crumbling", "hydraulic"] { assert_eq!(unbound_of(name), ["tconstruct:conditional_mining_speed"], "{name}"); }
+    assert!(unbound_of("lightspeed").is_empty(), "lightspeed is fully bound");
+    assert!(unbound_of("lightspeed_armor").is_empty(), "lightspeed_armor is fully bound");
+    assert!(unbound_of("gold_guard").is_empty(), "gold_guard is fully bound");
+    assert!(unbound_of("chrysophilite").is_empty(), "chrysophilite's golden attribute binds now that its attribute is declared with PlutoLib");
+    for name in ["blasting", "crumbling"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the dig report's block facts"); }
+    assert!(!kinds.contains("tconstruct:conditional_mining_speed"), "conditional_mining_speed should be bound");
+    assert!(unbound_of("hydraulic").is_empty(), "hydraulic reads the reported digging player and binds");
     for name in ["cheap", "economical", "stringy"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    assert_eq!(unbound_of("revitalizing"), ["tconstruct:update_health"], "the armor update health binds; the hand one is not reported");
+    assert!(unbound_of("revitalizing").is_empty(), "revitalizing is fully bound: the tick reports held tools as it does armor");
     assert!(unbound_of("rebuff").is_empty(), "the same module on the modify damage hook is bound");
     // Armor looting is bound: a worn piece's modules add into the looting total the severing flow captures from the killer's hit
-    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments stay unbound: no break
-    // flow reports the breaker's worn equipment or lets a module change the enchantments a block's drops roll with, so the merge
-    // the original performs on the breaking stack before the roll has no consumer here.
+    // (ArmorLootingModifierHook.getLooting, the total SeveringModule reads). Armor harvest enchantments bind with it: the break
+    // context reports the breaker's worn equipment, and the break flow merges the lent enchantments into the breaking stack
+    // before the drops roll and restores them after (block_break_hook), so luck, fortune and silky are fully bound.
     assert!(!kinds.contains("tconstruct:armor_looting"), "armor_looting should be bound");
-    assert!(kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment is still unbound");
+    assert!(!kinds.contains("tconstruct:armor_harvest_enchantment"), "armor_harvest_enchantment should be bound");
     assert!(unbound_of("fortunate").is_empty(), "fortunate is fully bound");
     assert!(unbound_of("looting").is_empty(), "looting is fully bound");
-    assert_eq!(unbound_of("looter"), ["tconstruct:attribute"], "only looter's experience multiplier attribute stays unbound");
-    assert_eq!(unbound_of("luck"), ["tconstruct:armor_harvest_enchantment"], "luck keeps only its armor harvest enchantment unbound");
-    assert_eq!(unbound_of("fortune"), ["tconstruct:armor_harvest_enchantment"]);
-    assert_eq!(unbound_of("silky"), ["tconstruct:armor_harvest_enchantment"]);
+    assert!(unbound_of("looter").is_empty(), "looter's experience multiplier attribute is declared with PlutoLib now");
+    assert!(unbound_of("luck").is_empty(), "luck is fully bound");
+    assert!(unbound_of("fortune").is_empty(), "fortune is fully bound");
+    assert!(unbound_of("silky").is_empty(), "silky is fully bound");
     for name in ["vital_protection", "loyal", "nightmare_protection", "flamestance", "invariant", "solar_powered", "entangled", "entwined", "depth_protection", "overshield", "stripping", "sweeping_edge"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects); autosmelt and smelting need the furnace recipes, which PlutoLib does not expose.
-    // The edible family is bound but for its representative item (item particles, eating sounds and the Diet integration while the use runs).
-    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    // The block-break modules are bound (mining and loot capacity, the break half of tool usage effects). Autosmelt and smelting
+    // bind over the cooking recipes PlutoLib now publishes from the game's recipe book: autosmelt converts drops on process loot,
+    // and the smelting module cooks its input inventory into its output on the tool's hits, harvests and shots.
+    assert!(!kinds.contains("tconstruct:autosmelt"), "autosmelt should be bound");
+    assert!(!kinds.contains("tconstruct:smelting"), "smelting should be bound");
+    assert!(unbound_of("autosmelt").is_empty(), "autosmelt is fully bound");
+    assert!(unbound_of("smelting").is_empty(), "smelting is fully bound");
+    // The boot walk forms bind over the sturdy-face fact PlutoLib publishes from the game's block
+    // table and the world light read: fire walker, glow walker and cover ground.
+    assert!(!kinds.contains("tconstruct:fire_walker"), "fire walker should be bound");
+    assert!(!kinds.contains("tconstruct:glow_walker"), "glow walker should be bound");
+    assert!(!kinds.contains("tconstruct:cover_ground"), "cover ground should be bound");
+    assert!(unbound_of("flamewake").is_empty(), "flamewake is fully bound");
+    assert!(unbound_of("snowdrift").is_empty(), "snowdrift is fully bound");
+    // The edible family is bound in full: the representative item binds over the use tick PlutoLib
+    // reports (its eating sounds while the use runs; its item particles and the Diet integration
+    // are the parts the port does not carry, as edible.rs's head note records).
+    for bound in ["edible", "edible_consume_durability", "edible_cure_random_effect", "edible_remove_effect", "edible_representative_item"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     // The special melee consumers are bound: punch and reverse punch over the projectile hooks, the melee instrument, the
-    // overgrowth inventory tick and kinetic's insatiable feed. Smashing runs on the fluid effects engine, which is not
-    // ported, and overburn still carries its tank stat boost (and its own module needs a tool fluid tank).
+    // overgrowth inventory tick and kinetic's insatiable feed. The tool tank family binds over the tool tank (tool_tank):
+    // smashing and overburn themselves, the interaction modules (bucket, tank interaction, melting, slurping, spilling,
+    // spitting, splashing), and the tank capacity form of stat_boost, the tank stat being this domain's own now.
     for bound in ["punch", "reverse_punch", "melee_instrument", "overgrowth", "kinetic"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
     for name in ["punch", "drawback", "kinetic", "overgrowth", "ram_attack"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
-    for unbound in ["smashing", "overburn"] { assert!(kinds.contains(&format!("tconstruct:{unbound}")), "{unbound} is still unbound"); }
-    assert!(!unbound_of("overburn").is_empty(), "overburn still carries unported modules");
-    assert!(!unbound_of("smashing").is_empty(), "smashing still carries its unported module");
+    for bound in ["smashing", "overburn", "bucket", "tank_interaction", "melting", "slurping", "spilling", "spitting", "splashing", "stat_boost"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["tank", "bucketing", "melting", "slurping", "spilling", "spitting", "splashing", "overburn", "smashing"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound over the tool tank"); }
     // The inventory consumers are bound: the quivers draw through the ammo event, the strap and belt
     // kinds decode with their interact plan, share durability runs on the wear event, and shears and
-    // fishing answer the tool-action query. Harvest stays unbound (no destroy-with-drops or block-use
-    // re-dispatch reaches a use callback), as does the armor harvest enchantment above.
+    // fishing answer the tool-action query. Harvest binds over the block actions PlutoLib queues for
+    // a use callback (destroy-with-drops and the block-use re-dispatch, applied at the level's tick
+    // seam); the armor harvest enchantment above stays unbound.
     for bound in ["bulk_quiver", "trick_quiver", "shield_strap", "tool_belt", "share_durability", "shears", "fishing"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
-    assert!(kinds.contains("tconstruct:harvest"), "harvest is still unbound");
+    assert!(!kinds.contains("tconstruct:harvest"), "harvest should be bound");
     for name in ["bulk_quiver", "trick_quiver", "sliver", "deciduous", "fishing", "shears", "silky_shears", "silky_aoe_shears", "shield_strap", "tool_belt"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    // The sling family binds over the release telling (which now runs with the entity scope
+    // open, so a bonk can search for its target): the knockback, leap and teleport kinds
+    // themselves, and the sling force formula in its plain form (padded's, over $value and
+    // $level). Knockback's own sling force instance binds too since the formula variables
+    // read the holder's custom attributes (formula-fix: EntityFact::CustomAttribute).
+    for bound in ["sling_knockback", "sling_leap", "sling_teleport"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["bonking", "flinging", "springing", "warping", "padded"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
+    assert!(unbound_of("knockback").is_empty(), "knockback is fully bound: its sling force reads the holder's custom attributes now");
+    // Fireball binds with its entity (a derived type over the game's own fireball body), and
+    // tipped binds over the flight profile and the impact application.
+    for bound in ["fireball", "tipped"] { assert!(!kinds.contains(&format!("tconstruct:{bound}")), "{bound} should be bound"); }
+    for name in ["slimeball", "tipped"] { assert!(unbound_of(name).is_empty(), "{name} is fully bound"); }
 }
 
 #[test]
@@ -531,7 +589,7 @@ fn shipped_material_recipes_load_without_problems_and_horns_match_by_instrument(
 #[test]
 fn shipped_modifier_recipes_load_and_only_unported_ingredient_types_are_left_out() {
     let files = recursive_files("tools/modifiers", "tools/modifiers");
-    assert_eq!(files.len(), 367, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime and 10 enchantment converting records");
+    assert_eq!(files.len(), 385, "116 modifier, 45 incremental, 38 swappable, 135 salvage, 2 removal, 5 multilevel, 16 overslime, 10 enchantment converting, 10 extract, 2 modifier set worktable, 1 modifier repair, 1 armor dyeing, 1 banner, 1 armor trim, 1 modifier sorting and 1 toggle interaction records");
     let recipes = crate::modifier_recipes::Recipes::load(&files, &conditions());
     for problem in &recipes.problems {
         assert!(problem.contains("unimplemented ingredient type") || problem.contains("unimplemented tool predicate"), "{problem}");
@@ -598,10 +656,10 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     use crate::part_builder_recipes::{Context, Inventory, Recipes};
     let world = world();
     let part_files = recursive_files("tools/parts/builder", "tools/parts/builder");
-    assert_eq!(part_files.len(), 24);
+    assert_eq!(part_files.len(), 29);
     let recipes = Recipes::load(&part_files, &conditions());
     assert!(recipes.problems.is_empty(), "{:#?}", recipes.problems);
-    assert_eq!(recipes.len(), 24);
+    assert_eq!(recipes.len(), 29);
     let materials = crate::material_recipes::Recipes::load(&recursive_files("tools/materials", "tools/materials"), &conditions());
     let parts = crate::tool_parts::registry();
     let in_tag = |item: &Identifier, tag: &Identifier| match tag.path() {
@@ -616,10 +674,11 @@ fn the_shipped_part_builder_makes_wood_parts_from_logs_and_hands_back_planks() {
     assert_eq!(wood.material.to_string(), "tconstruct:wood");
     let inv = |count: u32| Inventory { pattern_item: Some(&pattern), stack: Some((&planks, count)), material: Some(wood) };
 
-    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 24.
+    // With planks in the slot, every wood-capable part is offered; a pattern with nothing placed offers all 28
+    // patterns (the twenty-ninth recipe, elytra copying, shares the maille pattern and wants an elytra placed).
     let offered = recipes.patterns(&inv(8), &ctx);
     assert!(offered.iter().any(|p| p.path() == "pick_head") && offered.iter().any(|p| p.path() == "tool_handle"), "{offered:?}");
-    assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 24);
+    assert_eq!(recipes.patterns(&Inventory { pattern_item: Some(&pattern), stack: None, material: None }, &ctx).len(), 28);
 
     let head = Identifier::parse("tconstruct:pick_head").unwrap();
     // A log is worth 4 and a pick head costs 2: one log pays for it and half is handed back as 2 planks.
@@ -813,7 +872,12 @@ fn a_damaged_wood_pickaxe_is_repaired_with_wood_material_items() {
     tool.custom_data.insert(TAG_MATERIALS.into(), Nbt::List(["tconstruct:wood"; 3].map(|m| Nbt::String(m.into())).to_vec()));
     assert!(rebuild_stats(&mut tool.custom_data, &env).unwrap());
     tool.custom_data.insert(TAG_DAMAGE.into(), Nbt::Int(20));
-    let planks = Input::Material { item: Identifier::parse("minecraft:oak_planks").unwrap(), material: Identifier::parse("tconstruct:wood").unwrap(), value: 1, needed: 1, count: 8 };
+    let planks = Input::Material { item: Identifier::parse("minecraft:oak_planks").unwrap(), material: Identifier::parse("tconstruct:wood").unwrap(), recipe: crate::material_recipes::Recipe {
+        id: Identifier::parse("tconstruct:tools/materials/planks").unwrap(),
+        ingredient: crate::material_recipes::Ingredient::Item(Identifier::parse("minecraft:oak_planks").unwrap()),
+        material: crate::tool_materials::MaterialVariant::parse("tconstruct:wood").unwrap(),
+        needed: 1, value: 1, leftover: None,
+    }, count: 8 };
     let outcome = lookup(&ctx, Some(&tool), &[Some(planks), None, None, None]).unwrap();
     match outcome {
         Outcome::Crafted(done) => assert!(crate::tool_stack::damage(&done.result.custom_data) < 20, "repair lowers the damage"),
@@ -835,7 +899,7 @@ fn shipped_mining_speed_modifiers_change_the_dig_speed_of_a_rebuilt_pickaxe() {
     let stone = Identifier::parse("minecraft:stone").unwrap();
     let melts = |tag: &Identifier| tag.to_string() == "tconstruct:can_melt";
     let dig = |nbt: &pluto_lib::NbtCompound, effective: bool, on_ground: bool| {
-        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false), facts: Default::default() };
+        let context = Context { block: &stone, block_in_tag: &melts, original: 4.0, multiplier: 1.0, effective, on_ground: Some(on_ground), eyes_in_water: Some(false), facts: Default::default(), holder: None };
         break_speed(nbt, &env, &context, 4.0)
     };
     let build = |upgrades: Vec<(&str, i32)>, persistent: Option<(&str, i32)>, damage: i32| {
@@ -1094,13 +1158,13 @@ fn looting_enchants_a_melee_tool_by_its_level_and_severing_reports_its_level() {
 #[test]
 fn shipped_severing_recipes_load_without_problems_and_the_creeper_gives_its_head() {
     let files = recursive_files("tools/severing", "tools/severing");
-    assert_eq!(files.len(), 31, "the 38 original recipes less the 7 that read the entity's own state");
+    assert_eq!(files.len(), 38, "the 38 original recipes, the 7 stateful ones included");
     let recipes = crate::severing::Recipes::load(&files);
-    assert_eq!((recipes.len(), recipes.problems.len()), (31, 0), "{:?}", recipes.problems);
+    assert_eq!((recipes.len(), recipes.problems.len()), (38, 0), "{:?}", recipes.problems);
     let none = |_: &Identifier| false;
     let creeper = Identifier::parse("minecraft:creeper").unwrap();
     let mut drops = Vec::new();
-    recipes.process(&creeper, &none, false, 1.0, 0.0, &mut drops, &mut || 0.0);
+    recipes.process(&creeper, &none, false, 1.0, 0.0, None, &mut drops, &mut || 0.0);
     assert!(drops.iter().any(|slot| slot.item.to_string() == "minecraft:creeper_head"), "{drops:?}");
 }
 
@@ -1294,7 +1358,7 @@ fn shipped_protection_that_names_the_attacker_asks_what_it_is_and_was_doing() {
 
 #[test]
 fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer() {
-    use crate::{modifier_entries::List, tool_stack::{counter_effects, rebuild_stats, weapon_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Whom};
+    use crate::{damage_tags::DamageTags, modifier_entries::List, protection::DamageSource, tool_stack::{counter_effects, rebuild_stats, weapon_effects, Environment, TAG_MATERIALS, TAG_UPGRADES}, weapon_effect::Whom};
     use pluto_lib::{ItemSlot, Nbt};
     let world = world();
     let pickaxe = &world.tools.iter().find(|(id, _)| id.path() == "pickaxe").unwrap().1;
@@ -1309,6 +1373,10 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     };
     let tool = decay(2);
     let none = |_: &Identifier| false;
+    // The hit the counters answer: a mob's attack (decay's counters name no damage source condition).
+    let damage_type = Identifier::parse("minecraft:mob_attack").unwrap();
+    let (tags, _) = DamageTags::load(&damage_tag_stacks());
+    let source = DamageSource { damage_type: &damage_type, indirect: false, tags: &tags, attacker_in_tag: &none, entities: Default::default() };
     // The weapon module: wither at the modifier level (per_level 1), 120 ticks, always.
     // (Decay also brings pierce along, an effect of the original's own that no registration here carries.)
     let hit = weapon_effects(&tool.custom_data, &env, &none, &mut || 0.0);
@@ -1316,7 +1384,7 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     assert_eq!(wither.len(), 1, "{hit:?}");
     assert_eq!((wither[0].1.amplifier, wither[0].1.duration), (1, 120));
     // The armor counter: wither II for 120 ticks on the attacker with 50% a level (certain at level 2), and a wither I on the wearer at 10% a level.
-    let counter = counter_effects(&tool.custom_data, &env, &none, &mut || 0.0);
+    let counter = counter_effects(&tool.custom_data, &env, &source, &none, &mut || 0.0);
     let counter: Vec<_> = counter.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
     let on_attacker: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Attacker).collect();
     let on_wearer: Vec<_> = counter.iter().filter(|(whom, _)| *whom == Whom::Wearer).collect();
@@ -1324,7 +1392,7 @@ fn shipped_decay_puts_wither_on_what_a_pickaxe_hits_and_on_what_hits_its_wearer(
     assert_eq!((on_attacker[0].1.amplifier, on_attacker[0].1.duration), (1, 120));
     assert_eq!(on_wearer.len(), 1, "a low roll lands the wearer's wither too: {counter:?}");
     assert_eq!(on_wearer[0].1.amplifier, 0);
-    let unlucky = counter_effects(&tool.custom_data, &env, &none, &mut || 0.99);
+    let unlucky = counter_effects(&tool.custom_data, &env, &source, &none, &mut || 0.99);
     let unlucky: Vec<_> = unlucky.into_iter().filter(|(_, grant)| grant.effect.to_string() == "minecraft:wither").collect();
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Wearer).count(), 0, "a high roll spares the wearer (20% at level 2)");
     assert_eq!(unlucky.iter().filter(|(whom, _)| *whom == Whom::Attacker).count(), 1, "the attacker's 100% at level 2 needs no roll");
@@ -1463,9 +1531,16 @@ fn shipped_projectile_protection_and_magnet_take_the_largest_and_the_total_over_
     assert_eq!(amounts[0].0, "minecraft:knockback_resistance");
     // The plate boots carry two levels of their own, so the pieces are at levels 3 and 5: the larger counts once, not 8.
     assert!((amounts[0].1 - 0.25).abs() < 1e-6, "{amounts:?}");
-    // The attributes the host lacks leave the other max armor modifiers unbound, so they claim nothing.
+    // Dragonborn's attribute is declared with PlutoLib, so its max armor module claims it now,
+    // next to the boots' own projectile protection claims, and the claim is worked out as a
+    // custom contribution (0.05 a level at level 2), not as a base addition.
     let dragon = max_armor_claims(&piece("tconstruct:dragonborn", 2).custom_data, &env);
-    assert!(dragon.iter().all(|claim| format!("{claim:?}").contains("projectile_protection")), "only the boots' own projectile protection claims: {dragon:?}");
+    assert!(dragon.iter().all(|claim| { let text = format!("{claim:?}"); text.contains("projectile_protection") || text.contains("critical_damage") }), "only the boots' own and dragonborn's claims: {dragon:?}");
+    assert!(max_armor::strongest(dragon.clone()).iter().all(|(attribute, _)| attribute != "tconstruct:player.critical_damage"), "a declared attribute is no base addition");
+    let custom = max_armor::strongest_custom(dragon);
+    assert_eq!(custom.len(), 1, "{custom:?}");
+    assert_eq!(custom[0].0, "tconstruct:player.critical_damage");
+    assert!((custom[0].2 - 0.1).abs() < 1e-6, "{custom:?}");
     // Armor levels add up over the pieces under their key.
     let (a, b) = (piece("tconstruct:magnetic", 1), piece("tconstruct:magnetic", 2));
     let totals = max_armor::totals([&a, &b].iter().flat_map(|tool| armor_levels(&tool.custom_data, &env, "feet")));
@@ -1989,7 +2064,7 @@ fn shipped_soulspeed_is_a_soul_speed_enchantment_and_trim_adds_a_slot_only_witho
 }
 
 #[test]
-fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_stay_unbound() {
+fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_declared_ones_bind_unpublished() {
     use crate::tool_stack::attribute_entries;
     use pluto_lib::Nbt;
     let world = world();
@@ -2007,20 +2082,23 @@ fn shipped_attributes_on_forge_names_publish_the_vanilla_attribute_and_the_rest_
     let gravity = sky.iter().find(|(kind, _)| kind == "minecraft:gravity").expect("gravity").1;
     assert!((gravity - -0.15).abs() < 1e-6, "{sky:?}");
     assert!(sky.contains(&("minecraft:safe_fall_distance".into(), 1.0)));
-    // Attributes the host has no counterpart for are not published; the modifier keeps them unbound.
+    // Attributes the host has no counterpart for are not published on the stack; the port works
+    // their values out itself, from the modules the attribute now binds.
     assert!(amounts("tconstruct:double_jump", 1, "feet").is_empty());
     let mut registry = Registry::default();
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:reach").is_empty() && unbound("tconstruct:step_up").is_empty() && unbound("tconstruct:skyfall").is_empty());
-    assert_eq!(unbound("tconstruct:turtles_grace"), vec!["tconstruct:attribute"], "forge:swim_speed has no vanilla attribute");
-    assert_eq!(unbound("tconstruct:double_jump"), vec!["tconstruct:attribute"]);
-    // The modules that need host data this port does not receive stay unbound.
-    for (modifier, kind) in [("tconstruct:gold_guard", "golden_attribute"), ("tconstruct:lightspeed", "lightspeed_attribute"), ("tconstruct:tank", "stat_boost")] {
-        assert!(unbound(modifier).contains(&format!("tconstruct:{kind}")), "{modifier} keeps {kind} unbound");
-    }
-    // Experienced's volatile float is bound now; only its experience multiplier attribute has no counterpart.
-    assert_eq!(unbound("tconstruct:experienced"), vec!["tconstruct:attribute"]);
+    assert!(unbound("tconstruct:turtles_grace").is_empty(), "forge:swim_speed now bridges to the water movement efficiency");
+    assert!(unbound("tconstruct:double_jump").is_empty(), "double jump's attribute is declared with PlutoLib now");
+    // The modules that need host data this port does not receive stay unbound. Gold guard's golden attribute and
+    // lightspeed's attribute bind now: the player tick reports the wearer's equipment whole and the light at them,
+    // and the tank's capacity boost binds with the tool tank.
+    assert!(unbound("tconstruct:gold_guard").is_empty() && unbound("tconstruct:lightspeed").is_empty());
+    assert!(unbound("tconstruct:tank").is_empty(), "the tank's capacity boost binds with the tool tank");
+    // Experienced binds whole now: its experience multiplier attribute is declared with PlutoLib,
+    // and its value is kept from the player tick.
+    assert!(unbound("tconstruct:experienced").is_empty());
     assert!(unbound("tconstruct:tanned").is_empty() && unbound("tconstruct:overlord").is_empty() && unbound("tconstruct:soulspeed").is_empty());
 }
 
@@ -2178,13 +2256,13 @@ fn edible_pickaxe<R>(upgrades: &[(&str, i32)], charge_tagged: bool, run: impl Fn
 }
 
 #[test]
-fn the_shipped_edible_family_binds_all_but_the_representative_item() {
+fn the_shipped_edible_family_binds_in_full() {
     let mut registry = Registry::default();
     registry.reload(&files("modifiers"), &conditions());
     let unbound = |name: &str| registry.get(&Identifier::parse(name).unwrap()).unwrap().unbound.iter().map(ToString::to_string).collect::<Vec<_>>();
     assert!(unbound("tconstruct:edible").is_empty(), "the edible module and its tooltip trait are bound");
     for name in ["tasty", "savory", "scrumptious"] {
-        assert_eq!(unbound(&format!("tconstruct:{name}")), vec!["tconstruct:edible_representative_item"], "{name} keeps only the particles-and-Diet module unbound");
+        assert!(unbound(&format!("tconstruct:{name}")).is_empty(), "{name} is fully bound, its representative item over the use tick");
     }
 }
 
@@ -2200,7 +2278,7 @@ fn an_eaten_tool_feeds_the_rounded_stats_and_runs_each_modifiers_edible_effects_
         assert_eq!((eaten.nutrition, eaten.effects), (2, vec![Effect::ConsumeDurability(15)]));
         assert!((eaten.saturation - 0.6).abs() < 1e-6);
     });
-    // savory I: wears 4 + 4, then cures one effect; the representative item is unbound and adds nothing.
+    // savory I: wears 4 + 4, then cures one effect; the representative item adds no edible effect (it presents the meal).
     edible_pickaxe(&[("tconstruct:savory", 1)], true, |env, tool| {
         assert_eq!(edible(&tool.custom_data, env), Some(vec![Effect::ConsumeDurability(8), Effect::CureRandomEffect]));
         assert!((stat(&tool.custom_data, Stat::Saturation) - 0.4).abs() < 1e-6);
@@ -2258,7 +2336,7 @@ fn the_items_eaten_by_a_right_click_are_the_tools_in_the_shipped_charge_tag() {
     }
     let mut charge = std::collections::BTreeSet::new();
     members("modifiable/interactable/charge", &mut charge);
-    // The original's other-mod minotaur axe is not a tool here.
+    // The minotaur axe counts as a tool here: this port registers it itself (the original registers it only with Twilight Forest).
     let tools: std::collections::BTreeSet<String> = crate::tool_parts::tool_items().map(|id| id.to_string()).collect();
     let charge: std::collections::BTreeSet<String> = charge.into_iter().filter(|id| tools.contains(id)).collect();
     let used: std::collections::BTreeSet<String> = crate::edible_hook::USE_ITEMS.iter().map(|path| format!("tconstruct:{path}")).collect();
@@ -2466,7 +2544,7 @@ impl crate::materials::Conditions for EverythingOn {
 pub(crate) fn fluid_tags() -> crate::fluid_ingredient::FluidTags { crate::fluid_ingredient::FluidTags::load(&fluid_tag_files()) }
 pub(crate) fn fluid_recipes(everything_on: bool) -> crate::fluid_recipes::Recipes {
     let files = recursive_files("fluids", "fluids");
-    assert_eq!(files.len(), 1858, "melting, casting, alloy, fuel, entity and molding recipes outside the compat folder");
+    assert_eq!(files.len(), 1904, "melting, casting, alloy, fuel, entity and molding recipes, the compat folder included (its 46 other-mod integrations ship with their conditions, as the integration alloys already did)");
     if everything_on { crate::fluid_recipes::Recipes::load(&files, &EverythingOn(conditions())) } else { crate::fluid_recipes::Recipes::load(&files, &conditions()) }
 }
 pub(crate) fn id(text: &str) -> Identifier { Identifier::parse(text).unwrap() }
@@ -2503,9 +2581,10 @@ fn every_shipped_fluid_recipe_decodes_whatever_its_conditions_and_only_unported_
         }
     }
     assert_eq!((tool, swapping, tipping, clearing), (21, 10, 2, 2));
-    // 481 melting + 155 ore + 183 damageable; 24 alloys (netherite's two forms are one recipe); all 689 casting recipes decode
-    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (819, 48, 2, true, 32, 24));
-    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (689, 58, 39, 34, 112));
+    // 844 melting (25 of them the compat folder's other-mod integrations, which ship with their conditions),
+    // 48 material melting, 32 entity melting; 25 alloys (netherite's two forms are one recipe); all 709 casting recipes decode
+    assert_eq!((recipes.melting.len(), recipes.material_melting.len(), recipes.fuels.len(), recipes.solid_fuel.is_some(), recipes.entity_melting.len(), recipes.alloys.len()), (844, 48, 2, true, 32, 25));
+    assert_eq!((recipes.casting.len(), recipes.molding.len(), recipes.material_casting.casting.len(), recipes.material_casting.composite.len(), recipes.part_builder.len()), (709, 58, 39, 34, 112));
 }
 
 #[test]
@@ -2515,7 +2594,7 @@ fn shipped_melting_and_cooling_times_follow_the_original_formula() {
     // The generator gives a plain melting recipe sqrt(ingots) * T^0.585 unless its author overrode the time (clay, glass, ores...).
     let plain: Vec<_> = recipes.melting.iter().filter(|recipe| recipe.kind == MeltingKind::Plain).collect();
     let agree = plain.iter().filter(|recipe| calc_time_for_amount(recipe.temperature, recipe.output.amount) == recipe.time).count();
-    assert_eq!((plain.len(), agree), (481, 293), "the other 188 carry an authored time");
+    assert_eq!((plain.len(), agree), (502, 293), "the other 209 carry an authored time");
     // Casting uses the same formula on the casting fluid's temperature, from the fluid's material_fluid recipe.
     let temperature_of = |source: &Source| recipes.material_casting.casting.iter()
         .find(|fluid| fluid.fluid.options.iter().any(|(own, _)| own == source)).map(|fluid| fluid.temperature);
@@ -2528,7 +2607,7 @@ fn shipped_melting_and_cooling_times_follow_the_original_formula() {
         else if recipe.cooling_time == 1 { bottles += 1; }
         else { other.push(recipe.id.to_string()); }
     }
-    assert_eq!((agree_cast, bottles, other.len()), (338, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
+    assert_eq!((agree_cast, bottles, other.len()), (345, 7, 0), "the 7 bottle casts take 1 tick by design: {other:?}");
 }
 
 #[test]
@@ -2698,6 +2777,10 @@ fn every_original_language_file_is_shipped_with_the_originals_keys() {
     // the counts are the originals' key counts. The original's lzh file starts with a UTF-8
     // BOM; the importer drops it as it normalises line endings, since language files are
     // parsed as strict UTF-8 JSON by the content checks and the game.
+    // One deliberate exception: the port declares its fiery-liquid and molten-steeleaf fluid
+    // blocks with `_fluid`-suffixed ids, so en_us and ja_jp (the languages the port maintains)
+    // carry those two blocks' names as extra keys, each repeating its base key's text.
+    const PORT_ADDED_KEYS: [&str; 2] = ["block.tconstruct.fiery_liquid_fluid", "block.tconstruct.molten_steeleaf_fluid"];
     let expected: [(&str, usize); 20] = [
         ("de_de", 1900), ("en_us", 3623), ("es_ar", 2399), ("es_cl", 3261), ("es_es", 2399),
         ("es_mx", 3233), ("fr_fr", 2688), ("id_id", 348), ("it_it", 1926), ("ja_jp", 3411),
@@ -2709,8 +2792,15 @@ fn every_original_language_file_is_shipped_with_the_originals_keys() {
         let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{language}: {e}"));
         let lang: Value = serde_json::from_slice(&bytes).unwrap();
         let object = lang.as_object().unwrap();
-        assert_eq!(object.len(), keys, "{language}: key count differs from the original's");
+        let added = if ["en_us", "ja_jp"].contains(&language) { PORT_ADDED_KEYS.len() } else { 0 };
+        assert_eq!(object.len(), keys + added, "{language}: key count differs from the original's");
         assert!(object.values().all(|value| value.is_string()), "{language}: a language file maps keys to plain strings");
+        if added > 0 {
+            for key in PORT_ADDED_KEYS {
+                let base = key.strip_suffix("_fluid").unwrap();
+                assert_eq!(object.get(key), object.get(base), "{language}: {key} repeats its base key's text");
+            }
+        }
     }
 }
 
@@ -2899,7 +2989,7 @@ fn the_smeltery_blocks_can_be_crafted_from_declared_things_only() {
             count += 1;
         }
     }
-    assert_eq!(count, 367, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 19 of the tables, 172 of the commons, 17 of the gadgets and 52 of the world wood (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit; and 10 more with the shaped-materials pack (the four material anvils and forges of the tables, the five travellers armor pieces and the fake ingot's storage block), whose material ingredients ship verbatim for the shaped-materials consumer; and 74 more with the final conversion (the four slime woods' world recipes, the twelve slime crystal recipes of the commons, and ten gadget recipes: the clear stand and frame, the four metal frames and the four slime cakes, whose items the intervening lanes declared; the necrotic bone stand alone of the fancy gadgets still waits); and 4 more with the grid part recipes (the pick head, tool handle and tool binding and the pickaxe they assemble, converted for the inventory grid gate); the rest name items this port does not declare yet");
+    assert_eq!(count, 382, "the plain recipes the importer converts, as measured on the merged tree: 103 of the smeltery folder, 19 of the tables, 172 of the commons, 18 of the gadgets and 52 of the world wood (punji and the ichor and magma cakes, with the gadgets lane, and the bamboo and bone armor stands and the two reversed gold frame conversions, with the fancy gadgets lane) (the copper can came with the fluid items, the four table recipes with the parts data, the seared chute with the chutes, the seared gauge and fluid cannon with the cannons and gauges, the lanterns and soul glass with the lanterns, the alloyer with the smeltery periphery, the casting tank with unit 6d, and the scorched set, the book substitute and the whole commons with the recipe unit, which declared the metals, the clear glass and the obsidian pane; the recipe remainder unit added the platforms, the cheese and the firewood, and with the gold platform the scorched basin; 10 more with the station pack, whose crafting station, part chest, tinkers chest, cast chest and two anvils the list below names; and the four book recipes of the commons, materials and you, puny smelting, fantastic foundry and tinkers gadgetry, with the books unit; and 10 more with the shaped-materials pack (the four material anvils and forges of the tables, the five travellers armor pieces and the fake ingot's storage block), whose material ingredients ship verbatim for the shaped-materials consumer; and 74 more with the final conversion (the four slime woods' world recipes, the twelve slime crystal recipes of the commons, and ten gadget recipes: the clear stand and frame, the four metal frames and the four slime cakes, whose items the intervening lanes declared); and 4 more with the grid part recipes (the pick head, tool handle and tool binding and the pickaxe they assemble, converted for the inventory grid gate); and 1 more with the shapeless-materials recipe (the fake ingot broken back out of its storage block), whose material ingredient ships verbatim for the shapeless-materials consumer; and 13 more with the data restoration (the five tool-building recipes of the tools folder, the six smeltery retextured recipes shipped as plain shaped recipes, and the two kiln blasting fallbacks); and 1 more with the integration (the necrotic bone stand, whose item the items lane declared and whose wither-bone tag the importer now reads); the rest name items this port does not declare yet");
     for item in ["grout", "seared_brick", "seared_stone", "seared_bricks", "seared_drain", "seared_duct", "seared_fuel_tank", "seared_ingot_tank", "seared_fuel_gauge", "seared_table", "seared_basin",
                  "seared_faucet", "seared_channel", "seared_melter", "seared_casting_tank", "seared_heater", "scorched_brick", "nether_grout", "scorched_duct", "scorched_fuel_tank", "scorched_channel", "scorched_alloyer", "seared_chute",
                  "seared_glass", "seared_ladder", "seared_stone_slab", "seared_bricks_wall", "scorched_bricks_fence", "blank_sand_cast", "copper_can", "copper_gauge", "seared_fluid_cannon",
@@ -2935,7 +3025,7 @@ fn the_forge_item_tags_the_host_lacks_come_from_the_original_data() {
 #[test]
 fn shipped_fluid_recipes_load_and_an_iron_ingot_melts_through_its_forge_tag() {
     let files = recursive_files("fluids", "fluids");
-    assert_eq!(files.len(), 1858, "every file the smeltery domain ships under recipes/fluids");
+    assert_eq!(files.len(), 1904, "every file the smeltery domain ships under recipes/fluids");
     let recipes = crate::fluid_recipes::Recipes::load(&files, &conditions());
     // 813 melting files ship, but most are switched off in this tag-less test world by their own conditions
     // (the tag-filled and other-mod gates of conditions()); what loads unconditionally must still be hundreds.
@@ -3220,24 +3310,25 @@ fn every_shipped_fluid_effect_decodes_and_the_conditioned_ones_wait_for_their_wo
 
 /// The six books build from the Mantle data the importer ships: every section of each book's index is present (the
 /// transformer-generated sections with their index page), and the file-backed pages are all carried over — the counts are
-/// the original data's, counted page by page (file pages in English, one index page per generated section and per group
-/// anchor, one blank page per blank or padding entry).
+/// the original data's, counted page by page (file pages in English, one index page per generated section, one listing
+/// page per grouped section in place of the group anchors' own pages, one blank page per blank or padding entry). The
+/// books here build without registry data, so the generated pages themselves are absent; the book unit tests cover them.
 #[test]
 fn the_six_books_build_from_their_shipped_mantle_data() {
     let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tconstruct/content/assets/tconstruct");
     let read = |path: &str| std::fs::read(assets.join(path)).ok();
-    let expected = [("materials_and_you", 8, 32), ("puny_smelting", 12, 58), ("mighty_smelting", 10, 48),
-                    ("tinkers_gadgetry", 11, 38), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 40)];
+    let expected = [("materials_and_you", 8, 30), ("puny_smelting", 12, 55), ("mighty_smelting", 10, 44),
+                    ("tinkers_gadgetry", 11, 40), ("fantastic_foundry", 8, 39), ("encyclopedia", 13, 36)];
     let mut total = 0;
     for (name, sections, pages) in expected {
-        let book = crate::books::build_book(&read, name, "en_us").unwrap_or_else(|error| panic!("{name}: {error}"));
+        let book = crate::books::build_book(&read, name, "en_us", &crate::books::GenData::default()).unwrap_or_else(|error| panic!("{name}: {error}"));
         assert_eq!(book.sections.len(), sections, "{name}'s sections");
         assert_eq!(book.page_count(), pages, "{name}'s pages");
         assert!(book.sections.iter().all(|section| !section.pages.is_empty()), "{name} has an empty section");
         total += pages;
     }
-    assert_eq!(total, 255);
-    let first = crate::books::build_book(&read, "materials_and_you", "en_us").unwrap();
+    assert_eq!(total, 244);
+    let first = crate::books::build_book(&read, "materials_and_you", "en_us", &crate::books::GenData::default()).unwrap();
     assert_eq!(first.sections[0].name, "Introduction");
     assert_eq!(first.sections[0].pages[0].title(), Some("Materials & You"), "the welcome page opens the book");
     assert_eq!(first.appearance.export_title.as_deref(), Some("Materials and You"));

@@ -45,6 +45,56 @@ pub struct TransientAttributeModifier {
 /// Owned base write requested after loading class data; zero is explicit.
 #[derive(Clone,Debug,PartialEq)]
 pub struct AttributeBaseValue {pub attribute:Identifier,pub value:f64}
+/// The landing a class's own causeFallDamage decides on: it runs where the
+/// inherited application would, after the living-fall event and the class
+/// fall calculation, and replaces that application wholesale.
+#[derive(Clone,Debug)]
+pub struct CauseFallDamageContext {
+    pub entity:u32,
+    pub entity_type:Identifier,
+    /// Fall distance at landing, after any living-fall event adjustment.
+    pub distance:f64,
+    /// The damage multiplier the landing carries.
+    pub multiplier:f32,
+    /// The entity's motion as it lands.
+    pub velocity:[f64;3],
+    /// Entity.isSuppressingBounce: a sneaking player; a mob never suppresses.
+    pub suppressing_bounce:bool,
+}
+/// What a causeFallDamage override does instead of applying fall damage.
+#[derive(Clone,Debug,PartialEq)]
+pub enum FallOutcome {
+    /// No damage and no landing effects beyond the block's own fallOn
+    /// (the same shape as a cancelled living-fall event).
+    Cancel,
+    /// No damage; the entity rebounds with this motion and is airborne
+    /// again: fall distance cleared, on-ground cleared, and `sound` played
+    /// at the entity when present (a slime's bounce).
+    Bounce {velocity:[f64;3],sound:Option<Identifier>},
+}
+/// The equipment drop chance one class computes for one slot, consulted
+/// where the game rolls equipment drops on death. A returned value replaces
+/// the recorded chance for that slot's roll only; the recorded chances of
+/// the mob are not changed. The roll a class's own `dropCustomDeathLoot`
+/// makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is
+/// rolled even when the recorded chance is exactly 0: with looting, a
+/// 0-chance slot still drops at `looting` percent (a Halloween pumpkin on a
+/// mob whose recorded chance is 0 is the vanilla case).
+#[derive(Clone,Debug)]
+pub struct EquipmentDropChanceContext {
+    pub entity_type:Identifier,
+    /// One of mainhand, offhand, head, chest, legs, feet, body, saddle.
+    pub slot:String,
+    /// Present only for native cube/slime implementations.
+    pub slime_size:Option<i32>,
+    /// The recorded chance, or the game's default for the slot.
+    pub chance:f32,
+    /// The killing blow's Looting level (`dropCustomDeathLoot`'s `looting`
+    /// argument: the attacker's main-hand Looting, 0 when there is no
+    /// looting attacker). A LAN guest killer's level is read from the
+    /// guest's own hand, as the host resolved it for the kill.
+    pub looting:i32,
+}
 /// Current server load context. Attachment methods on entity use the normal
 /// callback scope; this is not a durable entity handle or a constructor event.
 #[derive(Clone,Debug)]
@@ -53,11 +103,13 @@ type LoadBases=Arc<dyn Fn(&LivingEntityLoadContext)->Result<Vec<AttributeBaseVal
 type Fall=Arc<dyn Fn(&CalculateFallDamageContext)->Option<i32>+Send+Sync>;
 type Jump=Arc<dyn Fn(&JumpPowerContext)->Option<f32>+Send+Sync>;
 type Attack=Arc<dyn Fn(&AttackDamageContext)->Option<f32>+Send+Sync>;
+type CauseFall=Arc<dyn Fn(&CauseFallDamageContext)->Option<FallOutcome>+Send+Sync>;
+type DropChance=Arc<dyn Fn(&EquipmentDropChanceContext)->Option<f32>+Send+Sync>;
 /// Per-type living-entity query methods. This does not create an entity factory.
 #[derive(Clone)]
-pub struct LivingEntityBehavior { entity_type:Identifier,jump:Option<Jump>,attack:Option<Attack>,fall:Option<Fall>,load_bases:Option<LoadBases>,attributes:Vec<TransientAttributeModifier> }
+pub struct LivingEntityBehavior { entity_type:Identifier,jump:Option<Jump>,attack:Option<Attack>,fall:Option<Fall>,cause_fall:Option<CauseFall>,drop_chance:Option<DropChance>,load_bases:Option<LoadBases>,attributes:Vec<TransientAttributeModifier> }
 impl LivingEntityBehavior {
-    pub fn new(entity_type:Identifier)->Self {Self {entity_type,jump:None,attack:None,fall:None,load_bases:None,attributes:Vec::new()}}
+    pub fn new(entity_type:Identifier)->Self {Self {entity_type,jump:None,attack:None,fall:None,cause_fall:None,drop_chance:None,load_bases:None,attributes:Vec::new()}}
     /// Restore class-dependent bases before server entity-load observers and
     /// after successful in-place native Entity.load operations. The
     /// callback runs in an attachment-capable host scope, outside registry locks.
@@ -76,6 +128,19 @@ impl LivingEntityBehavior {
     /// Override calculateFallDamage, not causeFallDamage or the fall event.
     pub fn calculate_fall_damage(mut self,callback:impl Fn(&CalculateFallDamageContext)->Option<i32>+Send+Sync+'static)->Self {
         self.fall=Some(Arc::new(callback));self
+    }
+    /// Override causeFallDamage itself: returning an outcome replaces the
+    /// inherited fall-damage application for this landing; returning None
+    /// keeps it. Distinct from calculate_fall_damage, which only rewrites
+    /// the damage number inside the inherited application.
+    pub fn cause_fall_damage(mut self,callback:impl Fn(&CauseFallDamageContext)->Option<FallOutcome>+Send+Sync+'static)->Self {
+        self.cause_fall=Some(Arc::new(callback));self
+    }
+    /// The class's own per-slot equipment drop chance at death (e.g. a cap
+    /// that only applies above a size). Returning None keeps the recorded
+    /// chance for that slot.
+    pub fn equipment_drop_chance(mut self,callback:impl Fn(&EquipmentDropChanceContext)->Option<f32>+Send+Sync+'static)->Self {
+        self.drop_chance=Some(Arc::new(callback));self
     }
     /// Override the contact attack's class query, not every living melee attack.
     pub fn attack_damage(mut self,callback:impl Fn(&AttackDamageContext)->Option<f32>+Send+Sync+'static)->Self {
@@ -141,6 +206,23 @@ impl LivingEntityBehaviors {
     pub(crate) fn has_attack(kind:&str)->bool {
         REGISTRY.lock().ok().is_some_and(|r|r.get(kind).is_some_and(|b|b.attack.is_some()))
     }
+    /// Dispatch the registered causeFallDamage override. None keeps the
+    /// inherited application; the callback runs outside the registry lock.
+    pub fn cause_fall_damage(context:&CauseFallDamageContext)->Option<FallOutcome> {
+        let callback=REGISTRY.lock().ok()?.get(&context.entity_type.to_string())?.cause_fall.clone()?;
+        callback(context)
+    }
+    pub(crate) fn has_cause_fall(kind:&str)->bool {
+        REGISTRY.lock().ok().is_some_and(|r|r.get(kind).is_some_and(|b|b.cause_fall.is_some()))
+    }
+    /// Dispatch the registered per-slot drop chance; None keeps the recorded one.
+    pub fn equipment_drop_chance(context:&EquipmentDropChanceContext)->Option<f32> {
+        let callback=REGISTRY.lock().ok()?.get(&context.entity_type.to_string())?.drop_chance.clone()?;
+        callback(context)
+    }
+    pub(crate) fn has_drop_chance(kind:&str)->bool {
+        REGISTRY.lock().ok().is_some_and(|r|r.get(kind).is_some_and(|b|b.drop_chance.is_some()))
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -177,5 +259,21 @@ mod tests {
         assert_eq!(LivingEntityBehaviors::attribute_bases_on_load(&load).unwrap()[0].value,0.0);
         load.slime_size=Some(2);assert!(LivingEntityBehaviors::attribute_bases_on_load(&load).is_err());
         load.entity.kind="living_query:absent".into();assert!(LivingEntityBehaviors::attribute_bases_on_load(&load).unwrap().is_empty());
+    }
+    #[test]
+    fn cause_fall_and_drop_chance_dispatch_only_to_their_registrations() {
+        let id=Identifier::parse("living_query:bouncer").unwrap();
+        LivingEntityBehaviors::register(LivingEntityBehavior::new(id.clone())
+            .cause_fall_damage(|ctx|(ctx.distance>2.0).then_some(FallOutcome::Bounce {velocity:[ctx.velocity[0]/0.95,-ctx.velocity[1]*0.9,ctx.velocity[2]/0.95],sound:None}))
+            .equipment_drop_chance(|ctx|(ctx.slot=="head"&&ctx.slime_size.is_some_and(|s|s>1)&&ctx.chance>0.25).then_some(0.25))).unwrap();
+        let mut fall=CauseFallDamageContext {entity:9,entity_type:id.clone(),distance:3.0,multiplier:1.0,velocity:[0.95,-1.0,0.0],suppressing_bounce:false};
+        assert_eq!(LivingEntityBehaviors::cause_fall_damage(&fall),Some(FallOutcome::Bounce {velocity:[1.0,0.9,0.0],sound:None}));
+        fall.distance=1.0;assert_eq!(LivingEntityBehaviors::cause_fall_damage(&fall),None);
+        let mut chance=EquipmentDropChanceContext {entity_type:id.clone(),slot:"head".into(),slime_size:Some(4),chance:2.0,looting:0};
+        assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&chance),Some(0.25));
+        chance.slime_size=Some(1);assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&chance),None);
+        chance.entity_type=Identifier::parse("living_query:unregistered").unwrap();
+        assert_eq!(LivingEntityBehaviors::equipment_drop_chance(&chance),None);
+        assert_eq!(LivingEntityBehaviors::cause_fall_damage(&fall),None);
     }
 }

@@ -15,7 +15,7 @@ pub(crate) const ITEMS: &[(&str, &str, &str)] = &[
     ("plate_helmet", "plate", "armor"),
     ("plate_leggings", "plate", "leggings"),
     ("slime_boots", "slime", "armor"),
-    ("slime_chestplate", "slime", "armor"),
+    ("slimy_chestplate", "slime", "armor"),
     ("slime_leggings", "slime", "leggings"),
     ("slime_wings", "slime_wings", "wings"),
     ("travelers_boots", "travelers", "armor"),

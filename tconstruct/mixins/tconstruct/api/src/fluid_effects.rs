@@ -92,7 +92,7 @@ impl LevelingValue {
     pub(crate) fn compute_for_scale(self, level: f32) -> f32 {
         if level < 1.0 { (self.flat + self.each_level) * level } else { self.compute(level) }
     }
-    fn decode(value: &Value) -> Result<Self, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Self, String> {
         match value {
             Value::Number(number) => Ok(Self::flat(number.as_f64().ok_or("leveling value must be a number")? as f32)),
             Value::Object(fields) => {
@@ -122,7 +122,7 @@ impl LevelingInt {
     pub(crate) fn is_flat(self) -> bool { self.each_level == 0 }
     /// `flat + each_level * level`, truncated to a whole number.
     pub(crate) fn compute(self, level: f32) -> i32 { (self.flat as f32 + self.each_level as f32 * level) as i32 }
-    fn decode(value: &Value) -> Result<Self, String> {
+    pub(crate) fn decode(value: &Value) -> Result<Self, String> {
         match value {
             Value::Number(_) => Ok(Self { flat: 0, each_level: int_of(value, "leveling int")? }),
             Value::Object(fields) => {
@@ -719,8 +719,10 @@ pub(crate) trait WorldAccess {
     fn flowing_fluid_block(&self, fluid: &Identifier, level: i32) -> Option<BlockState>;
     /// The item form of a block, when it has one.
     fn block_item(&self, block: &Identifier) -> Option<Identifier>;
-    /// The block an item provides for placing (BlockItemProviderCapability), when it provides one.
-    fn item_provided_block(&self, item: &Identifier) -> Option<BlockState>;
+    /// The block a stack provides for placing (BlockItemProviderCapability), when it provides one: a block item provides itself, a tool
+    /// its provider module's item. The whole stack is the query, not just its item: a tool's provider lives in its data, so an item id
+    /// alone cannot answer it.
+    fn item_provided_block(&self, stack: &Stack) -> Option<BlockState>;
     /// TierSortingRegistry.isCorrectTierForDrops for a tier name such as `minecraft:stone`.
     fn correct_tier_for_drops(&self, tier: &str, pos: BlockPos) -> bool;
     /// A named block predicate of Mantle's (`mantle:blocks_motion`, `mantle:can_be_replaced`,
@@ -1122,8 +1124,11 @@ impl EntityEffect {
                 let damage_type = match damage_type {
                     Some(pair) => {
                         if context.env.holder.projectile.is_some() {
-                            // Enderference on the target cancels projectile damage, so the melee type is used.
-                            if context.target.has_effect(&Identifier::new("tconstruct", "enderference").expect("valid id")) { pair.melee.clone() } else { pair.ranged.clone() }
+                            // TinkerEffects.needsEnderferenceOverride: the melee type only for an
+                            // enderman carrying the enderference effect — either half alone (an
+                            // enderman without the effect, another kind carrying it) keeps the
+                            // ranged type, as DamageFluidEffect reads the living target.
+                            if context.target.kind() == "minecraft:enderman" && context.target.has_effect(&Identifier::new("tconstruct", "enderference").expect("valid id")) { pair.melee.clone() } else { pair.ranged.clone() }
                         } else { pair.melee.clone() }
                     }
                     None => context.env.holder.damage_source().to_owned(),
@@ -1763,7 +1768,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
             let mut found = None;
             for (index, hand) in [&context.env.holder.off_hand, &context.env.holder.main_hand].iter().enumerate() {
                 if hand.is_empty() { continue; }
-                if let Some(state) = context.env.world.item_provided_block(&hand.item) {
+                if let Some(state) = context.env.world.item_provided_block(hand) {
                     found = Some((PlaceMode::ProviderHand, 1 - index, state));
                     break;
                 }
@@ -1772,7 +1777,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
                 Some(found) => Some(found),
                 None => {
                     let stack = &context.env.holder.stack;
-                    if stack.is_empty() { None } else { context.env.world.item_provided_block(&stack.item).map(|state| (PlaceMode::ContextStack, 2, state)) }
+                    if stack.is_empty() { None } else { context.env.world.item_provided_block(stack).map(|state| (PlaceMode::ContextStack, 2, state)) }
                 }
             }
         }
@@ -1785,6 +1790,7 @@ fn place_block(block: &Option<BlockState>, sound: &Option<String>, level: Effect
         _ => context.env.holder.stack.clone(),
     };
     if context.env.place_restricted(&probe, context.pos) { return 0.0; }
+    if action.simulate() { return 1.0; }
     let stack = match which {
         0 => &mut context.env.holder.main_hand,
         1 => &mut context.env.holder.off_hand,
@@ -1879,6 +1885,12 @@ impl FluidEffects {
         })
     }
 
+    /// The entry's fluid ingredient (FluidEffects.ingredient).
+    pub(crate) fn ingredient(&self) -> &FluidIngredient { &self.ingredient }
+    /// The entry's block effects, in file order (FluidEffects.blockEffects).
+    pub(crate) fn block_effects(&self) -> &[BlockEffect] { &self.block_effects }
+    /// The entry's entity effects, in file order (FluidEffects.entityEffects).
+    pub(crate) fn entity_effects(&self) -> &[EntityEffect] { &self.entity_effects }
     /// Whether the entry has any effect at all (FluidEffects.hasEffects).
     pub(crate) fn has_effects(&self) -> bool { !self.block_effects.is_empty() || !self.entity_effects.is_empty() }
     /// Whether the entry has block effects (FluidEffects.hasBlockEffects).
@@ -1931,6 +1943,27 @@ impl FluidEffects {
         }
         (amount_per_level as f32 * used_scale.min(scale)).ceil() as i32
     }
+
+    /// What apply_to_entity would consume, running the simulate phase only: the original's
+    /// FluidAction.SIMULATE call, which interaction gates (a slurp that may start, a drink that may
+    /// finish) ask before anything is allowed to happen. Nothing is applied.
+    pub(crate) fn simulate_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, in_tag: InTag) -> i32 {
+        let amount_per_level = self.ingredient.amount(&fluid.fluid, in_tag);
+        if amount_per_level <= 0 { return 0; }
+        let amount = fluid.amount as i32;
+        let scale = if amount as f32 >= amount_per_level as f32 * level_cap {
+            level_cap
+        } else {
+            amount as f32 / amount_per_level as f32
+        };
+        let level = EffectLevel { value: scale, max: level_cap };
+        let mut used_scale = 0.0f32;
+        for effect in &self.entity_effects {
+            let used = effect.apply(fluid, level, context, FluidAction::Simulate);
+            if used > used_scale { used_scale = used; }
+        }
+        (amount_per_level as f32 * used_scale.min(scale)).ceil() as i32
+    }
 }
 
 /// The loaded files in load order, plus a problem for every file that failed to decode
@@ -1976,6 +2009,12 @@ impl Effects {
     pub(crate) fn ids(&self) -> impl Iterator<Item = &Identifier> {
         self.entries.iter().map(|(id, _)| id)
     }
+
+    /// Every loaded entry with its effects, in load order, for consumers that list them all
+    /// (the encyclopedia's fluid effect pages).
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (&Identifier, &FluidEffects)> {
+        self.entries.iter().map(|(id, effects)| (id, effects))
+    }
 }
 
 /// The domain's loaded data as common.rs keeps it: the fluid effects of the current reload. The fluid tags
@@ -2011,6 +2050,15 @@ impl Data {
         let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
         match self.effects.find(fluid, &in_tag) {
             Some(effects) => effects.apply_to_entity(fluid, level_cap, context, &in_tag),
+            None => 0,
+        }
+    }
+
+    /// What apply_to_entity would consume for the matching entry, simulate phase only.
+    pub(crate) fn simulate_to_entity(&self, fluid: &FluidStack, level_cap: f32, context: &mut EntityContext, tags: &FluidTags) -> i32 {
+        let in_tag = |fluid: &Identifier, tag: &Identifier| tags.contains(fluid, tag);
+        match self.effects.find(fluid, &in_tag) {
+            Some(effects) => effects.simulate_to_entity(fluid, level_cap, context, &in_tag),
             None => 0,
         }
     }
@@ -2077,6 +2125,8 @@ mod tests {
         placed: Vec<(BlockPos, BlockState)>,
         targets: Vec<TestTarget>,
         potions: Vec<PotionEffect>,
+        /// What each stack provides for placing (item to block), for the provider half of place_block.
+        provided: HashMap<Identifier, Identifier>,
     }
 
     impl WorldAccess for TestWorld {
@@ -2127,7 +2177,10 @@ mod tests {
         fn within_world_border(&self, _pos: BlockPos) -> bool {
             true
         }
-        fn place_block(&mut self, _spec: &mut PlaceSpec) -> InteractionResult {
+        fn place_block(&mut self, spec: &mut PlaceSpec) -> InteractionResult {
+            if let Some(block) = &spec.block {
+                self.placed.push((spec.pos, block.clone()));
+            }
             InteractionResult::Success
         }
         fn interact_block(&mut self, _spec: &mut InteractSpec) -> InteractionResult {
@@ -2152,8 +2205,8 @@ mod tests {
         fn block_item(&self, block: &Identifier) -> Option<Identifier> {
             Some(block.clone())
         }
-        fn item_provided_block(&self, _item: &Identifier) -> Option<BlockState> {
-            None
+        fn item_provided_block(&self, stack: &Stack) -> Option<BlockState> {
+            self.provided.get(&stack.item).map(|block| BlockState::new(block.clone()))
         }
         fn correct_tier_for_drops(&self, _tier: &str, _pos: BlockPos) -> bool {
             false
@@ -2183,6 +2236,7 @@ mod tests {
 
     #[derive(Clone, Default)]
     struct TestTarget {
+        kind: String,
         living: bool,
         player: bool,
         effects: HashMap<Identifier, ActiveEffect>,
@@ -2198,7 +2252,7 @@ mod tests {
 
     impl TestTarget {
         fn living() -> Self {
-            Self { living: true, air: 300, ..Self::default() }
+            Self { kind: "minecraft:zombie".to_owned(), living: true, air: 300, ..Self::default() }
         }
     }
 
@@ -2207,7 +2261,7 @@ mod tests {
             1
         }
         fn kind(&self) -> &str {
-            "minecraft:zombie"
+            &self.kind
         }
         fn is_living(&self) -> bool {
             self.living
@@ -2334,6 +2388,22 @@ mod tests {
     }
 
     #[test]
+    fn simulate_charges_the_same_and_changes_nothing() {
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:blazing_blood", "amount": 250},
+            "entity_effects": [{"type": "tconstruct:fire", "action": "add", "time": 2}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        let mut target = TestTarget::living();
+        let would_consume = effects.simulate_to_entity(&stack("tconstruct:blazing_blood", 1000), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(would_consume, 1000, "the simulate run prices the same application");
+        assert_eq!(target.fire_ticks, 0, "and sets nothing on fire");
+        let consumed = effects.apply_to_entity(&stack("tconstruct:blazing_blood", 1000), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(consumed, would_consume);
+        assert_eq!(target.fire_ticks, 160);
+    }
+
+    #[test]
     fn mob_effect_add_extends_and_set_respects_a_stronger_existing() {
         let def = MobEffectDef::decode(&serde_json::from_value::<Map<String, Value>>(json!({"effect": "minecraft:poison", "time": 100, "level": 2})).expect("object")).expect("decode");
         let level = EffectLevel { value: 0.5, max: 1.0 };
@@ -2370,6 +2440,7 @@ mod tests {
         })).expect("decode");
         let mut world = TestWorld::default();
         let mut target = TestTarget::living();
+        target.kind = "minecraft:enderman".to_owned();
         target.effects.insert(id("tconstruct:enderference"), ActiveEffect { amplifier: 0, duration: 100 });
         let level = EffectLevel { value: 2.0, max: 2.0 };
         let fluid = stack("tconstruct:molten_ender", 100);
@@ -2384,8 +2455,32 @@ mod tests {
             context.env.holder.projectile = Some(ProjectileFacts { id: 7, delta: [0.0, 0.0, 1.0] });
             assert_eq!(effect.apply(&fluid, level, &mut context, FluidAction::Execute), 2.0);
         }
-        // The enderference effect turns the projectile's ranged damage into melee.
+        // An enderman carrying the enderference effect takes the projectile's damage as melee.
         assert_eq!(target.hurts, vec![("tconstruct:melee".to_owned(), 6.0)]);
+    }
+
+    #[test]
+    fn damage_pair_keeps_the_ranged_type_without_the_whole_override() {
+        // TinkerEffects.needsEnderferenceOverride names the enderman and the effect together:
+        // a marked zombie and an unmarked enderman both keep the pair's ranged type.
+        let effect = EntityEffect::decode(&json!({
+            "type": "tconstruct:damage", "damage": 3.0,
+            "damage_type": {"melee": "tconstruct:melee", "ranged": "tconstruct:ranged"},
+        })).expect("decode");
+        let level = EffectLevel { value: 2.0, max: 2.0 };
+        let fluid = stack("tconstruct:molten_ender", 100);
+        for (kind, marked) in [("minecraft:zombie", true), ("minecraft:enderman", false), ("minecraft:zombie", false)] {
+            let mut world = TestWorld::default();
+            let mut target = TestTarget::living();
+            target.kind = kind.to_owned();
+            if marked {
+                target.effects.insert(id("tconstruct:enderference"), ActiveEffect { amplifier: 0, duration: 100 });
+            }
+            let mut context = entity_context(&mut world, &mut target);
+            context.env.holder.projectile = Some(ProjectileFacts { id: 7, delta: [0.0, 0.0, 1.0] });
+            assert_eq!(effect.apply(&fluid, level, &mut context, FluidAction::Execute), 2.0);
+            assert_eq!(target.hurts, vec![("tconstruct:ranged".to_owned(), 6.0)], "{kind} marked={marked}");
+        }
     }
 
     #[test]
@@ -2439,6 +2534,52 @@ mod tests {
     }
 
     #[test]
+    fn potion_effect_applies_the_potions_effects() {
+        // PotionFluidEffect: the potion the fluid's tag names, scaled; an instant effect applies
+        // at the full value, a lasting one for its scaled duration. The world's potion list
+        // stands in for the registry read the live world does.
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:potion", "amount": 250},
+            "entity_effects": [{"type": "tconstruct:potion", "scale": 1.0}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        world.potions = vec![
+            PotionEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, instant: false },
+            PotionEffect { effect: id("minecraft:instant_health"), duration: 1, amplifier: 0, instant: true },
+        ];
+        let mut target = TestTarget::living();
+        let consumed = effects.apply_to_entity(&stack("tconstruct:potion", 250), 5.0, &mut entity_context(&mut world, &mut target), &no_tag);
+        assert_eq!(consumed, 250, "one level spent on the potion");
+        assert_eq!(target.added.len(), 2);
+        assert_eq!(target.effects.get(&id("minecraft:poison")), Some(&ActiveEffect { amplifier: 0, duration: 200 }));
+        assert_eq!(target.effects.get(&id("minecraft:instant_health")), Some(&ActiveEffect { amplifier: 0, duration: 1 }));
+    }
+
+    #[test]
+    fn potion_cloud_spawns_a_cloud_with_the_potions_effects() {
+        // PotionCloudFluidEffect: the potion the fluid's tag names, as a lingering cloud; an
+        // instant effect scales its amplifier, a lasting one its duration.
+        let effects = FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:potion", "amount": 50},
+            "block_effects": [{"type": "tconstruct:potion_cloud", "scale": 1.0}],
+        })).expect("decode");
+        let mut world = TestWorld::default();
+        world.potions = vec![
+            PotionEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, instant: false },
+            PotionEffect { effect: id("minecraft:instant_damage"), duration: 1, amplifier: 1, instant: true },
+        ];
+        world.replaceable.push([0, 2, 0]);
+        let consumed = effects.apply_to_block(&stack("tconstruct:potion", 50), 1.0, &mut block_context(&mut world, [0, 1, 0]), &no_tag);
+        assert_eq!(consumed, 50, "one level spent on the cloud");
+        assert_eq!(world.clouds.len(), 1);
+        let cloud = &world.clouds[0].effects;
+        assert_eq!(cloud.len(), 2);
+        assert_eq!(cloud[0], NewEffect { effect: id("minecraft:poison"), duration: 200, amplifier: 0, curative_items: None });
+        // (1 + 1) * 1.0 * 1.0 * 2 - 1 = 3
+        assert_eq!(cloud[1], NewEffect { effect: id("minecraft:instant_damage"), duration: 1, amplifier: 3, curative_items: None });
+    }
+
+    #[test]
     fn tag_predicate_matches_a_subset() {
         let predicate = TagPredicate::decode(&json!({"Bottle": "REGULAR"})).expect("decode");
         let mut tag = NbtCompound::new();
@@ -2465,5 +2606,73 @@ mod tests {
             "action": "add", "group_cost": "sum",
         })).expect("area");
         assert!(BlockEffect::decode(&json!({"type": "tconstruct:alternatives", "effects": []})).is_err());
+    }
+
+    fn place_block_effects() -> FluidEffects {
+        FluidEffects::decode(&json!({
+            "fluid": {"fluid": "tconstruct:molten_obsidian", "amount": 100},
+            "block_effects": [{"type": "tconstruct:place_block"}],
+        })).expect("place block")
+    }
+
+    fn place_block_context<'a>(world: &'a mut TestWorld, holder: Holder) -> BlockContext<'a> {
+        BlockContext { env: Env { world, holder }, pos: [0, 0, 0], direction: Direction::Up, location: [0.5, 1.5, 0.5] }
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_uses_the_offhand_first() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        world.provided.insert(id("minecraft:glowstone"), id("minecraft:glowstone"));
+        let mut holder = Holder::default();
+        holder.off_hand = Stack::of(id("minecraft:stone"), 64);
+        holder.main_hand = Stack::of(id("minecraft:glowstone"), 64);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:stone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_falls_back_to_the_mainhand() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:glowstone"), id("minecraft:glowstone"));
+        let mut holder = Holder::default();
+        holder.main_hand = Stack::of(id("minecraft:glowstone"), 64);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:glowstone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_falls_back_to_the_context_stack() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        world.provided.insert(id("minecraft:stone"), id("minecraft:stone"));
+        let mut holder = Holder::default();
+        holder.stack = Stack::of(id("minecraft:stone"), 1);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 100);
+        drop(context);
+        assert_eq!(world.placed, vec![([0, 0, 0], BlockState::new(id("minecraft:stone")))]);
+    }
+
+    #[test]
+    fn place_block_without_a_named_block_places_nothing_when_no_hand_provides() {
+        let effects = place_block_effects();
+        let mut world = TestWorld::default();
+        let mut holder = Holder::default();
+        holder.off_hand = Stack::of(id("minecraft:stick"), 1);
+        let mut context = place_block_context(&mut world, holder);
+        let consumed = effects.apply_to_block(&stack("tconstruct:molten_obsidian", 100), 5.0, &mut context, &no_tag);
+        assert_eq!(consumed, 0);
+        drop(context);
+        assert!(world.placed.is_empty());
     }
 }

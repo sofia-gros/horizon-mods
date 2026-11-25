@@ -5,8 +5,8 @@
 //! holds a list of `{id, Count (byte), tag, Slot (int)}` compounds, one per filled slot. A stack here also has parts the original kept in
 //! its `tag` (damage, enchantments) or did not have (a per-stack tool or attribute component); those are stored beside `tag` under
 //! `pluto_components`, so that a stack leaves and returns unchanged. A module with a filter this port cannot evaluate stays unbound.
-use crate::modifier_entries::Entry;
-use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound};
+use crate::{break_speed_hook::with_held_tool, common, modifier_entries::Entry, tool_stack};
+use pluto_lib::{Identifier, ItemSlot, Nbt, NbtCompound, StackData};
 use serde_json::{Map, Value};
 
 /// ToolInventoryCapability.TOTAL_SLOTS: the volatile int holding the slot count over all modifiers.
@@ -150,6 +150,16 @@ impl Inventory {
 
     /// The persistent-data key: the module's, else the modifier's ID.
     pub(crate) fn key(&self, modifier: &Identifier) -> String { self.key.as_ref().unwrap_or(modifier).to_string() }
+    /// The key the module JSON set, when it set one.
+    pub(crate) fn named_key(&self) -> Option<&Identifier> { self.key.as_ref() }
+    /// This inventory with another key.
+    pub(crate) fn with_key(&self, key: Identifier) -> Self { let mut out = self.clone(); out.key = Some(key); out }
+    /// SmeltingModule's output inventory over this (input) inventory: the same slots, limit and
+    /// validation, no filter, and the given key and pattern. The key stays unset when the caller
+    /// resolves the default (the modifier's ID with an `_output` suffix) at use.
+    pub(crate) fn as_output(&self, key: Option<Identifier>, pattern: Option<Identifier>) -> Self {
+        Self { key, slots: self.slots, limit: self.limit, filter: ItemFilter::Any, pattern, validation: self.validation, quiver: false }
+    }
     fn potential_slots(&self, level: f32) -> i32 { self.slots.compute_for_level(level).max(0) }
     /// The slots to add to the volatile total when the module's condition holds (even when that is none).
     pub(crate) fn volatile_slots(&self, entry: &Entry) -> i32 { self.potential_slots(entry.effective_level()) }
@@ -192,7 +202,7 @@ fn compound_list<'a>(persistent: &'a NbtCompound, key: &str) -> Option<Vec<&'a N
     // getList(key, TAG_COMPOUND) is empty for a list of anything else.
     Some(if found.len() == list.len() { found } else { Vec::new() })
 }
-fn slot_of(compound: &NbtCompound) -> i64 { compound.get(TAG_SLOT).and_then(Nbt::as_i64).unwrap_or(0) }
+fn slot_number(compound: &NbtCompound) -> i64 { compound.get(TAG_SLOT).and_then(Nbt::as_i64).unwrap_or(0) }
 
 /// ItemStack.save plus the slot, for a stack in slot `slot`.
 pub(crate) fn write_stack(stack: &ItemSlot, slot: usize) -> NbtCompound {
@@ -208,6 +218,8 @@ pub(crate) fn write_stack(stack: &ItemSlot, slot: usize) -> NbtCompound {
     if let Some(enchantments) = &stack.enchantments {
         extra.insert("enchantments".into(), Nbt::Compound(enchantments.iter().map(|(name, level)| (name.clone(), Nbt::Int(*level))).collect()));
     }
+    // A filled map's id: the map a minimap inventory stores keeps its explored data through it.
+    if let Some(id) = stack.map_id { extra.insert("map_id".into(), Nbt::Int(id)); }
     if !extra.is_empty() { compound.insert(COMPONENTS.into(), Nbt::Compound(extra)); }
     compound.insert(TAG_SLOT.into(), Nbt::Int(slot as i32));
     compound
@@ -231,16 +243,72 @@ pub(crate) fn read_stack(compound: &NbtCompound) -> Option<ItemSlot> {
         if let Some(Nbt::Compound(map)) = extra.get("enchantments") {
             stack.enchantments = Some(map.iter().filter_map(|(name, level)| level.as_i64().map(|level| (name.clone(), level as i32))).collect());
         }
+        stack.map_id = extra.get("map_id").and_then(Nbt::as_i64).map(|value| value as i32);
     }
     // The model selection is derived from the material data, not saved.
     crate::tool_materials::sync_model(&mut stack);
     Some(stack)
 }
 
+/// The item slot view of a stack, for the tool damage pipeline and the carried-stack write-backs
+/// (which work on slots): the item, count, damage, max damage, custom data, custom model data and
+/// enchantments. None for an item id that does not parse.
+pub(crate) fn slot_of(stack: &StackData) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&stack.item).ok()?, stack.count);
+    slot.damage = stack.damage;
+    slot.max_damage = stack.max_damage;
+    slot.custom_data = stack.custom_data.clone();
+    slot.custom_model_data = stack.custom_model_data.clone();
+    if !stack.enchantments.is_empty() {
+        slot.enchantments = Some(stack.enchantments.clone());
+    }
+    Some(slot)
+}
+
+/// The stack a slot view writes back as: the item, count, damage, max damage, custom data, custom
+/// model data and enchantments.
+pub(crate) fn stack_of(slot: &ItemSlot) -> StackData {
+    StackData {
+        item: slot.item.to_string(),
+        count: slot.count,
+        damage: slot.damage,
+        max_damage: slot.max_damage,
+        custom_data: slot.custom_data.clone(),
+        custom_model_data: slot.custom_model_data.clone(),
+        enchantments: slot.enchantments.clone().unwrap_or_default(),
+    }
+}
+
+/// Item.canFitInsideContainerItems: a shulker box (any colour) does not fit inside a container,
+/// and every other item does. The host offers no item property for this, so the vanilla rule is
+/// spelled out here (ShulkerBoxItem is the one vanilla override).
+pub(crate) fn can_fit_inside_container(item: &Identifier) -> bool { !item.path().ends_with("shulker_box") }
+
+/// Whether the stack carries an item handler of its own: a built Tinkers tool with inventory
+/// slots does (the capability exists only above zero slots). The port knows no other mod's
+/// handlers, so anything that is not such a tool answers false.
+pub(crate) fn has_item_handler(stack: &ItemSlot) -> bool {
+    let data = stack_of(stack);
+    with_held_tool(&data, |env, tool| tool_stack::inventory(&tool.custom_data, env).slots() > 0).unwrap_or(false)
+}
+
+/// The item facts for the blacklist and the slot-validity checks, from the captured item
+/// snapshot (the tag answers) and the item rules above. The max stack answers 64: neither
+/// check reads it (the blacklist reads the tag, the fit rule and the handler; slot validity
+/// reads the blacklist and the module's filter), and no vanilla max-stack surface exists to
+/// answer it from — do not use this `Items` for slot limits or stackability.
+pub(crate) fn with_snapshot_items<R>(run: impl FnOnce(&Items<'_>) -> R) -> R {
+    let snapshot = common::item_snapshot();
+    let in_tag = |item: &Identifier, tag: &Identifier| snapshot.as_deref().and_then(|tags| tags.get_tag(tag)).is_some_and(|members| members.contains(item));
+    let max_stack = |_: &Identifier| 64;
+    let items = Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &can_fit_inside_container, has_item_handler: &has_item_handler };
+    run(&items)
+}
+
 /// ItemStack.isSameItem: only the item counts.
 fn same_item(a: &ItemSlot, b: &ItemSlot) -> bool { a.item == b.item }
 /// ItemStack.isSameItemSameTags: everything but the count.
-fn same_stack(a: &ItemSlot, b: &ItemSlot) -> bool {
+pub(crate) fn same_stack(a: &ItemSlot, b: &ItemSlot) -> bool {
     let mut left = write_stack(a, 0);
     let mut right = write_stack(b, 0);
     left.remove("Count");
@@ -252,7 +320,29 @@ impl Part {
     /// InventoryModule.getStack.
     fn get(&self, persistent: &NbtCompound, slot: usize) -> Option<ItemSlot> {
         if slot >= self.slots() { return None; }
-        compound_list(persistent, &self.key())?.into_iter().find(|compound| slot_of(compound) == slot as i64).and_then(read_stack)
+        compound_list(persistent, &self.key())?.into_iter().find(|compound| slot_number(compound) == slot as i64).and_then(read_stack)
+    }
+
+    /// Whether the part is active on its tool (its module's condition held).
+    pub(crate) fn is_active(&self) -> bool { self.active }
+    /// The limit of one of this part's slots.
+    pub(crate) fn slot_limit(&self) -> i32 { self.limit() }
+    /// The part's stored entries, in stored order, as (slot, the entry compound as stored): a
+    /// consumer that keeps its own fields in the entries (a smelting module's cooking times)
+    /// reads and rewrites them here, where the stack accessors would drop those fields.
+    pub(crate) fn entries(&self, persistent: &NbtCompound) -> Vec<(usize, NbtCompound)> {
+        compound_list(persistent, &self.key()).map(|list| list.iter().filter_map(|compound| {
+            let slot = slot_number(compound);
+            (slot >= 0).then(|| (slot as usize, (*compound).clone()))
+        }).collect()).unwrap_or_default()
+    }
+    /// Replaces the part's stored list with `entries`, each compound's slot set from its pair.
+    pub(crate) fn set_entries(&self, persistent: &mut NbtCompound, entries: Vec<(usize, NbtCompound)>) {
+        let list = entries.into_iter().map(|(slot, mut compound)| {
+            compound.insert(TAG_SLOT.into(), Nbt::Int(slot as i32));
+            Nbt::Compound(compound)
+        }).collect();
+        persistent.insert(self.key(), Nbt::List(list));
     }
 
     /// InventoryModule.setStack: replaces the entry for the slot, or adds one after the last smaller slot; an empty stack removes it.
@@ -269,7 +359,7 @@ impl Part {
         let mut insert_at = 0;
         for index in 0..list.len() {
             let Nbt::Compound(existing) = &list[index] else { continue; };
-            let listed = slot_of(existing);
+            let listed = slot_number(existing);
             if listed == slot as i64 {
                 match stack { None => { list.remove(index); } Some(stack) => list[index] = Nbt::Compound(write_stack(stack, slot)) }
                 return;
@@ -378,7 +468,7 @@ impl ToolInventory {
             if max > 0 {
                 if let Some(list) = compound_list(persistent, &part.key()) {
                     for compound in list {
-                        let slot = slot_of(compound);
+                        let slot = slot_number(compound);
                         if slot < 0 || slot as usize >= max { continue; }
                         if let Some(stack) = read_stack(compound).filter(|stack| predicate(stack)) { return Some((stack, start + slot as usize)); }
                     }
@@ -400,7 +490,7 @@ impl ToolInventory {
             if max > 0 {
                 if let Some(list) = compound_list(persistent, &part.key()) {
                     for compound in list {
-                        let slot = slot_of(compound);
+                        let slot = slot_number(compound);
                         if slot < 0 || slot as usize >= max { continue; }
                         if let Some(stack) = read_stack(compound).filter(|stack| part.valid(&stack.item, in_tag)) { return Some((stack, start + slot as usize)); }
                     }
@@ -420,7 +510,7 @@ impl ToolInventory {
             let Some(list) = compound_list(persistent, &part.key()) else { continue; };
             let mut parsed: Vec<Option<ItemSlot>> = vec![None; max];
             for compound in list {
-                let slot = slot_of(compound);
+                let slot = slot_number(compound);
                 if slot >= 0 && (slot as usize) < max { parsed[slot as usize] = read_stack(compound); }
             }
             stacks.extend(parsed.into_iter().flatten());
@@ -480,13 +570,13 @@ impl ToolInventory {
             let mut free = vec![true; max];
             for tag in list.iter() {
                 if let Nbt::Compound(compound) = tag {
-                    let slot = slot_of(compound);
+                    let slot = slot_number(compound);
                     if slot >= 0 && (slot as usize) < max { free[slot as usize] = false; }
                 }
             }
             for tag in list.iter_mut() {
                 let Nbt::Compound(compound) = tag else { continue; };
-                if slot_of(compound) >= max as i64 {
+                if slot_number(compound) >= max as i64 {
                     let Some(target) = free.iter().position(|free| *free) else { return Err(HAS_ITEMS); };
                     free[target] = false;
                     compound.insert(TAG_SLOT.into(), Nbt::Int(target as i32));
@@ -561,6 +651,26 @@ mod tests {
     fn fits(item: &Identifier) -> bool { item.path() != "shulker_box" }
     fn handler(stack: &ItemSlot) -> bool { stack.custom_data.contains_key("tic_stats") }
     fn items() -> Items<'static> { Items { max_stack: &max_stack, in_tag: &in_tag, can_fit_inside_container: &fits, has_item_handler: &handler } }
+
+    #[test]
+    fn a_stack_round_trips_through_its_slot_view() {
+        let mut data = StackData { item: "minecraft:diamond_sword".into(), count: 1, damage: 12, max_damage: Some(1561), enchantments: [("minecraft:sharpness".to_owned(), 3)].into_iter().collect(), ..StackData::default() };
+        data.custom_data.insert("tconstruct:test".to_owned(), Nbt::Int(1));
+        let slot = slot_of(&data).expect("a parsed id");
+        assert_eq!((slot.damage, slot.max_damage, slot.enchantments.as_ref().map(|e| e.len())), (12, Some(1561), Some(1)));
+        assert_eq!(stack_of(&slot), data, "the write-back is the stack read");
+        assert!(slot_of(&StackData { item: "not an id".into(), ..StackData::default() }).is_none());
+    }
+
+    #[test]
+    fn only_a_shulker_box_does_not_fit_inside_a_container() {
+        assert!(!can_fit_inside_container(&id("minecraft:shulker_box")));
+        assert!(!can_fit_inside_container(&id("minecraft:red_shulker_box")));
+        assert!(can_fit_inside_container(&id("minecraft:chest")));
+        assert!(can_fit_inside_container(&id("minecraft:bundle")));
+        // A plain stack carries no handler: only a built tool with inventory slots does.
+        assert!(!has_item_handler(&stack("minecraft:torch", 1)));
+    }
     fn pockets(level: i32) -> ToolInventory {
         ToolInventory::new(vec![part(module(json!({"key":"tconstruct:pockets","slots":{"each_level":3}})).unwrap(), "tconstruct:pocket", level)])
     }
@@ -632,6 +742,16 @@ mod tests {
         let mut empty = write_stack(&stack("minecraft:stick", 1), 0);
         empty.insert("Count".into(), Nbt::Byte(0));
         assert_eq!(read_stack(&empty), None, "a count of zero is no stack");
+    }
+
+    #[test]
+    fn a_stored_map_keeps_its_id_and_a_plain_map_keeps_none() {
+        let mut map = stack("minecraft:filled_map", 1);
+        map.map_id = Some(12);
+        assert_eq!(read_stack(&write_stack(&map, 0)), Some(map), "the id survives the persistent round-trip");
+        let plain = write_stack(&stack("minecraft:filled_map", 1), 0);
+        assert_eq!(read_stack(&plain).unwrap().map_id, None, "a map with no id reads back none");
+        assert!(plain.get(COMPONENTS).is_none(), "a plain map writes no components compound at all");
     }
 
     #[test]

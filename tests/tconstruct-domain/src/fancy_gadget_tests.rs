@@ -62,15 +62,18 @@ fn the_gadget_recipes_whose_items_exist_converted() {
     let back = read(recipes.join("fancy_frame/reversed_reversed_gold.json"));
     assert_eq!(back["ingredients"], json!(["tconstruct:reversed_gold_item_frame", "minecraft:redstone_torch"]));
     assert_eq!(back["result"]["id"], "tconstruct:gold_item_frame");
+    // The necrotic bone stand converted once the blazewood slab and the necrotic bone itself were
+    // declared: its sticks are the bone (a one-item list, as the original ships it), its base the slab.
+    let necrotic = read(recipes.join("armor_stands/necrotic_bone.json"));
+    assert_eq!(necrotic["type"], "minecraft:crafting_shaped");
+    assert_eq!(necrotic["key"], json!({"B": "tconstruct:blazewood_slab", "S": ["tconstruct:necrotic_bone"]}));
+    assert_eq!(necrotic["pattern"], json!(["SSS", " S ", "SBS"]));
+    assert_eq!(necrotic["result"]["id"], "tconstruct:necrotic_bone_armor_stand");
     // Of the seven that waited, six converted once the clear glass family and the obsidian pane were
-    // declared (the clear stand and frame, and the gold, diamond, manyullyn and netherite frames);
-    // the necrotic bone stand still names items this port does not declare yet, so the importer
-    // leaves it out until those land.
-    for converted in ["armor_stands/clear.json", "frame/gold.json", "frame/diamond.json", "frame/manyullyn.json", "frame/netherite.json", "fancy_frame/clear.json"] {
+    // declared (the clear stand and frame, and the gold, diamond, manyullyn and netherite frames),
+    // and the necrotic bone stand followed once its items landed: nothing is left waiting.
+    for converted in ["armor_stands/clear.json", "frame/gold.json", "frame/diamond.json", "frame/manyullyn.json", "frame/netherite.json", "fancy_frame/clear.json", "armor_stands/necrotic_bone.json"] {
         assert!(recipes.join(converted).exists(), "{converted} converted with its items declared");
-    }
-    for missing in ["armor_stands/necrotic_bone.json"] {
-        assert!(!recipes.join(missing).exists(), "{missing} waits for its items to be declared");
     }
 }
 

@@ -282,9 +282,12 @@ fn gold_casts_are_made_from_the_item_they_shape_and_molten_gold_and_sand_casts_f
             let (state, items, taken) = pour_and_cool(&live, &ItemSlot::new(cast.clone(), 1), &gold);
             assert_eq!(taken, 90, "{}: molten gold on {cast}", recipe.id);
             assert!(state.fluid.is_none());
-            // the shape is used up and the new cast is in the table's first slot (switch_slots)
-            assert_eq!(items[INPUT].as_ref().map(|stack| &stack.item), Some(result), "{}: {cast} and gold make {result}", recipe.id);
-            assert!(items[OUTPUT].is_none(), "{}: the shape is used up", recipe.id);
+            // the shape is used up and the new cast lands where the cast was when the recipe switches slots, in the output otherwise
+            let slot = if recipe.switch_slots { INPUT } else { OUTPUT };
+            let made_item = items[slot].as_ref().unwrap_or_else(|| panic!("{}: {cast} and gold make nothing in slot {slot}: {items:?}", recipe.id));
+            assert_eq!(&made_item.item, result, "{}: {cast} and gold make {result}", recipe.id);
+            let other = if slot == INPUT { OUTPUT } else { INPUT };
+            assert_eq!(items[other].is_none(), recipe.cast_consumed, "{}: the shape is used up", recipe.id);
             made.insert(result.to_string());
         }
     }
@@ -293,7 +296,7 @@ fn gold_casts_are_made_from_the_item_they_shape_and_molten_gold_and_sand_casts_f
     let mut unmade = BTreeSet::new();
     for name in &declared {
         let Some(path) = name.strip_prefix("tconstruct:") else { continue };
-        if path.ends_with("_cast") && !path.contains("sand") && path != "arrow_cast" {
+        if path.ends_with("_cast") && !path.contains("sand") {
             if !made.contains(name) { unmade.insert(name.clone()); }
         }
     }
@@ -384,7 +387,10 @@ fn parts_cast_from_molten_iron_and_copper_build_a_tool_in_the_station_with_their
     let head = cast_part("tconstruct:pick_head_cast", "tconstruct:molten_iron");
     let handle = cast_part("tconstruct:tool_handle_cast", "tconstruct:molten_copper");
     let binding = cast_part("tconstruct:tool_binding_cast", "tconstruct:molten_iron");
-    let world = world();
+    // Copper's trait is the dwarven code modifier, from the ported group the production registry
+    // registers before the first reload; the test world leaves code modifiers to the tests that need them.
+    let mut world = world();
+    for modifier in crate::modifiers::ported_code_modifiers().unwrap() { world.registry.register_static(modifier).unwrap(); }
     let tools: Vec<(Identifier, &crate::tool_definitions::Data)> = world.tools.iter().filter(|(_, data)| !data.tool_parts().is_empty()).map(|(id, data)| (id.clone(), data)).collect();
     let item_max = |_: &Identifier| 1;
     let ctx = Context { materials: &world.materials, modifiers: &world.registry, item_tags_loaded: true, item_tags: None, tools: &tools, item_max: &item_max };
@@ -664,8 +670,8 @@ fn tipping_names_the_poured_potion_on_the_tool_and_potion_casting_hands_the_resu
 #[test]
 fn slimesuit_pieces_build_by_basin_casting() {
     // T1: the slimesuit pieces whose cast is a tool part (the helmet and the wings are covered above): the
-    // part's material takes the first slot, the poured slime material the second. The chestplate's recipe
-    // named the original's pre-rename item id, which no port item has; it now names the port's item.
+    // part's material takes the first slot, the poured slime material the second. The chestplate's result
+    // is the item `slimy_chestplate`; its tool definition keeps the `slime_chestplate` identity.
     let game = game();
     let in_fluid = |fluid: &Identifier, tag: &Identifier| game.in_fluid_tag(fluid, tag);
     let mut world = world();
@@ -675,7 +681,7 @@ fn slimesuit_pieces_build_by_basin_casting() {
     let earthslime = game.data.recipes.material_casting.casting.iter().find(|recipe| recipe.output.to_string() == "tconstruct:earthslime").unwrap();
     let fluid = game.fluid_of(earthslime);
     for (recipe_path, part, part_material, result, durability) in [
-        ("tconstruct:fluids/tools/building/slimecage", "tconstruct:ribcage", "tconstruct:bone", "tconstruct:slime_chestplate", 80),
+        ("tconstruct:fluids/tools/building/slimecage", "tconstruct:ribcage", "tconstruct:bone", "tconstruct:slimy_chestplate", 80),
         ("tconstruct:fluids/tools/building/slimeshell", "tconstruct:shell", "tconstruct:dragon_scale", "tconstruct:slime_leggings", 75),
         ("tconstruct:fluids/tools/building/slime_boots", "tconstruct:laces", "tconstruct:cheese", "tconstruct:slime_boots", 65),
     ] {

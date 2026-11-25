@@ -24,8 +24,9 @@
 //! - `tconstruct:harvest_tier` is a tool stat the port's stat enum does not carry (tiers live on
 //!   the stats builder, not in the stat map). Bonus-set and reset handle it exactly as the
 //!   original does, but the port's stat-override module reads only numeric overrides, so a
-//!   stored tier override is inert until that module learns tiers. The capacity stats
-//!   (`tank_capacity`, `max_energy`) belong to unported tool systems and do not resolve.
+//!   stored tier override is inert until that module learns tiers. Of the capacity stats,
+//!   `tank_capacity` resolves (the tank system is ported); `max_energy` belongs to an
+//!   unported tool system and does not resolve.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -35,7 +36,7 @@ use pluto_lib::{CommandContext, CommandRegistrationCallback, I18n, Identifier, N
 use crate::material_stats::Stats;
 use crate::materials;
 use crate::modifier_entries;
-use crate::modifier_modules::{Display, Module};
+use crate::modifier_modules::{Display, Module, ZoomStyle};
 use crate::modifiers::Modifier;
 use crate::tool_materials::{MaterialList, MaterialVariant};
 use crate::tool_stats::Stat;
@@ -169,7 +170,7 @@ fn dispatch(ctx: &CommandContext, route: Route) -> Outcome {
     let modifiers = modifiers_lock.read().unwrap_or_else(|poisoned| poisoned.into_inner());
     let recipes_guard = common::modifier_recipes().map(|lock| lock.read().unwrap_or_else(|poisoned| poisoned.into_inner()));
     let item_tags = common::item_snapshot();
-    let tools: Vec<(Identifier, &tool_definitions::Data)> = definitions.data.iter().map(|(id, data)| (id.clone(), data)).collect();
+    let tools: Vec<(Identifier, &tool_definitions::Data)> = tool_definitions::item_pairs(&definitions);
     let item_max = |id: &Identifier| tool_parts::tool_stack_size(id);
     let cx = Cx {
         materials: &materials,
@@ -306,10 +307,10 @@ fn decimal2(value: f64, grouping: bool) -> String {
 }
 
 /// COMMA_FORMAT `#,###,###.##`.
-fn comma(value: f64) -> String { decimal2(value, true) }
+pub(crate) fn comma(value: f64) -> String { decimal2(value, true) }
 
 /// COMMA_FORMAT on an integer value.
-fn comma_int(value: i32) -> String { group_digits(i64::from(value)) }
+pub(crate) fn comma_int(value: i32) -> String { group_digits(i64::from(value)) }
 
 /// BONUS_FORMAT `#.##` with a positive prefix.
 fn bonus_format(value: f32) -> String {
@@ -464,11 +465,11 @@ fn material_name(variant: &MaterialVariant) -> String {
     I18n::translate(&base_key)
 }
 
-fn material_id_name(id: &Identifier) -> String {
+pub(crate) fn material_id_name(id: &Identifier) -> String {
     I18n::translate(&format!("material.{}.{}", id.namespace(), id.path()))
 }
 
-fn stat_type_name(id: &Identifier) -> String {
+pub(crate) fn stat_type_name(id: &Identifier) -> String {
     I18n::translate(&format!("stat.{}.{}", id.namespace(), id.path()))
 }
 
@@ -1298,7 +1299,7 @@ fn repair_line(durability: i32) -> String {
 }
 
 /// IMaterialStats.getLocalizedInfo for the port's stat records.
-fn localized_info(stats: &Stats, stat_type: &Identifier, scale: f32) -> Vec<String> {
+pub(crate) fn localized_info(stats: &Stats, stat_type: &Identifier, scale: f32) -> Vec<String> {
     match stats {
         Stats::Head { durability, mining_speed, tier, attack } => vec![
             stat_line("durability", comma_int((*durability as f32 * scale) as i32)),
@@ -1480,7 +1481,13 @@ fn table(headers: &[&str], rows: &[Vec<String>]) -> String {
 /// where the port's data spelling is `tool_stats`.
 fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
     match module {
-        Module::Flag { .. } | Module::Int { .. } | Module::Slot { .. } | Module::Rarity { .. } | Module::Sweep { .. } => {
+        Module::Flag { .. } => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_thrown");
+        }
+        Module::Int { .. } | Module::Slot { .. } | Module::Rarity { .. } | Module::Sweep { .. } => {
             out.insert("tconstruct:volatile_data");
         }
         Module::CreativeSlots { .. } => {
@@ -1599,8 +1606,12 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::InventorySlotMenu => {
             out.insert("tconstruct:slot_stack");
         }
-        Module::MaxArmorAttribute { .. } | Module::ArmorLevel { .. } | Module::ShowOffhand { .. } | Module::MobDisguise { .. }
+        Module::MaxArmorAttribute { .. } | Module::GoldenAttribute { .. } | Module::ArmorLevel { .. } | Module::ShowOffhand { .. } | Module::MobDisguise { .. }
         | Module::ClearEffectOnUnequip { .. } | Module::DamageOnUnequip { .. } | Module::ReduceEffectOnUnequip { .. } => {
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::LightspeedAttribute { .. } => {
+            out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:equipment_change");
         }
         Module::Edible => {
@@ -1637,9 +1648,17 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:monster_melee_hit");
             out.insert("tconstruct:projectile_hit");
         }
+        Module::TheOneProbe => {
+            out.insert("tconstruct:raw_data");
+        }
         Module::Display(display) => match display {
             Display::InteractionSource | Display::MaterialVariantColor { .. } | Display::VariantColor | Display::VariantName { .. } | Display::BannerPatterns | Display::Dyed | Display::Trim => {
                 out.insert("tconstruct:display_name");
+            }
+            Display::Embellished => {
+                out.insert("tconstruct:display_name");
+                out.insert("tconstruct:remove");
+                out.insert("tconstruct:raw_data");
             }
             Display::DurabilityColor { .. } => {
                 out.insert("tconstruct:durability_display");
@@ -1665,13 +1684,17 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
         Module::ArmorLooting { .. } => {
             out.insert("tconstruct:armor_looting");
         }
-        Module::Protection { .. } | Module::DepthProtection { .. } | Module::Overshield { .. } | Module::ProtectionCap { .. } => {
+        Module::Protection { .. } | Module::DepthProtection { .. } | Module::Overshield { .. } | Module::ProtectionCap { .. } | Module::FlameBarrier { .. } => {
             out.insert("tconstruct:protection");
         }
-        Module::AdjustDamage { .. } | Module::RestoreLostHealth { .. } => {
+        Module::AdjustDamage { .. } | Module::RestoreLostHealth { .. } | Module::TeleportDodge { .. } => {
             out.insert("tconstruct:modify_damage");
         }
         Module::Attribute { .. } => {
+            out.insert("tconstruct:attributes");
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::CustomAttribute { .. } => {
             out.insert("tconstruct:attributes");
             out.insert("tconstruct:equipment_change");
         }
@@ -1714,6 +1737,30 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:on_attacked");
             out.insert("tconstruct:tooltip");
         }
+        Module::Conducting => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Insatiable => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Lacerating => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:on_attacked");
+        }
+        Module::Momentum => {
+            out.insert("tconstruct:break_speed");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Enderclearance { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:on_attacked");
+        }
+        Module::Channeling { .. } => {
+            out.insert("tconstruct:melee_hit");
+        }
         Module::BulkQuiver { .. } => {
             out.insert("tconstruct:bow_ammo");
         }
@@ -1722,8 +1769,17 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:remove");
         }
+        Module::Sleeves => {
+            out.insert("tconstruct:general_interact");
+        }
         Module::ShieldStrap { .. } | Module::ToolBelt { .. } => {
             out.insert("tconstruct:armor_interact");
+        }
+        Module::Minimap => {
+            out.insert("tconstruct:equipment_change");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:remove");
         }
         Module::ShareDurability { .. } => {
             out.insert("tconstruct:tool_damage");
@@ -1746,6 +1802,29 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:projectile_thrown");
             out.insert("tconstruct:sling_launch");
         }
+        Module::SlingForce { .. } => {
+            out.insert("tconstruct:sling_force");
+        }
+        Module::Sling { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:melee_damage");
+        }
+        Module::Fireball { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:armor_interact");
+        }
+        Module::Tipped => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_thrown");
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:display_name");
+            out.insert("tconstruct:tooltip");
+            out.insert("tconstruct:remove");
+        }
         Module::Infinity { .. } => {
             out.insert("tconstruct:bow_ammo");
             out.insert("tconstruct:projectile_launch");
@@ -1760,9 +1839,172 @@ fn module_hooks(module: &Module, out: &mut BTreeSet<&'static str>) {
             out.insert("tconstruct:general_interact");
             out.insert("tconstruct:tool_action");
         }
+        Module::Brush => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
         Module::WalkTransform { .. } => {
             out.insert("tconstruct:boot_walk");
             out.insert("tconstruct:tool_action");
+        }
+        Module::ArrowPierce { .. } => {
+            out.insert("tconstruct:projectile_shot");
+        }
+        Module::ProjectileBounce { .. } => {
+            out.insert("tconstruct:projectile_hit");
+        }
+        Module::ProjectileGravity { .. } | Module::ProjectileFuse { .. } => {
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:schedule_projectile_task");
+        }
+        Module::ProjectileExplosion { .. } | Module::ProjectileAttractMobs { .. } => {
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_fuse");
+        }
+        Module::ProjectilePlaceGlow { .. } => {
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_launch");
+        }
+        Module::RestrictAngle { .. } => {
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:sling_launch");
+        }
+        Module::Throwing => {
+            out.insert("tconstruct:general_interaction");
+        }
+        Module::Fov { .. } => {
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::Zoom { style } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:equipment_change");
+            if matches!(style, ZoomStyle::Spyglass) {
+                out.insert("tconstruct:armor_interact");
+            }
+        }
+        Module::Tank => {
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:validate");
+            out.insert("tconstruct:remove");
+            out.insert("tconstruct:slot_stack");
+            out.insert("tconstruct:display_name");
+        }
+        Module::Bucket { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:general_interact");
+        }
+        Module::TankInteraction { .. } => {
+            out.insert("tconstruct:block_interact");
+        }
+        Module::Melting { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+            out.insert("tconstruct:process_loot");
+        }
+        Module::Slurping { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::Spilling { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+        }
+        Module::Spitting { .. } => {
+            out.insert("tconstruct:general_interact");
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:inventory_tick");
+        }
+        Module::Splashing { .. } => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
+        Module::Overburn => {
+            out.insert("tconstruct:inventory_tick");
+            out.insert("tconstruct:remove");
+        }
+        Module::Smashing => {
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:projectile_shot");
+            out.insert("tconstruct:projectile_hit");
+            out.insert("tconstruct:projectile_fuse");
+            out.insert("tconstruct:volatile_data");
+            out.insert("tconstruct:validate");
+            out.insert("tconstruct:remove");
+            out.insert("tconstruct:display_name");
+            out.insert("tconstruct:tooltip");
+        }
+        Module::EdibleRepresentative { .. } => {
+            out.insert("tconstruct:tool_using");
+            out.insert("tconstruct:edible_effect");
+        }
+        Module::FireWalker { .. } | Module::GlowWalker { .. } | Module::CoverGround { .. } | Module::ReplaceFluid { .. } => {
+            out.insert("tconstruct:boot_walk");
+        }
+        Module::PlaceGlow { .. } => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:remove_block");
+        }
+        Module::PlaceFire => {
+            out.insert("tconstruct:entity_interact");
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:tool_action");
+            out.insert("tconstruct:remove_block");
+        }
+        Module::BlockItemProvider { .. } => {
+            out.insert("tconstruct:block_item_provider");
+        }
+        Module::ArmorHarvestEnchantment { .. } => {
+            out.insert("tconstruct:harvest_enchantments");
+        }
+        Module::Autosmelt { .. } => {
+            out.insert("tconstruct:process_loot");
+        }
+        Module::Smelting { .. } => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:monster_melee_hit");
+            out.insert("tconstruct:launcher_hit");
+            out.insert("tconstruct:block_harvest");
+            out.insert("tconstruct:projectile_launch");
+            out.insert("tconstruct:on_attacked");
+            out.insert("tconstruct:plant_harvest");
+            out.insert("tconstruct:shear_entity");
+            out.insert("tconstruct:sling_launch");
+        }
+        Module::Dwarven => {
+            out.insert("tconstruct:break_speed");
+            out.insert("tconstruct:conditional_stat");
+        }
+        Module::Exchanging => {
+            out.insert("tconstruct:remove_block");
+        }
+        Module::ArmorStat { .. } | Module::MaxArmorStat { .. } => {
+            out.insert("tconstruct:equipment_change");
+            out.insert("tconstruct:tooltip");
+        }
+        Module::Enderporting => {
+            out.insert("tconstruct:melee_hit");
+            out.insert("tconstruct:block_harvest");
+            out.insert("tconstruct:plant_harvest");
+            out.insert("tconstruct:projectile_hit");
+        }
+        Module::Harvest => {
+            out.insert("tconstruct:block_interact");
+            out.insert("tconstruct:aoe_highlight");
+        }
+        Module::SelfDestructive => {
+            out.insert("tconstruct:armor_interact");
+            out.insert("tconstruct:equipment_change");
+        }
+        Module::StrongBones => {
+            out.insert("tconstruct:equipment_change");
         }
     }
 }
@@ -1992,6 +2234,41 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn flag_modules_report_the_volatile_and_projectile_hooks() {
+        // The flag's hook set is its decode guard's set: the volatile data hook plus the three
+        // projectile hooks the launch half binds (fins, enderference).
+        let modifier = Modifier::decode(Identifier::parse("tconstruct:fins").unwrap(), &json!({"modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:efln","hooks":["tconstruct:projectile_launch","tconstruct:projectile_shot"]}]})).unwrap();
+        assert_eq!(modifier_hooks(&modifier), BTreeSet::from(["tconstruct:volatile_data", "tconstruct:projectile_launch", "tconstruct:projectile_shot", "tconstruct:projectile_thrown"]));
+    }
+
+    #[test]
+    fn place_fire_module_hooks_are_its_four_default_hooks() {
+        // The module_hooks set must equal the decode guard set in modifier_modules (the census
+        // counts the kind bound only when the two agree).
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::PlaceFire, &mut out);
+        let expected: BTreeSet<&'static str> = ["tconstruct:entity_interact", "tconstruct:block_interact", "tconstruct:tool_action", "tconstruct:remove_block"].into_iter().collect();
+        assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn exchanging_module_hooks_are_its_remove_block_hook() {
+        // The module_hooks set must equal the decode guard set in modifier_modules (the census
+        // counts the kind bound only when the two agree).
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::Exchanging, &mut out);
+        let expected: BTreeSet<&'static str> = ["tconstruct:remove_block"].into_iter().collect();
+        assert_eq!(out, expected);
+    }
+
+    #[test]
+    fn brush_reports_exactly_its_three_hooks() {
+        let mut out = BTreeSet::new();
+        module_hooks(&Module::Brush, &mut out);
+        assert_eq!(out, BTreeSet::from(["tconstruct:general_interact", "tconstruct:block_interact", "tconstruct:aoe_highlight"]));
+    }
+
+    #[test]
     fn java_float_rendering_matches_float_to_string() {
         assert_eq!(java_float(1.0), "1.0");
         assert_eq!(java_float(0.0), "0.0");
@@ -2089,7 +2366,8 @@ mod tests {
         assert_eq!(read_stat_value(tier, &Nbt::String("obsidian".into())), None);
         // The tier stat is not numeric, and unknown stats do not resolve.
         assert!(resolve_tool_stat("harvest_tier", true).is_err());
-        assert!(resolve_tool_stat("tank_capacity", false).is_err());
+        assert!(resolve_tool_stat("tank_capacity", false).is_ok());
+        assert!(resolve_tool_stat("max_energy", false).is_err());
         assert!(resolve_tool_stat("nonsense", false).is_err());
     }
 

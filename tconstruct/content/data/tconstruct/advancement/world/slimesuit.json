@@ -18,7 +18,7 @@
         "items": [
           {
             "items": [
-              "tconstruct:slimy_chestplate"
+              "tconstruct:slime_chestplate"
             ]
           }
         ]
@@ -58,7 +58,7 @@
     "frame": "goal",
     "hidden": false,
     "icon": {
-      "id": "tconstruct:slimy_chestplate"
+      "id": "tconstruct:slime_chestplate"
     },
     "show_toast": true,
     "title": {

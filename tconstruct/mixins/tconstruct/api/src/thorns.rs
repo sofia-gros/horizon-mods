@@ -1,8 +1,10 @@
 //! ThornsModule, from SlimeKnights (MIT; see LICENSE): armor that hurts the mob that hit its wearer. Each piece rolls its chance (a share
 //! that grows with the level), and the damage is a flat part plus a random share of the random part, both scaled by the level. The
-//! attacker is filtered by entity type tags and what it was doing; a condition on the wearer, on the weather or on the water around
-//! the attacker is state this port does not hold, so such a module stays unbound. The armor's durability cost (`durability_usage`) is not
-//! charged: the hit reaches the mods before the wear is worked out, and a worn piece is rewritten only through the item-wear event.
+//! attacker is filtered by entity type tags and what it was doing, including the water at its eyes and its feet, which the hurt report
+//! fills from the mob's own fluid state; a condition on the wearer is state this port does not hold, so such a module stays unbound.
+//! Three reductions stand: the armor's durability cost (`durability_usage`) is not charged (the hit reaches the mods before the wear is
+//! worked out, and a worn piece is rewritten only through the item-wear event), the damage is not gated on the hit being direct
+//! damage, and a blocking wearer does not double the level the chance and the damage scale with.
 use crate::{melee_damage::TargetCondition, modifier_entries::Entry};
 use pluto_lib::Identifier;
 use serde_json::{Map, Value};
@@ -96,9 +98,36 @@ mod tests {
 
     #[test]
     fn a_condition_this_port_cannot_hold_leaves_the_module_unbound() {
-        assert!(thorns(json!({"attacker":"mantle:raining_at","constant_damage":{"flat":2.0}})).is_none(), "the weather stays unbound");
-        assert!(thorns(json!({"attacker":{"type":"mantle:or","predicates":["mantle:eyes_in_water","mantle:feet_in_water"]},"constant_damage":{"flat":2.0}})).is_none());
+        assert!(thorns(json!({"attacker":{"type":"mantle:entity_type","entity_type":"minecraft:player"},"constant_damage":{"flat":2.0}})).is_none(), "a predicate over the entity type stays unbound");
         assert!(thorns(json!({"defender":"mantle:sprinting","constant_damage":{"flat":2.0}})).is_none(), "a wearer condition stays unbound");
         assert!(thorns(json!({"attacker":"mantle:on_fire","constant_damage":{"flat":2.0}})).is_some(), "a state the hit reports is bound");
+    }
+
+    #[test]
+    fn the_shipped_shock_thorns_bind_and_answer_the_water_at_the_attacker() {
+        // shock, first thorns: the attacker in water at its eyes or at its feet.
+        let wet = thorns(json!({"type":"tconstruct:thorns","attacker":{"type":"mantle:or","predicates":["mantle:eyes_in_water","mantle:feet_in_water"]},
+            "chance":{"each_level":0.2},"constant_damage":{"flat":2.0},"damage_type":"tconstruct:shock","durability_usage":1,
+            "random_damage":{"flat":3.0},"tool":{"type":"mantle:tag","tag":"tconstruct:modifiable/armor"}})).unwrap();
+        let state = |eyes_in_water: bool, in_water: bool| pluto_lib::EntityState { eyes_in_water, in_water, ..Default::default() };
+        // A closure factory cannot spell this return: its `'_` stays a fresh lifetime
+        // unrelated to the state's (E0562 forbids `impl Trait` there too), so the
+        // factory is a plain nested fn with the lifetime named.
+        fn answers<'a>(state: &'a pluto_lib::EntityState) -> Box<dyn Fn(&Identifier) -> bool + 'a> {
+            Box::new(move |tag: &Identifier| crate::melee_damage::state_in_tag(tag, Some(state), None))
+        }
+        let dry = state(false, false);
+        assert!(wet.hurt(&entry(1), true, &answers(&dry), &mut || 0.0).is_none(), "a dry attacker is not shocked");
+        let eyes = state(true, false);
+        assert_eq!(wet.hurt(&entry(1), true, &answers(&eyes), &mut || 0.0), Some(Hurt { damage_type: Identifier::parse("tconstruct:shock").unwrap(), amount: 2.0 }), "the eyes in water are enough");
+        let feet = state(false, true);
+        assert!(wet.hurt(&entry(1), true, &answers(&feet), &mut || 0.0).is_some(), "the feet in water are enough");
+        // shock, second thorns: rain on the attacker.
+        let rained = thorns(json!({"type":"tconstruct:thorns","attacker":"mantle:raining_at",
+            "chance":{"each_level":0.1},"constant_damage":{"flat":2.0},"damage_type":"tconstruct:shock","durability_usage":1,
+            "random_damage":{"flat":3.0},"tool":{"type":"mantle:tag","tag":"tconstruct:modifiable/armor"}})).unwrap();
+        let rain = pluto_lib::EntityState { rain_exposed: true, ..Default::default() };
+        assert!(rained.hurt(&entry(1), true, &answers(&rain), &mut || 0.0).is_some(), "rain on the attacker is enough");
+        assert!(rained.hurt(&entry(1), true, &answers(&dry), &mut || 0.0).is_none(), "no rain, no shock");
     }
 }

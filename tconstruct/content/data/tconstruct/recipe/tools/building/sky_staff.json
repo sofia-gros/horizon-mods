@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "tconstruct:sky_slime_crystal",
+    "I": [
+      "tconstruct:rose_gold_ingot"
+    ],
+    "W": [
+      "tconstruct:skyroot_log",
+      "tconstruct:stripped_skyroot_log",
+      "tconstruct:skyroot_wood",
+      "tconstruct:stripped_skyroot_wood"
+    ]
+  },
+  "pattern": [
+    "CWC",
+    " I ",
+    " W "
+  ],
+  "result": {
+    "id": "tconstruct:sky_staff"
+  }
+}

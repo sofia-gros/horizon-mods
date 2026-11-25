@@ -478,13 +478,16 @@ fn a_projectile_hit_on_a_crystal_plays_its_hit_sound_then_its_chime() {
         owner: 1,
         entity,
         entity_kind: String::new(),
+        entity_effects: Vec::new(),
         block: [4, 70, 4],
         face: [0, 1, 0],
         at: [4.5, 71.0, 4.5],
         motion: [0.0, 0.0, 0.0],
         data: NbtCompound::new(),
+        piercing_ignored: Vec::new(),
         discard: std::cell::Cell::new(false),
         motion_after: std::cell::RefCell::new(None),
+        ignore_entities: std::cell::RefCell::new(Vec::new()),
         actions: std::cell::RefCell::new(Vec::new()),
     };
     let mut ops = MemoryWorldOps::default();

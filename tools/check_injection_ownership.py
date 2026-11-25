@@ -27,7 +27,13 @@ def injections(path):
 
 
 def place(injection):
-    return (injection['target'], injection['kind'], injection.get('selector', ''))
+    selector = injection.get('selector', '')
+    if injection['kind'] == 'MODIFY_VARIABLE':
+        # The weaver keys a MODIFY_VARIABLE place by its variable, not a
+        # selector (a selector on one is rejected with E_SELECTOR), so two
+        # hooks on different variables of one target do not compete.
+        selector = injection.get('variable', {}).get('name', '')
+    return (injection['target'], injection['kind'], selector)
 
 
 def problems(pluto=PLUTO, others=None, limits=LIMITS):

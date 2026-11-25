@@ -1,0 +1,12 @@
+{
+  "type": "tconstruct:tool_material_swapping",
+  "tools": {
+    "type": "forge:difference",
+    "base": {
+      "tag": "tconstruct:modifiable/multipart"
+    },
+    "subtracted": {
+      "tag": "tconstruct:modifiable/unswappable/tools"
+    }
+  }
+}

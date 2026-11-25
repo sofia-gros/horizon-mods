@@ -37,6 +37,7 @@ horizon-mods = { path = "../horizon-mods" }
 horizon-official = { path = "../horizon-official", optional = true }
 mod_0 = { package = "mod-pluto_lib", path = "../../native-api/pluto_lib", features = ["native-inventory-glue"] }
 mod_1 = { package = "mod-tconstruct", path = "../../native-api/tconstruct" }
+mod_2 = { package = "mod-pipes", path = "../../native-api/pipes" }
 [features]
 default = ["horizon-client/default", "official"]
 official = ["dep:horizon-official"]
@@ -53,8 +54,8 @@ static ALLOCATOR: horizon_threads::GameAllocator = horizon_threads::GAME_ALLOCAT
 static MOD_API_LEVEL: [u8; horizon_mods::api_level::MARK.len()] = horizon_mods::api_level::MARK;
 fn main() {
     std::hint::black_box(&MOD_API_LEVEL);
-    let mods: horizon_client::mod_api::Mods = vec![mod_0::hooks(), mod_1::hooks()].into();
-    horizon_client::mod_api::name_mods(&["pluto_lib", "tconstruct"]);
+    let mods: horizon_client::mod_api::Mods = vec![mod_0::hooks(), mod_1::hooks(), mod_2::hooks()].into();
+    horizon_client::mod_api::name_mods(&["pluto_lib", "tconstruct", "pipes"]);
     #[cfg(feature = "official")]
     horizon_official::register();
     horizon_client::entry::main_with(mods);
@@ -144,7 +145,8 @@ def link(prepared, target):
         raise ValueError('link evidence already exists; preserve it')
     command = ['cargo', '+1.95.0', 'build', '--offline', '--locked', '--manifest-path',
                str(stage / 'Cargo.toml'), '--target-dir', str(target), '-p', PACKAGE,
-               '--bin', 'horizon-client', '--message-format=json-render-diagnostics']
+               '--bin', 'horizon-client', '--message-format=json-render-diagnostics',
+               '--keep-going']
     env = dict(os.environ, CARGO_INCREMENTAL='0')
     result = subprocess.run(command, capture_output=True, text=True, env=env)
     (prepared / 'game-entry-link.log').write_text(newline='\n', data=result.stdout + '\n' + result.stderr, encoding='utf-8')
@@ -180,8 +182,11 @@ def link(prepared, target):
 
 def check(prepared):
     stage = prepare(prepared)
+    # --keep-going: report every independent crate's errors in one run;
+    # the exit code is unchanged.
     command = ['cargo', '+1.95.0', 'check', '--offline', '--manifest-path',
-               str(stage / 'Cargo.toml'), '-p', PACKAGE, '--bin', 'horizon-client']
+               str(stage / 'Cargo.toml'), '-p', PACKAGE, '--bin', 'horizon-client',
+               '--keep-going']
     code = subprocess.run(command).returncode
     inputs = None
     if code == 0:

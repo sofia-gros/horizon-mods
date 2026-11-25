@@ -3,8 +3,10 @@
 //! answers a faucet, channel or pipe with the controller's tank; a duct does the same for one fluid only, the fluid of the container in
 //! its slot. The structure tells these blocks their master (`master` in their saved data, written when the structure forms and cleared
 //! when a block leaves it), and a servant that already answers to another controller blocks a second structure (`isValidMaster`).
-//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing is not ported (it is
-//! model data, which the host does not take from a block entity). The fluids the drain and the duct display are ported in the
+//! The controllers' own tank answers through PlutoLib's fluid hooks over the saved `tank`. Retexturing's data path is
+//! ported (see `retextured`): the placement hook keeps a placed stack's texture in the block entity's data, and the
+//! loot function restores it on the drop; only the picture is missing, as no model-data surface lets a placed block's
+//! texture follow its block entity. The fluids the drain and the duct display are ported in the
 //! port's form: the drain's ticker mirrors its master's first tank fluid into its own data under `display` (the controller
 //! notifies its drains in the original), the duct's renderer reads the fluid of the container in its slot from its synced
 //! items, and `rendering::render_io` draws both. A chute forwards its master's item inventory on every
@@ -173,12 +175,12 @@ pub(crate) fn register() {
     for name in DRAINS {
         let block = Identifier::new("tconstruct", name).expect("valid drain id");
         // a drain answers with the whole tank of its master, and shows its first fluid
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().ticker(tick_drain).fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().on_place(crate::retextured::keep_texture).ticker(tick_drain).fluid_forward(|data, _| master_of(data).map(|target| FluidForward { target, filter: FluidFilter::Any })));
     }
     for name in CHUTES {
         let block = Identifier::new("tconstruct", name).expect("valid chute id");
         // ChuteBlockEntity: the master's item handler answers on every face, the facing ignored.
-        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().item_forward(|data, _| master_of(data).map(|target| ItemForward { target, filter: ItemFilter::Any })));
+        BlockEntityTypeRegistry::register(BlockEntityType::new(block).sync_data().on_place(crate::retextured::keep_texture).item_forward(|data, _| master_of(data).map(|target| ItemForward { target, filter: ItemFilter::Any })));
     }
     for name in DUCTS {
         let block = Identifier::new("tconstruct", name).expect("valid duct id");
@@ -191,7 +193,7 @@ pub(crate) fn register() {
                 .on_draw(|draw| { draw.canvas.sprite(DUCT_BACKGROUND, [0.0, 0.0, 176.0, 133.0], [draw.origin[0], draw.origin[1], 176.0, 133.0]); }),
         );
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(block).item_slots(1).menu(&format!("tconstruct:{name}")).sync_data()
+            BlockEntityType::new(block).item_slots(1).menu(&format!("tconstruct:{name}")).sync_data().on_place(crate::retextured::keep_texture)
                 .fluid_forward(|data, items| master_of(data).map(|target| FluidForward { target, filter: duct_filter(items) })),
         );
     }

@@ -54,7 +54,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce. And `actions` is the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
+A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `entity_effects` the mob effects the entity it hit carries, by id (empty for a block, or when the host could not reach the target), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. `piercing_ignored` is the entities a piercing arrow has already gone through, by id, as the game reports them — the entity this hit is on is already in it — and `ignore_entities` is where a callback writes the entities the hit has passed through, for the game to add to the arrow's list before it flies again, so a piercing arrow does not meet the same entity twice. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce. And `actions` is the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -66,13 +66,16 @@ let hit = ProjectileImpact {
     owner: 1,
     entity: None,
     entity_kind: String::new(),
+    entity_effects: Vec::new(),
     block: [3, 64, 3],
     face: [0, 1, 0],
     at: [3.5, 65.0, 3.5],
     motion: [0.0, -1.5, 0.25],
     data: Default::default(),
+    piercing_ignored: Default::default(),
     discard: Default::default(),
     motion_after: Default::default(),
+    ignore_entities: Default::default(),
     actions: Default::default(),
 };
 assert_eq!(hit.block[1] + hit.face[1], 65);
@@ -95,8 +98,8 @@ fn dimension_of(hit: &ProjectileImpact) -> String {
 }
 let hit = ProjectileImpact {
     dimension: "minecraft:the_nether".into(), projectile: 1, kind: "minecraft:arrow".into(), owner: 0, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
-    discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    piercing_ignored: Default::default(), discard: Default::default(), motion_after: Default::default(), ignore_entities: Default::default(), actions: Default::default(),
 };
 assert_eq!(dimension_of(&hit), "minecraft:the_nether");
 ```
@@ -121,8 +124,8 @@ use pluto_lib::{ProjectileEvents, ProjectileImpact};
 ProjectileEvents::IMPACT.register(|hit| hit.kind != "minecraft:egg");
 let egg = ProjectileImpact {
     dimension: "minecraft:overworld".into(), projectile: 2, kind: "minecraft:egg".into(), owner: 1, entity: None,
-    entity_kind: String::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
-    discard: Default::default(), motion_after: Default::default(), actions: Default::default(),
+    entity_kind: String::new(), entity_effects: Vec::new(), block: [0; 3], face: [0, 1, 0], at: [0.0; 3], motion: [0.0; 3], data: Default::default(),
+    piercing_ignored: Default::default(), discard: Default::default(), motion_after: Default::default(), ignore_entities: Default::default(), actions: Default::default(),
 };
 assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 ```
@@ -197,10 +200,13 @@ let shuriken = ThrownType::new(
     Identifier::parse("example:shuriken_thrown").unwrap(),
     Identifier::parse("example:shuriken").unwrap(),
     4.0,
-).unwrap();
+).unwrap().throw_sound(Identifier::parse("example:throw.shuriken").unwrap());
 ThrownTypeRegistry::register(shuriken).unwrap();
 assert_eq!(ThrownTypeRegistry::get(&Identifier::parse("example:shuriken_thrown").unwrap()).unwrap().damage, 4.0);
+assert_eq!(ThrownTypeRegistry::throw_sound(&Identifier::parse("example:shuriken_thrown").unwrap()).map(|sound| sound.to_string()), Some("example:throw.shuriken".to_owned()));
 ```
+
+A hand throw of a thrown type plays the game's snowball throw unless the type carries a throw sound: `.throw_sound(...)` registers the sound the throw plays instead. The game's volume (0.5) and pitch (`0.4 / (random * 0.4 + 0.8)`) already match Java's, so only the event id changes; a type with no throw sound keeps the game's own sound.
 
 > **Use with Caution.** Registration is the trait-mod source of truth, validated as the game validates the content form; delivery to the game's own registry is a wall. The game fills its thrown-type registry once, at startup, from content mods' entity types alone, and no entry or provider seam reaches it for a trait mod, so a type registered here must also be declared in the mod's content entity types to fly in the game. `ThrownTypeRegistry::declarations()` hands over exactly what that declaration needs: each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
 
@@ -223,7 +229,7 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `ThrownType`
 
-A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item` and `damage`. `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
+A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item`, `damage` and `throw_sound`, the sound a hand throw plays instead of the game's snowball throw (`None` keeps the game's own). `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType};
@@ -232,6 +238,7 @@ let thrown = ThrownType::new(Identifier::parse("example:rock_thrown").unwrap(), 
 assert_eq!(thrown.id.to_string(), "example:rock_thrown");
 assert_eq!(thrown.item.to_string(), "example:rock");
 assert_eq!(thrown.damage, 2.0);
+assert_eq!(thrown.throw_sound, None);
 ```
 
 ### `ThrownTypeRegistry`
@@ -292,6 +299,20 @@ assert_eq!(ops.summons[0].kind, "example:dart_thrown");
 assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown").unwrap(), [0.0; 3], [0.0; 3], None, NbtCompound::new()), None);
 ```
 
+### `throw_sound_for`
+
+`fn throw_sound_for(id: &str) -> Option<&'static str>`. The sound a thrown type throws with, for the host's throw-sound sink: the registered type's throw sound, if it carries one. None keeps the game's own snowball throw.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry, throw_sound_for};
+
+assert_eq!(throw_sound_for("example:unregistered_thrown"), None);
+let id = Identifier::parse("example:chime_thrown").unwrap();
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:chime").unwrap(), 0.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.chime").unwrap())).unwrap();
+assert_eq!(throw_sound_for("example:chime_thrown"), Some("example:throw.chime"));
+```
+
 ### `uuid_int_array`
 
 `fn uuid_int_array(uuid: u128) -> [i32; 4]`. A uuid as the four ints entity data holds it in (`UUIDUtil.uuidToIntArray`), most significant first.
@@ -313,6 +334,18 @@ assert!(ThrownType::new(Identifier::parse("example:ok_thrown").unwrap(), Identif
 assert!(ThrownType::new(Identifier::parse("minecraft:arrow").unwrap(), Identifier::parse("minecraft:arrow").unwrap(), 1.0).is_err());
 assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), -1.0).is_err());
 assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identifier::parse("example:bad").unwrap(), f32::NAN).is_err());
+```
+
+### `ThrownType::throw_sound`
+
+`fn throw_sound(self, sound: Identifier) -> ThrownType`. The same thrown type, throwing with `sound` instead of the vanilla snowball throw.
+
+```rust
+use pluto_lib::{Identifier, ThrownType};
+
+let thrown = ThrownType::new(Identifier::parse("example:ball_thrown").unwrap(), Identifier::parse("example:ball").unwrap(), 0.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.throwball").unwrap());
+assert_eq!(thrown.throw_sound.unwrap().to_string(), "example:throw.throwball");
 ```
 
 ### `ThrownTypeRegistry::register`
@@ -338,6 +371,20 @@ let id = Identifier::parse("example:orb_thrown").unwrap();
 assert!(ThrownTypeRegistry::get(&id).is_none());
 ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:orb").unwrap(), 5.0).unwrap()).unwrap();
 assert_eq!(ThrownTypeRegistry::get(&id).unwrap().item.to_string(), "example:orb");
+```
+
+### `ThrownTypeRegistry::throw_sound`
+
+`fn throw_sound(id: &Identifier) -> Option<Identifier>`. The throw sound registered for `id`, if the type carries one.
+
+```rust
+use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
+
+let id = Identifier::parse("example:shard_thrown").unwrap();
+assert_eq!(ThrownTypeRegistry::throw_sound(&id), None);
+ThrownTypeRegistry::register(ThrownType::new(id.clone(), Identifier::parse("example:shard").unwrap(), 1.0).unwrap()
+    .throw_sound(Identifier::parse("example:throw.shard").unwrap())).unwrap();
+assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), Some("example:throw.shard".to_owned()));
 ```
 
 ### `ThrownTypeRegistry::declarations`
@@ -446,4 +493,114 @@ let request = AmmoRequest {
 };
 ProjectileEvents::AMMO.invoke(&request);
 assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecraft:arrow");
+```
+
+### `ProjectileEvents::SPAWN`
+
+A projectile joined the flying list, before its first tick: the set-up pass. A callback may still set the shot up — replace its `motion_after`, give an arrow a `pierce` level, set an arrow's pickup status (`pickup`), lift its gravity (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every projectile the game adds on a server, a callback's own summons included; the projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile state at `LAUNCH` or on the first `FLIGHT`. Server only.
+
+```rust
+use pluto_lib::ProjectileEvents;
+
+ProjectileEvents::SPAWN.register(|spawn| {
+    if spawn.kind == "minecraft:arrow" {
+        spawn.pierce.set(Some(2));
+    }
+});
+```
+
+### `ProjectileSpawned`
+
+A projectile at the moment it joins the flying list. `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered), `kind` its type, `owner` the entity that threw or shot it (negative if none), `position` where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the arrow facts when it is an arrow, `stack` the projectile's own stack as data (an arrow's pickup stack, a thrown type's item) and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce level, `pickup` sets an arrow's pickup status (creative-only for an arrow its launcher supplied), `no_gravity` lifts its gravity, and `pickup_stack` names the stack a stuck arrow hands back when picked up.
+
+```rust
+use pluto_lib::{ArrowFacts, ArrowPickup, ProjectileSpawned};
+use std::cell::{Cell, RefCell};
+
+let spawn = ProjectileSpawned {
+    dimension: "minecraft:overworld".into(), projectile: 0, kind: "minecraft:arrow".into(), owner: 1,
+    position: [0.5, 64.0, 0.5], motion: [0.0, 0.2, -2.0],
+    arrow: Some(ArrowFacts { pierce: 0, in_ground: false, in_ground_time: 0, dealt_damage: false }),
+    stack: None, data: Default::default(),
+    motion_after: RefCell::new(None), pierce: Cell::new(None), pickup: Cell::new(None), no_gravity: Cell::new(None), pickup_stack: RefCell::new(None),
+};
+spawn.pierce.set(Some(3));
+assert_eq!(spawn.pierce.get(), Some(3));
+assert_eq!(spawn.arrow.unwrap().pierce, 0);
+spawn.pickup.set(Some(ArrowPickup::CreativeOnly));
+assert_eq!(spawn.pickup.get(), Some(ArrowPickup::CreativeOnly));
+```
+
+### `ArrowFacts`
+
+What a flying projectile's arrow half keeps: `pierce` how many entities it passes through, `in_ground` whether it rests stuck in a block, `in_ground_time` how many ticks it has been stuck, and `dealt_damage` whether it has dealt its damage (a trident body's flag: it hits no more, and a loyal flight comes home).
+
+```rust
+use pluto_lib::ArrowFacts;
+
+let facts = ArrowFacts { pierce: 2, in_ground: true, in_ground_time: 5, dealt_damage: false };
+assert!(facts.in_ground && facts.in_ground_time > 4 && !facts.dealt_damage);
+```
+
+### `ArrowPickup`
+
+An arrow's pickup status (`AbstractArrow.Pickup`): who may pick a stuck arrow up. `Disallowed` is picked up by no player, `Allowed` by any player (who is handed the arrow's pickup stack), and `CreativeOnly` only by a player in creative, who takes no item for it — an arrow its shooter did not spend, such as one a launcher's modifier supplied. The codes are the host's saved byte: 0, 1, 2.
+
+```rust
+use pluto_lib::ArrowPickup;
+
+assert_eq!(ArrowPickup::default(), ArrowPickup::Disallowed);
+assert_eq!((ArrowPickup::Disallowed as u8, ArrowPickup::Allowed as u8, ArrowPickup::CreativeOnly as u8), (0, 1, 2));
+```
+
+### `ProjectileEvents::FLIGHT`
+
+A projectile ended a tick it flew (or rested stuck) in: the steering pass. Heard once a tick for every projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. A callback may set the motion it flies the next tick with, lift or restore its gravity, set an arrow's pickup status, free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its tool rests stuck. Server only.
+
+```rust
+use pluto_lib::ProjectileEvents;
+
+ProjectileEvents::FLIGHT.register(|flight| {
+    if flight.age >= 200 {
+        flight.discard.set(true);
+    }
+});
+```
+
+### `ProjectileFlight`
+
+A projectile at the end of a tick of flight. `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner` the entity that threw or shot it (negative if none); `owner_position` is where the owner stands, when the game could reach it — how a callback steers a flight home. `age` is how many ticks it has flown, `position` where it ended the tick and `motion` how fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts or restores its gravity from the next tick, `pickup_after` sets an arrow's pickup status from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given can fly it, and `actions` is the queue of `FlightAction`s to do around it.
+
+```rust
+use pluto_lib::{ArrowFacts, FlightAction, ProjectileFlight};
+use std::cell::{Cell, RefCell};
+
+let flight = ProjectileFlight {
+    dimension: "minecraft:overworld".into(), projectile: 9, kind: "minecraft:arrow".into(), owner: 1,
+    owner_position: Some([0.5, 64.0, 3.5]), age: 25, position: [0.5, 64.0, 0.5], motion: [0.0; 3],
+    in_ground: true, no_gravity: false,
+    arrow: Some(ArrowFacts { pierce: 0, in_ground: true, in_ground_time: 5, dealt_damage: true }),
+    data: Default::default(),
+    motion_after: RefCell::new(None), discard: Cell::new(false), no_gravity_after: Cell::new(None), pickup_after: Cell::new(None),
+    release_from_ground: Cell::new(false), actions: RefCell::new(Vec::new()),
+};
+if flight.in_ground && flight.arrow.is_some_and(|a| a.dealt_damage) {
+    flight.release_from_ground.set(true);
+    flight.actions.borrow_mut().push(FlightAction::PullItems { center: flight.position, radius: 3.0, strength: 0.05 });
+}
+assert!(flight.release_from_ground.get());
+assert_eq!(flight.actions.borrow().len(), 1);
+```
+
+### `FlightAction`
+
+One thing a flight callback asks the game to do around a flying projectile, in plain data, done as the tick settles in the order queued: `Explode` sets off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity, `PullItems` pulls the item entities near a point toward it, `PullEntities` pulls the mobs near a point toward it, `DropStack` drops a stack as an item entity, and `GiveStack` hands a stack to the projectile's owner (into a player owner's inventory, or dropped at their feet when it does not fit or the owner is no player).
+
+```rust
+use pluto_lib::{FlightAction, StackData, ExplosionInteraction};
+
+let boom = FlightAction::Explode { center: [0.5, 64.0, 0.5], radius: 2.0, fire: false, interaction: ExplosionInteraction::Block };
+let back = FlightAction::GiveStack { stack: StackData { item: "example:thrown_tool".into(), count: 1, ..Default::default() } };
+assert!(matches!(boom, FlightAction::Explode { radius: 2.0, .. }));
+assert!(matches!(back, FlightAction::GiveStack { .. }));
 ```

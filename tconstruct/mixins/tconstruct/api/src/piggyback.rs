@@ -14,20 +14,30 @@
 //! the complete decision logic of the Java classes as the pure functions below, unit-tested
 //! against the Java control flow.
 //!
-//! What does not ship: the live wiring, walled with evidence. Java's behaviour runs in
-//! `interactLivingEntity` and in the worn stack's `inventoryTick`, and moves entities with
-//! `Entity.startRiding`/`stopRiding`. The host has the seams — the `interact_entity` hook
-//! (claimable, `InteractEntityEvent { entity, kind, stack }`), `interact_entity_v2` (with the
-//! hand), and the `inventory_tick` hook (`InventoryTickEvent { slot, selected }`) — but this
-//! PlutoLib base dispatches none of them from `hooks.rs`, and no PlutoLib surface can make one
-//! entity ride another (the entity reach reads and hurts; it has no passenger operations).
-//! Wiring those two host hooks into PlutoLib events and adding a ride operation to the entity
-//! reach is foundation work (the same class FND2 did for its surfaces); the functions below
-//! are written against exactly the facts those callbacks will carry, so the consumer is a
-//! thin shell over them when the seams land. Until then the item exists — which is also what
-//! the advancements need (`world/piggybackpack`) — but using it on a mob does nothing.
-//! The carry effect's icons (`carry`/`carry_2`/`carry_3` by amplifier, client side) are
-//! presentation and ride along with the same follow-up; [`carry_icon`] keeps the mapping.
+//! The live wiring ships too, over the PlutoLib surfaces that were missing when the logic
+//! landed: the interaction callback names the player (whose entity id the entity reach finds
+//! from the uuid) and the reach starts and stops rides; the chest slot — whose carried number
+//! is 102 in the host's armour order (feet 100, legs 101, chest 102, head 103) — is written
+//! through the player's stack operations, which create a stack in an empty slot where the
+//! host's own carried-stack read only ever names an occupied one. The wiring below is a thin
+//! shell over the decision functions: a use of the pack on an entity runs
+//! `interactLivingEntity` (the opening PASS when a foreign chest item has nowhere to go, the
+//! pickup walk, then the chest bookkeeping), and a tick of any pack stack runs the worn
+//! pack's part of `inventoryTick` plus the carry effect's trim.
+//!
+//! Reductions, each for a named reason: the blacklist fact is always false — the shipped
+//! `tconstruct:piggybackpack_blacklist` tag is empty (the original creates it with no
+//! entries) and PlutoLib has no entity-type tag query, so this is exact for all shipped data.
+//! A mount is judged by the ride reach's snapshot when it is requested and applied at the
+//! game's own sync seam; if the game then refuses it, the chest count stands high until the
+//! next tick's trim, where Java's synchronous `startRiding` would have refused the pickup
+//! itself. The trim runs on the pack's inventory tick wherever the pack is carried rather
+//! than on the effect's own tick: a pack in the inventory but not worn trims to zero exactly
+//! as the effect would, while a pack dropped out of the inventory entirely cannot trim
+//! (nothing ticks for it) where the effect would have. The server's `updatePassengers`
+//! packet and the carry icons ([`carry_icon`] keeps the mapping) are presentation. The carry
+//! instance Java applies shows its icon; the port's effect instance has no icon field, so the
+//! applied instance differs there only.
 
 /// How many entities can be carried at once (PiggyBackPackItem.MAX_ENTITY_STACK).
 pub(crate) const MAX_ENTITY_STACK: usize = 3;
@@ -145,9 +155,165 @@ pub(crate) fn carry_icon(amplifier: i32) -> &'static str {
     }
 }
 
-/// Registration: the item's optional Mantle tooltip is the one piece of the pack that works
-/// today (PiggyBackPackItem extends Mantle's TooltipItem); the interaction and inventory
-/// wiring is the walled follow-up described in the module header.
+/// The pack item's id.
+const PACK: &str = "tconstruct:piggy_backpack";
+
+/// The chest slot's carried number (the host's armour order: feet 100, legs 101, chest 102,
+/// head 103; the offhand is -106).
+const CHEST_SLOT: i32 = 102;
+
+/// The player's first-passenger chain: the entity ids riding it, outermost first, walked by
+/// first passenger as `getEntitiesCarried` walks. Capped well past any real stack (the game
+/// refuses cycles when a ride is requested) so a corrupt read cannot loop.
+fn passenger_chain(player_id: u64) -> Vec<u64> {
+    let mut chain = Vec::new();
+    let mut current = player_id;
+    while chain.len() <= 16 {
+        let passengers = pluto_lib::EntityReach::passengers_of(current);
+        let Some(first) = passengers.first() else { break };
+        chain.push(*first);
+        current = *first;
+    }
+    chain
+}
+
+/// Whether `entity` rides `vehicle`, directly or up its vehicle chain (`isVehicle`).
+fn is_vehicle_of(entity: u64, vehicle: u64) -> bool {
+    let mut current = entity;
+    for _ in 0..16 {
+        match pluto_lib::EntityReach::vehicle_of(current) {
+            Some(found) if found == vehicle => return true,
+            Some(found) => current = found,
+            None => return false,
+        }
+    }
+    false
+}
+
+/// Ejects every carried entity deeper than `max_count` (`matchCarriedEntitiesToCount` over
+/// the chain: each ejected entity keeps its own passengers).
+fn trim_to(chain: &[u64], max_count: usize) {
+    for depth in trim_depths(chain.len(), max_count) {
+        pluto_lib::EntityReach::stop_riding(chain[depth - 1]);
+    }
+}
+
+/// `stack.split(1)` on the hand that used the pack: the stack shrinks by one, and an emptied
+/// hand clears.
+fn shrink_hand(player: &pluto_lib::ServerPlayer, hand_slot: i32, held: &pluto_lib::StackData) {
+    if held.count <= 1 {
+        player.set_stack(hand_slot, None);
+    } else {
+        let mut shrunk = held.clone();
+        shrunk.count -= 1;
+        player.update_stack(hand_slot, &shrunk);
+    }
+}
+
+/// PiggyBackPackItem.interactLivingEntity: PASS before anything runs when the chest holds
+/// something else and the inventory has no free slot for it; the pickup walk; on success the
+/// chest bookkeeping; CONSUME when the pickup itself refuses.
+fn interact(context: &pluto_lib::UseItemOnEntityContext) -> pluto_lib::ActionResult {
+    use pluto_lib::ActionResult;
+    let Some(held) = &context.held else { return ActionResult::Pass };
+    if held.item != PACK {
+        return ActionResult::Pass;
+    }
+    let Some(player) = &context.player else { return ActionResult::Pass };
+    if context.entity < 0 {
+        return ActionResult::Pass;
+    }
+    let Some(player_id) = pluto_lib::EntityReach::id_of_uuid(player.uuid) else { return ActionResult::Pass };
+    let target = context.entity as u64;
+    let chest = player.stack(CHEST_SLOT);
+    let chest_is_pack = chest.as_ref().is_some_and(|stack| stack.item == PACK);
+    if !chest_is_pack && player.empty_slots() == 0 {
+        return ActionResult::Pass;
+    }
+    let chain = passenger_chain(player_id);
+    let facts = PickupFacts {
+        client_side: false,
+        target_blacklisted: false,
+        target_is_players_vehicle: is_vehicle_of(player_id, target),
+        player_is_targets_vehicle: is_vehicle_of(target, player_id),
+        passenger_chain: chain
+            .iter()
+            .map(|id| pluto_lib::EntityReach::kind_of(*id).is_some_and(|kind| kind.to_string() == "minecraft:player"))
+            .collect(),
+        target_is_player: context.kind == "minecraft:player",
+        ride_accepted: true,
+    };
+    if !can_pickup(&facts) {
+        return ActionResult::Consume;
+    }
+    let mount = *chain.last().unwrap_or(&player_id);
+    if !pluto_lib::EntityReach::start_riding(target, mount) {
+        return ActionResult::Consume;
+    }
+    let carried_after = chain.len() + 1;
+    let hand_slot = match context.hand {
+        pluto_lib::Hand::Main => player.selected_slot().unwrap_or(0),
+        pluto_lib::Hand::Off => -106,
+    };
+    match chest_action(chest_is_pack, chest.as_ref().map_or(0, |stack| stack.count), carried_after) {
+        ChestAction::EquipOne => {
+            if let Some(foreign) = &chest {
+                if !chest_is_pack {
+                    player.give_stack(foreign.clone());
+                }
+            }
+            shrink_hand(player, hand_slot, held);
+            let pack = pluto_lib::StackData { count: 1, ..held.clone() };
+            player.set_equipment(pluto_lib::StackSlot::Chest, Some(&pack));
+        }
+        ChestAction::GrowOne => {
+            shrink_hand(player, hand_slot, held);
+            if let Some(mut chest_stack) = chest {
+                chest_stack.count += 1;
+                player.set_equipment(pluto_lib::StackSlot::Chest, Some(&chest_stack));
+            }
+        }
+        ChestAction::Nothing => {}
+    }
+    ActionResult::Success
+}
+
+/// The worn pack's inventoryTick plus the carry effect's own tick, run on any pack stack's
+/// tick: while the chest holds the pack and the player carries something, the carry instance
+/// is refreshed (2 ticks, ambient, no particles) and the chain is trimmed to the chest count;
+/// while the chest holds anything else, the chain is trimmed to zero.
+fn inventory_tick(tick: &pluto_lib::InventoryTick) {
+    let Some(stack) = &tick.stack else { return };
+    if stack.item != PACK {
+        return;
+    }
+    let Some(player) = &tick.player else { return };
+    let Some(player_id) = pluto_lib::EntityReach::id_of_uuid(player.uuid) else { return };
+    let chain = passenger_chain(player_id);
+    let chest = player.stack(CHEST_SLOT);
+    match chest.as_ref().filter(|stack| stack.item == PACK) {
+        Some(chest_stack) => {
+            if !chain.is_empty() {
+                player.add_effect(&pluto_lib::EffectInstance {
+                    id: "tconstruct:carry".to_owned(),
+                    amplifier: carry_amplifier(chain.len()) as u8,
+                    duration: 2,
+                    ambient: true,
+                    particles: false,
+                    // The original's six-argument construction (ambient, no particles,
+                    // icon shown) renders a custom carry icon and counts in the HUD's
+                    // effect shift, so the icon stays shown here.
+                    show_icon: true,
+                });
+                trim_to(&chain, chest_stack.count as usize);
+            }
+        }
+        None => trim_to(&chain, 0),
+    }
+}
+
+/// Registration: the item's optional Mantle tooltip (PiggyBackPackItem extends Mantle's
+/// TooltipItem), the interaction and the inventory tick.
 pub(crate) fn register() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
@@ -157,6 +323,8 @@ pub(crate) fn register() {
             }
         });
     });
+    pluto_lib::UseEntityCallback::EVENT.register(interact);
+    pluto_lib::PlayerInventoryEvents::TICK.register(inventory_tick);
 }
 
 #[cfg(test)]

@@ -19,16 +19,37 @@ CONTENT = Path('tconstruct/content')
 CONTENT_PATHS = (
     re.compile(r'horizon-mod\.toml'), re.compile(r'assets/tconstruct/lang/(?:de_de|en_us|es_ar|es_cl|es_es|es_mx|fr_fr|id_id|it_it|ja_jp|ko_kr|lzh|pl_pl|pt_br|ru_ru|sv_se|tr_tr|uk_ua|zh_cn|zh_tw)\.json'), re.compile(r'data/tconstruct/horizon/(?:item|block|menu|entity_type|mob_effect)/[a-z0-9_]+\.json'),
     # Machine-copied original data (tools/import_original_data.py): decoded by the production loaders in tests.
-    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tinkering/(?:tool_definitions|modifiers|station_layouts|mob_equipment|materials/(?:definition|stats|traits))/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/tags/(?:materials|modifiers|damage_types)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/tinkering/enchantments_to_modifiers\.json'),
-    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/tags/(?:item|block|entity_type|fluid|enchantment|block_entity_type|potion|menu|instrument)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # Client assets imported from the original (MIT, assets/tconstruct/license): item definitions, models, blockstates, textures, equipment assets.
     re.compile(r'assets/tconstruct/license'), re.compile(r'assets/tconstruct/(?:items|blockstates|models|textures|equipment)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|png|png\.mcmeta)'),
+    # The original's sound definitions and recordings (tools/import_original_data.py copy_sounds).
+    re.compile(r'assets/tconstruct/sounds\.json'), re.compile(r'assets/tconstruct/sounds/[a-z0-9_]+\.ogg'),
+    # The fluid atlas sources (tools/import_original_data.py): the game's unified atlas (screen draws and
+    # native block-entity draws) packs the walked texture folders and the base game's atlas definitions,
+    # which name only block/ and entity/conduit/; textures/fluid/ is in neither, so no fluid sprite would
+    # ever be stitched and every tank, basin and channel face naming one would be skipped. A content mod's
+    # assets/minecraft/atlases/*.json is not copied by the host's builder: its sources are appended to the
+    # base definition of the same name, so this one file adds the fluid directory to the blocks atlas.
+    re.compile(r'assets/minecraft/atlases/blocks\.json'),
     # The books' Mantle data (tools/import_original_data.py): index, appearance, section files, per-language pages and images,
     # walked by books.rs through the client resources; the two .nbt files are the structure templates of the book images folder.
     re.compile(r'assets/tconstruct/book(?:/[a-z0-9_]+)*/[a-z0-9_]+\.(?:json|lang|png|nbt)'),
-    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/(?:materials|modifiers|parts/builder|building|recycling|severing)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The material swapping recipes of the station (swapping_recipes.rs): the tool swapping recipe of the
+    # tables tree and the fixed and material-value swapping recipes of the tools armor trees.
+    re.compile(r'data/tconstruct/recipes/tables/tool_material_swapping\.json'),
+    # The tinker station's own table recipes (table_recipes.rs, damaging.rs): part swapping for tools,
+    # throwing weapons and ammo, station repair, and the damaging recipes of the damaging folder.
+    re.compile(r'data/tconstruct/recipes/tables/(?:ammo_part_swapping|throwing_axe_part_swapping|tinker_station_part_swapping|tinker_station_repair)\.json'),
+    re.compile(r'data/tconstruct/recipes/tables/tinker_station_damaging/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/recipes/tools/armor(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    # The material render infos (the original's assets/tconstruct/tinkering/materials, imported verbatim):
+    # display color, fallbacks and sprite-generator coverage, decoded by material_render.rs through the
+    # client resources; a variant's file lives one folder below its material.
+    re.compile(r'assets/tconstruct/tinkering/materials(?:/[a-z0-9_]+)?/[a-z0-9_]+\.json'),
     # The part builder's damageable recycling recipes of the tables tree (the tools tree's are under recycling above).
     re.compile(r'data/tconstruct/recipes/tables/recycling(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The smeltery domain's melting, alloy, fuel, casting and molding recipes and the fluid tags they name (tools/import_original_data.py),
@@ -37,6 +58,14 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/tinkering/fluid_tags/(?:tconstruct|forge|mantle)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     # The fluid effects the engine of fluid_effects.rs decodes (tools/import_original_data.py), in the mod's own folder.
     re.compile(r'data/tconstruct/tinkering/fluid_effects/[a-z0-9_]+\.json'),
+    # The particle types' sprite sets (the original's assets/tconstruct/particles, converted by hand for
+    # particles.rs): the attack sets name their slash frames under textures/particle (the client-assets
+    # shape above) and carry the host's horizon:behaviour block; the slime and fluid types ship empty.
+    re.compile(r'assets/tconstruct/particles/[a-z0-9_]+\.json'),
+    # The modifier icon manager's overrides (tools/import_original_data.py): the icon and book cover
+    # sprite per modifier, named for the screens that draw modifier buttons; the sprites themselves
+    # live under textures/gui/modifiers (the client-assets shape above).
+    re.compile(r'assets/tconstruct/tinkering/modifier_icons\.json'),
     # Damage types used by armor modules and the smeltery, and their additions to vanilla tags.
     re.compile(r'data/tconstruct/damage_type/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/damage_type/(?:avoids_guardian_thorns|bypasses_armor|bypasses_cooldown|bypasses_effects|bypasses_enchantments|is_explosion|is_fire|is_freezing|is_projectile|witch_resistant_to)\.json'),
     # Trim materials, imported as data only: the entries exist in the trim material registry, but no trim
@@ -47,17 +76,37 @@ CONTENT_PATHS = (
     re.compile(r'data/tconstruct/loot_table/blocks/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/loot_table/entities/[a-z0-9_]+\.json'), re.compile(r'data/tconstruct/worldgen/(?:feature|placed_feature)/[a-z0-9_]+\.json'),
     # Global loot modifiers and the list that orders them (the list keeps its Forge-era folder).
     re.compile(r'data/tconstruct/loot_modifiers/(?:lustrous/)?[a-z0-9_]+\.json'), re.compile(r'data/forge/loot_modifiers/global_loot_modifiers\.json'),
+    # Mantle loot injectors (tools/import_original_data.py): the entries merged into vanilla tables
+    # at load, with their top-level conditions evaluated against the live config.
+    re.compile(r'data/tconstruct/mantle/loot_injectors/[a-z0-9_]+\.json'),
     # Slime islands (tools/import_original_data.py): the island structures and their sets, the island biome tags the
     # structures name, and the binary NBT templates the repalleter produced (payloads are not JSON; shape only).
+    # Each template ships twice: the original's plural `structures/` folder and, byte-identical, the singular
+    # `structure/` folder — the host's content-mod builder forwards only `data/<ns>/structure/**.nbt` into the
+    # worldgen loader's template folder, so without the singular copies the loader's template store holds
+    # nothing for the islands and every island start is rejected as a missing or empty template.
     re.compile(r'data/tconstruct/worldgen/(?:structure|structure_set)/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/structures/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
+    re.compile(r'data/tconstruct/structure/islands/(?:blood|dirt|earth|ender|sky)/[a-z0-9_]+\.nbt'),
     re.compile(r'data/tconstruct/tags/worldgen/biome(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
-    re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/block(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/neoforge/biome_modifier/[a-z0-9_]+\.json'), re.compile(r'data/minecraft/tags/(?:block|item|entity_type)(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/c/tags/(?:block|item)/(?:ores(?:/cobalt)?|storage_blocks(?:/raw_cobalt)?|ore_rates/singular|ores_in_ground/netherrack)\.json'),
     re.compile(r'data/c/tags/item/raw_materials(?:/cobalt)?\.json'),
+    # The original's common fluid tag (its data/c/tags/fluids, imported by copy_hidden_fluid_tag):
+    # the fluids recipe viewers hide, referenced by tconstruct's hide_in_creative_tanks fluid tag.
+    # The port's tag kinds are singular, so it lands under data/c/tags/fluid.
+    re.compile(r'data/c/tags/fluid/hidden_from_recipe_viewers\.json'),
+    # The original's common item and creative-tab tags (its data/c/tags/items and
+    # data/c/tags/creative_mode_tab): the items and tabs the recipe viewers hide.
+    # The port's tag kinds are singular, so the item one lands under data/c/tags/item.
+    # Unlike the fluid one above, the importer has no copy step for these two; they
+    # ship as-is, and a full importer re-run leaves them alone.
+    re.compile(r'data/c/tags/item/hidden_from_recipe_viewers\.json'),
+    re.compile(r'data/c/tags/creative_mode_tab/hidden_from_recipe_viewers\.json'),
     # Gameplay advancements and the functions their internal advancements reward, converted by the importer
     # (display icons in the host's form); the starting book's advancement reward table rides with them.
     re.compile(r'data/tconstruct/advancement/(?:foundry|internal|smeltery|tools|world)/[a-z0-9_]+\.json'),
+    re.compile(r'data/tconstruct/advancement/recipes(?:/[a-z0-9_]+)*/[a-z0-9_]+\.json'),
     re.compile(r'data/tconstruct/function/grant_advancement/[a-z0-9_]+\.mcfunction'),
     re.compile(r'data/tconstruct/loot_table/gameplay/[a-z0-9_]+\.json'),
     # Crafting, smelting, blasting and stonecutting recipes of the smeltery blocks and the commons, converted to the game's own recipe format by the importer.
@@ -74,7 +123,7 @@ FLUID_RECIPE_TYPES = {
     'tconstruct:casting_table_tipping', 'tconstruct:casting_table_tipped_clearing',
 }
 LOOT_CONDITIONS = {'minecraft:survives_explosion', 'minecraft:all_of', 'minecraft:block_state_property', 'minecraft:any_of', 'minecraft:inverted', 'minecraft:table_bonus', 'minecraft:match_tool', 'minecraft:damage_source_properties', 'minecraft:entity_properties'}
-LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt'}
+LOOT_FUNCTIONS = {'minecraft:explosion_decay', 'minecraft:apply_bonus', 'minecraft:set_count', 'minecraft:copy_custom_data', 'minecraft:looting_enchant', 'minecraft:furnace_smelt', 'mantle:fill_retextured_block'}
 LOOT_ENTRIES = {'minecraft:item', 'minecraft:alternatives'}
 FEATURE_TYPES = {'minecraft:ore', 'minecraft:geode', 'minecraft:tree', 'tconstruct:slime_tree', 'tconstruct:slime_fungus'}
 ISLAND_STRUCTURE_KEYS = {'type', 'biomes', 'step', 'spawn_overrides', 'terrain_adaptation', 'dimension_padding', 'placement', 'templates', 'trees', 'vines', 'grasses'}
@@ -83,7 +132,7 @@ DAMAGE_TYPE_KEYS = {'message_id', 'scaling', 'exhaustion', 'effects', 'death_mes
 TRIM_MATERIAL_KEYS = {'asset_name', 'description', 'ingredient', 'item_model_index'}
 ITEM_KEYS = {'template', 'components', 'crafting_remainder', 'max_stack_size'}
 BLOCK_KEYS = {'template', 'properties', 'item', 'components', 'state_properties', 'state_light', 'default_state', 'shapes', 'collision_shapes'}
-MENU_KEYS = {'slots', 'data_slots', 'results'}
+MENU_KEYS = {'slots', 'data_slots', 'results', 'links'}
 ENTITY_TYPE_KEYS = {'template', 'item', 'damage'}
 MOB_EFFECT_KEYS = {'category', 'color'}
 
@@ -149,7 +198,7 @@ def check_loot_modifier(item, name):
     for function in item.get('functions', []):
         if function.get('function') not in LOOT_MODIFIER_FUNCTIONS:
             raise ValueError(f'unreviewed loot modifier function in {name}')
-ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'tconstruct:block_container_opened'}
+ADVANCEMENT_TRIGGERS = {'minecraft:inventory_changed', 'minecraft:placed_block', 'minecraft:location', 'minecraft:tick', 'minecraft:player_interacted_with_entity', 'minecraft:recipe_unlocked', 'tconstruct:block_container_opened'}
 ADVANCEMENT_KEYS = {'parent', 'display', 'criteria', 'requirements', 'rewards', 'sends_telemetry_event'}
 TOOL_PREDICATE_TYPES = {'tconstruct:has_modifier', 'tconstruct:has_material', 'tconstruct:has_volatile_key', 'tconstruct:tool_action', 'tconstruct:stat_in_range', 'tconstruct:stat_in_set', 'mantle:and', 'mantle:or', 'mantle:set', 'mantle:tag', 'mantle:inverted'}
 
@@ -473,17 +522,33 @@ def checked_content(root, version):
                 if not wrapped or any(kind not in FLUID_RECIPE_TYPES for kind in wrapped):
                     raise ValueError(f'only the reviewed smeltery recipe types are allowed here: {name}')
                 continue
+            # Advancements first: the recipe unlock advancements live under advancement/recipes/,
+            # whose paths also contain '/recipes/'.
+            if '/advancement/' in name:
+                check_advancement(item, name)
+                continue
             if '/recipes/' in name:
                 if '/recipes/tools/modifiers/' in name:
-                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting')
+                    reviewed = ('tconstruct:modifier', 'tconstruct:incremental_modifier', 'tconstruct:swappable_modifier', 'tconstruct:modifier_salvage', 'tconstruct:remove_modifier', 'tconstruct:multilevel_modifier', 'tconstruct:multilevel_incremental_modifier', 'tconstruct:overslime_modifier', 'tconstruct:enchantment_converting', 'tconstruct:armor_dyeing_modifier', 'tconstruct:modifier_repair', 'tconstruct:extract_modifier', 'tconstruct:modifier_set_worktable', 'tconstruct:modifier_sorting', 'tconstruct:toggle_interaction', 'tconstruct:banner_modifier', 'tconstruct:armor_trim_modifier')
                 elif '/recipes/tools/parts/builder/' in name:
-                    reviewed = ('tconstruct:part_builder',)
+                    # part_builder_recipes.rs reads both kinds from this folder: the part recipes
+                    # and the item part recipes (elytra_copying, the building folder's one).
+                    reviewed = ('tconstruct:part_builder', 'tconstruct:item_part_builder')
                 elif '/recipes/tools/severing/' in name:
-                    reviewed = ('tconstruct:severing',)
+                    # severing.rs loads all six kinds: the plain one and the five whose output reads the mob's own state.
+                    reviewed = ('tconstruct:severing', 'tconstruct:ageable_severing', 'tconstruct:mooshroom_demushrooming', 'tconstruct:player_beheading', 'tconstruct:sheep_shearing', 'tconstruct:snow_golem_beheading')
+                elif '/recipes/tools/building/' in name:
+                    # table_recipes.rs reads both kinds from this folder: the tool building recipes
+                    # and the tipped transform that turns a vanilla arrow into a tipped one.
+                    reviewed = ('tconstruct:tool_building', 'tconstruct:tipped_tool_transform')
                 elif '/recipes/tools/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_tool_recycling', 'tconstruct:part_builder_recycling')
                 elif '/recipes/tables/recycling/' in name:
                     reviewed = ('tconstruct:part_builder_recycling',)
+                elif '/recipes/tables/' in name:
+                    reviewed = ('tconstruct:tool_material_swapping', 'tconstruct:tinker_station_part_swapping', 'tconstruct:tinker_station_repair', 'tconstruct:tinker_station_damaging')
+                elif '/recipes/tools/armor/' in name:
+                    reviewed = ('tconstruct:fixed_material_swapping', 'tconstruct:material_value_swapping')
                 else:
                     reviewed = ('tconstruct:material',)
                 if not isinstance(item, dict) or item.get('type') not in reviewed:
@@ -503,8 +568,15 @@ def checked_content(root, version):
                 if not isinstance(item, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in item.items()):
                     raise ValueError(f'a language file must map keys to strings: {name}')
                 continue
-            if '/advancement/' in name:
-                check_advancement(item, name)
+            if name == 'assets/minecraft/atlases/blocks.json':
+                # The fluid atlas sources (see CONTENT_PATHS): the host's builder appends a mod's atlas
+                # sources to the base definition of the same name, so the only reviewed shape is an object
+                # whose sources are directory sources naming a texture folder and its sprite prefix.
+                if not isinstance(item, dict) or set(item) != {'sources'} or not isinstance(item['sources'], list) or not item['sources'] or any(
+                        not isinstance(source, dict) or set(source) != {'type', 'source', 'prefix'}
+                        or source['type'] != 'minecraft:directory' or not isinstance(source['source'], str) or not isinstance(source['prefix'], str)
+                        for source in item['sources']):
+                    raise ValueError(f'an atlas definition must be an object with a sources list of directory sources: {name}')
                 continue
             if '/loot_table/' in name:
                 if '/gameplay/' in name:
@@ -514,6 +586,30 @@ def checked_content(root, version):
                 continue
             if '/loot_modifiers/' in name:
                 check_loot_modifier(item, name)
+                continue
+            if '/loot_injectors/' in name:
+                # Mantle loot injectors: named pools of entries merged into the named vanilla table at
+                # load, with optional top-level conditions read against the live config. An entry is an
+                # item (with reviewed loot functions) or a tool part naming its material and tag.
+                pools = item.get('pools') if isinstance(item, dict) else None
+                conditions = item.get('conditions', []) if isinstance(item, dict) else []
+                entries_ok = isinstance(pools, list) and bool(pools) and all(
+                    isinstance(pool, dict) and set(pool) == {'entries', 'name'} and isinstance(pool['name'], str)
+                    and isinstance(pool['entries'], list) and all(
+                        isinstance(entry, dict) and not set(entry) - {'type', 'name', 'weight', 'functions', 'material', 'tag'}
+                        and ((entry.get('type') == 'minecraft:item' and isinstance(entry.get('name'), str) and entry['name'].count(':') == 1)
+                             or (entry.get('type') == 'tconstruct:tool_part' and isinstance(entry.get('tag'), str) and entry['tag'].count(':') == 1
+                                 and ((isinstance(entry.get('material'), str) and entry['material'].count(':') == 1)
+                                      or (isinstance(entry.get('material'), dict) and isinstance(entry['material'].get('type'), str) and entry['material']['type'].count(':') == 1))))
+                        and isinstance(entry.get('weight', 1), int) and entry.get('weight', 1) > 0
+                        and all(isinstance(fn, dict) and fn.get('function') in ('tconstruct:add_tool_data', 'mantle:set_fluid', 'minecraft:set_count', 'minecraft:set_damage') for fn in entry.get('functions', []))
+                        for entry in pool['entries'])
+                    for pool in pools)
+                conditions_ok = isinstance(conditions, list) and all(
+                    isinstance(cond, dict) and not set(cond) - {'type', 'modid', 'prop'} and isinstance(cond.get('type'), str) and cond['type'].count(':') == 1
+                    for cond in conditions)
+                if not isinstance(item, dict) or set(item) - {'name', 'pools', 'conditions'} or not isinstance(item.get('name'), str) or item['name'].count(':') != 1 or not entries_ok or not conditions_ok:
+                    raise ValueError(f'a loot injector names a vanilla table and reviewed pools of entries: {name}')
                 continue
             if name.startswith('data/tconstruct/recipe/'):
                 if not isinstance(item, dict) or item.get('type') not in CRAFTING_RECIPE_TYPES or not isinstance(item.get('result'), dict) or not str(item['result'].get('id', '')).count(':') == 1:
@@ -577,6 +673,9 @@ def checked_content(root, version):
                     raise ValueError(f'menu declaration needs a slot count and only reviewed keys: {name}')
                 if not all(isinstance(slot, int) and 0 <= slot < item['slots'] for slot in item.get('results', [])):
                     raise ValueError(f'menu result slots must exist: {name}')
+                links = item.get('links')
+                if links is not None and (not isinstance(links, dict) or set(links) - {'from', 'count'} or not isinstance(links.get('from'), int) or not isinstance(links.get('count'), int) or not 0 <= links['from'] or not 1 <= links['count'] or links['from'] + links['count'] > item['slots']):
+                    raise ValueError(f'menu links must name a slot range with an integer from and count: {name}')
                 continue
             if '/entity_type/' in name:
                 if not isinstance(item, dict) or set(item) - ENTITY_TYPE_KEYS or not str(item.get('template', '')).startswith('minecraft:') or not isinstance(item.get('item'), str) or not isinstance(item.get('damage'), (int, float)):

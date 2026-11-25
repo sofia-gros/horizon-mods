@@ -25,6 +25,20 @@ struct ItemRenderState {
 }
 #[path="../../../mod/pluto-item-colors.rs"]
 mod pluto_item_colors;
+// The layers helper also runs the retexture pass, which needs the host's
+// item environment and the retexture module; neither exists in this
+// fixture, and the tint transport this test checks does not need them:
+// the stub environment carries nothing, and the stub retexture passes the
+// layers through unchanged, as the real one does with no provider installed.
+trait ItemEnv {}
+struct NoEnv;
+impl ItemEnv for NoEnv {}
+mod pluto_retexture_item {
+    use super::{ItemEnv, ItemRenderer, LayerRender, StackView};
+    pub fn retexture(_renderer: &ItemRenderer, _stack: &StackView, _env: &dyn ItemEnv, layers: Vec<LayerRender>) -> Vec<LayerRender> {
+        layers
+    }
+}
 include!("../../../mod/pluto-item-color-layers.rs");
 
 #[test]
@@ -42,12 +56,13 @@ fn actual_layer_helper_keeps_native_fallback_specials_and_shared_geometry_and_ad
         LayerRender {geometry:LayerGeometry::Special {argument:json!({"head":"kept"})},tints:vec![7],unchanged:99}];
     let state=ItemRenderState {layers:layers.clone(),display:3,oversized_in_gui:true,animated:true,
         cit_glint:Some(Arc::new("kept CIT glint".into())),hdr_tier:2,hdr_light:15};
+    let env=NoEnv;
     let unknown=StackView {item:"example:unknown".into(),count:2};
-    assert_eq!(pluto_item_color_layers(state.clone(),&renderer,&unknown),state);
+    assert_eq!(pluto_item_color_layers(state.clone(),&renderer,&unknown,&env),state);
     assert_eq!(renderer.models.reads.get(),0,"unknown items do not decode components");
     assert!(CALLS.lock().unwrap().is_empty());
     let stack=StackView {item:"example:painted".into(),count:2};
-    let result_state=pluto_item_color_layers(state.clone(),&renderer,&stack);
+    let result_state=pluto_item_color_layers(state.clone(),&renderer,&stack,&env);
     let mut expected_state=state;
     expected_state.layers=result_state.layers.clone();
     assert_eq!(result_state,expected_state,"tinting preserves every non-layer render-state field");

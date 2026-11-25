@@ -1,12 +1,18 @@
-// What the game tells the mods when a mob hurts the player: the mob's state and the damage. The mods answer with the status
-// effects to put on the mob (an armor's counter-attack).
+// What the game tells the mods when a mob hurts the player: the mob's state and the damage, as the knockback scope names them
+// (the damage type and the amount are not worked out yet). The hit is noted for the damage event that follows, which resolves
+// the type before the mods hear it; the status effects an armor's counter-attack puts on the mob are answered there.
 use std::sync::OnceLock;
 #[derive(Clone,Debug)]
 pub struct PlayerHurt {
     pub attacker:i32,
     pub attacker_kind:String,
+    pub position:[f64;3],
     pub on_ground:bool,
     pub in_water:bool,
+    pub eyes_in_water:bool,
+    // Whether rain falls on the attacker: the game's own `Level.isRainingAt` at the attacker's feet block,
+    // for the `mantle:raining_at` counter condition.
+    pub rain_exposed:bool,
     pub fire_ticks:i32,
     pub fire_immune:bool,
     pub effects:Vec<String>,

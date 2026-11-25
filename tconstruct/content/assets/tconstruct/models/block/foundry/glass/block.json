@@ -1,6 +1,9 @@
 {
   "parent": "minecraft:block/cube_all",
+  "loader": "fusion:model",
+  "type": "fusion:connecting",
   "textures": {
-    "all": "tconstruct:block/foundry/glass"
+    "all": "tconstruct:block/foundry/glass_connected",
+    "particle": "tconstruct:block/foundry/glass"
   }
 }

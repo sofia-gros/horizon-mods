@@ -1,7 +1,10 @@
 //! EntityVariable (SlimeKnights, MIT; see LICENSE): a number read from a living entity, over the facts PlutoLib's `EntityState` reports
 //! with a hit: health, maximum health, the biome temperature at the entity, whether it is in water or in the rain, the share of its armor
-//! slots filled, how many of a list of equipment slots hold an item and the level of an effect on it. A variable of another entity
-//! property (an attribute other than the maximum health, height, light) is not decoded, so its module stays unbound.
+//! slots filled, how many of a list of equipment slots hold an item and the level of an effect on it. Of the entity attributes, the
+//! maximum health is one of those facts; the knockback resistance is not reported, so a variable over it decodes and reads its
+//! fallback, as every unreported fact does; and an attribute Tinkers declares itself reads the holder's value as of their last
+//! tick (see [`EntityFact::CustomAttribute`]). A variable of another entity property (an attribute other than those, height, light)
+//! is not decoded, so its module stays unbound.
 use crate::melee_damage::{state_in_tag, TargetCondition};
 use pluto_lib::EntityState;
 use serde_json::{Map, Value};
@@ -26,6 +29,25 @@ pub(crate) fn with_holder<R>(holder: Option<&EntityState>, run: impl FnOnce() ->
 /// The player holding the tool being worn down, when PlutoLib named them.
 pub(crate) fn holder() -> Option<EntityState> { HOLDER.with(|slot| slot.borrow().clone()) }
 
+thread_local! {
+    /// The entity id of the player whose tool is being evaluated, for the variables that read that player's own
+    /// attributes (set around the evaluation by `with_holder_entity`). The facts a hit reports carry no entity id,
+    /// so a hook that knows whose tool it is evaluating names them here, as it names their state through `with_holder`.
+    static HOLDER_ENTITY: std::cell::RefCell<Option<i32>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Runs `run` with `entity` as the holder `holder_entity()` reports (the entity id of the player whose tool a hook
+/// is evaluating: the sling release names the player who let go, by the id their tick reported).
+pub(crate) fn with_holder_entity<R>(entity: Option<i32>, run: impl FnOnce() -> R) -> R {
+    let before = HOLDER_ENTITY.with(|slot| slot.replace(entity));
+    let result = run();
+    HOLDER_ENTITY.with(|slot| *slot.borrow_mut() = before);
+    result
+}
+
+/// The entity id of the player whose tool is being evaluated, when the running hook named them.
+pub(crate) fn holder_entity() -> Option<i32> { HOLDER_ENTITY.with(|slot| *slot.borrow()) }
+
 /// The attacker (the holder of a tool) and the target of a hit, as PlutoLib reported them; None for one it could not report.
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Entities<'a> { pub attacker: Option<&'a EntityState>, pub target: Option<&'a EntityState> }
@@ -41,6 +63,15 @@ pub(crate) enum EntityFact {
     Health,
     /// The `minecraft:max_health` attribute.
     MaxHealth,
+    /// The `minecraft:knockback_resistance` attribute. PlutoLib's entity state does not report it, so the value is
+    /// None and the variable reads its fallback, as every unreported fact does.
+    KnockbackResistance,
+    /// An attribute Tinkers declares itself with PlutoLib's attribute registry (`tconstruct:generic.*` and kin):
+    /// the holder's value as of their last tick, kept by `custom_attributes`. The read is the holder's — a
+    /// variable over the target has no kept value and reads its fallback. Approximation: the value is as of the
+    /// holder's last tick; the original reads the live attribute at the moment of the evaluation (at launch,
+    /// for a sling).
+    CustomAttribute(String),
     /// The temperature of the biome containing the entity.
     BiomeTemperature,
     /// 2 when the entity is in water or has its eyes in it, 1 when rain falls on it, else 0.
@@ -90,11 +121,27 @@ impl EntityFact {
                 let attribute = fields.get("attribute").and_then(Value::as_str).ok_or("attribute must be an attribute id")?;
                 match attribute.strip_prefix("minecraft:").map(|name| name.strip_prefix("generic.").unwrap_or(name)) {
                     Some("max_health") => Self::MaxHealth,
+                    Some("knockback_resistance") => Self::KnockbackResistance,
+                    _ if crate::custom_attributes::is_declared(attribute) => Self::CustomAttribute(attribute.to_owned()),
                     _ => return Ok(None),
                 }
             }
             "tconstruct:conditional" => {
                 let condition = fields.get("condition_type").ok_or("condition_type missing")?;
+                // A bare condition type names a predicate whose own fields sit beside it in this
+                // object (mantle:has_enchantment reads its `enchantment` from here, as the shipped
+                // hydraulic writes it), so such a predicate is rebuilt from those fields first.
+                let rebuilt;
+                let condition = match condition.as_str() {
+                    Some(kind @ ("mantle:has_enchantment" | "mantle:has_effect")) => {
+                        let mut object = Map::new();
+                        object.insert("type".to_owned(), Value::String(kind.to_owned()));
+                        for key in ["enchantment", "effect"] { if let Some(value) = fields.get(key) { object.insert(key.to_owned(), value.clone()); } }
+                        rebuilt = Value::Object(object);
+                        &rebuilt
+                    }
+                    _ => condition,
+                };
                 let Some(condition) = TargetCondition::decode_for(role, Some(condition))? else { return Ok(None); };
                 let branch = |key: &str| -> Result<Option<Box<Self>>, String> { Ok(Self::decode_value(fields.get(key).ok_or_else(|| format!("{key} missing"))?, role)?.map(Box::new)) };
                 let (Some(if_true), Some(if_false)) = (branch("if_true")?, branch("if_false")?) else { return Ok(None); };
@@ -121,6 +168,11 @@ impl EntityFact {
         match self {
             Self::Health => state.health,
             Self::MaxHealth => state.max_health,
+            Self::KnockbackResistance => None,
+            Self::CustomAttribute(attribute) => match whose {
+                Whose::Attacker => holder_entity().map(|entity| crate::custom_attributes::value(entity, attribute) as f32),
+                Whose::Target => None,
+            },
             Self::BiomeTemperature => state.biome_temperature,
             Self::Water => Some(if state.in_water || state.eyes_in_water { 2.0 } else if state.rain_exposed { 1.0 } else { 0.0 }),
             Self::ArmorCoverage => state.armor_coverage,
@@ -149,6 +201,14 @@ impl EntityFact {
     pub fn from_range_name(name: &str) -> Option<Self> {
         Some(match name { "health" => Self::Health, "max_health" => Self::MaxHealth, "biome_temperature" => Self::BiomeTemperature, "water" => Self::Water, "armor_coverage" => Self::ArmorCoverage, _ => return None })
     }
+}
+
+/// The level of `effect` on the entity state PlutoLib reported (the amplifier plus one), 0 when
+/// the state was not reported, does not carry the effect, or names effects without their levels.
+pub(crate) fn effect_level_of(state: Option<&EntityState>, effect: &str) -> f32 {
+    let Some(state) = state else { return 0.0 };
+    if state.effect_levels.len() < state.effects.len() { return 0.0; }
+    state.effect_level(effect) as f32
 }
 
 /// VariableRangePredicate.IntervalType.test.
@@ -190,6 +250,21 @@ mod tests {
         assert!(EntityFact::decode("tconstruct:equipment_count", &fields(json!({"slots": []})), "attacker").unwrap().is_none());
         let unleveled = EntityState { effects: vec!["minecraft:poison".into()], ..EntityState::default() };
         assert_eq!(EntityFact::EffectLevel("minecraft:poison".into()).value(&Entities { attacker: Some(&unleveled), target: None }, Whose::Attacker), None);
+    }
+
+    #[test]
+    fn attribute_variables_read_declared_attributes_and_hold_the_unreported_ones_at_their_fallback() {
+        // A Tinkers attribute the registry declares decodes, and reads the holder's value as of their last tick.
+        let fact = EntityFact::decode("tconstruct:attribute", &fields(json!({"attribute": "tconstruct:generic.knockback_multiplier"})), "attacker").unwrap().expect("a declared attribute decodes");
+        let state = EntityState::default();
+        let entities = Entities { attacker: Some(&state), target: None };
+        assert_eq!(fact.value(&entities, Whose::Attacker), None, "no hook named the holder: the variable reads its fallback");
+        let read = with_holder_entity(Some(7), || fact.value(&entities, Whose::Attacker));
+        assert_eq!(read, Some(1.0), "the declared default, as no tick of the holder's bent the attribute");
+        assert_eq!(fact.value(&entities, Whose::Target), None, "a target's custom attributes are not kept");
+        // The knockback resistance is a fact the state does not report: it decodes, and reads its fallback.
+        let resistance = EntityFact::decode("tconstruct:attribute", &fields(json!({"attribute": "minecraft:generic.knockback_resistance"})), "attacker").unwrap().expect("the knockback resistance decodes");
+        assert_eq!(resistance.value(&entities, Whose::Attacker), None);
     }
 
     #[test]

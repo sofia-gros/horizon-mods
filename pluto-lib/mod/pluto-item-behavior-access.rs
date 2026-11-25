@@ -44,3 +44,16 @@ pub fn set_tool_action_dispatcher(dispatcher: ToolActionDispatcher) -> Result<()
 pub fn tool_action(item: &str, custom_data: &serde_json::Value, action: &str) -> Option<bool> {
     TOOL_ACTION.get().and_then(|dispatch| dispatch(item, custom_data, action))
 }
+
+/// Per-stack indestructibility: the item's id and the stack's custom data as a JSON object
+/// (an empty object for a stack that carries none). Some(true) stills the dropped stack's
+/// environment tick and pins its age at the unlimited-lifetime value; anything else runs
+/// the original tick.
+pub type IndestructibleDispatcher = fn(&str, &serde_json::Value) -> Option<bool>;
+static INDESTRUCTIBLE: OnceLock<IndestructibleDispatcher> = OnceLock::new();
+pub fn set_indestructible_dispatcher(dispatcher: IndestructibleDispatcher) -> Result<(), &'static str> {
+    INDESTRUCTIBLE.set(dispatcher).map_err(|_| "item indestructible dispatcher already installed")
+}
+pub fn indestructible(item: &str, custom_data: &serde_json::Value) -> Option<bool> {
+    INDESTRUCTIBLE.get().and_then(|dispatch| dispatch(item, custom_data))
+}

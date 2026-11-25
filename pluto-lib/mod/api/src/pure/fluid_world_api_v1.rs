@@ -83,6 +83,32 @@ impl FluidWorld {
         state.property(Self::LEVEL).and_then(|text| text.parse::<u8>().ok()).filter(|level| *level <= 8)
     }
 
+    /// The source block of a fluid that has a world form: water and lava (whose block id is the
+    /// fluid's own id) and a registered fluid with world blocks (its block at level 0). None for a
+    /// fluid with no world form (a potion, powdered snow), so a bucket module's world halves know
+    /// the fluid cannot be placed. The forward half of the fluid's world-block form, with
+    /// [`FluidWorld::fluid_of`] as the reverse.
+    pub fn source_block(fluid: &Identifier) -> Option<BlockState> {
+        if fluid.to_string() == "minecraft:water" || fluid.to_string() == "minecraft:lava" {
+            return Some(BlockState::new(fluid.clone()));
+        }
+        FluidRegistry::get(&fluid.to_string()).filter(|def| def.world_blocks).map(|_| Self::state(fluid, 0))
+    }
+
+    /// The fluid and level a block state holds, if it is a fluid's world form: a registered
+    /// fluid's `<id>_fluid` block with its `level` (0 source, 1 to 7 flowing, 8 falling), or water
+    /// and lava by their own block id (a missing `level` reads as a source, the form
+    /// [`FluidWorld::source_block`] places; a vanilla level of 8 to 15 is a falling cell, the
+    /// port's 8). None for any other block. The reverse half of the fluid's world-block form.
+    pub fn fluid_of(state: &BlockState) -> Option<(Identifier, u8)> {
+        if state.block.to_string() == "minecraft:water" || state.block.to_string() == "minecraft:lava" {
+            let level = state.property(Self::LEVEL).and_then(|text| text.parse::<u8>().ok()).unwrap_or(0);
+            return Some((state.block.clone(), if level <= 7 { level } else { 8 }));
+        }
+        let fluid = state.block.path().strip_suffix("_fluid").and_then(|path| Identifier::new(state.block.namespace(), path).ok())?;
+        Self::level_of(state, &fluid).map(|level| (fluid, level))
+    }
+
     /// Whether `block` is the block of a defined fluid that has world blocks.
     pub fn is_world_fluid(block: &Identifier) -> bool {
         let Some(fluid) = block.path().strip_suffix("_fluid") else { return false };
@@ -680,5 +706,29 @@ mod tests {
         let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
         assert_eq!(drained.fluid, potion);
         assert_eq!(drained.container.unwrap().item, id("minecraft:bucket"));
+    }
+
+    #[test]
+    fn a_fluids_world_form_round_trips_between_block_and_fluid() {
+        let def = FluidDef::new(id("flow_test:molten")).with_world_blocks().with_bucket();
+        FluidRegistry::register(def.clone());
+        // The forward form: a source block for a registered fluid, and for water and lava.
+        assert_eq!(FluidWorld::source_block(&def.id).map(|state| state.to_string()), Some("flow_test:molten_fluid[level=0]".to_owned()));
+        assert_eq!(FluidWorld::source_block(&id("minecraft:water")).map(|state| state.to_string()), Some("minecraft:water".to_owned()));
+        assert_eq!(FluidWorld::source_block(&id("minecraft:lava")).map(|state| state.to_string()), Some("minecraft:lava".to_owned()));
+        // A fluid with no world form gets none.
+        FluidRegistry::register(FluidDef::new(id("flow_test:still_potion")).with_bucket());
+        assert!(FluidWorld::source_block(&id("flow_test:still_potion")).is_none());
+        assert!(FluidWorld::source_block(&id("flow_test:unknown")).is_none());
+        // The reverse form: the block reads back as its fluid and level.
+        assert_eq!(FluidWorld::fluid_of(&FluidWorld::state(&def.id, 0)), Some((def.id.clone(), 0)));
+        assert_eq!(FluidWorld::fluid_of(&FluidWorld::state(&def.id, 3)), Some((def.id.clone(), 3)));
+        assert_eq!(FluidWorld::fluid_of(&FluidWorld::state(&def.id, 8)), Some((def.id.clone(), 8)));
+        assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:water[level=0]").unwrap()), Some((id("minecraft:water"), 0)));
+        assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:water[level=4]").unwrap()), Some((id("minecraft:water"), 4)));
+        assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:water[level=12]").unwrap()), Some((id("minecraft:water"), 8)), "a falling water cell reads as falling");
+        assert_eq!(FluidWorld::fluid_of(&BlockState::new(id("minecraft:lava"))), Some((id("minecraft:lava"), 0)), "a lava block with no level is a source");
+        assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:stone").unwrap()), None);
+        assert_eq!(FluidWorld::fluid_of(&BlockState::parse("flow_test:molten_fluid").unwrap()), None, "a mod fluid block with no level is no form");
     }
 }

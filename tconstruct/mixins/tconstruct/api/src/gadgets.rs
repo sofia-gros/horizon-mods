@@ -4,18 +4,20 @@
 //! piggyback rides on a carry effect, and the books need a book UI; PlutoLib offers none of those services.
 //!
 //! Punji (PunjiBlock) sticks to any sturdy face, points away from the block holding it, and joins to
-//! same-facing neighbours along its local north and east. Not ported, each named:
-//! - the contact damage (1, plus fall distance + 1 after a fall, from the cactus source, only for a living
-//!   entity whose box crosses the block's mid-plane on the facing axis): the entity-inside callback does
-//!   fire since FND1 and a Hurt action from it lands, but the pinned host's inside seam
-//!   (pluto-lib/mod/pluto-block-inside.rs over horizon's pluto_block_access transport) fires only for the
-//!   player entity — the original damages any living entity — and the transport carries neither the
-//!   entity's bounding box nor its fall distance, the two numbers the mid-plane test and the fall bonus
-//!   are computed from. Wiring the player-only, box-less half would not be the original's behaviour.
-//! - the 0.4 speed factor: the host's block properties have no speed-factor key.
-//! - waterlogging: left out of the declaration, as with the pouring blocks (no fluid logging here).
-//! - the per-facing collision box: the declaration holds one default box (the floor one, 3,0,3 to 13,6,13);
-//!   the sticks' outline still follows the model per facing.
+//! same-facing neighbours along its local north and east. Its contact damage is ported (the
+//! entity_inside callback below): 1, plus the fall distance + 1 after a fall, from the cactus source,
+//! only for a living entity whose box crosses the block's mid-plane on the facing axis — decided
+//! from the notice's bounding box and fall distance exactly as PunjiBlock.entityInside decides it,
+//! for players and mobs alike (the inside seams carry both, with box and fall distance). Two
+//! differences of shape, not of numbers: the queued hurt lands where the contact actions drain
+//! (after a hit, or on the player's tick) rather than inside the movement call itself, so it can
+//! land a tick after the crossing; and "living" is read from the notice's kind — the seams carry
+//! players, mobs and item entities, and of those only the items are not living. Not ported, each named:
+//! - the 0.4 speed factor: ported through the inside-motion seam (punji_speed below), since the
+//!   host's block properties have no speed-factor key a declaration can carry.
+//! - waterlogging: the declaration carries the property and placement sets it from the water at the
+//!   clicked position, as PunjiBlock.getStateForPlacement does; the fluid tick the original schedules
+//!   on a neighbour change is the host's own business for a waterlogged block, not scheduled here.
 //! - the path node is the original's DAMAGE_OTHER, which the host's categories have no name for; its
 //!   DAMAGING category is the damaging-block one and is what the behaviour answers.
 //!
@@ -29,13 +31,14 @@
 //! - the tooltip's duration suffix ("Bouncy (0:30)"): a tooltip line here is one flat text or key, so the
 //!   line is the effect's name in its category's colour, without the duration. The amplifier wrap never
 //!   applies: every cake effect is amplifier 0.
-//! - the ichor cake's per-bite collision narrowing: one default box (its unbitten shape), as with the punji.
+//! - the ichor cake's per-bite collision narrowing: one default box (its unbitten shape).
 //! The Tinkers effects the cakes give (bouncy, double jump, antigravity, returning) are other units' work;
 //! given to a player they are skipped by the game until those land, the same as the slime bottles' effects.
 use pluto_lib::{
-    ActionResult, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EffectInstance, Identifier,
-    ItemTooltipCallback, PathNodeType, PistonBehavior, Placement, PlacementContext, ShapeUpdateContext,
-    TooltipLine, UseItemOnBlockCallback, UseItemOnBlockContext, World,
+    ActionResult, ActionTarget, BlockBehavior, BlockBehaviors, BlockState, BlockView, Direction, EffectInstance,
+    EntityAction, EntityInsideContext, EntityInsideMotionContext, Identifier, ItemTooltipCallback, PathNodeType,
+    PistonBehavior, Placement, PlacementContext, ShapeUpdateContext, TooltipLine, UseItemOnBlockCallback,
+    UseItemOnBlockContext, World,
 };
 
 fn id(name: &str) -> Identifier {
@@ -94,6 +97,8 @@ pub(crate) fn register() {
             .can_survive(|context| punji_survives(&context.state, context.pos, context.view))
             .state_for_placement(punji_placement)
             .update_shape(punji_update)
+            .entity_inside(punji_inside)
+            .entity_inside_motion(punji_speed)
             .path_node_type(|_| Some(PathNodeType::Damaging))
             .piston_behavior(PistonBehavior::Destroy),
     );
@@ -172,14 +177,15 @@ fn punji_state(view: &dyn BlockView, pos: [i32; 3], facing: Direction) -> BlockS
 }
 
 /// PunjiBlock.getStateForPlacement: face the way the clicked face points away, else the first side in
-/// Direction order that can hold the sticks, else refuse the placement.
+/// Direction order that can hold the sticks, else refuse the placement. The state is waterlogged when
+/// the clicked position holds water, as there.
 pub(crate) fn punji_placement(context: &PlacementContext<'_>) -> Placement {
     let first = context.face.opposite();
     let order = [first].into_iter().chain(Direction::ALL.into_iter().filter(move |side| *side != first));
     for facing in order {
         let probe = BlockState::new(id("punji")).with("facing", facing.name());
         if punji_survives(&probe, context.pos, context.view) {
-            return Placement::State(punji_state(context.view, context.pos, facing));
+            return Placement::State(punji_state(context.view, context.pos, facing).with("waterlogged", bool_text(context.in_water)));
         }
     }
     Placement::Refuse
@@ -204,6 +210,49 @@ pub(crate) fn punji_update(context: &ShapeUpdateContext<'_>) -> Option<BlockStat
     state = state.with("northeast", bool_text(connected(context.view, facing, east.relative(north_pos))));
     state = state.with("northwest", bool_text(connected(context.view, facing, east.opposite().relative(north_pos))));
     Some(state)
+}
+
+/// PunjiBlock.entityInside's damage decision: the sticks hurt only an entity in the same half of
+/// the block as they are — on the facing axis, the entity's box must cross the block's mid-plane
+/// (for a positive facing the box's max must pass the plane, for a negative one its min must).
+/// The damage is 1, plus the fall distance + 1 once the entity has fallen any distance at all.
+pub(crate) fn punji_damage(facing: Direction, pos: [i32; 3], bounds: [f64; 6], fall_distance: f64) -> Option<f32> {
+    let offset = facing.offset();
+    let axis = (0..3).find(|&axis| offset[axis] != 0).expect("a direction steps along one axis");
+    let mid = pos[axis] as f64 + 0.5;
+    if offset[axis] > 0 {
+        if bounds[axis + 3] <= mid { return None; }
+    } else if bounds[axis] >= mid {
+        return None;
+    }
+    let mut damage = 1.0f32;
+    if fall_distance > 0.0 {
+        damage += fall_distance as f32 + 1.0;
+    }
+    Some(damage)
+}
+
+/// PunjiBlock.entityInside: a living entity in the sticks' half is hurt by the cactus source.
+/// The seams carry players, mobs and item entities; of those only the items are not living.
+pub(crate) fn punji_inside(context: &EntityInsideContext) {
+    if context.kind == "minecraft:item" { return; }
+    if let Some(amount) = punji_damage(facing_of(&context.state), context.pos, context.bounds, context.fall_distance) {
+        context.act(EntityAction::Hurt { target: ActionTarget::Victim, amount, damage_type: "minecraft:cactus".to_owned() });
+    }
+}
+
+/// PunjiBlock's speed factor (0.4 in its registration properties): the game multiplies an
+/// entity's horizontal motion by the factor of the block it stands on at the end of its move.
+/// The host's block properties have no speed-factor key a declaration can carry (its movement
+/// table clones the template's row and overrides friction only), so the factor rides the
+/// inside-motion seam instead: while an entity is inside the sticks' cell — standing on them,
+/// in the case that matters — its horizontal velocity is scaled by 0.4 once per tick, the same
+/// cadence as the game's end-of-move application and for every entity kind, as there.
+pub(crate) fn punji_speed(context: &mut EntityInsideMotionContext) {
+    if context.velocity[0] == 0.0 && context.velocity[2] == 0.0 { return; }
+    context.velocity[0] *= 0.4;
+    context.velocity[2] *= 0.4;
+    context.sync_velocity = true;
 }
 
 // --- The hanging ichor cake (InvertedCakeBlock) ---

@@ -30,6 +30,11 @@ pub struct ThrownType {
     pub item: Identifier,
     /// What a hit hurts for; finite and not negative, as the game requires of the content form.
     pub damage: f32,
+    /// The sound a hand throw of this type plays (`tconstruct:throw.shuriken`, say), instead of the
+    /// vanilla snowball throw the game plays for every thrown type. None throws with the game's own
+    /// sound. The host's thrown-type form carries no sound, so this stays on the trait-mod side and
+    /// reaches the game's throw through the throw-sound sink.
+    pub throw_sound: Option<Identifier>,
 }
 
 impl ThrownType {
@@ -41,7 +46,13 @@ impl ThrownType {
         if !damage.is_finite() || damage < 0.0 {
             return Err(format!("thrown type {id} damage must be finite and not negative"));
         }
-        Ok(Self { id, item, damage })
+        Ok(Self { id, item, damage, throw_sound: None })
+    }
+
+    /// The same thrown type, throwing with `sound` instead of the vanilla snowball throw.
+    pub fn throw_sound(mut self, sound: Identifier) -> Self {
+        self.throw_sound = Some(sound);
+        self
     }
 }
 
@@ -92,12 +103,31 @@ impl ThrownTypeRegistry {
         TYPES.lock().ok()?.get(id)
     }
 
+    /// The throw sound registered for `id`, if the type carries one.
+    pub fn throw_sound(id: &Identifier) -> Option<Identifier> {
+        Self::get(id)?.throw_sound
+    }
+
     /// Every registered thrown type, by id; collecting them freezes the registry, as the game's own
     /// set-once registry does. A content entity-types declaration is written from these rows:
     /// each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
     pub fn declarations() -> Result<Vec<ThrownType>, String> {
         Ok(TYPES.lock().map_err(|_| "thrown type registry poisoned")?.snapshot())
     }
+}
+
+/// The throw sounds handed to the host, leaked once per thrown type id: the host's throw reach asks for a
+/// `&'static str`, and the registry holds the sound as an owned id, so the first throw of a type leaks its
+/// sound once (as the game leaks a thrown type's own id and item strings when it registers them).
+static THROW_SOUNDS: Mutex<BTreeMap<String, &'static str>> = Mutex::new(BTreeMap::new());
+
+/// The sound a thrown type throws with, for the host's throw-sound sink: the registered type's throw sound,
+/// if it carries one. None keeps the game's own snowball throw. A poisoned cache or an unparsable id
+/// answers None rather than inventing a sound.
+pub fn throw_sound_for(id: &str) -> Option<&'static str> {
+    let sound = ThrownTypeRegistry::throw_sound(&Identifier::parse(id).ok()?)?.to_string();
+    let mut cached = THROW_SOUNDS.lock().ok()?;
+    Some(*cached.entry(id.to_owned()).or_insert_with(|| Box::leak(sound.into_boxed_str())))
 }
 
 /// A projectile to spawn: its kind, where it starts, how it moves, whose it is and its own data.
@@ -191,6 +221,24 @@ mod tests {
         assert_eq!(registry.get(&Identifier::parse("test:shuriken_thrown").unwrap()).unwrap().damage, 4.0);
         assert_eq!(registry.snapshot().len(), 1);
         assert!(registry.register(thrown("test:late")).is_err(), "frozen after collection");
+    }
+
+    #[test]
+    fn a_thrown_type_throws_with_its_registered_sound() {
+        let id = Identifier::parse("test:throw_sound_ball").unwrap();
+        assert_eq!(ThrownTypeRegistry::throw_sound(&id), None);
+        assert_eq!(throw_sound_for("test:throw_sound_ball"), None);
+        let thrown = ThrownType::new(id.clone(), Identifier::parse("test:ball").unwrap(), 0.0)
+            .unwrap()
+            .throw_sound(Identifier::parse("test:throw.throwball").unwrap());
+        assert_eq!(thrown.throw_sound.as_ref().map(|sound| sound.to_string()), Some("test:throw.throwball".to_owned()));
+        ThrownTypeRegistry::register(thrown).unwrap();
+        assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), Some("test:throw.throwball".to_owned()));
+        assert_eq!(throw_sound_for("test:throw_sound_ball"), Some("test:throw.throwball"));
+        let plain = ThrownType::new(Identifier::parse("test:throw_sound_plain").unwrap(), Identifier::parse("test:plain").unwrap(), 0.0).unwrap();
+        assert!(plain.throw_sound.is_none());
+        ThrownTypeRegistry::register(plain).unwrap();
+        assert_eq!(throw_sound_for("test:throw_sound_plain"), None);
     }
 
     #[test]

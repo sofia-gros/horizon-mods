@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "tconstruct:ender_slime_crystal",
+    "I": [
+      "minecraft:netherite_ingot"
+    ],
+    "W": [
+      "tconstruct:enderbark_log",
+      "tconstruct:stripped_enderbark_log",
+      "tconstruct:enderbark_wood",
+      "tconstruct:stripped_enderbark_wood"
+    ]
+  },
+  "pattern": [
+    "CWC",
+    " I ",
+    " W "
+  ],
+  "result": {
+    "id": "tconstruct:ender_staff"
+  }
+}
