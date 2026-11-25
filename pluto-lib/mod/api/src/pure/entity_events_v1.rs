@@ -1070,11 +1070,13 @@ pub(crate) fn forget_projectile_tool(projectile: u32) {
     tools.remove(&projectile);
 }
 
-/// The stack `projectile` was launched from, taken; a stale one is dropped.
-pub(crate) fn take_projectile_tool(projectile: u32) -> Option<StackData> {
-    let Ok(mut tools) = PROJECTILE_TOOLS.lock() else { return None };
-    match tools.remove(&projectile) {
-        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool),
+/// The stack `projectile` was launched from, read without taking: a piercing projectile kills
+/// more than once, and the original records its float on every victim, so the note stays until
+/// its lifetime runs out; a stale one is dropped.
+pub(crate) fn projectile_tool(projectile: u32) -> Option<StackData> {
+    let Ok(tools) = PROJECTILE_TOOLS.lock() else { return None };
+    match tools.get(&projectile) {
+        Some((tool, at)) if at.elapsed() < PROJECTILE_TOOL_LIFETIME => Some(tool.clone()),
         _ => None,
     }
 }
@@ -2959,12 +2961,12 @@ mod tests {
     }
 
     #[test]
-    fn a_launched_projectiles_tool_is_remembered_until_its_kill() {
+    fn a_launched_projectiles_tool_is_remembered_for_every_kill() {
         let tool = StackData { item: "tconstruct:bow".into(), count: 1, ..StackData::default() };
         note_projectile_tool(9, tool.clone());
-        assert_eq!(take_projectile_tool(9), Some(tool), "the launcher's stack is taken");
-        assert_eq!(take_projectile_tool(9), None, "taken once");
-        assert_eq!(take_projectile_tool(10), None, "another projectile's tool is not taken");
+        assert_eq!(projectile_tool(9), Some(tool.clone()), "the launcher's stack is read");
+        assert_eq!(projectile_tool(9), Some(tool), "a piercing projectile's second kill reads it again");
+        assert_eq!(projectile_tool(10), None, "another projectile's tool is not read");
     }
 
     #[test]
@@ -3002,12 +3004,12 @@ mod tests {
         note_looting_slot(11, 21, 5, StackSlot::Chest);
         resolve_looting_claim(21, 5, 5);
         entity_unloaded(21, "minecraft:arrow", "minecraft:overworld");
-        assert_eq!(take_projectile_tool(21), None, "a leaving projectile's tool dies with it");
+        assert_eq!(projectile_tool(21), None, "a leaving projectile's tool dies with it");
         assert_eq!(take_killing_direct(21), None, "a leaving victim's killing blow dies with it");
         assert_eq!(take_looting_slot(11, 21), None, "a leaving victim's looting claim dies with it");
         note_projectile_tool(22, tool);
         entity_loaded(22, "minecraft:arrow", "minecraft:overworld");
-        assert_eq!(take_projectile_tool(22), None, "a fresh entity under the id starts clean");
+        assert_eq!(projectile_tool(22), None, "a fresh entity under the id starts clean");
     }
 
     #[test]

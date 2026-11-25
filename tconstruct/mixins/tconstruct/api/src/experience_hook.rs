@@ -70,16 +70,27 @@ fn held_tool_experience(uuid: u128) -> f64 {
 /// The killing projectile's recorded experience float, worked out from the stack it was launched
 /// from (`tool_stack::launch_volatile_floats` over the launcher's tool, as the original's
 /// `onLivingDeath` copies the projectile's persistent float onto the dying mob): `Some` only when
-/// the launcher is a Tinkers tool, so a non-tool launcher falls back to the held tool; a computed
-/// 0.0 still counts as `Some(0.0)`, as the original's recorded float replaces the held tool even
-/// when it is zero. None when no projectile killed the mob.
+/// the launcher is a Tinkers tool carrying a modifier, so a non-tool launcher (and a tool with no
+/// modifiers, whose projectile is plain) falls back to the held tool; a computed 0.0 still counts
+/// as `Some(0.0)`, as the original's recorded float replaces the held tool even when it is zero.
+/// None when no projectile killed the mob.
 fn projectile_boost(drop: &ExperienceDrop) -> Option<f64> {
     let tool = drop.projectile_tool.as_ref()?;
     with_held_tool(tool, |env, stack| {
         let mut floats = NbtCompound::new();
         tool_stack::launch_volatile_floats(&stack.custom_data, env, &mut floats);
-        floats.get(EXPERIENCE_FLAG).and_then(Nbt::as_f64)
+        projectile_float(!tool_stack::saved_modifiers(&stack.custom_data, env.modifiers).is_empty(), &floats)
     }).ok().flatten()
+}
+
+/// The float a launched projectile records, from whether its launcher carried a modifier and the
+/// launch aggregation over that tool (`floats`): the original records the float of any projectile
+/// carrying modifiers, reading 0.0 for a key no module stamped, so a modifier-bearing launcher
+/// answers with its computed float or 0.0 — replacing the held tool's term either way — while a
+/// launcher with no modifiers records nothing and the held tool's term stands.
+fn projectile_float(modifier_bearing: bool, floats: &NbtCompound) -> Option<f64> {
+    if !modifier_bearing { return None; }
+    Some(floats.get(EXPERIENCE_FLAG).and_then(Nbt::as_f64).unwrap_or(0.0))
 }
 
 /// The slot number `slot` reads as on the player, for the looting slot's live read; None for the
@@ -136,8 +147,8 @@ pub(crate) fn scaled(amount: i32, factor: f64) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use pluto_lib::StackSlot;
-    use super::{block_bonus, looting_slot_number, mob_multiplier, scaled};
+    use pluto_lib::{Nbt, NbtCompound, StackSlot};
+    use super::{block_bonus, looting_slot_number, mob_multiplier, projectile_float, scaled, EXPERIENCE_FLAG};
 
     #[test]
     fn mob_multiplier_stacks_its_terms() {
@@ -155,6 +166,23 @@ mod tests {
         // A recorded projectile float of 0.0 still replaces the held tool's, as the original's
         // recorded float does even when it is zero.
         assert_eq!(mob_multiplier(None, Some((1.0, 1.5)), Some(0.0)), 2.0);
+    }
+
+    #[test]
+    fn a_modifier_bearing_projectile_without_the_experience_key_suppresses_the_held_tool() {
+        // The launcher carried a modifier but no module stamped the experience float: the
+        // original still records the projectile's float (0.0), so the held tool's term is
+        // suppressed rather than read.
+        let bare = NbtCompound::new();
+        assert_eq!(projectile_float(true, &bare), Some(0.0));
+        assert_eq!(mob_multiplier(None, Some((1.0, 1.5)), projectile_float(true, &bare)), 2.0, "the held tool's 1.5 is not added");
+        // A stamped float is answered as computed.
+        let mut stamped = NbtCompound::new();
+        stamped.insert(EXPERIENCE_FLAG.into(), Nbt::Float(1.5));
+        assert_eq!(projectile_float(true, &stamped), Some(1.5));
+        // A launcher with no modifiers records nothing: the held tool's term stands.
+        assert_eq!(projectile_float(false, &stamped), None);
+        assert_eq!(mob_multiplier(None, Some((1.0, 1.5)), projectile_float(false, &stamped)), 3.5);
     }
 
     #[test]
