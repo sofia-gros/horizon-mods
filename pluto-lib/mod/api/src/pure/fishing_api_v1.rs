@@ -3,7 +3,7 @@
 //! The game's fishing is built around its own hook: its rod use is gated to the vanilla rod item, and
 //! its hook is a private structure no event names. PlutoLib therefore carries a mod rod's cast the way
 //! it carries its other woven reaches: a callback here computes the rod's [`FishingProfile`] from the
-//! stack used, [`Fishing::use_rod`] queues the use, and the game's own fishing tick — reached by a
+//! stack used and what the use knows of its caster ([`CastContext`]), [`Fishing::use_rod`] queues the use, and the game's own fishing tick — reached by a
 //! small woven transport — casts, hooks and retrieves with that profile, reporting the rod's wear
 //! back through [`Fishing::take_wear`]. The numbers are the original combat hook's (`CombatFishingHook`): a cast flies the
 //! profile's velocity with its inaccuracy spread, a hooked entity is hurt by the impact-speed damage
@@ -135,7 +135,23 @@ pub fn retrieve_damage(underlying: u32, grounded: bool) -> u32 {
     }
 }
 
-type CastCallback = dyn Fn(&StackData) -> Option<FishingProfile> + Send + Sync;
+/// What a use casting a rod knows of its caster, beyond the stack: where the caster stands
+/// and the dimension they cast in. A cast profile whose numbers scale with the caster — the
+/// dwarven velocity reads the holder's height against the level's build range — needs both;
+/// a use that named no caster (or whose position could not be read) carries None for them,
+/// and a profile that needs them reads the stored value, as it did before the context
+/// existed. The dimension is the caster's, spelled as the game spells it
+/// (`minecraft:overworld`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CastContext {
+    /// Where the caster stands (their feet), when the use named them and their position
+    /// could be read.
+    pub position: Option<[f64; 3]>,
+    /// The dimension the cast is in, when the use named one.
+    pub dimension: Option<String>,
+}
+
+type CastCallback = dyn Fn(&StackData, &CastContext) -> Option<FishingProfile> + Send + Sync;
 
 static CASTS: RwLock<BTreeMap<String, Box<CastCallback>>> = RwLock::new(BTreeMap::new());
 static RODS: RwLock<Vec<String>> = RwLock::new(Vec::new());
@@ -147,8 +163,9 @@ pub struct FishingRegistry;
 
 impl FishingRegistry {
     /// Registers the cast profile computation for `item`: when the item is used, `cast` reads the stack
-    /// and answers the profile to cast with, or None to leave the use to the game.
-    pub fn register(item: Identifier, cast: impl Fn(&StackData) -> Option<FishingProfile> + Send + Sync + 'static) {
+    /// and what the use knows of its caster (see [`CastContext`]) and answers the profile to cast with,
+    /// or None to leave the use to the game.
+    pub fn register(item: Identifier, cast: impl Fn(&StackData, &CastContext) -> Option<FishingProfile> + Send + Sync + 'static) {
         if let Ok(mut casts) = CASTS.write() {
             casts.insert(item.to_string(), Box::new(cast));
         }
@@ -170,10 +187,10 @@ impl FishingRegistry {
         RODS.read().map(|rods| rods.iter().any(|rod| rod == item)).unwrap_or(false)
     }
 
-    /// The profile `stack` casts with, when its item registered a computation and the computation
-    /// answers one.
-    pub fn profile(stack: &StackData) -> Option<FishingProfile> {
-        CASTS.read().ok()?.get(&stack.item)?(stack)
+    /// The profile `stack` casts with under the cast context `cast`, when its item registered a
+    /// computation and the computation answers one.
+    pub fn profile(stack: &StackData, cast: &CastContext) -> Option<FishingProfile> {
+        CASTS.read().ok()?.get(&stack.item)?(stack, cast)
     }
 }
 
@@ -285,13 +302,25 @@ mod tests {
     #[test]
     fn a_registered_rod_answers_its_profile_and_counts_as_a_rod() {
         let item = Identifier::parse("example:war_rod").unwrap();
-        FishingRegistry::register(item, |stack| (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() }));
+        FishingRegistry::register(item, |stack, _cast| (stack.count > 0).then_some(FishingProfile { power: 2.0, grapple: Grapple::Drill, ..FishingProfile::default() }));
         assert!(FishingRegistry::is_rod("example:war_rod"));
         assert!(!FishingRegistry::is_rod("example:other"));
         let stack = StackData { item: "example:war_rod".into(), count: 1, ..StackData::default() };
-        let profile = FishingRegistry::profile(&stack).expect("the profile answers");
+        let profile = FishingRegistry::profile(&stack, &CastContext::default()).expect("the profile answers");
         assert_eq!((profile.power, profile.grapple), (2.0, Grapple::Drill));
-        assert_eq!(FishingRegistry::profile(&StackData::default()), None);
+        assert_eq!(FishingRegistry::profile(&StackData::default(), &CastContext::default()), None);
+    }
+
+    #[test]
+    fn the_cast_context_reaches_the_profile_computation() {
+        // A computation that scales with the caster: the velocity is the caster's height,
+        // or the stored 1.0 when the use named no position.
+        let item = Identifier::parse("example:dwarven_rod").unwrap();
+        FishingRegistry::register(item, |_stack, cast| Some(FishingProfile { velocity: cast.position.map_or(1.0, |position| position[1] as f32), ..FishingProfile::default() }));
+        let stack = StackData { item: "example:dwarven_rod".into(), count: 1, ..StackData::default() };
+        let deep = CastContext { position: Some([0.0, -32.0, 0.0]), dimension: Some("minecraft:overworld".into()) };
+        assert_eq!(FishingRegistry::profile(&stack, &deep).expect("the profile answers").velocity, -32.0, "the caster's height reaches the computation");
+        assert_eq!(FishingRegistry::profile(&stack, &CastContext::default()).expect("the profile answers").velocity, 1.0, "no caster, the stored value");
     }
 
     #[test]

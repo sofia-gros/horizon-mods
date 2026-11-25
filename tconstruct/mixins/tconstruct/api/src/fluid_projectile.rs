@@ -15,7 +15,9 @@
 //! In flight, a shot is followed in memory by the id PlutoLib's spawn returned: the impact report
 //! carries no saved data to read the fluid back from, so the record is the port's stand-in for the
 //! entity's own data, and a shot in flight across a restart is no longer followed (its impacts pass
-//! as any other projectile's). Two of the original's behaviours have no reach and are not faked:
+//! as any other projectile's). The flight telling ends a shot that flies above the build range's
+//! max (the original's above-max discard), so a shot that can never come back does not linger.
+//! Two of the original's behaviours have no reach and are not faked:
 //! the inherent knockback push on an entity hit (a push by an arbitrary motion vector is not a
 //! PlutoLib surface — see `fluid_world`), and writing the context stack back into the cannon's item
 //! slot when a hit spends it (a block entity's items are only reachable inside its own callbacks;
@@ -26,7 +28,7 @@ use crate::fluid_effects::{self, EntityContext, Env, Stack};
 use crate::fluid_ingredient::FluidTags;
 use crate::fluid_world::{block_context, holder, LiveTarget, LiveWorld};
 use pluto_lib::{
-    BlockPos, Direction, EntityTypeRegistry, FluidStack, Identifier, Nbt, NbtCompound, ProjectileEvents, ProjectileImpact,
+    BlockPos, Direction, EntityTypeRegistry, FluidStack, Identifier, Nbt, NbtCompound, ProjectileEvents, ProjectileFlight, ProjectileImpact,
     ProjectileSpawn, World, spawn_projectile,
 };
 use std::collections::BTreeMap;
@@ -280,6 +282,37 @@ fn on_impact(hit: &ProjectileImpact) -> bool {
     }
 }
 
+/// Whether a shot at height `y` in `dimension` flies above the world (FluidEffectProjectile's
+/// end-of-tick discard, `getY() > level.getMaxBuildHeight() + 64`): past 64 blocks above the
+/// build limit the shot is discarded, as it can never come back into the world (in practice
+/// only a lighter-than-air fluid's rising shot gets there). The range is read from the host's
+/// publication, as the fireball's flight end reads it (the flight telling runs in no world
+/// callback); when the host has not published the range, the flight is not ended on height.
+fn above_max(dimension: &str, y: f64) -> bool {
+    match World::new(dimension).build_height() {
+        Some([_, max]) => y > f64::from(max) + 64.0,
+        None => false,
+    }
+}
+
+/// A projectile in flight: only the shots this module fired are followed. One that another
+/// consumer already ended is simply forgotten; one above the build range's max is discarded
+/// here (the original's above-max discard), and its record goes with it.
+fn on_flight(flight: &ProjectileFlight) {
+    if flight.kind != FLUID_SPIT {
+        return;
+    }
+    let key = (flight.dimension.clone(), flight.projectile);
+    if flight.discard.get() {
+        shots().remove(&key);
+        return;
+    }
+    if above_max(&flight.dimension, flight.position[1]) {
+        flight.discard.set(true);
+        shots().remove(&key);
+    }
+}
+
 pub(crate) fn register() {
     // The type itself: a llama spit in movement, at the original's size and tracking, with no
     // velocity updates (FluidEffectProjectile's registration in TinkerModifiers). A duplicate or a
@@ -293,6 +326,7 @@ pub(crate) fn register() {
         false,
     );
     ProjectileEvents::IMPACT.register(on_impact);
+    ProjectileEvents::FLIGHT.register(on_flight);
 }
 
 #[cfg(test)]
@@ -413,5 +447,51 @@ mod tests {
         assert_eq!(at([0, 64, 0]), Some("minecraft:obsidian"), "north's far side is next, and the shot is spent");
         assert_eq!(at([0, 64, -2]), Some("minecraft:stone"), "the face's order would have spent here instead");
         assert_eq!(at([0, 65, -1]), Some("minecraft:stone"), "three levels were all the shot carried");
+    }
+
+    /// A flight telling for the tracked shot at height `y`, in a dimension no other test uses.
+    fn flight_at(y: f64) -> ProjectileFlight {
+        ProjectileFlight {
+            dimension: "example:flight".to_owned(), projectile: 4242, kind: FLUID_SPIT.to_owned(), owner: -1,
+            owner_position: None, age: 1, position: [0.0, y, 0.0], motion: [0.0, 1.0, 0.0], in_ground: false, no_gravity: false,
+            arrow: None, data: NbtCompound::new(), motion_after: std::cell::RefCell::new(None), discard: std::cell::Cell::new(false),
+            no_gravity_after: std::cell::Cell::new(None), pickup_after: std::cell::Cell::new(None),
+            release_from_ground: std::cell::Cell::new(false), actions: std::cell::RefCell::new(Vec::new()),
+        }
+    }
+
+    #[test]
+    fn a_shot_above_the_build_range_is_discarded_in_flight() {
+        let mut ops = MemoryWorldOps::default();
+        ops.build_heights.insert("example:flight".into(), [-64, 320]);
+        let key = ("example:flight".to_owned(), 4242);
+        let shot = Shot { fluid: FluidStack { fluid: id("tconstruct:molten_iron"), amount: 50, tag: None }, power: 1.0, cannon: None, stack: Stack::empty() };
+        with_world(&mut ops, || {
+            shots().insert(key.clone(), shot.clone());
+            // Up to 64 above the max the flight stands and the record stays.
+            let low = flight_at(384.0);
+            on_flight(&low);
+            assert!(!low.discard.get(), "at the max + 64 the shot still flies");
+            assert!(shots().contains_key(&key), "and its record stays");
+            // Above that the shot is discarded and its record goes with it.
+            let high = flight_at(385.0);
+            on_flight(&high);
+            assert!(high.discard.get(), "above the max + 64 the shot is discarded");
+            assert!(!shots().contains_key(&key), "the record goes with the discarded shot");
+            // A flight another consumer already ended is only forgotten, not re-decided.
+            shots().insert(key.clone(), shot.clone());
+            let ended = flight_at(100.0);
+            ended.discard.set(true);
+            on_flight(&ended);
+            assert!(!shots().contains_key(&key), "an ended flight's record is forgotten");
+            // Another kind of projectile is not this module's business.
+            shots().insert(key.clone(), shot.clone());
+            let mut other = flight_at(400.0);
+            other.kind = "minecraft:arrow".into();
+            on_flight(&other);
+            assert!(!other.discard.get());
+            assert!(shots().contains_key(&key));
+            shots().remove(&key);
+        });
     }
 }

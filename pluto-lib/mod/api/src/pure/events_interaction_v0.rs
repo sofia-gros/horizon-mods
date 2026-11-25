@@ -23,6 +23,13 @@ pub struct UseItemContext {
     /// use that depends on them (a fishing module's cast) reads. The host's use event names no hand; the hand
     /// holding this stack is the one whose carried stack equals it.
     pub stack: StackData,
+    /// The dimension the use is in, such as `minecraft:overworld`: the acting player's, or the host's own
+    /// when the event named no acting player.
+    pub dimension: String,
+    /// Where the player using the item stands (their feet), when the host named the acting player; None
+    /// when it did not, and a use that scales with the caster's height (a dwarven cast) then reads without
+    /// a caster, as it did before the context carried one.
+    pub position: Option<[f64; 3]>,
     /// Who used it; None when the host named no acting player and the world has not exactly one player.
     pub player: Option<ServerPlayer>,
 }

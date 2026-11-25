@@ -1253,6 +1253,25 @@ kind = "HEAD"
 helper = "pluto-block-facts-head.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
+# The logical height of the level a height read names, published for the API's
+# logical-height verb: the Host's height call (API 381) reports only the build range, so
+# the level's shape is read here, where the game itself answers the height. The API's
+# level tick asks the height of every loaded level each tick, so every loaded level's
+# logical height stays published alongside its range.
+[[module]]
+id = "pluto-level-facts"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_level_facts"
+source = "pluto-level-facts.rs"
+visibility = "pub"
+
+[[injection]]
+id = "pluto-level-facts-head"
+target = "horizon_client::game::native_level_refs::Game<'_>::native_level_height"
+kind = "HEAD"
+helper = "pluto-level-facts-head.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "level", ty = "horizon_client::mod_api::LevelRef", value = "level" }]
+
 [[injection]]
 id = "pluto-block-survive"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"

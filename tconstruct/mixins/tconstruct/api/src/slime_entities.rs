@@ -469,16 +469,15 @@ fn teleport_draw() -> u64 {
 fn teleport_double() -> f64 { (teleport_draw() >> 11) as f64 / (1u64 << 53) as f64 }
 
 /// TeleportHelper.randomNearbyTeleport's destination: diameter 16 around the origin, the vertical
-/// clamped to the dimension's own build range (the original clamps to the dimension's
-/// `minBuildHeight` and logical height). The range is the host's own for the dimension — any
-/// dimension, custom ones included — the vanilla table when it has not answered, so the vanilla
-/// dimensions keep their clamps (overworld −64..319, nether and end 0..255). The top here is the
-/// build limit less one; the original's logical height is not what the host reports (a dimension
-/// type may set it below its build height — the nether's own is 128, not 256 — so a top that
-/// exact still waits for a logical-height reach).
+/// clamped to the dimension's own logical range (the original clamps to the dimension's
+/// `minBuildHeight` and logical height: `min_y + logicalHeight - 1` at the top). Both are the
+/// host's own for the dimension — any dimension, custom ones included — the vanilla table when
+/// it has not answered, so the vanilla dimensions keep their clamps (overworld −64..319,
+/// nether 0..127 — its logical height is 128, below its 256 build height — and end 0..255).
 pub(crate) fn teleport_destination(origin: [f64; 3], dimension: &str, dx: f64, dy: i32, dz: f64) -> [f64; 3] {
-    let [min_y, max_y] = crate::mining_speed::level_build_height(dimension);
-    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(min_y as f64, (max_y - 1) as f64), origin[2] + (dz - 0.5) * 16.0]
+    let [min_y, _max_y] = crate::mining_speed::level_build_height(dimension);
+    let logical_top = min_y + crate::mining_speed::level_logical_height(dimension) - 1;
+    [origin[0] + (dx - 0.5) * 16.0, (origin[1] + dy as f64).clamp(min_y as f64, logical_top as f64), origin[2] + (dz - 0.5) * 16.0]
 }
 
 /// Whether a block is a liquid a teleport refuses to land in: the vanilla fluid blocks and
@@ -680,18 +679,23 @@ mod tests {
     }
 
     #[test]
-    fn teleport_destination_clamps_to_the_host_build_range() {
-        // The vanilla dimensions keep their clamps with no host range published.
+    fn teleport_destination_clamps_to_the_host_logical_range() {
+        // The vanilla dimensions keep their clamps with no host range published: the top is
+        // the logical top, so the nether clamps at 127 (its logical height 128), not at its
+        // build limit of 255.
         assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:overworld", 0.5, 0, 0.5), [0.0, 319.0, 0.0]);
         assert_eq!(teleport_destination([0.0, -100.0, 0.0], "minecraft:overworld", 0.5, 0, 0.5), [0.0, -64.0, 0.0]);
-        assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:the_nether", 0.5, 0, 0.5), [0.0, 255.0, 0.0]);
-        // A custom dimension reads the host's own range, not the overworld's.
+        assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:the_nether", 0.5, 0, 0.5), [0.0, 127.0, 0.0], "the nether's top is its logical height, not its build limit");
+        assert_eq!(teleport_destination([0.0, 400.0, 0.0], "minecraft:the_end", 0.5, 0, 0.5), [0.0, 255.0, 0.0]);
+        // A custom dimension reads the host's own range and logical height, not the table's.
         let mut ops = MemoryWorldOps::default();
         ops.build_heights.insert("example:custom".into(), [-32, 128]);
+        ops.logical_heights.insert("example:custom".into(), 96);
         with_world(&mut ops, || {
-            assert_eq!(teleport_destination([0.0, 400.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 127.0, 0.0]);
+            assert_eq!(teleport_destination([0.0, 400.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 63.0, 0.0], "-32 + 96 - 1");
             assert_eq!(teleport_destination([0.0, -100.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, -32.0, 0.0]);
-            assert_eq!(teleport_destination([0.0, 64.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 64.0, 0.0], "inside the range it stands");
+            assert_eq!(teleport_destination([0.0, 64.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 63.0, 0.0], "64 stands above the logical top, so it clamps too");
+            assert_eq!(teleport_destination([0.0, 32.0, 0.0], "example:custom", 0.5, 0, 0.5), [0.0, 32.0, 0.0], "inside the range it stands");
         });
     }
 }

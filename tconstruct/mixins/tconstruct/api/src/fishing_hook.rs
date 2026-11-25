@@ -12,29 +12,36 @@
 //! The port has no knockback stat, so the profile's knockback is the module-computed melee knockback
 //! at no base strength, which is what a rod without knockback modifiers carries anyway.
 use crate::{break_speed_hook::with_held_tool, entity_facts, tool_damage_hook, tool_slot, tool_stack, tool_stats::Stat};
-use pluto_lib::{ActionResult, Fishing, FishingProfile, FishingRegistry, Grapple, Identifier, ItemSlot, StackData, UseItemCallback, UseItemContext};
+use pluto_lib::{ActionResult, CastContext, Fishing, FishingProfile, FishingRegistry, Grapple, Identifier, ItemSlot, StackData, UseItemCallback, UseItemContext};
 
 /// The rod item: the one tool the fishing module's cast belongs to.
 const ROD: &str = "tconstruct:fishing_rod";
 
 /// The cast profile of a rod stack (`FishingModule.onToolUse`'s reading of the tool): None when the
-/// stack is not a whole tool carrying the fishing module (the module grants the cast action).
-fn profile(stack: &StackData) -> Option<FishingProfile> {
+/// stack is not a whole tool carrying the fishing module (the module grants the cast action). The
+/// cast context names the caster and the dimension, so the velocity reading can run the dwarven
+/// arm (it scales with the holder's height against the level's build range); the other stats read
+/// without a caster, as the edible reading does.
+fn profile(stack: &StackData, cast: &CastContext) -> Option<FishingProfile> {
     with_held_tool(stack, |env, tool| {
         let nbt = &tool.custom_data;
         if !tool_stack::can_perform_action(nbt, env, "fishing_rod_cast") {
             return None;
         }
-        // The caster's state tags and the entities a conditional stat could look at are not known to
-        // the use event, so a conditional stat that needs them does not apply (the edible reading
-        // makes the same choice). The dwarven velocity arm is one of them: it reads the holder's
-        // height, which this event does not carry, so a dwarven rod's velocity reads the stored
-        // value here — the registry's profile fn takes only the stack, and passing the caster
-        // through it would be a PlutoLib API change, declined for this lane.
+        // The caster's state tags are not known to the use event, so a conditional stat that
+        // needs them does not apply (the edible reading makes the same choice).
         let no_state = |_: &Identifier| false;
         let no_entities = entity_facts::Entities { attacker: None, target: None };
         let stat = |stat: Stat| tool_stack::conditional_stat(nbt, env, stat, &no_state, &no_entities);
         let accuracy = stat(Stat::Accuracy);
+        // The velocity alone reads the caster: the dwarven arm needs the holder's height and
+        // the level's build range, and the cast context names both. A cast that named no
+        // position or no dimension leaves the arm unreported, so the velocity reads the
+        // stored value, as it did before the context existed.
+        let holder = pluto_lib::EntityState { y: cast.position.map(|position| position[1]), ..Default::default() };
+        let caster = entity_facts::Entities { attacker: Some(&holder), target: None };
+        let build_height = cast.dimension.as_deref().map(crate::mining_speed::level_build_height);
+        let velocity = tool_stack::conditional_stat_at(nbt, env, Stat::Velocity, &no_state, &caster, build_height);
         let grapple = if tool_stack::can_perform_action(nbt, env, "grapple_hook") {
             if tool_stack::can_perform_action(nbt, env, "drill_attack") {
                 Grapple::Drill
@@ -47,7 +54,7 @@ fn profile(stack: &StackData) -> Option<FishingProfile> {
         Some(FishingProfile {
             luck: stat(Stat::SeaLuck) as i32,
             lure: stat(Stat::Lure) as i32,
-            velocity: stat(Stat::Velocity),
+            velocity,
             // ModifierUtil.getInaccuracy: 3 * (1 / accuracy - 1); a stack with no accuracy reading
             // casts true.
             inaccuracy: if accuracy > 0.0 { 3.0 * (1.0 / accuracy - 1.0) } else { 0.0 },
@@ -105,7 +112,8 @@ pub(crate) fn register() {
         }
         let Some(player) = &context.player else { return ActionResult::Pass };
         pay_wear(context);
-        let Some(profile) = FishingRegistry::profile(&context.stack) else { return ActionResult::Pass };
+        let cast = CastContext { position: context.position, dimension: Some(context.dimension.clone()) };
+        let Some(profile) = FishingRegistry::profile(&context.stack, &cast) else { return ActionResult::Pass };
         Fishing::use_rod(player, profile);
         ActionResult::Success
     });
