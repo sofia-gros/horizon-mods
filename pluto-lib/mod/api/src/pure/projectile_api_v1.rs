@@ -33,7 +33,10 @@ pub struct ThrownType {
     /// The sound a hand throw of this type plays (`tconstruct:throw.shuriken`, say), instead of the
     /// vanilla snowball throw the game plays for every thrown type. None throws with the game's own
     /// sound. The host's thrown-type form carries no sound, so this stays on the trait-mod side and
-    /// reaches the game's throw through the throw-sound sink.
+    /// reaches the game's throw through the throw-sound sink. A throw with a registered sound also
+    /// plays as Java plays it — at the thrower's feet, where the game plays its own throw at the
+    /// eye, and on the NEUTRAL source, where the game files a modded event under MASTER — through
+    /// the throw-position and throw-source reaches.
     pub throw_sound: Option<Identifier>,
 }
 
@@ -108,6 +111,13 @@ impl ThrownTypeRegistry {
         Self::get(id)?.throw_sound
     }
 
+    /// Whether `event` is the throw sound of some registered thrown type. The game picks the
+    /// source a played sound belongs to from its event, and a throw plays on NEUTRAL, so the
+    /// throw-source reach asks by event rather than by type.
+    pub fn is_throw_sound(event: &str) -> bool {
+        TYPES.lock().is_ok_and(|registry| registry.types.values().any(|thrown| thrown.throw_sound.as_ref().is_some_and(|sound| sound.to_string() == event)))
+    }
+
     /// Every registered thrown type, by id; collecting them freezes the registry, as the game's own
     /// set-once registry does. A content entity-types declaration is written from these rows:
     /// each type's id, its `item` and its `damage`, on the `minecraft:snowball` template.
@@ -128,6 +138,13 @@ pub fn throw_sound_for(id: &str) -> Option<&'static str> {
     let sound = ThrownTypeRegistry::throw_sound(&Identifier::parse(id).ok()?)?.to_string();
     let mut cached = THROW_SOUNDS.lock().ok()?;
     Some(*cached.entry(id.to_owned()).or_insert_with(|| Box::leak(sound.into_boxed_str())))
+}
+
+/// Whether `event` is a registered thrown type's throw sound, for the host's throw-source
+/// sink: the game asks by event when it files a played sound under a source, and a throw
+/// belongs to NEUTRAL. Installed beside [`throw_sound_for`].
+pub fn is_throw_sound_event(event: &str) -> bool {
+    ThrownTypeRegistry::is_throw_sound(event)
 }
 
 /// A projectile to spawn: its kind, where it starts, how it moves, whose it is and its own data.
@@ -235,6 +252,9 @@ mod tests {
         ThrownTypeRegistry::register(thrown).unwrap();
         assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), Some("test:throw.throwball".to_owned()));
         assert_eq!(throw_sound_for("test:throw_sound_ball"), Some("test:throw.throwball"));
+        assert!(is_throw_sound_event("test:throw.throwball"), "a registered type's sound is a throw sound by event");
+        assert!(!is_throw_sound_event("test:throw.throwball2"));
+        assert!(!is_throw_sound_event("minecraft:entity.snowball.throw"), "the game's own throw is no modded throw sound");
         let plain = ThrownType::new(Identifier::parse("test:throw_sound_plain").unwrap(), Identifier::parse("test:plain").unwrap(), 0.0).unwrap();
         assert!(plain.throw_sound.is_none());
         ThrownTypeRegistry::register(plain).unwrap();
