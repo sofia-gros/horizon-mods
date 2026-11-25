@@ -1,4 +1,4 @@
-//! Actual particle injection helper with structural Game/registry fixtures.
+﻿//! Actual particle injection helper with structural Game/registry fixtures.
 //! Native particle construction, biome blending, attachment and rendering are not tested.
 use std::{collections::BTreeMap,marker::PhantomData,sync::{Arc,Mutex}};
 use crate::{BlockColorContext,ColorProviderRegistry,Identifier};
@@ -20,7 +20,7 @@ mod sunrise_client {
         }
     }
 }
-include!("../../../mod/pluto-block-particle-tint.rs");
+include!("../../../mod/src/pluto-block-particle-tint.rs");
 
 #[test]
 fn actual_particle_helper_uses_supplied_registry_position_state_and_tint_zero_without_replacing_native_fallback() {
@@ -47,3 +47,4 @@ fn actual_particle_helper_uses_supplied_registry_position_state_and_tint_zero_wi
     assert_eq!(seen[0].state.property("persistent"),Some("true"));
     assert_eq!(seen[1].state.property("persistent"),Some("false"));
 }
+

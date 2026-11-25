@@ -1,4 +1,4 @@
-#[path = "../../../mod/pluto-reload-registry-access.rs"]
+﻿#[path = "../../../mod/src/pluto-reload-registry-access.rs"]
 #[allow(dead_code)]
 mod access;
 
@@ -57,3 +57,4 @@ fn nested_reload_unwind_restores_outer_owned_snapshot() {
     assert!(access::current_resources().is_none());
     assert_eq!(retained["rules"][0].layers[0].as_ref().unwrap(), b"1");
 }
+

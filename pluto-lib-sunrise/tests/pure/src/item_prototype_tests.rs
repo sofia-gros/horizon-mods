@@ -1,4 +1,4 @@
-//! Actual map-transfer helper, with identity JSON transport in place of native
+﻿//! Actual map-transfer helper, with identity JSON transport in place of native
 //! json_to_tag. This checks snapshot ownership/selection, not native NBT widths
 //! or the direct native final-map attachment (which needs native validation).
 use std::{collections::{BTreeMap, HashMap}, sync::Arc};
@@ -7,7 +7,7 @@ mod sunrise_world { pub mod item_defaults { pub type Defaults = std::collections
 mod sunrise_client_core { pub mod scoreboard { pub fn json_to_tag(value: &serde_json::Value) -> serde_json::Value { value.clone() } } }
 #[derive(Default)]
 struct ItemInfo { custom_components: BTreeMap<String, Value>, max_damage: u32 }
-include!("../../../mod/pluto-item-prototypes.rs");
+include!("../../../mod/src/pluto-item-prototypes.rs");
 
 #[test]
 fn actual_item_map_transfer_uses_held_defaults_and_keeps_missing_invalid_and_other_data_distinct() {
@@ -34,3 +34,4 @@ fn actual_item_map_transfer_uses_held_defaults_and_keeps_missing_invalid_and_oth
     assert_eq!(*source, before);
     assert_eq!(source["test:tool"]["minecraft:custom_data"]["generation"], 1);
 }
+

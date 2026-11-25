@@ -1,7 +1,7 @@
-//! Executes actual HEAD/LOAD helpers with structural host facades, not native types.
+﻿//! Executes actual HEAD/LOAD helpers with structural host facades, not native types.
 //! It does not execute native fall events, passenger/block dispatch or plan sites.
 use std::cell::{Cell,RefCell};
-#[path="../../../mod/pluto-living-entity-access.rs"]
+#[path="../../../mod/src/pluto-living-entity-access.rs"]
 pub(crate) mod pluto_living_entity_access;
 #[derive(Clone,Copy)]
 enum Species {Slime,MagmaCube,SulfurCube,Other}
@@ -28,16 +28,16 @@ mod finalize {
 }
 mod living {
     use super::{Mob,MobEvent,MobWorld,Vec3};
-    include!("../../../mod/pluto-living-entity-jump.rs");
-    include!("../../../mod/pluto-living-entity-fall.rs");
-    include!("../../../mod/pluto-living-cause-fall.rs");
+    include!("../../../mod/src/pluto-living-entity-jump.rs");
+    include!("../../../mod/src/pluto-living-entity-fall.rs");
+    include!("../../../mod/src/pluto-living-cause-fall.rs");
     pub(super) fn fall(m:&Mob,value:f64,distance:f64,multiplier:f32)->f64 {pluto_living_entity_fall(value,m,distance,multiplier)}
     pub(super) fn query(m:&Mob,w:&MobWorld<'_>)->std::ops::ControlFlow<f32> {pluto_living_entity_jump(m,w)}
     pub(super) fn cause_fall(m:&mut Mob,distance:f64,multiplier:f32,events:&mut Vec<MobEvent>,contact:Option<(&MobWorld,[i32;3])>)->std::ops::ControlFlow<bool> {pluto_living_cause_fall(m,distance,multiplier,events,contact)}
 }
 mod cube {
     use super::Mob;
-    include!("../../../mod/pluto-living-entity-attack.rs");
+    include!("../../../mod/src/pluto-living-entity-attack.rs");
     pub(super) fn query(m:&Mob)->std::ops::ControlFlow<f32> {pluto_living_entity_attack(m)}
 }
 #[test]
@@ -99,3 +99,4 @@ fn actual_query_helpers_keep_unregistered_fallback_zero_and_native_inputs_withou
     mob.kind.id="minecraft:slime".into();
     assert_eq!(living::cause_fall(&mut mob,10.0,1.0,&mut events,None),Continue(()));
 }
+

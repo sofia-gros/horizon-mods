@@ -1,7 +1,7 @@
-//! The host-independent half of PlutoLib, built without Horizon, plus the compiled documentation examples.
-#[path = "../../../mod/api/src/pure/mod.rs"]
+﻿//! The host-independent half of PlutoLib, built without Horizon, plus the compiled documentation examples.
+#[path = "../../../mod/src/pure/mod.rs"]
 pub mod pure;
-#[path = "../../../mod/api/src/exports.rs"]
+#[path = "../../../mod/src/exports.rs"]
 mod exports;
 
 pub use exports::*;
@@ -93,7 +93,7 @@ pub mod fixtures {
 }
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-entity-spawn-state.rs"]
+#[path = "../../../mod/src/pluto-entity-spawn-state.rs"]
 mod entity_spawn_state_tests;
 
 #[cfg(test)]
@@ -111,7 +111,7 @@ mod particle_color_tests;
 #[cfg(test)]
 mod item_particle_factory_tests;
 #[cfg(test)]
-#[path = "../../../mod/pluto-block-settings-access.rs"]
+#[path = "../../../mod/src/pluto-block-settings-access.rs"]
 mod block_settings_access_tests;
 #[cfg(test)]
 mod head_policy_tests;
@@ -122,7 +122,7 @@ mod living_query_host_tests;
 #[cfg(test)]
 mod living_attribute_host_tests;
 #[cfg(test)]
-#[path = "../../../mod/pluto-skull-model-access.rs"]
+#[path = "../../../mod/src/pluto-skull-model-access.rs"]
 pub(crate) mod skull_model_access_tests;
 #[cfg(test)]
 mod skull_render_host_tests;
@@ -156,58 +156,58 @@ mod game {
 }
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-block-access.rs"]
+#[path = "../../../mod/src/pluto-block-access.rs"]
 mod block_access_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-structure-access.rs"]
+#[path = "../../../mod/src/pluto-structure-access.rs"]
 mod structure_access_tests;
 
 // Exercise the actual host-independent bridge bookkeeping, not a copied model.
 #[cfg(test)]
-#[path = "../../../mod/pluto-block.rs"]
+#[path = "../../../mod/src/pluto-block.rs"]
 mod block_bridge_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-item-placement-access.rs"]
+#[path = "../../../mod/src/pluto-item-placement-access.rs"]
 mod item_placement_access_tests;
 #[cfg(test)]
-#[path = "../../../mod/pluto-entity-type-access.rs"]
+#[path = "../../../mod/src/pluto-entity-type-access.rs"]
 mod entity_type_access_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-trade-pool.rs"]
+#[path = "../../../mod/src/pluto-trade-pool.rs"]
 mod trade_pool_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-item-mask-tests.rs"]
+#[path = "../../../mod/src/pluto-item-mask-tests.rs"]
 mod item_mask_adapter_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-item-behavior-tests.rs"]
+#[path = "../../../mod/src/pluto-item-behavior-tests.rs"]
 mod item_behavior_adapter_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-player-visibility-access.rs"]
+#[path = "../../../mod/src/pluto-player-visibility-access.rs"]
 mod player_visibility_access_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-sky-access.rs"]
+#[path = "../../../mod/src/pluto-sky-access.rs"]
 mod sky_access_tests;
 #[cfg(test)]
-#[path = "../../../mod/pluto-player-visibility-tests.rs"]
+#[path = "../../../mod/src/pluto-player-visibility-tests.rs"]
 mod player_visibility_adapter_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-block-entity-access.rs"]
+#[path = "../../../mod/src/pluto-block-entity-access.rs"]
 mod block_entity_access_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-client-block-entity-state.rs"]
+#[path = "../../../mod/src/pluto-client-block-entity-state.rs"]
 mod client_block_entity_state_tests;
 
 #[cfg(test)]
-#[path = "../../../mod/pluto-block-entity-cache.rs"]
+#[path = "../../../mod/src/pluto-block-entity-cache.rs"]
 mod block_entity_cache_tests;
 
 /// Every page of `pluto-lib/docs/api` is included here, so each ```rust block in it is compiled and run by `cargo test --doc`.
@@ -254,3 +254,4 @@ mod api_pages {
     page!(Map, "map.md");
     page!(Movement, "movement.md");
 }
+

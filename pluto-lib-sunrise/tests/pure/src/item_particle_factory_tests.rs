@@ -1,4 +1,4 @@
-//! Actual factory bridge and HEAD helper, with a trace Game facade. Native
+﻿//! Actual factory bridge and HEAD helper, with a trace Game facade. Native
 //! model baking, stack conversion, filters and particle physics are unverified.
 use std::{marker::PhantomData,ops::ControlFlow};
 use crate::{Identifier,ParticleFactoryRegistry,StackData,Nbt};
@@ -9,10 +9,10 @@ impl ParticleOptions {fn named(name:impl Into<String>)->Self {Self {mod_particle
 pub(crate) enum MobEvent {Particles {kind:&'static str,at:[f64;3],count:u32},Other}
 struct MobType {id:String}
 struct Mob {kind:MobType}
-pub(crate) mod pluto_entity_particles {include!("../../../mod/pluto-entity-particles.rs");}
+pub(crate) mod pluto_entity_particles {include!("../../../mod/src/pluto-entity-particles.rs");}
 mod cube {
     use super::Mob;
-    include!("../../../mod/pluto-entity-particle-kind.rs");
+    include!("../../../mod/src/pluto-entity-particle-kind.rs");
     pub(super) fn kind(value:&'static str,m:&Mob)->&'static str {pluto_entity_particle_kind(value,m)}
 }
 #[derive(Debug,PartialEq)]
@@ -37,10 +37,10 @@ mod sunrise_client {
 }
 pub(crate) mod bridge {
     use super::sunrise_client;
-    include!("../../../mod/pluto-item-particles.rs");
+    include!("../../../mod/src/pluto-item-particles.rs");
 }
-include!("../../../mod/pluto-item-particle-head.rs");
-include!("../../../mod/pluto-entity-particle-event.rs");
+include!("../../../mod/src/pluto-item-particle-head.rs");
+include!("../../../mod/src/pluto-entity-particle-event.rs");
 
 #[test]
 fn actual_factory_head_delegates_once_with_own_game_model_stack_position_velocity_and_native_result() {
@@ -86,3 +86,4 @@ fn actual_factory_head_delegates_once_with_own_game_model_stack_position_velocit
         assert!(game.calls.is_empty(),"unhandled/count-burst events must not create a partial or duplicate particle");
     }
 }
+

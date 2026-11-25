@@ -1,4 +1,4 @@
-//! Production mask HEAD helper; the native tag lookup remains Horizon's job.
+﻿//! Production mask HEAD helper; the native tag lookup remains Horizon's job.
 use std::{cell::Cell, ops::ControlFlow};
 thread_local! {
     static ANSWER: Cell<Option<bool>> = const { Cell::new(None) };
@@ -17,7 +17,7 @@ impl Mob { fn eye_y(&self)->f64 {self.position.y} }
 struct Player { head:Option<String>, uuid:[i32;4], alive:bool, look:[f64;3], eye:[f64;3], position:Vec3 }
 struct MobWorld<'a> { player:Option<Player>, visible:bool, marker:std::marker::PhantomData<&'a ()> }
 impl MobWorld<'_> { fn line_of_sight(&self,_:Vec3,_:Vec3)->bool {self.visible} }
-include!("../../../mod/pluto-item-mask-head.rs");
+include!("../../../mod/src/pluto-item-mask-head.rs");
 
 #[test]
 fn mask_head_distinguishes_native_fallback_from_false_and_preserves_stare_conditions() {
@@ -46,3 +46,4 @@ fn mask_head_distinguishes_native_fallback_from_false_and_preserves_stare_condit
     assert_eq!(pluto_item_ender_mask(&mob,&world),ControlFlow::Continue(()));
     ANSWER.set(None);
 }
+

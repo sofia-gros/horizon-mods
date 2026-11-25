@@ -1,4 +1,4 @@
-//! Actual attribute helpers against storage facades, including scalar arithmetic.
+﻿//! Actual attribute helpers against storage facades, including scalar arithmetic.
 //! Native types, save/sync, catalog implementation, world join and attachment are not exercised.
 use std::{collections::BTreeMap,sync::Arc};
 use crate::mobs::pluto_living_entity_access::AttributeModifier;
@@ -63,7 +63,7 @@ struct Mob {kind:Kind,extra:Extra,gear_knockback_resistance:Option<f64>,refreshe
 fn refresh(m:&mut Mob,a:Attr) {assert_eq!(a,Attr::KnockbackResistance);m.refreshes+=1;}
 mod ops {
     use super::sunrise_world;
-    include!("../../../mod/pluto-living-attribute-ops.rs");
+    include!("../../../mod/src/pluto-living-attribute-ops.rs");
 }
 // These functions supply host inputs, not a second copy of the calculation.
 mod compute_head {
@@ -76,7 +76,7 @@ mod compute_head {
     }
     fn transient(_m:&Mob,_a:Attr)->Vec<(f64,Op)> {vec![(0.1,Op::AddValue)]}
     fn effect_modifiers(_m:&Mob,_a:Attr)->Vec<(f64,Op)> {vec![(0.25,Op::AddMultipliedTotal)]}
-    include!("../../../mod/pluto-living-attributes-compute.rs");
+    include!("../../../mod/src/pluto-living-attributes-compute.rs");
     pub(super) fn compute(m:&Mob,transient:bool,extra:&[(f64,Op)])->std::ops::ControlFlow<f64> {
         pluto_living_attributes_compute(m,Attr::KnockbackResistance,transient,extra)
     }
@@ -105,7 +105,7 @@ fn actual_scalar_head_retains_native_fallback_operation_order_transient_switch_a
 }
 mod base_return {
     use super::{Mob,Attr,ops as pluto_living_attribute_ops};
-    include!("../../../mod/pluto-living-attributes-base.rs");
+    include!("../../../mod/src/pluto-living-attributes-base.rs");
     pub(super) fn apply(mob:&mut Mob,attribute:Attr,base:f64) {pluto_living_attributes_base((),mob,attribute,base);}
 }
 #[test]
@@ -182,3 +182,4 @@ fn actual_attribute_bridge_owns_transients_preserves_scalar_ops_and_removes_with
     ops::remove_transient(&mut mob,Attr::KnockbackResistance,"attributes:missing");
     assert_eq!(mob.gear_knockback_resistance,Some(0.5),"no match must not invalidate native gear state");
 }
+

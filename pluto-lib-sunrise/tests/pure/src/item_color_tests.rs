@@ -1,4 +1,4 @@
-//! Executes the actual native bridge/layers helper against structural fixtures.
+﻿//! Executes the actual native bridge/layers helper against structural fixtures.
 //! This checks tint transport, not Horizon type/site attachment or model baking.
 use std::{borrow::Cow,cell::Cell,collections::BTreeMap,sync::{Arc,Mutex}};
 use serde_json::{Value,json};
@@ -23,7 +23,7 @@ struct ItemRenderState {
     layers:Vec<LayerRender>, display:u8, oversized_in_gui:bool, animated:bool,
     cit_glint:Option<Arc<String>>, hdr_tier:u8, hdr_light:u8,
 }
-#[path="../../../mod/pluto-item-colors.rs"]
+#[path="../../../mod/src/pluto-item-colors.rs"]
 mod pluto_item_colors;
 // The layers helper also runs the retexture pass, which needs the host's
 // item environment and the retexture module; neither exists in this
@@ -39,7 +39,7 @@ mod pluto_retexture_item {
         layers
     }
 }
-include!("../../../mod/pluto-item-color-layers.rs");
+include!("../../../mod/src/pluto-item-color-layers.rs");
 
 #[test]
 fn actual_layer_helper_keeps_native_fallback_specials_and_shared_geometry_and_adds_opaque_rgb() {
@@ -82,3 +82,4 @@ fn actual_layer_helper_keeps_native_fallback_specials_and_shared_geometry_and_ad
         assert_eq!(components,&renderer.models.effective,"the resolver supplies its already merged view");
     }
 }
+

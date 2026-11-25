@@ -1,4 +1,4 @@
-//! Actual opt-in HEAD/provider helpers with a trace Game facade; this does not
+﻿//! Actual opt-in HEAD/provider helpers with a trace Game facade; this does not
 //! execute the adapted native Game death pipeline or validate Horizon types.
 use std::{marker::PhantomData,ops::ControlFlow,sync::{Arc,atomic::{AtomicUsize,Ordering}}};
 mod sunrise_client {pub(crate) mod items {pub(crate) struct ItemStack;}}
@@ -18,9 +18,9 @@ impl Game<'_> {
 }
 pub(crate) mod bridge {
     use super::{sunrise_client, sunrise_world};
-    include!("../../../mod/pluto-living-drops.rs");
+    include!("../../../mod/src/pluto-living-drops.rs");
 }
-include!("../../../mod/pluto-living-drops-head.rs");
+include!("../../../mod/src/pluto-living-drops-head.rs");
 #[test]
 fn actual_death_head_preserves_no_provider_and_no_callbacks_fallback_without_moving_killer() {
     // ExplosionSource carries MobType's raw ID, whereas loot predicates need
@@ -66,3 +66,4 @@ fn killer_mainhand_looting_reads_the_killer_hand_not_the_other_slots() {
         ("mainhand".into(),sunrise_world::loot::LootStack {item:"minecraft:air".into(),count:0,enchantments:vec![("minecraft:looting".into(),3)]})]};
     assert_eq!(bridge::killer_mainhand_looting(&air),0);
 }
+

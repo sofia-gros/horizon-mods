@@ -1,20 +1,20 @@
-//! Actual kind and loot-gate helpers. This does not compile native Game/loot
+﻿//! Actual kind and loot-gate helpers. This does not compile native Game/loot
 //! types, constructors or the adapted death pipeline under the closed D gate.
 use std::ops::ControlFlow;
 mod sunrise_client {pub(crate) mod mobs {
     pub(crate) struct Kind {pub id:String}
     pub(crate) struct Mob {pub kind:Kind}
 }}
-include!("../../../mod/pluto-entity-kind.rs");
+include!("../../../mod/src/pluto-entity-kind.rs");
 pub(crate) mod nav {pub mod pluto_entity_spawn_state {
     pub fn head_drop_eligibility()->Option<bool> {crate::entity_spawn_state_tests::head_drop_eligibility()}
 }}
 mod drops {
     type LootStack=();
-    include!("../../../mod/pluto-head-loot-gate.rs");
+    include!("../../../mod/src/pluto-head-loot-gate.rs");
     pub(super) fn gate(table:&str)->std::ops::ControlFlow<Vec<()>> {pluto_head_loot_gate(table)}
 }
-#[path="../../../mod/pluto-living-drop-state.rs"]
+#[path="../../../mod/src/pluto-living-drop-state.rs"]
 mod combat_state;
 #[test]
 fn actual_kind_helper_preserves_custom_names_and_head_gate_never_changes_other_loot_tables() {
@@ -34,3 +34,4 @@ fn actual_kind_helper_preserves_custom_names_and_head_gate_never_changes_other_l
     });
     assert_eq!(drops::gate(table),ControlFlow::Continue(()));
 }
+

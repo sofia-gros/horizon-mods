@@ -1,4 +1,4 @@
-# Compiles PlutoLib's host-independent module (mod/api/src/pure) on its own so it can be tested in seconds, and compiles the
+﻿# Compiles PlutoLib's host-independent module (mod/api/src/pure) on its own so it can be tested in seconds, and compiles the
 # code examples of the API pages (docs/api/*.md) as doctests against the same names a mod author sees (`pluto_lib::...`).
 [package]
 name = "pluto-lib-pure-tests"
@@ -9,7 +9,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-pluto-movement-api = { path = "../../mixins/pluto_movement/api" }
+pluto-movement-api = { path = "../../mod/src/pluto-movement-api" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 
@@ -18,3 +18,4 @@ name = "pluto_lib"
 path = "src/lib.rs"
 
 [workspace]
+

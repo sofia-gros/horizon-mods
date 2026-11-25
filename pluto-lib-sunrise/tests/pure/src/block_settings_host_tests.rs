@@ -1,4 +1,4 @@
-//! Executes the actual gameplay HEAD helper. These facade types do not verify
+﻿//! Executes the actual gameplay HEAD helper. These facade types do not verify
 //! native Plan/NewBlock/J types, attachment or piston resolution.
 use std::collections::BTreeMap;
 struct Declaration {id:String}
@@ -12,7 +12,7 @@ pub(crate) mod bridge {
     pub(super) fn install(settings:Settings) {assert!(SETTINGS.set(settings).is_ok());}
     pub(crate) fn block_settings(block:&str,set:impl FnOnce(&'static str)) {SETTINGS.get().unwrap().apply(block,set);}
 }
-include!("../../../mod/pluto-block-settings-gameplay.rs");
+include!("../../../mod/src/pluto-block-settings-gameplay.rs");
 #[test]
 fn actual_gameplay_helper_changes_only_declared_push_and_preserves_every_state_row() {
     use crate::{BlockBehavior,Identifier,PistonBehavior};
@@ -32,3 +32,4 @@ fn actual_gameplay_helper_changes_only_declared_push_and_preserves_every_state_r
         }
     }
 }
+

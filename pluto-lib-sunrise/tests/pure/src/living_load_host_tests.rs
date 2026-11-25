@@ -1,4 +1,4 @@
-//! Executes the actual pre-join adapter against structural game facades. This
+﻿//! Executes the actual pre-join adapter against structural game facades. This
 //! checks dispatch/gating, not native Host/attachments/attribute observers/sites.
 use std::{marker::PhantomData,sync::Arc};
 struct Dim(&'static str);
@@ -48,18 +48,21 @@ mod sunrise_client {
         }
     }}
 }
+mod sunrise_client_lib {pub mod pluto_living_load_access {
+    pub use super::super::sunrise_client::entry::pluto_living_load_access::{bases,has,AttributeBase,LoadInfo};
+}}
 macro_rules! load_error { ($($arg:tt)*) => { eprintln!($($arg)*) }; }
 mod log {pub(crate) use load_error as error;}
 mod adapter {
-    use super::{sunrise_client,log};
-    include!("../../../mod/pluto-living-attributes-join.rs");
+    use super::{sunrise_client,sunrise_client_lib,log};
+    include!("../../../mod/src/pluto-living-attributes-join.rs");
 }
 mod return_adapter {
     use super::{Game,sunrise_client,log};
     type R<T>=Result<T,String>;
     pub(super) enum Target {Mob(u32),Item}
     fn err(key:&str,_:&[()])->String {key.into()}
-    include!("../../../mod/pluto-living-attributes-reload.rs");
+    include!("../../../mod/src/pluto-living-attributes-reload.rs");
     pub(super) fn run(value:R<()>,game:&mut Game<'_>,target:Target)->R<()> {pluto_living_attributes_reload(value,game,target)}
 }
 #[test]
@@ -103,3 +106,4 @@ fn actual_join_adapter_preserves_event_dimension_and_skips_cancelled_remote_and_
     assert_eq!(return_adapter::run(Ok(()),&mut game,return_adapter::Target::Mob(7)),Err("commands.data.merge.failed".into()));
     assert!(game.mobs[0].bases.is_empty());
 }
+

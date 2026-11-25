@@ -1,4 +1,4 @@
-//! Actual decoder/parts/worn/bounds/submit helpers with trace host types.
+﻿//! Actual decoder/parts/worn/bounds/submit helpers with trace host types.
 //! Native JSON codec/types, model baking, transformations and pixels are NOT
 //! exercised by these facades and require separate native validation.
 use std::{collections::HashMap,path::Path,sync::atomic::{AtomicBool,Ordering}};
@@ -6,7 +6,7 @@ use serde_json::{Value,Map,json};
 mod sunrise_assets {pub(crate) mod item_model {pub(crate) use crate::skull_model_access_tests as pluto_skull_model_access;}}
 pub(crate) mod parts {
     use super::sunrise_assets;
-    include!("../../../mod/pluto-skull-item-models.rs");
+    include!("../../../mod/src/pluto-skull-item-models.rs");
 }
 #[derive(Clone,Debug,PartialEq)]
 pub(crate) struct ModelPart {id:f32}
@@ -53,14 +53,14 @@ fn draw(part:&ModelPart,_:&str,pose:Mat4,adjust:&dyn Fn(&str,&mut [f32;9]),rect:
     assert_eq!(foil,Foil::None);let mut p=[0.0;9];adjust("head",&mut p);
     sink.draw(Draw {part:part.id,pose,rect,color,style:p[0],animation:p[1]});
 }
-include!("../../../mod/pluto-skull-special-decode.rs");
-include!("../../../mod/pluto-skull-parts-return.rs");
+include!("../../../mod/src/pluto-skull-special-decode.rs");
+include!("../../../mod/src/pluto-skull-parts-return.rs");
 struct EntityModelDocument(Value);
 impl EntityModelDocument {fn value(&self)->&Value {&self.0}}
-include!("../../../mod/pluto-skull-document-parts-return.rs");
-include!("../../../mod/pluto-skull-worn-kind.rs");
-include!("../../../mod/pluto-skull-extents.rs");
-include!("../../../mod/pluto-skull-submit.rs");
+include!("../../../mod/src/pluto-skull-document-parts-return.rs");
+include!("../../../mod/src/pluto-skull-worn-kind.rs");
+include!("../../../mod/src/pluto-skull-extents.rs");
+include!("../../../mod/src/pluto-skull-submit.rs");
 #[test]
 fn actual_skull_chain_decodes_owns_geometry_and_forwards_kind_texture_pose_animation_without_native_fallback() {
     use std::ops::ControlFlow;
@@ -127,3 +127,4 @@ fn actual_skull_chain_decodes_owns_geometry_and_forwards_kind_texture_pose_anima
     assert_eq!(pluto_skull_document_parts_return(base.clone(),&EntityModelDocument(json!({}))),base,
         "missing native layer publishes no partial custom models");
 }
+

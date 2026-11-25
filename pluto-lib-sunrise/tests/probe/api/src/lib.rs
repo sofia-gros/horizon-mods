@@ -678,7 +678,7 @@ pub fn hooks() -> Box<dyn Hooks> {
         );
         println!("PLUTO-PROBE fluids tconstruct={}", pluto_lib::FluidRegistry::registered().iter().filter(|f| f.id.namespace() == "tconstruct").count());
         // what the game side holds for the item registered through PlutoLib
-        let spec = sunrise_client::entry::pluto_item_use::get("pluto_probe:snack");
+        let spec = sunrise_client_lib::pluto_item_use::get("pluto_probe:snack");
         println!("PLUTO-PROBE item_use game_side={spec:?}");
         let said = p.player.send_message("PlutoLib says hello");
         let left = p.player.give_item("minecraft:stick", 1);

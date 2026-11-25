@@ -1,0 +1,21 @@
+[package]
+name = "mod-pluto_lib"
+version = "0.1.0"
+edition = "2024"
+description = "PlutoLib: Horizon's Fabric API"
+license = "MIT"
+
+[lib]
+name = "pluto_lib"
+
+[dependencies]
+# The pinned SDK's API crate, fetched into .sunrise/sdk/ by any `cargo sunrise-mod` command.
+sunrise-mod-api = { path = ".sunrise/sdk/api/crates/sunrise-mod-api" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+# The block movement-factor registry, re-exported as `pluto_lib::movement`.
+pluto-movement-api = { path = "src/pluto-movement-api" }
+pluto-inventory-api = { path = "src/inventory-api" }
+pluto-item-api = { path = "src/pluto-item-api" }
+pluto-api = { path = "src/pluto-api" }
+

@@ -9,18 +9,24 @@ API; only PlutoLib has two trees.
 
 ## Pinned target
 
-- Sunrise revision: **3d34bbe63d71bb24c098c1e4021ef866be12fe2d**
-  (latest Mod SDK release `sdk-3d34bbe6…`, 2026-11-24; game "26.3").
-  Per the Sunrise-latest research, the porting unit is an SDK release, not
-  raw main (main HEAD e250d0545… at conversion time).
-- SDK evidence (`sdk.json` of that release): `mixins.rev =
-  e59da9094f0c2fdda6c627fe9eff22dec6a906f0` — the same horizon-mixins pin as
-  the Horizon variant; `toolchain.rust = 1.99.1` (the SDK build installs it
-  via rustup; this repo's Horizon toolchain is 1.95.0 — do not confuse them);
-  `content_api = "0.2"`; `package_format = 6`.
+- Sunrise revision: **ffb8601b02db279261c4e9bbfd977b4b2e3892ab**
+  (latest Mod SDK release `sdk-ffb8601b…`, 2026-11-25; game "26.3").
+  The tree was seeded against the previous SDK release
+  `3d34bbe63d71bb24c098c1e4021ef866be12fe2d` (2026-11-24) and retargeted to
+  ffb8601b by the checkpoint below; per owner decision (2026-11-25) only the
+  latest SDK is supported — older generations are dropped. Per the
+  Sunrise-latest research, the porting unit is an SDK release, not raw main.
+- SDK evidence (`sdk.json` of ffb8601b): every pin field is identical to
+  3d34bbe — `mixins.rev = e59da9094f0c2fdda6c627fe9eff22dec6a906f0` (the
+  same horizon-mixins pin as the Horizon variant) + mixins patch
+  `c4a46bf9…`; `toolchain.rust = 1.99.1` (this repo's Horizon toolchain is
+  1.95.0 — do not confuse them); `content_api = "0.2"`;
+  `package_format = 6`. The delta is API surface only (~2,128
+  `surface.changes` entries: Attachments rework, mass hook-version bumps,
+  capability-provider rework, some moved mixin targets).
 - Release naming (owner rule, 2026-11-25): the Sunrise variant's release
   name carries "sunrise":
-  **`pluto-lib-sunrise-v0.1.0-sunrise.3d34bbe6-mixins.e59da909`**.
+  **`pluto-lib-sunrise-v0.1.0-sunrise.ffb8601b-mixins.e59da909`**.
   Signing on Sunrise is GitHub artifact attestation + `.sigstore.json`
   produced by the registry's shared workflow — authors hold no keys;
   the Horizon variant's minisign plan does NOT carry over.
@@ -68,32 +74,120 @@ API; only PlutoLib has two trees.
   through path-keyed baselines and allowlists written for `pluto-lib/`
   only — tooling adaptation is item R6.
 
+## ffb8601b checkpoint (2026-11-25, branch `pluto-lib-sunrise/sunrise-ffb8601b-mixins-e59da909`)
+
+Worklists and logs for everything below live in the lane scratch
+`~/workspace/pluto-lib-sunrise-latest/` (census-report.txt, r1-worklist.csv,
+replaceable-list.txt, sdk-diff.txt, STATUS.md).
+
+- **R1 — census done against the ffb8601b clone**
+  (`A:\Project\sunrise-src-latest`, rev-parse verified; the 3d34bbe clone
+  stays at `A:\Project\sunrise-src` for `sdk diff`). Modules: 216 rows —
+  187 anchor files exist, 29 moved/gone with the `game/` area
+  reorganisation (basename candidates found for most; `game/creatures.rs`,
+  `game/remote.rs`, `game/maps.rs` and sunrise-world `attachments.rs` have
+  none — their rows re-derive). **40 module rows anchor outside
+  `crates/sunrise-client/src/`** and are refused as woven
+  (E_MIXIN_MODULE_DESTINATION): fold the support code into the dependent
+  helpers or re-anchor where the consumer lives. Mixins: 236 rows — 187
+  resolve in-crate, 28 fn-not-found (several are census parser artifacts on
+  `<Type as Trait>` targets; the real signal is ~12 `native_*` hook entry
+  points to re-derive or substitute via mod_api). The lower-crate
+  `#[replaceable]` surface is tiny (88 markers, 71 fns extracted);
+  **21 rows are refused as woven** (e.g. `Items::mining_speed`,
+  `ChunkMap::clear`, worldgen `Decoration::decorate`) and must retarget to
+  a replaceable caller/callee or a mod_api primitive. Retargets whose new
+  anchor is already verified are applied in this checkpoint (e.g.
+  `pluto-living-load-access` moved `entry.rs` → `client_lib.rs`, with its
+  consumers in hooks.rs and pluto-living-attributes-join.rs repointed to
+  `sunrise_client_lib::pluto_living_load_access`).
+- **R2 — merged cargo-sunrise-mod project + weave plan.** All shipped
+  bundles are merged into ONE project rooted at `mod/`: 317 woven files
+  under `mod/src/`, `mod/api` folded into the root crate (package
+  `mod-pluto_lib`, `[lib] name = "pluto_lib"`; the sunrise-client git dep
+  is refused by the tool and is gone), internal API crates stay path deps
+  (pluto-inventory-api, pluto-movement-api, pluto-item-api). Colliding
+  mixin/module ids and file basenames were bundle-prefix renamed.
+  `cargo sunrise-mod check` parses the merged manifest.
+  **Weave plan verdict: 296 of 421 rows plan-clean; the remaining 125 rows
+  are the redesign list** (the R1 refusals above: outside-crate anchors,
+  non-replaceable targets, missing `native_*` entry points).
+- **R3 — OVERWRITE fingerprints re-derived** from the plan runs'
+  `E_FINGERPRINT` `got` values and applied (scratch harvest_fp*.py /
+  apply_fp.py) — never computed from source text.
+- **R4 — state rows recounted for the shipped set: 10 `[[state]]` rows**
+  (mod/ 5, pluto_native_creative 3, pluto_creative 1, guide-lifetime 1) +
+  5 `[[crate]]` rows (→ path deps; 3 of 5 wired in the scaffold). The 32
+  figure in the seed section counted examples/experiments too. The state
+  rows are woven-side scratch on internal game objects (ChunkMap ×3,
+  Navigation, ModBlockEntity, KeptEntry, CombatTracker, Creative) — they
+  are NOT mod_api attachment-shaped (no Holder), so the migration target
+  is **support-module-owned statics keyed by the identity the field hung
+  on**, not Attachments. None blocks the weave plan (already quarantined).
+- **R5 — bridge inversion is the main follow-up.** Measured on hooks.rs:
+  of 124 mod_api names the Horizon bridge imports, 80 exist at ffb8601b and
+  **44 are missing** (list in STATUS.md). The structural finding: on
+  Horizon, hooks.rs registers staged handlers INTO the `pluto_*` support
+  modules; on Sunrise the mod crate cannot name the game crate, so the
+  direction inverts — **the support modules must call INTO `pluto_lib`,
+  and game-type adaptation moves from hooks.rs into the modules/helpers**.
+  The pure registries already live in the API, so the inversion is
+  systematic; it is the next lane after this checkpoint.
+- **R6 — still open** (path-keyed tooling baselines, as above).
+- **R7 — partially scoped**: `cargo sunrise-mod check` release notes flag
+  icon.png, license and page.toml as missing; the prose pass is still open.
+- **R8 — not started** (registry v2 registration + release; only the
+  signed v1.0.0 ships, per owner rule).
+- **Toolchain (PC)**: the SDK targets **x86_64-pc-windows-gnu** (the
+  1.99.1 msvc install does not satisfy it) and **rustup.exe crashes in SSH
+  sessions** (0xC0000005, any subcommand). Working setup: the standalone
+  tarball `rust-1.99.1-x86_64-pc-windows-gnu` merged into
+  `A:\Project\sunrise-rustup-home\toolchains\1.99.1-x86_64-pc-windows-gnu`
+  — no rustup involved; its `bin\` on PATH satisfies the tool's
+  rustc probe. C: filled during the first install attempt (0.58 GiB free),
+  so RUSTUP_HOME / TEMP / TMP live on A:.
+- **Pure suite: green** with the gnu toolchain (private CARGO_TARGET_DIR):
+  **427/427 unit tests + 1307/1307 doctests (1 ignored)**. Getting there
+  took two path corrections of the same conversion class:
+  `mod/src/pure/resource_loader_v0.rs`'s `#[path]` for
+  pluto-reload-registry-access.rs (`../../` → `../` after the merge moved
+  the file under `mod/src/`), and the living-load facade in
+  `tests/pure/src/living_load_host_tests.rs` gaining the
+  `sunrise_client_lib` shape the R1 retarget introduced.
+- **Sync note**: this branch's master copy is pre-fix-wave (base
+  a5375a643). When PlutoLib v1.0.0 lands, the manager runs
+  `convert.py --sync-check` + a delta pass; nothing in this checkpoint
+  pre-empts it.
+
 ## Remaining (precise; in dependency order)
 
-- **R1 — Anchor re-derivation (host drift).** 23 `[[native.module]]` anchor
-  files moved (e.g. `game/native_hooks.rs` → `crafting/native_hooks.rs`,
-  `game/chat.rs` → `game/interface/chat.rs`, `game/creatures.rs` → the
-  `game/creatures/` area folder) and 7 `sunrise_client::game::` targets need
-  per-file path re-derivation (game/ subfolders are areas, not modules).
-  16 targets sit in lower crates (sunrise_world 5, sunrise_client_render 8,
-  sunrise_items 2, sunrise_assets 1): each needs a `#[replaceable]` marker
-  check, else retarget to a replaceable caller in `sunrise_client`.
-- **R2 — Weave plan / build.** The Horizon plan tooling does not read the
-  Sunrise manifest grammar; the Sunrise-native path is a `cargo
-  sunrise-mod` project (root Cargo.toml + src/) built against the SDK.
-  PlutoLib's layout (mod/ + api/ + mixins/ bundles) must be packaged into
-  that shape first; then `cargo sunrise-mod check`/`build` gives the plan.
-  Expect a large first-failure count (every target string changed at once);
-  fix in clusters with the pinned Sunrise source as canon.
-- **R3 — OVERWRITE fingerprints.** 4 OVERWRITE rows; their Horizon
-  fingerprints are void on Sunrise. Re-derive each from `E_FINGERPRINT`'s
-  `got` during the R2 build — never compute from source text.
-- **R4 — State → Attachments migration.** The 32 quarantined state rows:
-  redesign each as a mod_api Attachment (`AttachmentDescriptor` /
-  `AttachmentKey`) on the matching holder; mind gap G6 (attachment codecs
-  get no Host access at save time).
-- **R5 — API-substitution pass** (Sunrise team guidance: check covered gaps
-  first; public API signatures must not change — only helper bodies):
+- **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is
+  DONE and verified retargets are applied (see the checkpoint above). What
+  remains is the 125-row redesign list: 40 module rows anchored outside
+  `sunrise_client` (fold into helpers or re-anchor), 21 non-replaceable
+  lower-crate targets (retarget to a replaceable caller/callee or a
+  mod_api primitive), ~12 `native_*` entry points (re-derive or
+  substitute), and the anchorless rows (creatures/remote/maps/attachments).
+- **R2 — Weave plan / build.** The merged `cargo sunrise-mod` project
+  exists and the plan verdict stands at 296/421 rows (checkpoint above).
+  What remains is burning down the 125-row redesign list in clusters with
+  the pinned Sunrise source as canon, then the full build.
+- **R3 — OVERWRITE fingerprints.** Done for the rows the plan reaches
+  (checkpoint above); re-derive any remainder from `E_FINGERPRINT`'s `got`
+  during the build — never compute from source text.
+- **R4 — State migration.** The shipped set is **10 quarantined state
+  rows** (recount in the checkpoint above): they are woven-side scratch on
+  internal game objects, not attachment-shaped, so redesign each as a
+  support-module-owned static keyed by identity — not as a mod_api
+  Attachment. (Where a future row IS holder-shaped, the Attachments route
+  with `AttachmentDescriptor` / `AttachmentKey` applies; mind gap G6 —
+  attachment codecs get no Host access at save time.)
+- **R5 — Bridge inversion + API-substitution pass.** First the inversion
+  (checkpoint above): support modules call INTO `pluto_lib`; hooks.rs's
+  game-type adaptation moves into the modules/helpers; the 44 missing
+  mod_api names are the worklist. Then the substitutions (Sunrise team
+  guidance: check covered gaps first; public API signatures must not
+  change — only helper bodies):
   menu reaches (13 `pluto-menu*` ids in the main manifest) → MenuScreen /
   register_menu_screen / MenuPart; access support modules (42 `*access`
   ids) → `[[native.bridge]]` GET/GET_MUT/SET/INVOKE declarations;

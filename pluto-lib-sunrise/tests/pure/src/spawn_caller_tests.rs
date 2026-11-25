@@ -1,4 +1,4 @@
-//! Executes the actual spawner publication helper against a trace host. This
+﻿//! Executes the actual spawner publication helper against a trace host. This
 //! checks caller order/abort ownership, not Horizon types or native attachment.
 use crate::entity_spawn_state_tests::SpawnState;
 use std::{collections::HashMap,marker::PhantomData};
@@ -46,8 +46,8 @@ pub(crate) mod bridge {
         Ok(())
     }
 }
-include!("../../../mod/pluto-entity-spawn-spawner-add.rs");
-include!("../../../mod/pluto-entity-spawn-converted-head.rs");
+include!("../../../mod/src/pluto-entity-spawn-spawner-add.rs");
+include!("../../../mod/src/pluto-entity-spawn-converted-head.rs");
 fn mob(selected:Option<bool>)->Mob {
     let state=SpawnState::default();
     if let Some(succeed)=selected { state.prepare(succeed).unwrap(); }
@@ -98,3 +98,4 @@ fn actual_spawner_caller_never_joins_or_publishes_failed_completion_but_keeps_la
     assert_eq!(game.mobs.len(),1);
     assert_eq!((game.mobs[0].id,game.mobs[0].gear),(2,7));
 }
+
