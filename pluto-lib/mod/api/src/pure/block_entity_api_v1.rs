@@ -335,20 +335,22 @@ impl BlockEntitySignal<'_> {
 
 /// A block entity is being removed from the world: what [`BlockEntityType::on_remove`] receives
 /// (Minecraft: `BlockEntity.preRemoveSideEffects`, the moment a container spills). The hook runs
-/// once, while the block entity is still in the world, on every removal that carries its side
-/// effects — a player's break, an explosion, another block taking its place — and never on a
-/// removal without them (a piston move, an edit that skips side effects), where the game removes
-/// block entities silently as vanilla does. What the hook leaves in the item slots is spilled by
-/// the game itself, as it already is for a container; what a type keeps outside its slots (a
-/// pipe's stacks in transit, kept in its saved data) it puts in `drops`, and the game drops those
-/// at the block's position. A stack the hook takes out of the slots and does not drop is gone
-/// with the block entity, so a hook that only watches needs to do nothing.
+/// once on every removal that carries its side effects — a player's break, an explosion, another
+/// block taking its place — and never on a removal without them (a piston move, an edit that
+/// skips side effects), where the game removes block entities silently as vanilla does. The
+/// removal itself runs inside the game's level operations, where the bridge cannot be called,
+/// so the hook answers from the block entity's saved data and item slots as they were when its
+/// removal began, at the end of that same operation: what it leaves in the item slots is spilled
+/// by the game itself, as it already is for a container (the spill is the game's by then, so a
+/// hook cannot keep a slotted stack from dropping by taking it out here); what a type keeps
+/// outside its slots (a pipe's stacks in transit, kept in its saved data) it puts in `drops`, and
+/// the game drops those at the block's position in the same operation.
 pub struct BlockEntityRemove<'a> {
     /// The block entity's position.
     pub pos: BlockPos,
     /// The saved data, as it was; the block entity is going away, so changes to it would be lost.
     pub data: &'a NbtCompound,
-    /// The item slots; what is left in them is spilled by the game, what is taken out is the hook's.
+    /// The item slots, as they were when the removal began; what is left in them is spilled by the game.
     pub items: &'a mut Vec<Option<ItemSlot>>,
     /// Extra stacks to drop at the position, for what the type keeps outside its slots.
     pub drops: Vec<ItemSlot>,
