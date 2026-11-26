@@ -1,7 +1,9 @@
 // Explicit read-only overlay projection. No callbacks or automatic UI hooks.
-use super::{Book, Display, Entry};
+use sunrise_client::recipe_book::Book;
+use sunrise_client::recipe_book::Display;
+use sunrise_client::recipe_book::Entry;
 use crate::items::ItemStack;
-use pluto_inventory_api::recipe_book::preview::{ingredient_previews, OverlayError};
+use pluto_lib::pluto_inventory_api::recipe_book::preview::{ingredient_previews, OverlayError};
 
 /// Uses native layout/fallback ordering and existing ingredient preview stacks.
 /// This does not alter Book::placements or declare ID-only placement safe.

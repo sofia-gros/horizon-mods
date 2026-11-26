@@ -3,9 +3,9 @@
 // dropped at (a mob, the ender dragon, or the player), with the game's own pickup delay, as `LivingEntity.spawnAtLocation`
 // drops it. A target that has left the world drops nothing.
 fn pluto_mob_effect_apply_tick(game:&mut crate::game::Game<'_>) {
-    for (entity,effect,ticks,amplifier) in crate::pluto_mob_effect_access::take() {
+    for (entity,effect,ticks,amplifier) in sunrise_client_lib::pluto_mob_effect_access::take() {
         if ticks <= 0 || amplifier < 0 {continue;}
-        let Some(effect)=crate::pluto_mob_effect_access::interned(&effect) else {continue};
+        let Some(effect)=sunrise_client_lib::pluto_mob_effect_access::interned(&effect) else {continue};
         if let Some(mob)=game.mobs.iter_mut().find(|mob| mob.id==entity) {mob.add_effect(effect,ticks,amplifier);}
     }
     // What entity-inside callbacks did to entities lands here too: a mob's queued effect and fire are
@@ -13,26 +13,26 @@ fn pluto_mob_effect_apply_tick(game:&mut crate::game::Game<'_>) {
     // (pluto_entity_hurt_game::hurt_any): living entities through the game's own hurt call, with the
     // game's armour, invulnerability time, death and damage hooks, the rest through the game's damage
     // hurt (a hurt that reaches nothing is traced, PLUTO_TRACE_INSIDE).
-    for (entity,action) in crate::pluto_contact_access::take() {
+    for (entity,action) in sunrise_client_lib::pluto_contact_access::take() {
         match action {
-            crate::pluto_contact_access::Contact::Effect(effect,ticks,amplifier) => {
+            sunrise_client_lib::pluto_contact_access::Contact::Effect(effect,ticks,amplifier) => {
                 if ticks <= 0 || amplifier < 0 {continue;}
-                let Some(effect)=crate::pluto_contact_access::interned(&effect) else {continue};
+                let Some(effect)=sunrise_client_lib::pluto_contact_access::interned(&effect) else {continue};
                 if let Some(mob)=game.mobs.iter_mut().find(|mob| mob.id==entity) {mob.add_effect(effect,ticks,amplifier);}
             }
-            crate::pluto_contact_access::Contact::Fire(seconds) => {
+            sunrise_client_lib::pluto_contact_access::Contact::Fire(seconds) => {
                 if let Some(mob)=game.mobs.iter_mut().find(|mob| mob.id==entity) {
                     let ticks=seconds.saturating_mul(20);
                     if mob.fire_ticks<ticks {mob.fire_ticks=ticks;}
                 }
             }
-            crate::pluto_contact_access::Contact::Hurt(damage_type,amount) => {
+            sunrise_client_lib::pluto_contact_access::Contact::Hurt(damage_type,amount) => {
                 if !crate::game::pluto_entity_hurt_game::hurt_any(game,entity,amount,&damage_type)
                     && std::env::var_os("PLUTO_TRACE_INSIDE").is_some() {eprintln!("pluto_lib: contact hurt {amount} ({damage_type}) for entity {entity} did not land: not an entity of this level that takes damage");}
             }
         }
     }
-    for (entity,stack) in crate::pluto_damage_facts_access::take_drops() {
+    for (entity,stack) in sunrise_client_lib::pluto_damage_facts_access::take_drops() {
         let position=if let Some(mob)=game.mobs.iter().find(|mob| mob.id==entity) {
             [mob.position.x,mob.position.y,mob.position.z]
         } else if let Some(dragon)=game.dragon.as_ref().filter(|dragon| dragon.id==entity) {

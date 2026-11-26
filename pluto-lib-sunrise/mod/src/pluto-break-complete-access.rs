@@ -13,7 +13,7 @@ pub struct BreakCompleted {
 /// What the bridge does with a completed break: runs its AFTER for the breaking player.
 #[derive(Clone, Copy)]
 pub struct BreakCompleteSink {
-    pub completed: fn(&mut dyn crate::mod_api::Host, BreakCompleted),
+    pub completed: fn(&mut dyn mod_api::Host, BreakCompleted),
 }
 
 static SINK: OnceLock<BreakCompleteSink> = OnceLock::new();

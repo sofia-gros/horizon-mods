@@ -1,14 +1,14 @@
 // Typed FEATURES-world registered pieces. No borrowed world is stored globally.
-use super::*;
-use crate::level::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootEdit,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
-use crate::level::pluto_structure_access::MarkerWorld;
-use crate::worldgen::structure::{start::{StructureStart,Piece},legacy::{PieceContext,SolidRender},StructureResources,pluto_registered_piece};
+use sunrise_world::worldgen::*;
+use crate::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootEdit,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
+use crate::pluto_structure_access::MarkerWorld;
+use sunrise_world::worldgen::structure::{start::{StructureStart,Piece},legacy::{PieceContext,SolidRender},StructureResources,pluto_registered_piece};
 use sunrise_core::random::RandomSource;
 use std::cell::RefCell;
 
 type Random=WorldgenRandom<XoroshiroRandom>;
-type NativeFeature<'a,'w>=crate::worldgen::structure::jigsaw::PlaceFeature<'a,World<'w>,Random>;
-type BoundRoots=crate::worldgen::live::pluto_tree_catalog::BoundRoots;
+type NativeFeature<'a,'w>=sunrise_world::worldgen::structure::jigsaw::PlaceFeature<'a,World<'w>,Random>;
+type BoundRoots=crate::pluto_tree_catalog::BoundRoots;
 
 struct Editor<'a,'w> {
     world:RefCell<&'a mut World<'w>>,
@@ -76,7 +76,7 @@ impl LevelView for Editor<'_,'_> {
     }
     fn brightness(&self,_:[i32;3])->u8 {0} // Native FEATURES chunks are unlit.
     fn light_passes_up(&self,pos:[i32;3])->bool {
-        use crate::level::data::state_flags::{CAN_OCCLUDE,SHAPE_OCCLUSION};
+        use sunrise_world::level::data::state_flags::{CAN_OCCLUDE,SHAPE_OCCLUSION};
         let world=self.world.borrow();
         let Some(behaviours)=world.behaviours else {return false};
         let (Ok(state),Ok(above))=(world.region.block(pos),world.region.block([pos[0],pos[1].wrapping_add(1),pos[2]])) else {return false};
@@ -152,7 +152,7 @@ impl RootEdit for Editor<'_,'_> {
 }
 impl Editor<'_,'_> {
     fn tree(&mut self,configuration:&Value,pos:[i32;3],mut roots:Option<(&RootBindings,&mut RootCallback<'_>)>,plan:Option<&[TreeStep]>,decorate:&mut PlannedTreeCallback<'_>)->bool {
-        use crate::worldgen::{feature_graph::{FeatureDefinition,FeatureExecutionError},tree::pluto_tree_placement};
+        use sunrise_world::worldgen::{feature_graph::{FeatureDefinition,FeatureExecutionError},tree::pluto_tree_placement};
         if self.tracking {return false}
         let mut world=self.world.borrow_mut();
         let decoration=world.decoration;
@@ -179,10 +179,10 @@ impl Editor<'_,'_> {
             }).unwrap_or(false)
     }
 }
-fn bind_roots(bindings:&FeatureBlockBindings<'_>,roots:&RootBindings)->Result<BoundRoots,crate::worldgen::DecodeError> {
-    if roots.block_sets.len()>256||roots.state_providers.len()>256 {return Err(crate::worldgen::DecodeError::Field("root binding count"))}
+fn bind_roots(bindings:&FeatureBlockBindings<'_>,roots:&RootBindings)->Result<BoundRoots,sunrise_world::worldgen::DecodeError> {
+    if roots.block_sets.len()>256||roots.state_providers.len()>256 {return Err(sunrise_world::worldgen::DecodeError::Field("root binding count"))}
     let mut remaining=65536;
-    let mut decoder=crate::worldgen::tree::TreeDecoder {bindings,depth:0,remaining:&mut remaining};
+    let mut decoder=sunrise_world::worldgen::tree::TreeDecoder {bindings,depth:0,remaining:&mut remaining};
     let mut block_sets=Vec::new();let mut state_providers=Vec::new();
     for value in &roots.block_sets {let raw:Box<serde_json::value::RawValue>=serde_json::from_str(&value.to_string())?;block_sets.push(decoder.block_set(&raw)?);}
     for value in &roots.state_providers {let raw:Box<serde_json::value::RawValue>=serde_json::from_str(&value.to_string())?;state_providers.push(decoder.provider(&raw)?);}
@@ -204,7 +204,7 @@ impl MarkerWorld for Editor<'_,'_> {
             let world=self.world.borrow();
             let behaviours=world.behaviours.ok_or("generation plant classification unavailable")?;
             let chain=&behaviours.data(id).chain;
-            if !chain.contains(&crate::level::classes::Class::Bush)&&!chain.contains(&crate::level::classes::Class::Vegetation) {return Ok(false)}
+            if !chain.contains(&sunrise_world::level::classes::Class::Bush)&&!chain.contains(&sunrise_world::level::classes::Class::Vegetation) {return Ok(false)}
         }
         // ShapeLevel is not GameLevel: its native hooks do not reach the client
         // block registry. Dispatch registered survival on this borrowed region
@@ -213,7 +213,7 @@ impl MarkerWorld for Editor<'_,'_> {
         let world=self.world.borrow();
         let behaviours=world.behaviours.ok_or("generation plant classification unavailable")?;
         let mut level=ShapeLevel {world:&world,random:sunrise_core::random::LegacyRandom::new(0)};
-        let mut ticks=crate::level::Ticks::new(0);
+        let mut ticks=sunrise_world::level::Ticks::new(0);
         Ok(behaviours.can_survive(&mut level,&mut ticks,BlockPos::new(pos[0],pos[1],pos[2]),id))
     }
     fn random_int(&mut self,bound:i32)->Result<i32,String> {if bound<=0 {return Err("non-positive generation marker random bound".into())} self.random.next_int_bound(bound).map_err(|e|format!("generation marker random: {e:?}"))}
@@ -225,8 +225,8 @@ pub(super) fn place_in_chunk<'w>(
     data:&Arc<GeneratorData>,start:&StructureStart,world:&mut World<'w>,resources:&StructureResources,
     blocks:&dyn SolidRender,random:&mut Random,bounds:BoundingBox,feature:&mut NativeFeature<'_,'w>,
 )->Result<(),PlacementQueryError> {
-    if !crate::level::pluto_structure_level::has_registered(start) {
-        return crate::worldgen::structure::start::place_in_chunk(start,world,resources,blocks,random,bounds,feature)
+    if !crate::pluto_structure_level::has_registered(start) {
+        return sunrise_world::worldgen::structure::start::place_in_chunk(start,world,resources,blocks,random,bounds,feature)
     }
     // Validate all owned records before publishing even the first piece's writes.
     for piece in &start.pieces {
@@ -248,13 +248,13 @@ pub(super) fn place_in_chunk<'w>(
                     record.definition.callbacks.validate_state(&state).map_err(query)?;
                     let markers={
                         let mut context=PieceContext {world,resources,blocks,random,chunk_box:bounds,chunk:ChunkPos::new(bounds.min[0]>>4,bounds.min[2]>>4),reference};
-                        crate::worldgen::structure::legacy::pluto_structure_markers::place(&record.native,&mut context)?
+                        crate::pluto_structure_markers::place(&record.native,&mut context)?
                     }.ok_or_else(||query("generation registered template did not place"))?;
                     let mut written=Vec::new();
                     let mut editor=Editor {world:RefCell::new(world),random,data,written:&mut written,roots:None,depth:0,tracking:false};
                     for (name,pos) in markers {
                         record.definition.callbacks.marker(&mut editor,&name,pos,&mut state).map_err(query)?;
-                        crate::level::pluto_structure_access::validate_value(&state).map_err(query)?;
+                        crate::pluto_structure_access::validate_value(&state).map_err(query)?;
                         record.definition.callbacks.validate_state(&state).map_err(query)?;
                     }
                 } else {

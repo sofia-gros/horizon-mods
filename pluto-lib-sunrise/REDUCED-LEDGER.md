@@ -108,3 +108,215 @@ When an SDK ships whose surface covers a gating item: re-pin
 `mod/sunrise-quarantine.toml` into `mod/sunrise-mod.toml`, wire the
 native route per the connect-prep plan where one now exists, re-run
 the plan (zero-new-failing-ids rule), and delete the row here.
+
+## Gate-iteration addendum (2026-11-27, reduced-build lane)
+
+The 304-entry reduced manifest still failed the tool's woven compile (the
+guarded build had never been run on this tree). 188 further entries were
+quarantined during gate iteration; their blocks are appended to
+`mod/sunrise-quarantine.toml` under batch headers, and the same return
+procedure applies. Batch reasons:
+
+- **Gate round 2 (duplicate generations dropped; staging/mirror repairs)**
+- **Gate rounds 3-4 (structure/tree worldgen family written against the Horizon host's flat worldgen; contact-sweep/motion restitution/dynamic screen slots backing absent; spawn-finalize family; living drops game side; current-book API never written; fnr private-macro wall on the two explosion mixins)**
+- **Gate round 5 batch 4 (host-private or absent types and functions: menu Role/Slot/PLAYER, finalize attribute refresh, mod_content Overlay, recipe-book Known, analyse_shape, orphan-rule crafting impl, advancement parse)**
+- **Gate round 6 batch 5 (body-level host drift found by the first woven compile: struct field drift, private Game methods in fnr copies, inherent impl Game blocks illegal in the patched crate, ChunkMap state accessors; plus the reference cascade)**
+- **Gate round 7 batch 6 (method-call dependents of batch 5: projectile impact game, sleeves takeover, advancement tag index/predicate, seat-player)**
+- **Gate round 8 batch 7 (fnr-copy and helper dependents: creative click/pages, item use start/finish, menu switch flushes, shear saddle, living drops head, item wear, inventory advancement components, dynamic screen slots data, fluid assemble, break-complete return)**
+- **Gate round 9 (pluto-reload-before-tables-open: native_reload_listeners does not exist in Sunrise)**
+
+| id | class | batch | gate |
+|---|---|---|---|
+| dynamic-screen-slots | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| inventory-export | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| stack-snapshot | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| native-creative-potion-facts | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| advancement-events | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| advancement-event-source | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| advancement-tag-state | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| advancement-tags | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| component-view | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| crafting-match | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-menu-actions-guest | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-living-attributes-reload | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-block-exp | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-entity-climb-record | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-entity-particle-host-event | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-armor-worn-layers | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-armor-stand-worn-layers | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| draw-buttons | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| recipe-placement-click | gate | Gate round 2 | woven compile at SDK ba1f24e4 |
+| pluto-entity-spawn-game | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-spawn-placement-game | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-mob-inside | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-item-inside | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-contact-sweep | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-mob-landing | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-block-motion | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-contact-sound | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-context | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-generation | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-generation-placement | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-natural | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-piece | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-registered-piece | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-markers | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-level | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-command | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-tree-placement | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-tree-catalog | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-tree-level | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| dynamic-screen-slots-api | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| current-book | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-living-drops-game | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-spawn-placement-permit | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-entity-spawn-spawner | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-entity-spawn-spawner-add | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-entity-spawn-raid | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-entity-spawn-structure | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-structure-command-head | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| dynamic-screen-slots-update | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-explosion-return | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| equipment-explosion-replacement | gate | Gate rounds 3-4 | woven compile at SDK ba1f24e4 |
+| pluto-menu-equipment | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-living-attribute-ops | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-living-attributes-join-module | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-item-placement-export | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-block-path | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-block-view-shapes | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-crafting-match | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| advancement-projection | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| advancement-projection-world | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| recipe-index-patch | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-menu-equipment-guest-load | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-menu-equipment-slot | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-living-attributes-join | gate | Gate round 5 batch 4 | woven compile at SDK ba1f24e4 |
+| pluto-reload-registry-source | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-mob-split-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-entity-hurt-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-entity-access | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-entity-client-tick-module | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-entity-client-level | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-fall | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-level | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-sleeves-takeover-entity | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-contact-effects | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-inside | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-worldgen-level | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-retexture-module | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-living-drop-state-module | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-entity-push-access | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-entity-teleport-access | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-item-particles | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-item-colors | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-retexture-item | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-living-preview-api | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-living-preview | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-menu-switch-api | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-menu-switch | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-map-face-api | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-map-face | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-explosion-flush | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-brush-flush | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-use-stop-flush | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-component-view | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-stack-storage | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-events | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-tag-source | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-tags-sink | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-fishing-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-projectile-flight-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-map-tick | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-effect-icon | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-throw-sound-game | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| tooltip-policy | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| stack-storage | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| landing-state-api | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| cloud-factory | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| cloud-insertion | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| protection-player-api | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| motion-query | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| world-fluid | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| protection-native-tests | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| equipment-game-dispatch | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| block-feedback | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| protection-provider-facts | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| equipment-view | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| armor-wear-observation | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| recipe-book-invalidation | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| guide-text | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| recipe-book-preview | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| saved-book-capture | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| saved-book-world | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| recipe-placement | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| recipe-placement-attempt | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| station-ingredient | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-attachment-transient | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-contact-sound | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-mob-split-head | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-entity-client-level-replace | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-block-entity-client-level-unload | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-world-contact-begin | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-world-contact-flush | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-cooking-recipes-tick | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-sleeves-takeover-entity-return | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-contact-sound-flush | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-head-wave-reset | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-entity-drain | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-event-drain | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-place | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-interact | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-tick | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-analog | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-explosion-head | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-drops | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-frame-set-item | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-stand-place | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-stand-break | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-stand-dispense | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-hanging-stand-command | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-fishing-tick-head | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-projectile-spawn-head | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-projectile-flight-return | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-map-tick-head | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-map-tick-return | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-throw-sound | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| durability-tooltip | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| tooltip | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| items-b2-tooltip | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| world-fluid-use | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| advancement-event-drain | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| equipment-ordinary-replacement | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| armor-wear-observation-replacement | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| saved-book-before-open | gate | Gate round 6 batch 5 | woven compile at SDK ba1f24e4 |
+| pluto-sleeves-takeover | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-tag-state | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-projectile-impact-game | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-sleeves-takeover-return | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-entity-seat-player | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-tag-predicate | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-advancement-tag-index | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-projectile-impact-head | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| advancement-tag-predicate | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| advancement-tag-index | gate | Gate round 7 batch 6 | woven compile at SDK ba1f24e4 |
+| pluto-item-shear-saddle | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-item-use-start | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-item-use-finish | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-living-drops-head | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| dynamic-screen-slots-data-update | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-menu-switch-flush | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-menu-switch-guest-flush | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-item-wear | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-break-complete-return | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-inventory-advancement-components | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| prepare-pages | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| click-buttons | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| use | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| items-b2-use | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| inventory-advancement-components | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| fluid-render-before-assemble | gate | Gate round 8 batch 7 | woven compile at SDK ba1f24e4 |
+| pluto-reload-before-tables-open | gate | Gate round 9 | woven compile at SDK ba1f24e4 |
+
+Total quarantined during gate iteration: 191 entries. Shipped manifest: 116 entries (21 mixins + 95 modules).

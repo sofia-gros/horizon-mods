@@ -10,8 +10,8 @@
 // registered type never shadows a vanilla throwable (the API contract forbids a `minecraft:` type id).
 use crate::pluto_throw_sound_access as access;
 
-pub(crate) fn throw_sound(value: &'static str, stack: &crate::items::ItemStack) -> &'static str {
-    match crate::projectiles::thrown_by_item(&*stack.item) {
+pub(crate) fn throw_sound(value: &'static str, stack: &sunrise_items::items::ItemStack) -> &'static str {
+    match sunrise_client_lib::projectiles::thrown_by_item(&*stack.item) {
         Some(t) => access::throw_sound(t.id).unwrap_or(value),
         None => value,
     }

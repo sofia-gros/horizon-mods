@@ -1,8 +1,12 @@
 // Common model-resolution bridge: GUI/hand/CIT all reach resolve_with_rule.
 // No live inventory/world lookup; use the resolver's merged defaults and patch.
-use std::{collections::{BTreeMap,BTreeSet},sync::OnceLock};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
 use serde_json::Value;
-use super::{ItemRenderer,LayerGeometry,LayerRender,StackView};
+use sunrise_assets::item_model::StackView;
+use sunrise_client::item_render::ItemRenderer;
+use sunrise_client::item_render::LayerGeometry;
+use sunrise_client::item_render::LayerRender;
 
 type Query=fn(&str,i32,&BTreeMap<String,Value>,i32)->Option<u32>;
 struct Provider { has:fn(&str)->bool, query:Query }

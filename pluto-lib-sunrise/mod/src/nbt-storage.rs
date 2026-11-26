@@ -1,5 +1,5 @@
 // Non-mutating native NBT compound patches with caller-owned schema policy.
-use sunrise_world::nbt::{JavaString, Tag};
+use sunrise_core::nbt::{JavaString, Tag};
 
 /// Stage ordered field updates without changing the original compound.
 /// `Some(value)` sets a field; `None` removes it. Repeated keys apply in order,
@@ -61,7 +61,7 @@ mod tests {
     fn unknown_utf16_keys_nested_values_and_float_bits_are_untouched() {
         let opaque_key = JavaString(vec![0xd800]);
         let opaque_value = Tag::List(vec![Tag::String(JavaString(vec![0xdc00])), Tag::Float(0x7fc01234)]);
-        let mut fields = sunrise_world::nbt::Compound::new();
+        let mut fields = sunrise_core::nbt::Compound::new();
         fields.insert(opaque_key.clone(), opaque_value.clone());
         fields.insert("owned".into(), Tag::Int(1));
         let original = Tag::Compound(fields);

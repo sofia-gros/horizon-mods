@@ -1,4 +1,4 @@
-use sunrise_client::pluto_inventory::advancements::tags::{
+use sunrise_client_lib::pluto_inventory::advancements::tags::{
     self, Change, ReplaceError, TagSink, TagSnapshot,
 };
 struct GameTags<'a, 'g>(&'a mut super::Game<'g>);

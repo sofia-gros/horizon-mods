@@ -1,8 +1,8 @@
 // Mob split transport: the native split hook tunes count/cancel before the
 // game spawns; after the split, the inheritance pass dresses the children.
 // No game pointers escape: child handles live only for the return call.
-use sunrise_client::items::ItemStack;
-use sunrise_client::mod_api::Host;
+use sunrise_items::items::ItemStack;
+use mod_api::Host;
 use std::sync::OnceLock;
 #[derive(Clone)]
 pub struct Info {

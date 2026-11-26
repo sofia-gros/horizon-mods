@@ -1939,8 +1939,18 @@ pub(crate) fn cancel_if(handled: bool) -> mod_api::Flow {
 }
 
 pub(crate) fn loot_table_load(event: &mut mod_api::LootTableLoadEvent<'_>) {
-    let edited = loot_api_v2::modify(event.id, event.table.clone());
-    *event.table = edited;
+    // The event carries the SDK's serde_json identity; the pure loot
+    // registry works on this crate's own serde_json identity. SDK crate
+    // identities are not interchangeable, so convert across the bridge
+    // (same serde_json version; a JSON round-trip is lossless here).
+    let own: serde_json::Value =
+        serde_json::from_str(&event.table.to_string()).unwrap_or(serde_json::Value::Null);
+    let edited = loot_api_v2::modify(event.id, own);
+    if let Ok(sdk) =
+        mod_api::serde_json::from_str::<mod_api::serde_json::Value>(&edited.to_string())
+    {
+        *event.table = sdk;
+    }
 }
 
 

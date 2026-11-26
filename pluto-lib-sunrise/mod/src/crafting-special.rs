@@ -7,7 +7,7 @@ fn pluto_crafting_special(
     size: usize,
     map_scale: &dyn Fn(i32) -> Option<u8>,
 ) -> std::ops::ControlFlow<Option<(&str, ItemStack)>> {
-    match crate::crafting::pluto_matching::evaluate_special(recipes, grid, size, map_scale) {
+    match sunrise_client_lib::pluto_matching::evaluate_special(recipes, grid, size, map_scale) {
         Some(result) => std::ops::ControlFlow::Break(result),
         None => std::ops::ControlFlow::Continue(()),
     }

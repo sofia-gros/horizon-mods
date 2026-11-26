@@ -1,9 +1,7 @@
 // Lossless native item storage adapters, independent of any machine schema.
-use sunrise_items::{
-    item_nbt::{item_from_nbt, item_to_nbt},
-    items::ItemStack,
-};
-use sunrise_world::nbt::Tag;
+use sunrise_items::item_nbt::{item_from_nbt, item_to_nbt};
+use sunrise_items::items::ItemStack;
+use sunrise_core::nbt::Tag;
 
 // Every ItemStack-bearing field in official StackData. Keep this traversal in
 // one place: native component equality intentionally ignores nested Wire too.
@@ -46,7 +44,7 @@ pub fn encode_item_lossless(item: &ItemStack) -> Option<Tag> {
     if item.count == 0 || contains_retained_wire(item) {
         return None;
     }
-    super::pluto_inventory::encode_lossless(item, item_to_nbt, item_from_nbt, |before, after| {
+    crate::pluto_inventory::encode_lossless(item, item_to_nbt, item_from_nbt, |before, after| {
         before.count == after.count
             && before.damage == after.damage
             && before.same_item_same_components(after)

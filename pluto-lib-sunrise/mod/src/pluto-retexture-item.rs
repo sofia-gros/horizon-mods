@@ -12,15 +12,17 @@
 // runs per drawn stack, so the sprite is cached by texture item; the
 // swapped models are rebuilt per resolution, like the render state they
 // land in.
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::{Arc, LazyLock, OnceLock, RwLock},
-};
+use std::collections::{BTreeMap, HashMap};
+use std::sync::{Arc, LazyLock, OnceLock, RwLock};
 use serde_json::Value;
-use super::{
-    BakedItemModel, DisplayContext, ItemEnv, ItemRenderer, LayerGeometry, LayerRender, StackView,
-    sprite_name,
-};
+use sunrise_client::item_render::sprite_name;
+use sunrise_assets::item_model::StackView;
+use sunrise_assets::item_bake::BakedItemModel;
+use sunrise_assets::item_model::DisplayContext;
+use sunrise_assets::item_model::ItemEnv;
+use sunrise_client::item_render::ItemRenderer;
+use sunrise_client::item_render::LayerGeometry;
+use sunrise_client::item_render::LayerRender;
 
 // The stack's texture, from its merged components: the item id its
 // custom data names, if it names one. Installed by `hooks()`.

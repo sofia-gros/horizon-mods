@@ -1,15 +1,15 @@
 // Observe the official lifecycle owner. No parallel state or transitions.
-use super::{NativeAuthority, NativeLifecycle, NativeWorldEpoch, OpenState};
+use super::{Authority, NativeLifecycle, OpenState, WorldEpoch};
 
 /// An insertion-capable server open, not merely a still-live handle epoch.
 /// A frozen/paused Ready world remains Ready; callers retain timing policy.
 #[allow(dead_code)]
-pub(in crate::game) fn ready_server_epoch(lifecycle: &NativeLifecycle) -> Option<NativeWorldEpoch> {
+pub(in crate::game) fn ready_server_epoch(lifecycle: &NativeLifecycle) -> Option<WorldEpoch> {
     let attempt = lifecycle.attempt.as_ref()?;
     (attempt.session == OpenState::Ready
         && matches!(attempt.authority,
-            NativeAuthority::IntegratedServer | NativeAuthority::DedicatedServer))
-        .then(|| NativeWorldEpoch::new(attempt.epoch))
+            Some(Authority::IntegratedServer) | Some(Authority::DedicatedServer)))
+        .then(|| WorldEpoch::new(attempt.epoch))
 }
 
 #[cfg(test)]

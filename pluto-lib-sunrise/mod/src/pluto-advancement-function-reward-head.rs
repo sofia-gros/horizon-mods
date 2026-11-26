@@ -7,9 +7,9 @@
 fn pluto_advancement_function_reward(
     game: &mut Game<'_>,
     id: &str,
-) -> std::ops::ControlFlow<()> {
+) -> core::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    let grants = super::pluto_advancement_function_source::resolve(id);
+    let grants = crate::game::pluto_advancement_function_source::resolve(id);
     if grants.is_empty() || game.remote.is_some() {
         return Continue(());
     }

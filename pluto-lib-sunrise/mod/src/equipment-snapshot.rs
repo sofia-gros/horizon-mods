@@ -1,7 +1,7 @@
 // Lossless, read-only equipment input for a single synchronous dispatch.
 // This is not an inventory, persistence key, transaction, or component codec.
 use crate::items::ItemStack;
-use sunrise_world::player_inventory::EquipmentSlot;
+use sunrise_core::equipment_slot::EquipmentSlot;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Snapshot {
@@ -85,7 +85,7 @@ mod tests {
     }
     #[test]
     fn pluto_equipment_clone_retains_components_without_live_aliasing() {
-        use sunrise_world::nbt::{Compound, Tag};
+        use sunrise_core::nbt::{Compound, Tag};
         let mut original = stack("example:tool", 3, 11);
         let mut data = crate::item_data::StackData::default();
         let mut custom = Compound::new();

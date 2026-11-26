@@ -3,9 +3,9 @@ fn pluto_advancement_tag_predicate(
     registry: &str,
     tag: &str,
     id: &str,
-) -> std::ops::ControlFlow<bool> {
-    use sunrise_client::pluto_inventory::advancements::tags::{self, Lookup};
-    use std::ops::ControlFlow::{Break, Continue};
+) -> core::ops::ControlFlow<bool> {
+    use crate::pluto_inventory::advancements::tags::{self, Lookup};
+    use core::ops::ControlFlow::{Break, Continue};
     if registry != "item" {
         return Continue(());
     }

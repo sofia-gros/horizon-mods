@@ -12,18 +12,18 @@
 // cannot break the load. This module is a child of movement_properties, so
 // it may rewrite the bound table's private states.
 pub fn apply_bound(
-    value: std::io::Result<crate::movement_properties::BoundMovementProperties>,
-    properties: &crate::movement_properties::MovementProperties<'_>,
-) -> std::io::Result<crate::movement_properties::BoundMovementProperties> {
+    value: std::io::Result<sunrise_world::movement_properties::BoundMovementProperties>,
+    properties: &sunrise_world::movement_properties::MovementProperties<'_>,
+) -> std::io::Result<sunrise_world::movement_properties::BoundMovementProperties> {
     let mut value = value;
     if let Ok(bound) = &mut value {
-        let registered: std::collections::BTreeMap<String, pluto_movement_api::MovementFactors> =
-            pluto_movement_api::registered().into_iter().collect();
+        let registered: std::collections::BTreeMap<String, pluto_lib::movement::MovementFactors> =
+            pluto_lib::movement::registered().into_iter().collect();
         if !registered.is_empty() {
             let registry = properties.registry();
             for (index, state) in bound.states.iter_mut().enumerate() {
                 let name = &registry
-                    .state(crate::registry::BlockStateId(index as u32))
+                    .state(sunrise_world::registry::BlockStateId(index as u32))
                     .unwrap()
                     .name;
                 if let Some(factors) = registered.get(name) {

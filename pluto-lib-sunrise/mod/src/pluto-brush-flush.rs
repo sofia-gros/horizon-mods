@@ -51,7 +51,7 @@ pub(crate) fn flush(game: &mut Game<'_>) {
         if game.lan_acting.is_none() {
             game.audio.play_unshared("minecraft:item.brush.brushing.generic", Some(at), 1.0, 1.0);
         } else {
-            let player = crate::lan::playerdata::ints_uuid(game.acting_player_uuid());
+            let player = sunrise_client_lib::lan::playerdata::ints_uuid(game.acting_player_uuid());
             game.native_play_sound_to(player, "minecraft:item.brush.brushing.generic", "block", Some(at), 1.0, 1.0);
         }
     }

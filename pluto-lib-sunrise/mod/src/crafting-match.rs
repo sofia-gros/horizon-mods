@@ -1,5 +1,5 @@
 // Read-only admission and provider assembly before the native matching/assembly body.
-use super::{Context, Input, ItemStack, Recipe, Recipes};
+use sunrise_client_lib::{Context, Input, ItemStack, Recipe, Recipes};
 use crate::pluto_component_view::ItemFacts;
 use sunrise_world::nbt::Tag;
 use pluto_inventory_api::{

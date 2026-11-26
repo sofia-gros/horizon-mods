@@ -1,6 +1,6 @@
 // Reuse native template placement/filtering, with TemplateStructurePiece's
 // ignore-entities policy and DATA markers returned to the typed outer adapter.
-use super::*;
+use sunrise_world::worldgen::structure::*;
 
 pub fn place(piece:&TemplatePiece,context:&mut PieceContext<'_>)->Result<Option<Markers>> {
     let ignore=Processor::BlockIgnore(piece.ignore.iter().cloned().collect());

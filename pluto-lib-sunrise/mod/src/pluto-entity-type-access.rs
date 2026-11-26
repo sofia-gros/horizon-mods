@@ -1,7 +1,9 @@
 // Symbolic derived-type transport; no global numeric registry IDs.
 use std::collections::{BTreeMap, HashSet};
 use std::sync::OnceLock;
-use serde_json::{Value, value::{RawValue, to_raw_value}};
+use serde_json::Value;
+
+use serde_json::value::{RawValue, to_raw_value};
 #[derive(Clone, Debug)]
 pub struct Definition {
     pub id: String, pub factory: String, pub width: f32, pub height: f32,
@@ -138,7 +140,7 @@ pub fn command_table(bytes: &[u8], types: &[Definition]) -> Result<Vec<u8>, Stri
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     fn definition(id:&str)->Definition { Definition { id:id.into(), factory:"minecraft:slime".into(),
         width:2.04_f32*0.255_f32, height:2.04_f32*0.255_f32, tracking_chunks:20, velocity_updates:true } }
     #[test]

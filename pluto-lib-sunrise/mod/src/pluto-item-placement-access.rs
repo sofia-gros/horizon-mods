@@ -130,7 +130,7 @@ pub fn rewrite_export(bytes: &[u8], bindings: &[BindingDeclaration]) -> Result<V
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     #[test]
     fn symbolic_export_preserves_metadata_and_uses_order_independent_cache_identity() {
         let declarations = vec![declaration("example:a"), declaration("example:b")];

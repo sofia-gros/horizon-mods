@@ -22,8 +22,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-fn pluto_inventory_advancements(game: &mut Game<'_>) -> std::ops::ControlFlow<()> {
-    use sunrise_client::pluto_inventory::advancements;
+fn pluto_inventory_advancements(game: &mut Game<'_>) -> core::ops::ControlFlow<()> {
+    use crate::pluto_inventory::advancements;
     // The library is inert without an early, explicit consumer request.
     // Continue before snapshots, component encoding, hashes or state writes.
     if !advancements::inventory_component_events_requested() {
@@ -31,7 +31,7 @@ fn pluto_inventory_advancements(game: &mut Game<'_>) -> std::ops::ControlFlow<()
     }
     // Encode once from this actor's authoritative inventory. Keep slot order
     // and empty positions for the event key; metadata travels with each view.
-    let slots: Vec<Option<(ItemView, Option<sunrise_world::nbt::Tag>)>> = game
+    let slots: Vec<Option<(ItemView, Option<sunrise_core::nbt::Tag>)>> = game
         .inventory
         .iter()
         .chain(game.armor.iter())
@@ -40,7 +40,7 @@ fn pluto_inventory_advancements(game: &mut Game<'_>) -> std::ops::ControlFlow<()
             slot.as_ref().map(|stack| {
                 (
                     item_view(stack),
-                    sunrise_client::item_data::encode_components(stack),
+                    sunrise_items::item_data::encode_components(stack),
                 )
             })
         })

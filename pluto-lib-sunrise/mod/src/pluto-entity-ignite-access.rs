@@ -64,7 +64,7 @@ fn apply(game: &mut Game<'_>, entity: u32) {
     let Some(target) = game.level_entity(entity as i32) else { return };
     let Target::Mob(id) = target else { return };
     let Some(mob) = game.mobs.iter_mut().find(|mob| mob.id == id) else { return };
-    if mob.species() != crate::mobs::Species::Creeper {
+    if mob.species() != sunrise_client_lib::mobs::Species::Creeper {
         return;
     }
     mob.extra.flag = true;

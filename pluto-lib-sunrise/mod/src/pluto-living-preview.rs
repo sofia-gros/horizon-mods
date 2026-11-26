@@ -6,12 +6,12 @@
 // undrawn. The stand the path draws stands as the smithing preview's does (turned to 210
 // degrees, arms shown, no base plate); a queued preview's own stance fields wait for a
 // general living renderer.
-use super::Game;
-use sunrise_client::hud::HudBatch;
+use crate::game::Game;
+use sunrise_client_render::hud::HudBatch;
 
 impl Game<'_> {
     pub(crate) fn draw_queued_living_previews(&self, batch: &mut HudBatch) {
-        for preview in sunrise_client::game::pluto_living_preview::take_queued() {
+        for preview in crate::game::pluto_living_preview::take_queued() {
             if preview.kind != "minecraft:armor_stand" {
                 continue;
             }

@@ -9,10 +9,18 @@
 // provider does not know keeps the host's vanilla path untouched.
 use super::*;
 use crate::pluto_hanging_access as access;
-use sunrise_client::{entities::{ArmorStand, ItemFrame}, items::ItemStack};
-use sunrise_core::{geometry::Vec3, position::BlockPos, random::RandomSource};
-use sunrise_world::nbt::Tag;
-use std::{cell::RefCell, collections::HashMap};
+use sunrise_client::entities::{ArmorStand, ItemFrame};
+
+use sunrise_client::items::ItemStack;
+use sunrise_core::geometry::Vec3;
+
+use sunrise_core::position::BlockPos;
+
+use sunrise_core::random::RandomSource;
+use sunrise_core::nbt::Tag;
+use std::cell::RefCell;
+
+use std::collections::HashMap;
 
 /// The click sound a diamond frame's `setRotation` plays (`tconstruct:item_frame_click`).
 const CLICK_SOUND: &str = "tconstruct:item_frame_click";
@@ -43,7 +51,7 @@ fn raw_int(game: &Game<'_>, id: u32, key: &str) -> Option<i32> {
     let Some(Tag::Compound(map)) = game.persist.raw.get(&id) else {
         return None;
     };
-    match map.get(&sunrise_world::nbt::JavaString::from(key)) {
+    match map.get(&sunrise_core::nbt::JavaString::from(key)) {
         Some(Tag::Int(value)) => Some(*value),
         Some(Tag::Byte(value)) => Some(i32::from(*value)),
         _ => None,
@@ -109,7 +117,7 @@ fn frame_survives(game: &Game<'_>, f: &ItemFrame) -> bool {
         Vec3::new(lo[0], lo[1], lo[2]),
         Vec3::new(hi[0], hi[1], hi[2]),
     );
-    let mut scene = sunrise_client::collisions::SceneCollisions {
+    let mut scene = sunrise_client_render::collisions::SceneCollisions {
         world: &game.world,
         binding: game.collision,
         subject: None,
@@ -155,7 +163,7 @@ pub(super) fn place_fancy_frame(
     facts: &access::FrameFacts,
 ) -> bool {
     let pos: [i32; 3] = std::array::from_fn(|i| hit.pos[i] + hit.face[i]);
-    if !(sunrise_client::chunk::MIN_Y..sunrise_client::chunk::MIN_Y + sunrise_client::chunk::HEIGHT)
+    if !(sunrise_client_render::chunk::MIN_Y..sunrise_client_render::chunk::MIN_Y + sunrise_client_render::chunk::HEIGHT)
         .contains(&pos[1])
     {
         game.use_failed = true;
@@ -173,17 +181,17 @@ pub(super) fn place_fancy_frame(
         invisible: false,
         check_interval: 0,
         custom_name: stack.data().and_then(|d| d.custom_name.clone()),
-        random: sunrise_client::random_source::entity(),
+        random: sunrise_client_render::random_source::entity(),
     };
-    let own = sunrise_client::entity_nbt::item_frame_to_nbt(&frame, [0; 4], None);
+    let own = sunrise_client_lib::entity_nbt::item_frame_to_nbt(&frame, [0; 4], None);
     let mut configured =
-        sunrise_client::block_entity_item::stack_configured_entity(stack, "minecraft:item_frame", &own);
+        sunrise_client_lib::block_entity_item::stack_configured_entity(stack, "minecraft:item_frame", &own);
     if let Tag::Compound(map) = &mut configured {
         map.insert("Variant".into(), Tag::Int(facts.variant));
     }
     // The woven loader applies the variant's setRotation to the configured
     // rotation (pluto-hanging-frame-from-nbt), as the original's load does.
-    if let Some(mut loaded) = sunrise_client::entity_nbt::item_frame_from_nbt(&configured, frame.id) {
+    if let Some(mut loaded) = sunrise_client_lib::entity_nbt::item_frame_from_nbt(&configured, frame.id) {
         loaded.glow = false;
         frame = loaded;
     }
@@ -334,7 +342,7 @@ pub(super) fn interact_fancy_frame(
     let p = game.item_frames[i].pos;
     game.world.modified.insert((p[0] >> 4, p[2] >> 4));
     frame_output_changed(game, p);
-    let ctx = game.who_context(Some(sunrise_client::mobs::Who::Player), None);
+    let ctx = game.who_context(Some(sunrise_client_lib::mobs::Who::Player), None);
     game.post_game_event("minecraft:block_change", at, ctx);
     if action == "put" && !game.creative {
         game.consume_held();
@@ -518,7 +526,7 @@ fn apply_on_place(game: &mut Game<'_>, id: u32, facts: &access::StandFacts, left
     // to live (the save merges the kept raw under the modelled fields).
     if !game.persist.raw.contains_key(&id) {
         if let Some(a) = game.armor_stands.iter().find(|a| a.id == id) {
-            let own = sunrise_client::entity_nbt::armor_stand_to_nbt(a, [0; 4], None);
+            let own = sunrise_client_lib::entity_nbt::armor_stand_to_nbt(a, [0; 4], None);
             game.persist.raw.insert(id, own);
         }
     }
@@ -548,9 +556,9 @@ pub(super) fn place_fancy_stand(
     let drop = game.drop_offset_from(0.5, 1.975, (pos[0], pos[1], pos[2]), true);
     stand.position.y = f64::from(pos[1]) + drop;
     stand.previous = stand.position;
-    let own = sunrise_client::entity_nbt::armor_stand_to_nbt(&stand, [0; 4], None);
-    let mut raw = sunrise_client::block_entity_item::stack_configured_entity(stack, &facts.entity_type, &own);
-    if let Some(mut loaded) = sunrise_client::entity_nbt::armor_stand_from_nbt(&raw, stand.id) {
+    let own = sunrise_client_lib::entity_nbt::armor_stand_to_nbt(&stand, [0; 4], None);
+    let mut raw = sunrise_client_lib::block_entity_item::stack_configured_entity(stack, &facts.entity_type, &own);
+    if let Some(mut loaded) = sunrise_client_lib::entity_nbt::armor_stand_from_nbt(&raw, stand.id) {
         loaded.first_tick = stand.first_tick;
         loaded.yaw = stand.yaw;
         loaded.previous_yaw = stand.previous_yaw;
@@ -565,14 +573,14 @@ pub(super) fn place_fancy_stand(
     if let Tag::Compound(map) = &mut raw {
         map.remove(&"UUID".into());
         map.insert("Variant".into(), Tag::Int(facts.variant));
-        let left = (game.hand == sunrise_client::first_person::Hand::Main) == game.settings.main_hand_left;
+        let left = (game.hand == sunrise_client_lib::first_person::Hand::Main) == game.settings.main_hand_left;
         map.insert("LeftHanded".into(), Tag::Byte(i8::from(left)));
     }
     game.persist.raw.insert(stand.id, raw);
     let foot = stand.position;
     game.world.random.next_float();
     game.next_entity += 1;
-    let (_, uuid) = sunrise_client::mobs::living_random();
+    let (_, uuid) = sunrise_client_lib::mobs::living_random();
     game.persist.uuids.insert(stand.id, uuid);
     game.audio
         .play("minecraft:entity.armor_stand.place", Some([foot.x, foot.y, foot.z]), 0.75, 0.8);
@@ -605,8 +613,8 @@ fn show_breaking_particles(game: &mut Game<'_>, at: [f64; 3], width: f64, height
     let Some((sprite, tint)) = game.particle_sprite(state, block) else {
         return;
     };
-    let options = sunrise_client::particles::ParticleOptions::block(
-        sunrise_client::particles::ParticleType::Block,
+    let options = sunrise_client_render::particles::ParticleOptions::block(
+        sunrise_client_render::particles::ParticleType::Block,
         sprite,
         tint,
     );
@@ -651,7 +659,7 @@ pub(super) fn break_fancy_stand(
     let mut stand = ItemStack::new(facts.item.as_str(), 1);
     if let Some(name) = &game.armor_stands[i].custom_name {
         stand.data_mut().custom_name =
-            Some(sunrise_client::scoreboard::component_tag(&name.component()));
+            Some(sunrise_client_core::scoreboard::component_tag(&name.component()));
     }
     game.pop_resource(pos, stand);
     game.break_armor_stand_with_source(i, by);
@@ -706,7 +714,7 @@ pub(super) fn dispense_fancy_stand(
     let foot = Vec3::new(f64::from(front.0) + 0.5, f64::from(front.1), f64::from(front.2) + 0.5);
     let _ = game.world.random.next_float();
     game.next_entity += 1;
-    let (_, uuid) = sunrise_client::mobs::living_random();
+    let (_, uuid) = sunrise_client_lib::mobs::living_random();
     game.persist.uuids.insert(game.next_entity, uuid);
     let yaw = match facing {
         Direction::South => 0.0,

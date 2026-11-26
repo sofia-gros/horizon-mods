@@ -16,7 +16,7 @@ pub struct SwingRequest {
 #[derive(Clone, Debug)]
 pub struct BreakRequest {
     pub player: u128,
-    pub slot: crate::mod_api::EquipmentSlot,
+    pub slot: mod_api::EquipmentSlot,
     pub stack: crate::items::ItemStack,
 }
 
@@ -37,7 +37,7 @@ pub fn push_swing(player: u128, off_hand: bool) -> bool {
 /// Queues an item-break broadcast for the player; false when the queue is full (4096).
 pub fn push_break(
     player: u128,
-    slot: crate::mod_api::EquipmentSlot,
+    slot: mod_api::EquipmentSlot,
     stack: crate::items::ItemStack,
 ) -> bool {
     let Ok(mut queue) = BREAKS.lock() else { return false };

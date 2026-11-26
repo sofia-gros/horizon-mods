@@ -1,6 +1,7 @@
 // Minecraft 26.3 Tool stream component (id 28), for the pinned host.
-use sunrise_protocol::buf::{Reader, Writer};
-use sunrise_world::nbt::Tag;
+use sunrise_protocol::buf::Reader;
+use sunrise_core::vanilla_bytes::Writer;
+use sunrise_core::nbt::Tag;
 
 fn string(tag: &Tag) -> Option<String> {
     match tag {
@@ -256,7 +257,7 @@ impl std::fmt::Display for ToolError {
 impl std::error::Error for ToolError {}
 
 fn parse_tool_snbt(snbt: &str) -> Result<Tag, ToolError> {
-    let (tool, used) = sunrise_world::nbt::parse_snbt(snbt).map_err(|_| ToolError::InvalidSnbt)?;
+    let (tool, used) = sunrise_core::nbt::parse_snbt(snbt).map_err(|_| ToolError::InvalidSnbt)?;
     if !snbt[used..].trim().is_empty() {
         return Err(ToolError::InvalidSnbt);
     }

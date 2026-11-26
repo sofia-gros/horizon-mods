@@ -1,10 +1,10 @@
 // Generic, marker-free template pieces and their persisted codec data.
 // Custom piece/marker codecs are deliberately rejected until their dispatch
 // exists. No Tinkers identifiers or algorithms belong in this host adapter.
-use super::*;
-use super::legacy::{LegacyPiece,PieceContext,TemplateHandler,TemplatePiece};
-use super::processor::ProcessorList;
-use crate::nbt::{Compound,Tag};
+use sunrise_world::worldgen::*;
+use sunrise_world::worldgen::structure::legacy::{LegacyPiece,PieceContext,TemplateHandler,TemplatePiece};
+use sunrise_world::worldgen::structure::processor::ProcessorList;
+use sunrise_core::nbt::{Compound,Tag};
 use serde_json::Value;
 
 pub const TEMPLATE_KIND:&str="pluto_lib:template_piece";
@@ -12,7 +12,7 @@ const MAX_SAVED_CONFIG:usize=1_048_576;
 
 /// Iterative guard before any recursive serde operation or template lookup.
 pub fn validate_value(value:&Value)->Result<(),String> {
-    crate::level::pluto_structure_access::validate_value(value)
+    crate::pluto_structure_access::validate_value(value)
 }
 
 fn identifier(value:&str)->bool {
@@ -99,7 +99,7 @@ pub fn decode(resources:&Arc<StructureResources>,descriptor:&Value)->Result<star
     let kind=descriptor.get("kind").and_then(Value::as_str).ok_or("missing structure piece type")?;
     let configuration=descriptor.get("configuration").ok_or("missing piece configuration")?;
     if kind!=TEMPLATE_KIND {
-        return super::pluto_registered_piece::decode(resources,kind,configuration,None);
+        return crate::pluto_registered_piece::decode(resources,kind,configuration,None);
     }
     validate_value(configuration)?;
     if serde_json::to_vec(configuration).map_err(|e|e.to_string())?.len()>MAX_SAVED_CONFIG {
@@ -123,7 +123,7 @@ pub fn restore(resources:&Arc<StructureResources>,saved:&Value)->Result<start::P
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::worldgen::*;
     #[test]
     fn descriptor_boundaries_reject_paths_invalid_transforms_and_coordinate_overflow() {
         assert!(identifier("example:buildings/test-house"));

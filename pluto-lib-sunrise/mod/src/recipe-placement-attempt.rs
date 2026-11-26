@@ -1,12 +1,12 @@
 // UI veto precedes the native local menu operation and remote packet send.
 use super::Game;
-use sunrise_client::{
-    pluto_inventory::recipe_book::{
-        placement::{self, DisplayFacts, Form, Ingredient, Outcome, Phase, PreviewMode, Request},
-        preview::{BookKind, Preview},
-    },
-    recipe_book::{BookType, Display},
-};
+use crate::pluto_inventory::recipe_book::placement::{self, DisplayFacts, Form, Outcome, Phase, PreviewMode, Request};
+
+use crate::pluto_inventory::recipe_book::preview::{BookKind, Preview};
+
+use sunrise_client::recipe_book::{BookType, Display};
+
+use sunrise_client::crafting::ingredient::Ingredient;
 pub(crate) fn attempt(
     game: &mut Game<'_>,
     book: BookType,
@@ -74,7 +74,7 @@ pub(crate) fn attempt(
         Outcome::Denied { preview, .. } => {
             if preview == PreviewMode::IfLocal && game.remote.is_none() {
                 // Presentation is best-effort and never turns denial into permission.
-                super::pluto_preview::with_game(game, |capability| {
+                crate::game::recipe_book::pluto_preview::with_game(game, |capability| {
                     if let Ok(selected) = capability.select(kind, entry_index) {
                         let _ = capability.show(&selected);
                     }

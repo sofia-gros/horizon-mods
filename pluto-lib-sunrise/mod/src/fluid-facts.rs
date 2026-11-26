@@ -1,10 +1,10 @@
 // Read-only built-in fluid facts. Custom world-fluid cells are a separate service.
 use crate::motion::{PlayerMotion, WATER};
-use sunrise_world::{
-    fluid::{FluidKind, FluidState},
-    level::Behaviours,
-    registry::BlockStateId,
-};
+use sunrise_world::fluid::{FluidKind, FluidState};
+
+use sunrise_world::level::Behaviours;
+
+use sunrise_world::registry::BlockStateId;
 
 /// Facts from the host's built-in fluid state, not a Pluto custom-fluid cell.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

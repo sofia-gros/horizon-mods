@@ -1,7 +1,7 @@
 //Read an already-materialized, strictly transient attachment through a shared
 //world borrow. No lazy decoding, insertion, persistence or sync is permitted.
 //The owning game phase initializes the value through the normal mutable API.
-use super::{AttachmentError, AttachmentType, Attachments, Entry};
+use sunrise_mod_runtime::attachments::{AttachmentError, AttachmentType, Attachments, Entry};
 
 pub fn peek<'a, T: Clone + Send + Sync + 'static>(
     attachments: &'a Attachments,

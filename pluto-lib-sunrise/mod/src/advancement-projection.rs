@@ -1,6 +1,7 @@
 // Private native staging adapter. No world/progress mutation or cache owner.
-use super::{Advancement, Tree};
-use pluto_inventory_api::advancements::projection::{
+use sunrise_client::advancements::Advancement;
+use sunrise_client::advancements::Tree;
+use pluto_lib::pluto_inventory_api::advancements::projection::{
     self, Criterion, Definition, Display, Error, Frame, InvalidDefinition, Replacement, Rewards,
 };
 use serde_json::{json, Value};
@@ -13,9 +14,9 @@ fn definition(goal: &Advancement) -> Definition {
             title: display.title.clone(),
             description: display.description.clone(),
             frame: match display.frame {
-                super::Frame::Task => Frame::Task,
-                super::Frame::Goal => Frame::Goal,
-                super::Frame::Challenge => Frame::Challenge,
+                sunrise_client::advancements::Frame::Task => Frame::Task,
+                sunrise_client::advancements::Frame::Goal => Frame::Goal,
+                sunrise_client::advancements::Frame::Challenge => Frame::Challenge,
             },
             background: display.background.clone(),
             show_toast: display.show_toast,
@@ -88,7 +89,7 @@ pub fn stage(tree: &Tree, changes: &[Replacement]) -> Result<Option<Tree>, Error
             continue;
         }
         let parsed =
-            super::parse(&change.id, &document(&proposed)).ok_or_else(|| Error::InvalidGoal {
+            sunrise_client::advancements::parse(&change.id, &document(&proposed)).ok_or_else(|| Error::InvalidGoal {
                 id: change.id.clone(),
                 reason: InvalidDefinition::NonCanonical,
             })?;

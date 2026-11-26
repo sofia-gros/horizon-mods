@@ -1,6 +1,6 @@
 // PlutoLib-owned orchestration around the unchanged native tree algorithms.
 // No generic function injection, borrowed TLS/global world, or post-chunk scan.
-use super::*;
+use sunrise_world::worldgen::*;
 
 /// Position order comes from native PosSet iteration, stably sorted by height.
 pub struct Positions<'a> {
@@ -32,7 +32,7 @@ pub fn place_with_root_override<W: FeatureWorld + PlacementContext, R: RandomSou
     roots: Option<&mut RootOverride<'_, W, R>>,
     extra: impl FnOnce(&mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
 ) -> TreeResult<bool, W::Error> {
-    use crate::level::pluto_block_access::TreeStep;
+    use crate::pluto_block_access::TreeStep;
     let mut plan: Vec<_> = (0..tree.decorators.len()).map(TreeStep::Native).collect();
     plan.push(TreeStep::Custom(0));
     let mut extra = Some(extra);
@@ -44,10 +44,10 @@ pub fn place_with_root_override<W: FeatureWorld + PlacementContext, R: RandomSou
 /// Invalid plans are rejected before native placement consumes RNG or writes.
 pub fn place_with_plan<W: FeatureWorld + PlacementContext, R: RandomSource>(
     tree: &TreeFeature, world: &mut W, random: &mut R, origin: [i32; 3], nested: &mut NestedPlacer<'_, W, R>,
-    roots: Option<&mut RootOverride<'_, W, R>>, plan: Option<&[crate::level::pluto_block_access::TreeStep]>,
+    roots: Option<&mut RootOverride<'_, W, R>>, plan: Option<&[crate::pluto_block_access::TreeStep]>,
     mut extra: impl FnMut(usize, &mut W, &mut R, Positions<'_>, &mut Vec<[i32; 3]>) -> TreeResult<(), W::Error>,
 ) -> TreeResult<bool, W::Error> {
-    use crate::level::pluto_block_access::{TreeStep, valid_tree_plan};
+    use crate::pluto_block_access::{TreeStep, valid_tree_plan};
     let mut appended: Vec<_> = (0..tree.decorators.len()).map(TreeStep::Native).collect();
     appended.push(TreeStep::Custom(0));
     let plan = plan.unwrap_or(&appended);

@@ -1,5 +1,5 @@
 // Adapted from Tinkers' network-custom-data.rs, horizon-mods commit 37c780c0d968756d5f6a0213b2f0fa798219b930.
-fn pluto_host_data(hub: &mut crate::lan::hub::Hub, source: &Option<ItemStack>) -> std::ops::ControlFlow<Option<sunrise_protocol::item::Stack>> {
+fn pluto_host_data(hub: &mut sunrise_client_lib::lan::hub::Hub, source: &Option<ItemStack>) -> std::ops::ControlFlow<Option<sunrise_protocol::item::Stack>> {
     use std::ops::ControlFlow::{Break, Continue};
     let Some(item) = source.as_ref() else { return Continue(()); };
     let Some(custom) = item.data().and_then(|data| data.other("minecraft:custom_data")).cloned() else { return Continue(()); };

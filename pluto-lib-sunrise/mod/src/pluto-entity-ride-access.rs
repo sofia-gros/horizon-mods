@@ -143,7 +143,7 @@ pub fn drain(game: &mut Game<'_>) {
                 if let Some(vehicle) = current {
                     if game.native_mob_may_ride(passenger, vehicle, false) {
                         if let Some(mob) = game.mobs.iter_mut().find(|mob| mob.id == passenger) {
-                            sunrise_client::mobs::riders::stop_riding(mob, None);
+                            sunrise_client_lib::mobs::riders::stop_riding(mob, None);
                         }
                     }
                 } else {

@@ -1,6 +1,6 @@
 // Native packet projection only. The installed RETURN hook establishes phase.
 use sunrise_protocol::packets::play::Clientbound as Packet;
-use pluto_inventory_api::client_payload as api;
+use pluto_lib::pluto_inventory_api::client_payload as api;
 
 pub fn observe(packet: &Packet) {
     if !api::enabled() {

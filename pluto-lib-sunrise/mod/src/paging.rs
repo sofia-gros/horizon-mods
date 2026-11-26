@@ -58,16 +58,16 @@ impl<T: Clone> Pages<T> {
 // life. take/put preserve the take-out / mutate / write-back flow
 // the consumers were written against; with reads the live value in
 // place (its callback must not call back into this store).
-static SCREENS: std::sync::Mutex<std::collections::BTreeMap<usize, Pages<super::Tab>>> =
+static SCREENS: std::sync::Mutex<std::collections::BTreeMap<usize, Pages<sunrise_client::creative::Tab>>> =
     std::sync::Mutex::new(std::collections::BTreeMap::new());
 
-fn key(screen: &super::Creative) -> usize {
+fn key(screen: &sunrise_client::creative::Creative) -> usize {
     std::ptr::from_ref(screen) as usize
 }
 
 /// Take the screen's pages out for mutation, leaving the default
 /// empty value behind, exactly like mem::take on the old field.
-pub fn take(screen: &mut super::Creative) -> Pages<super::Tab> {
+pub fn take(screen: &mut sunrise_client::creative::Creative) -> Pages<sunrise_client::creative::Tab> {
     let mut store = SCREENS
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -75,7 +75,7 @@ pub fn take(screen: &mut super::Creative) -> Pages<super::Tab> {
 }
 
 /// Write pages back to the screen's store slot.
-pub fn put(screen: &mut super::Creative, pages: Pages<super::Tab>) {
+pub fn put(screen: &mut sunrise_client::creative::Creative, pages: Pages<sunrise_client::creative::Tab>) {
     let mut store = SCREENS
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
@@ -84,7 +84,7 @@ pub fn put(screen: &mut super::Creative, pages: Pages<super::Tab>) {
 
 /// Read the screen's pages in place; an untouched screen reads as
 /// the default empty value.
-pub fn with<R>(screen: &super::Creative, run: impl FnOnce(&Pages<super::Tab>) -> R) -> R {
+pub fn with<R>(screen: &sunrise_client::creative::Creative, run: impl FnOnce(&Pages<sunrise_client::creative::Tab>) -> R) -> R {
     let store = SCREENS
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);

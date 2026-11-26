@@ -1,4 +1,5 @@
 // Evaluate ordered standard Tool rules without exposing Horizon types to callers.
+use sunrise_core::nbt::Tag;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rule {
     pub blocks: Vec<String>,
@@ -83,7 +84,7 @@ impl Tool {
 pub fn parse_tool(snbt: Option<&str>) -> Result<Option<Tool>, ToolParseError> {
     let Some(snbt) = snbt else { return Ok(None) };
     let (tag, used) =
-        sunrise_world::nbt::parse_snbt(snbt).map_err(|_| ToolParseError::InvalidSnbt)?;
+        sunrise_core::nbt::parse_snbt(snbt).map_err(|_| ToolParseError::InvalidSnbt)?;
     if !snbt[used..].trim().is_empty() {
         return Err(ToolParseError::InvalidSnbt);
     }
@@ -91,8 +92,8 @@ pub fn parse_tool(snbt: Option<&str>) -> Result<Option<Tool>, ToolParseError> {
         .map(Some)
         .ok_or(ToolParseError::InvalidComponent)
 }
-fn number(tag: &sunrise_world::nbt::Tag) -> Option<f32> {
-    use sunrise_world::nbt::Tag;
+fn number(tag: &sunrise_core::nbt::Tag) -> Option<f32> {
+    use sunrise_core::nbt::Tag;
     let n = match tag {
         Tag::Float(bits) => f32::from_bits(*bits),
         Tag::Double(bits) => f64::from_bits(*bits) as f32,
@@ -121,8 +122,7 @@ fn identifier(raw: &str) -> Option<String> {
     }
     Some(format!("{tag}{namespace}:{path}"))
 }
-fn fields_only(tag: &sunrise_world::nbt::Tag, allowed: &[&str]) -> bool {
-    use sunrise_world::nbt::Tag;
+fn fields_only(tag: &sunrise_core::nbt::Tag, allowed: &[&str]) -> bool {
     let Tag::Compound(fields) = tag else {
         return false;
     };
@@ -132,8 +132,7 @@ fn fields_only(tag: &sunrise_world::nbt::Tag, allowed: &[&str]) -> bool {
             .is_some_and(|s| allowed.contains(&s.as_str()))
     })
 }
-fn parse_tag(tool: &sunrise_world::nbt::Tag) -> Option<Tool> {
-    use sunrise_world::nbt::Tag;
+fn parse_tag(tool: &sunrise_core::nbt::Tag) -> Option<Tool> {
     if !fields_only(
         tool,
         &[
@@ -211,7 +210,7 @@ fn parse_tag(tool: &sunrise_world::nbt::Tag) -> Option<Tool> {
 // sunrise-items, whose files take no support modules), where no item stack
 // type can be named.
 pub fn evaluate_tool(
-    tool: &sunrise_world::nbt::Tag,
+    tool: &sunrise_core::nbt::Tag,
     matches: impl FnMut(&str) -> bool,
 ) -> Option<Outcome> {
     Some(parse_tag(tool)?.evaluate(matches))

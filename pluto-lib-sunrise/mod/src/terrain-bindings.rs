@@ -178,7 +178,7 @@ impl<A, R, T, V: PartialEq> OwnerCache<A, R, T, V> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_render::*;
     fn owners() -> (Arc<u32>, Arc<u32>, Arc<u32>) {
         (Arc::new(1), Arc::new(2), Arc::new(3))
     }
@@ -303,7 +303,6 @@ pub(super) fn inspect<R>(
 }
 #[cfg(test)]
 mod revision_view_tests {
-    use super::*;
     use std::sync::atomic::{AtomicBool, Ordering};
     #[test]
     fn stale_before_inspection_is_explicitly_unavailable() {

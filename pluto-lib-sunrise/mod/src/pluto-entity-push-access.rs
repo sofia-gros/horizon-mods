@@ -121,7 +121,7 @@ fn apply(game: &mut Game<'_>, request: PushRequest) {
             let Some(mut host) = game.lan.take() else { return };
             game.guest_hit_by(&mut host, conn, |guest| match request {
                 PushRequest::Knockback { strength, x, z, .. } => {
-                    guest.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
+                    guest.knock_back_player(strength, x, z, sunrise_client_lib::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
                 }
                 PushRequest::Push { delta, .. } => {
                     if let Some(player) = guest.player.as_mut() {
@@ -146,7 +146,7 @@ fn apply_to_mob(game: &mut Game<'_>, id: u32, request: PushRequest) {
     let Some(mob) = game.mobs.iter_mut().find(|mob| mob.id == id) else { return };
     match request {
         PushRequest::Knockback { strength, x, z, .. } => {
-            let source = crate::mobs::Damage::of(crate::mobs::DamageKind::Generic);
+            let source = sunrise_client_lib::mobs::Damage::of(sunrise_client_lib::mobs::DamageKind::Generic);
             mob.knockback(strength, x, z, &source);
         }
         PushRequest::Push { delta, .. } => {
@@ -162,7 +162,7 @@ fn apply_to_player(game: &mut Game<'_>, request: PushRequest) {
     match request {
         PushRequest::Knockback { strength, x, z, .. } => {
             let before = game.player.as_ref().map(|player| player.velocity);
-            game.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
+            game.knock_back_player(strength, x, z, sunrise_client_lib::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
             // A server player's client is told the new motion, as the game's
             // own player knockback tells it; only when the motion changed.
             if let Some(player) = game.player.as_mut() {

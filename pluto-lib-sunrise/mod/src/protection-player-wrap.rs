@@ -11,10 +11,10 @@ fn pluto_player_protection(
     if sunrise_world::combat_rules::pluto_protection::take_reentry() {
         return std::ops::ControlFlow::Continue(());
     }
-    if !crate::health::pluto_protection::enabled() {
+    if !sunrise_client_lib::pluto_protection::enabled() {
         return std::ops::ControlFlow::Continue(());
     }
-    std::ops::ControlFlow::Break(crate::health::pluto_protection::run(
+    std::ops::ControlFlow::Break(sunrise_client_lib::pluto_protection::run(
         player,
         resources,
         rules,

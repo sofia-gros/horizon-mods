@@ -1,7 +1,7 @@
 // One provider can alter only the native policy entries under its registration.
 // Numeric validation/composition has one owner: the native protection Policy.
 use crate::pluto_inventory::protection::Contribution;
-use sunrise_world::combat_rules::pluto_protection::Policy;
+use crate::pluto_protection_kernel::Policy;
 
 pub(super) struct Scoped<'a> {
     id: &'a str,
@@ -29,7 +29,7 @@ impl Contribution for Scoped<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_lib::*;
     #[test]
     fn pluto_provider_capability_cannot_overwrite_another_registration() {
         let mut policy = Policy::default();

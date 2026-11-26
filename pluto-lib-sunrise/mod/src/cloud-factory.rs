@@ -1,6 +1,8 @@
 // Internal official-host construction only. This module does not spawn a cloud.
 use super::{Breath, CloudSettings, PotionCloud};
-use sunrise_client::{pluto_cloud::{Attribution, Label, Validated}, text::Text};
+use crate::pluto_cloud::{Attribution, Label, Validated};
+
+use sunrise_client::text::Text;
 use sunrise_client_core::who::Who;
 
 /// A native object with no world association or allocated entity ID. Its fields
@@ -57,7 +59,7 @@ pub(in crate::game) fn construct(request: Validated) -> StagedCloud {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sunrise_client::pluto_cloud::{self, Descriptor, Effect, Timing};
+    use crate::pluto_cloud::{self, Descriptor, Effect, Timing};
 
     fn requested(attribution: Attribution) -> Validated {
         pluto_cloud::validate(Descriptor {

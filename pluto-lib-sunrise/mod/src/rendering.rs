@@ -1,6 +1,6 @@
 // Shared, unshaded drawing mechanics. Content, layout and render hooks belong to consumers.
-use sunrise_client::hud::{HudAtlas, HudBatch, Rect};
-use sunrise_client::mesher::Vertex;
+use sunrise_client_render::hud::{HudAtlas, HudBatch, Rect};
+use sunrise_client_render::mesher::Vertex;
 
 /// Borrowed atlas region. Do not retain it across an atlas/resource reload.
 #[derive(Clone, Copy)]
@@ -242,5 +242,5 @@ pub fn minimum_block_light(world_light: u8, minimum: u8) -> Result<u32, DrawErro
         return Err(DrawError::InvalidInput);
     }
     let packed = (world_light & 0xf0) | (world_light & 15).max(minimum);
-    Ok(sunrise_client::block_entity_render::vertex_light(packed))
+    Ok(sunrise_client_render::block_entity_render::vertex_light(packed))
 }

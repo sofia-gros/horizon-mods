@@ -1,7 +1,14 @@
 // Borrowed resident damage facts. No registry, cache, derived policy or entity
 // lookup lives here. All classification delegates to official DamageSource.
-use super::{Catalog, DamageSource, DamageTypeId, Definition};
-use crate::{damage_immunity::ImmunityTag, damage_reduction::Bypass, living_hurt::HurtTag};
+use sunrise_world::damage_source::Catalog;
+use sunrise_world::damage_source::DamageSource;
+use sunrise_world::damage_source::DamageTypeId;
+use sunrise_world::damage_source::Definition;
+use sunrise_world::damage_immunity::ImmunityTag;
+
+use sunrise_world::damage_reduction::Bypass;
+
+use sunrise_world::living_hurt::HurtTag;
 
 #[derive(Clone, Copy, Debug)]
 pub struct SourceView<'a> {
@@ -51,7 +58,7 @@ impl<'a> SourceView<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     use serde_json::json;
     fn catalog(names: &[&str], fire: bool) -> Catalog {
         let types: Vec<_> = names

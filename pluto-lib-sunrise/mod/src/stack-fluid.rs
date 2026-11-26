@@ -1,7 +1,7 @@
 // Source-compatible single-fluid storage embedded in an item component.
 // The caller owns capacity, capability eligibility and the transaction.
 use sunrise_items::items::ItemStack;
-use sunrise_world::nbt::{Compound, Tag};
+use sunrise_core::nbt::{Compound, Tag};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StackFluid {

@@ -1,10 +1,13 @@
 // Symbolic content declarations before numeric registry resolution.
 // Overlay write replacement follows the native MIT Horizon Overlay::write
 // unlink-before-write contract; license notice: pluto-lib/LICENSE.horizon.
-use super::*;
-use sunrise_world::level::pluto_item_placement_access::{self as access, BindingDeclaration};
-use sunrise_world::level::pluto_entity_type_access as entities;
-use super::pluto_block_settings_access as settings;
+use sunrise_client::mod_content::ContentMod;
+use std::path::{Path, PathBuf};
+use std::fs;
+use sunrise_client_lib::*;
+use crate::pluto_item_placement_access::{self as access, BindingDeclaration};
+use crate::pluto_entity_type_access as entities;
+use crate::pluto_block_settings_access as settings;
 use std::sync::OnceLock;
 struct Snapshot { bindings: Vec<BindingDeclaration>, entities: Vec<entities::Definition>, settings:settings::Settings, identity: Vec<u8> }
 impl Snapshot { fn empty(&self) -> bool { self.bindings.is_empty() && self.entities.is_empty() && self.settings.is_empty() } }

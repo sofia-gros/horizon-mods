@@ -6,9 +6,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use super::Game;
-use sunrise_client::{entry::pluto_mob_split as access,items::ItemStack,mobs::{Mob,Species,gear}};
-use sunrise_core::random::{LegacyRandom,RandomSource};
-use sunrise_world::player_inventory::EquipmentSlot;
+use sunrise_client::items::ItemStack;
+
+use sunrise_client::mobs::{Mob, Species, gear};
+
+use crate::pluto_mob_split as access;
+use sunrise_core::random::{LegacyRandom, RandomSource};
+use sunrise_core::equipment_slot::EquipmentSlot;
 
 struct Random<'a>(&'a mut LegacyRandom);
 impl access::Random for Random<'_> {
@@ -25,7 +29,7 @@ fn head_stack(m:&Mob)->Option<ItemStack> {
 fn split_info(game:&Game<'_>,m:&Mob,kind:&str,size:i32)->access::Info {
     access::Info { entity:m.id,entity_type:kind.to_string(),dimension:game.dim.id().into(),
         position:[m.position.x,m.position.y,m.position.z],size,child_size:size/2,
-        head:head_stack(m),head_drop_chance:sunrise_client::mobs::drops::drop_chance(m,"head"),
+        head:head_stack(m),head_drop_chance:sunrise_client_lib::mobs::drops::drop_chance(m,"head"),
         custom_name:m.custom_name.clone(),no_ai:m.no_ai,invulnerable:m.invulnerable_flag }
 }
 pub(crate) fn prepare(game:&mut Game<'_>,parent:u32,kind:&str,size:i32,_child_size:i32,count:&mut u32,cancel:&mut bool) {
@@ -97,7 +101,7 @@ fn apply_dress(game:&mut Game<'_>,id:u32,dress:Dress)->Result<(),String> {
                     }
                 }
             }
-            if present { gear::set_stack(mob,index,stack); }
+            // (Sunrise: no gear::set_stack; the extra.* writes above are the store.)
             mob.gear_knockback_resistance=None;
             mob.needs_sync=true;
             Ok(())

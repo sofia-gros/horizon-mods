@@ -1,9 +1,9 @@
 // Owned registered template pieces. No native world or random borrow is kept.
-use super::*;
-use super::legacy::{LegacyPiece,PieceContext,TemplateHandler,TemplatePiece};
-use super::processor::ProcessorList;
-use crate::level::pluto_structure_access::{self,RegisteredTemplate};
-use crate::nbt::{Compound,Tag};
+use sunrise_world::worldgen::*;
+use sunrise_world::worldgen::structure::legacy::{LegacyPiece,PieceContext,TemplateHandler,TemplatePiece};
+use sunrise_world::worldgen::structure::processor::ProcessorList;
+use crate::pluto_structure_access::{self,RegisteredTemplate};
+use sunrise_core::nbt::{Compound,Tag};
 use serde_json::Value;
 use std::sync::{Mutex,Weak,atomic::{AtomicI64,Ordering}};
 
@@ -54,7 +54,7 @@ impl LegacyPiece for Piece {
     fn post_process(&self,_:&mut PieceContext<'_>)->legacy::Result<()> {
         // The legacy object-safe PieceWorld erases feature/finalization access.
         // Never run a callback through an incomplete or invented world adapter.
-        Err(crate::worldgen::placement::PlacementQueryError::Failed("registered piece requires the typed placement adapter".into()))
+        Err(sunrise_world::worldgen::placement::PlacementQueryError::Failed("registered piece requires the typed placement adapter".into()))
     }
 }
 
@@ -104,7 +104,7 @@ pub fn decode(resources:&Arc<StructureResources>,kind:&str,configuration:&Value,
 pub fn record(piece:&dyn LegacyPiece)->Result<Option<Arc<RegisteredPiece>>,String> {
     if piece.type_name()!=KIND {return Ok(None)}
     let saved=piece.save().ok_or("registered piece could not save its state")?;
-    let Some(Tag::Long(id))=saved.get(&crate::nbt::JavaString::from("PlutoRuntimeId")) else {return Err("missing piece runtime token".into())};
+    let Some(Tag::Long(id))=saved.get(&sunrise_core::nbt::JavaString::from("PlutoRuntimeId")) else {return Err("missing piece runtime token".into())};
     let weak=RECORDS.read().map_err(|_|"piece record registry poisoned")?.get(id).cloned();
     weak.and_then(|record|record.upgrade()).map(Some).ok_or_else(||"expired piece runtime record".into())
 }

@@ -1,11 +1,9 @@
 // Scoped bridge for the official player's post-resistance protection stage.
 // No equipment, modifier IDs, or consuming-mod formulas belong here.
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-    marker::PhantomData,
-    rc::Rc,
-};
+use std::cell::{Cell, RefCell};
+use std::collections::BTreeMap;
+use std::marker::PhantomData;
+use std::rc::Rc;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Bounds {
@@ -266,7 +264,7 @@ pub fn after_magic(damage: f32, protection: f32) -> Option<f32> {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     fn policy(lower: f32, upper: f32) -> Policy {
         let mut p = Policy::default();
         assert!(p.set("example", Bounds { lower, upper }));

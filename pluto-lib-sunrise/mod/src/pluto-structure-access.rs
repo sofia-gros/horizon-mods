@@ -41,7 +41,7 @@ pub fn plan(kind:&str,configuration:&Value,world:&mut dyn PlanningWorld,chunk:[i
 }
 
 #[cfg(not(test))]
-use super::pluto_block_access::StateInfo;
+use crate::pluto_block_access::StateInfo;
 #[cfg(test)]
 use crate::block_access_tests::StateInfo;
 
@@ -143,7 +143,7 @@ impl<T> SourceCatalogs<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     struct World;
     impl PlanningWorld for World {
         fn top_of_chunk_center(&mut self,_:[i32;2])->Result<Option<[i32;3]>,String>{panic!("no context query expected")}

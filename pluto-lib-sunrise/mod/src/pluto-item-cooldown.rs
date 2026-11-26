@@ -17,8 +17,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex};
 
-use sunrise_client::cooldowns::{Cooldowns, UseCooldown};
-use sunrise_client::items::ItemStack;
+use sunrise_items::cooldowns::{Cooldowns, UseCooldown};
+use sunrise_items::items::ItemStack;
 
 use super::Game;
 
@@ -51,7 +51,7 @@ struct Held {
 /// `group` over a fresh stack, with the item's default from the snapshot.
 fn held_group(held: &Held, item: &str) -> Arc<str> {
     let stack = ItemStack::new(item, 1);
-    sunrise_client::cooldowns::group(&stack, held.defaults.get(item))
+    sunrise_items::cooldowns::group(&stack, held.defaults.get(item))
 }
 
 /// Applies the held call's starts to `game`, in the order they were asked
@@ -182,7 +182,7 @@ pub fn drain_queued(game: &mut Game<'_>) {
             .items()
             .get(&item)
             .and_then(|info| info.use_cooldown.clone());
-        let group = sunrise_client::cooldowns::group(&stack, default.as_ref());
+        let group = sunrise_items::cooldowns::group(&stack, default.as_ref());
         game.add_cooldown(group, ticks);
     }
 }

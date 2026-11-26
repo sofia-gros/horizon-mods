@@ -2,15 +2,15 @@
 // License: pluto-lib/LICENSE.horizon. Only the native finalize marker claims
 // this path; ordinary saves/NBT summons keep the original loader and no reroll.
 fn pluto_entity_spawn_structure(game:&mut Game<'_>,input:&Tag,mount:Option<u32>)
-    ->std::ops::ControlFlow<Option<u32>> {
+    ->core::ops::ControlFlow<Option<u32>> {
     use crate::pluto_entity_spawn_access as access;
     use crate::game::pluto_entity_spawn_game as bridge;
     if !matches!(input,Tag::Compound(c) if c.contains_key(&"horizon:finalize".into())) {
-        return std::ops::ControlFlow::Continue(());
+        return core::ops::ControlFlow::Continue(());
     }
     match access::enabled() {
-        Ok(false)=>return std::ops::ControlFlow::Continue(()),
-        Err(error)=>{ log::error!("PlutoLib spawn registry: {error}"); return std::ops::ControlFlow::Break(None); },
+        Ok(false)=>return core::ops::ControlFlow::Continue(()),
+        Err(error)=>{ log::error!("PlutoLib spawn registry: {error}"); return core::ops::ControlFlow::Break(None); },
         Ok(true)=>{},
     }
     let result=(|| {
@@ -22,16 +22,16 @@ fn pluto_entity_spawn_structure(game:&mut Game<'_>,input:&Tag,mount:Option<u32>)
         Game::normalize_loaded_mob_tags(&mut tag);
         if let Tag::Compound(c)=&mut tag { c.remove(&"horizon:finalize".into()); }
         let passengers=if let Tag::Compound(c)=&mut tag { c.remove(&"Passengers".into()) } else { None };
-        let (own,fresh)=sunrise_client::mobs::living_random();
+        let (own,fresh)=sunrise_client_lib::mobs::living_random();
         let Some(mut mob)=entity_nbt::mob_from_nbt_with_random(&tag,game.res.mob_types(),game.next_entity,Some(game.pack.assets.registry),own) else {
             return Ok(None);
         };
-        if sunrise_client::mobs::camel::is_camel(mob.species()) {
-            sunrise_client::mobs::camel::finish_load(&mut mob,game.world.game_time);
+        if sunrise_client_lib::mobs::camel::is_camel(mob.species()) {
+            sunrise_client_lib::mobs::camel::finish_load(&mut mob,game.world.game_time);
         }
-        sunrise_client::mobs::adopt_anger_end(&mut mob,game.world.game_time);
+        sunrise_client_lib::mobs::adopt_anger_end(&mut mob,game.world.game_time);
         if mob.extra.anger>0 && mob.extra.angry_at.is_some() {
-            mob.ai.target=(!mob.built_by_player()).then_some(sunrise_client::mobs::Who::Player);
+            mob.ai.target=(!mob.built_by_player()).then_some(sunrise_client_lib::mobs::Who::Player);
         }
         mob.extra.mount=mount;
         mob.extra.passenger=mount.is_some();
@@ -39,8 +39,8 @@ fn pluto_entity_spawn_structure(game:&mut Game<'_>,input:&Tag,mount:Option<u32>)
         let at=[mob.position.x,mob.position.y,mob.position.z];
         let facts=game.biome_facts(at[0].floor() as i32,at[1].floor() as i32,at[2].floor() as i32);
         let difficulty=game.local_difficulty(at);
-        sunrise_client::mobs::spawning::finalize(&mut mob,&facts,&difficulty);
-        if mob.species()==sunrise_client::mobs::Species::Cat {
+        sunrise_client_lib::mobs::spawning::finalize(&mut mob,&facts,&difficulty);
+        if mob.species()==sunrise_client_lib::mobs::Species::Cat {
             let p=[at[0].floor() as i32,at[1].floor() as i32,at[2].floor() as i32];
             let black=game.structure_tag("minecraft:cats_spawn_as_black");
             if game.structures_at(p).iter().any(|s|black.contains(s)) { mob.extra.variant=10; mob.persistent=true; }
@@ -58,7 +58,7 @@ fn pluto_entity_spawn_structure(game:&mut Game<'_>,input:&Tag,mount:Option<u32>)
         Ok::<_,String>(Some(id))
     })();
     match result {
-        Ok(id)=>std::ops::ControlFlow::Break(id),
-        Err(error)=>{ log::error!("PlutoLib structure spawn failed: {error}"); std::ops::ControlFlow::Break(None) },
+        Ok(id)=>core::ops::ControlFlow::Break(id),
+        Err(error)=>{ log::error!("PlutoLib structure spawn failed: {error}"); core::ops::ControlFlow::Break(None) },
     }
 }

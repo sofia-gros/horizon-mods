@@ -7,7 +7,7 @@ fn pluto_hanging_stand_dispense(
     pos: (i32, i32, i32),
     facing: Direction,
     stack: &ItemStack,
-) -> std::ops::ControlFlow<Result<Option<ItemStack>>> {
+) -> core::ops::ControlFlow<Result<ControlFlow<(), Option<ItemStack>>>> {
     let Some(facts) = crate::pluto_hanging_access::stand_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };
@@ -19,7 +19,7 @@ fn pluto_hanging_stand_dispense(
                 game.dispenser_event(event, pos, 0);
                 game.dispenser_event(2000, pos, data_value(facing));
             }
-            std::ops::ControlFlow::Break(Ok(left))
+            std::ops::ControlFlow::Break(Ok(std::ops::ControlFlow::Continue(left)))
         }
         Err(error) => std::ops::ControlFlow::Break(Err(error)),
     }

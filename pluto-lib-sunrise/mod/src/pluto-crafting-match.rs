@@ -1,8 +1,18 @@
 // Read-only admission and provider assembly before the native matching/assembly body.
-use super::{Context, Ingredient as NativeIngredient, Input, ItemStack, Recipe, Recipes, Shape, Special};
+use sunrise_client::crafting::{Context, Shape, Special};
+use sunrise_client::crafting::ingredient::{Ingredient as NativeIngredient, Input};
+use sunrise_items::items::ItemStack;
+
+/// The provider-id qualification the native crafting table applies: an
+/// unqualified id is read in the minecraft namespace.
+fn qualified(id: &str) -> String {
+    if id.contains(':') { id.to_string() } else { format!("minecraft:{id}") }
+}
+use sunrise_client::crafting::Recipe;
+use sunrise_client::crafting::Recipes;
 use crate::pluto_component_view::ItemFacts;
-use sunrise_world::nbt::Tag;
-use pluto_inventory_api::{
+use sunrise_core::nbt::Tag;
+use pluto_lib::pluto_inventory_api::{
     advancements::predicates::ComponentValue,
     crafting::{
         assembly::{self, Outcome as AssemblyOutcome},
@@ -235,14 +245,14 @@ fn evaluate_marker(
     if !matches!(recipe, Recipe::Special(Special::RepairItem)) {
         return None;
     }
-    let qualified = super::qualified(id?);
+    let qualified = qualified(id?);
     let providers = special::provider_ids();
     if !providers.iter().any(|p| *p == qualified.as_str()) {
         return None;
     }
     let is_marker = |name: &str, stored: &Recipe| {
         matches!(stored, Recipe::Special(Special::RepairItem))
-            && providers.iter().any(|p| *p == super::qualified(name).as_str())
+            && providers.iter().any(|p| *p == qualified(name).as_str())
     };
     for (name, stored) in &ctx.recipes.crafting {
         if std::ptr::eq(stored, recipe) || is_marker(name, stored) {

@@ -2,7 +2,7 @@
 // library installs a source, and the advancement tick applies the snapshots
 // it returns to the current world's tag store (see
 // pluto_advancement_tags::drive). No world state lives here.
-use sunrise_client::pluto_inventory::advancements::tags::TagSnapshot;
+use crate::pluto_inventory::advancements::tags::TagSnapshot;
 use std::sync::OnceLock;
 
 /// One owner's resolved item-tag snapshot, owned for transport from the

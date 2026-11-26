@@ -1,9 +1,9 @@
-fn pluto_menu_equipment_slot(menu: &str, slot: i32) -> std::ops::ControlFlow<Option<usize>> {
+fn pluto_menu_equipment_slot(menu: &str, slot: i32) -> core::ops::ControlFlow<Option<usize>> {
     use std::ops::ControlFlow::{Break, Continue};
-    let Some((_, kinds)) = sunrise_client_lib::menu::pluto_menu_equipment::equipment_for(menu) else {
+    let Some((_, kinds)) = crate::pluto_menu_equipment::equipment_for(menu) else {
         return Continue(());
     };
-    let Some(t) = sunrise_client::containers::mod_menu_type(menu) else { return Continue(()); };
+    let Some(t) = sunrise_client_render::containers::mod_menu_type(menu) else { return Continue(()); };
     let n = t.slots;
     let eq = kinds.len();
     let Ok(s) = usize::try_from(slot) else { return Continue(()); };

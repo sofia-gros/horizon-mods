@@ -5,13 +5,13 @@
 // the item-break hook for a guest). A request for another player waits for their turn: the swing and the
 // break both belong to the player whose turn it is, as the guest machinery reads them from the acting state.
 use super::*;
-use sunrise_client::first_person::{Hand, SwingAnimation};
+use sunrise_client_lib::first_person::{Hand, SwingAnimation};
 
 pub(crate) fn flush(game: &mut Game<'_>) {
     if !game.native_authoritative() {
         return;
     }
-    let player = sunrise_client::lan::playerdata::ints_uuid(game.acting_player_uuid());
+    let player = sunrise_client_lib::lan::playerdata::ints_uuid(game.acting_player_uuid());
     let (swings, breaks) = crate::pluto_player_animate_access::take_for_player(player);
     for swing in swings {
         let hand = if swing.off_hand { Hand::Off } else { Hand::Main };

@@ -12,7 +12,11 @@
 // stale entry for a position whose block changed can never swap a face it
 // should not: the block must be retexturable AND the face must sample one of
 // its retextured slots. A level replacement clears the cache outright.
-use super::*;
+use sunrise_client_render::models::catalog::BakedFace;
+use sunrise_client_render::mesher::Mesher;
+use sunrise_core::position::BlockPos;
+use sunrise_world::registry::BlockStateId;
+use sunrise_client_render::*;
 use std::collections::HashMap;
 use std::sync::{LazyLock, OnceLock, RwLock};
 

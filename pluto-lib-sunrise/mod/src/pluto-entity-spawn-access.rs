@@ -1,7 +1,7 @@
 // Generic borrowed native spawn boundary. No game pointers or entity-ID maps
 // escape this call; the unpublished Mob owns Pending through SpawnState.
-use sunrise_client::items::ItemStack;
-use sunrise_client::mod_api::Host;
+use sunrise_items::items::ItemStack;
+use mod_api::Host;
 use std::sync::OnceLock;
 #[derive(Clone)]
 pub struct Info { pub entity_type:String,pub dimension:String,pub position:[f64;3],pub reason:String,pub special_multiplier:f32 }

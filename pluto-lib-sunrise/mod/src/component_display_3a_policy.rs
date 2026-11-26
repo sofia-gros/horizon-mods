@@ -1,7 +1,8 @@
-use sunrise_client::{items::ItemStack, text::Text};
+use sunrise_client::items::ItemStack;
+use sunrise_client::text::Text;
 
 pub(crate) fn component_durability_lines(stack: &ItemStack, lines: &mut Vec<(Text, u32)>, advanced: bool) {
-    let Some(sunrise_world::nbt::Tag::Int(max)) = stack.data().and_then(|d| d.other("minecraft:max_damage")) else { return };
+    let Some(sunrise_core::nbt::Tag::Int(max)) = stack.data().and_then(|d| d.other("minecraft:max_damage")) else { return };
     let Ok(max) = u32::try_from(*max) else { return };
     if max == 0 { return; }
     let replacement = Text::translate("item.durability", &[

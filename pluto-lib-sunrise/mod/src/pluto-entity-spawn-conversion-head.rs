@@ -1,9 +1,9 @@
 // Adapted from pinned MIT Horizon game/creatures.rs::convert_to.
 // License: pluto-lib/LICENSE.horizon. Only the frog conversion has a later
 // finalize_converted call in this pinned caller; other conversions do not roll.
-fn pluto_entity_spawn_conversion(game:&mut Game<'_>,from:&Mob,kind:&str,params:sunrise_client::mobs::conversion::Params)
+fn pluto_entity_spawn_conversion(game:&mut Game<'_>,from:&Mob,kind:&str,params:sunrise_client_lib::mobs::conversion::Params)
     ->std::ops::ControlFlow<Option<u32>> {
-    use crate::pluto_entity_spawn_access as access;
+    use sunrise_client_lib::pluto_entity_spawn_access as access;
     use crate::game::pluto_entity_spawn_game as bridge;
     if kind!="minecraft:frog" { return std::ops::ControlFlow::Continue(()); }
     match access::enabled() {
@@ -24,11 +24,11 @@ fn pluto_entity_spawn_conversion(game:&mut Game<'_>,from:&Mob,kind:&str,params:s
     }
     game.next_entity+=1;
     let mut mob=Mob::new(game.next_entity,kind_type,from.position,from.yaw);
-    sunrise_client::mobs::conversion::single(from,&mut mob,params);
+    sunrise_client_lib::mobs::conversion::single(from,&mut mob,params);
     if matches!(from.species(),Species::Zombie|Species::Husk) {
         let at=[from.position.x,from.position.y,from.position.z];
         let special=game.local_difficulty(at).special();
-        sunrise_client::mobs::finalize::zombie_attributes(&mut mob,special,sunrise_client::mobs::finalize::Reason::Conversion);
+        sunrise_client_lib::mobs::finalize::zombie_attributes(&mut mob,special,sunrise_client_lib::mobs::finalize::Reason::Conversion);
     }
     let result=(|| {
         let selected=bridge::prepare(game,&mut mob,"conversion")?;
@@ -47,7 +47,7 @@ fn pluto_entity_spawn_conversion(game:&mut Game<'_>,from:&Mob,kind:&str,params:s
         for rider in game.mobs.iter_mut() {
             if rider.extra.mount==Some(from.id) { rider.extra.mount=Some(id); }
         }
-        if let Some(raw)=sunrise_client::entity_nbt::conversion_tags(game.persist_raw(from.id)) {
+        if let Some(raw)=sunrise_client_lib::entity_nbt::conversion_tags(game.persist_raw(from.id)) {
             game.persist.raw.insert(id,raw);
         }
         let index=game.mobs.iter().position(|mob|mob.id==id).ok_or("converted mob disappeared before join")?;

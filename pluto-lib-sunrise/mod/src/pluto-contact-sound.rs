@@ -8,14 +8,14 @@ use crate::game::entity::Entity as _;
 pub(crate) fn begin_mobs(game: &mut Game<'_>) {
     if game.native_authoritative() {
         let tick = game.world.game_time;
-        let _ = sunrise_world::level::pluto_contact_effects::begin_world(&mut game.world.attachments, tick);
+        let _ = crate::pluto_contact_effects::begin_world(&mut game.world.attachments, tick);
     }
 }
 
 pub(crate) fn flush_world(game: &mut Game<'_>) {
     if !game.native_authoritative() { return; }
     let tick = game.world.game_time;
-    let sounds = sunrise_world::level::pluto_contact_effects::drain_world(&game.world.attachments, tick);
+    let sounds = crate::pluto_contact_effects::drain_world(&game.world.attachments, tick);
     for (entity, request) in sounds {
         let sound = game.res.facts().get(request.state).sounds.step.clone();
         let at = [f64::from(request.pos[0])+0.5, f64::from(request.pos[1])+0.5, f64::from(request.pos[2])+0.5];
@@ -31,7 +31,7 @@ pub(crate) fn item_tick(game: &mut Game<'_>, item: &mut sunrise_client::entities
     splash: &mut dyn FnMut(sunrise_client::entities::ItemSplash)) -> (bool, bool) {
     let server = !client && game.native_authoritative();
     let tick = game.world.game_time;
-    let owns_frame = server && sunrise_world::level::pluto_contact_effects::begin_world(&mut game.world.attachments, tick);
+    let owns_frame = server && crate::pluto_contact_effects::begin_world(&mut game.world.attachments, tick);
     let mut forward_splash = |event| splash(event);
     let no_physics = escape_speed.is_some();
     // Retain the pinned native fluid, escape-speed, lava/fall and splash path.
@@ -49,8 +49,12 @@ pub(crate) fn item_tick(game: &mut Game<'_>, item: &mut sunrise_client::entities
     }
     item.finish_move_block_effects(&game.world, game.res.facts(), no_physics, Some(&game.res.motion().blocks), step);
     item.push_by_bubble_column(&game.world, game.pack.assets.registry, game.res.facts(), game.collision);
-    let alive = sunrise_client::entities::pluto_item_inside::settle(item, &game.world,
-        game.res.facts(), no_physics, step, game.pack.assets.registry, server);
+    // Sunrise reduced v1.0.0: the item-inside dispatch (pluto_item_inside)
+    // is quarantined — the block_contact emit API it used does not exist
+    // in Sunrise. item_tick currently has no callers; keep settle's
+    // liveness verdict so the fn stays honest if one returns.
+    let alive = item.age < 6000 && item.position.y >= f64::from(game.world.shape.min_y - 64);
+    let _ = (no_physics, step, server);
     let before = item.velocity;
     let (water, _) = item.push_by_fluid(&game.world, &game.res.motion().fluids);
     item.water_entry(water > 0.0, false, before, &mut forward_splash);
@@ -61,7 +65,7 @@ pub(crate) fn item_tick(game: &mut Game<'_>, item: &mut sunrise_client::entities
 pub(super) fn flush(game: &mut Game<'_>) {
     if !game.native_authoritative() { return; }
     let Some((entity, tick)) = game.player.as_ref().map(|p| (p.entity_id, p.health.tick_count)) else { return };
-    let sounds = sunrise_world::level::pluto_contact_effects::drain_player(&game.world.attachments, entity, tick);
+    let sounds = crate::pluto_contact_effects::drain_player(&game.world.attachments, entity, tick);
     for request in sounds {
         let sound = game.res.facts().get(request.state).sounds.step.clone();
         let at = [f64::from(request.pos[0])+0.5, f64::from(request.pos[1])+0.5, f64::from(request.pos[2])+0.5];

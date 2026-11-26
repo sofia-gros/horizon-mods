@@ -1,7 +1,7 @@
 // The block experience reach's boundary: the game's own break path asks the
 // installed provider what a break drops, while the sampled amount can still
 // change (pluto-block-exp.rs). With no provider the amount stands.
-use sunrise_client::mod_api::Host;
+use mod_api::Host;
 use std::sync::OnceLock;
 pub struct Provider {pub adjust:fn(&mut dyn Host,[i32;3],u32)->u32}
 static PROVIDER:OnceLock<Provider>=OnceLock::new();

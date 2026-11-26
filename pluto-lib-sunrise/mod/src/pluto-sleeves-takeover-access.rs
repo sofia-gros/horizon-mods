@@ -3,7 +3,7 @@
 // `game/item_actions.rs` report the use; nothing here knows a sleeve, a cooldown or a mod.
 use std::sync::Mutex;
 
-use sunrise_client::mod_api::Host;
+use mod_api::Host;
 
 /// What the hand's use left behind: who used it, where they aimed, and whether the game
 /// consumed it. The provider reads the aim (the eye and the look the throw aims by) and the

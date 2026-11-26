@@ -1,6 +1,6 @@
-use sunrise_world::nbt::{JavaString, Tag};
-use sunrise_client::items::ItemStack;
-use pluto_item_api::ItemData;
+use sunrise_core::nbt::{JavaString, Tag};
+use sunrise_items::items::ItemStack;
+use pluto_lib::pluto_item_api::ItemData;
 
 // Store only PlutoLib's own compound, preserving all other custom-data fields.
 pub fn read(stack: &ItemStack) -> Result<ItemData, ()> {

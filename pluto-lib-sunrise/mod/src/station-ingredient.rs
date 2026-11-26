@@ -1,6 +1,7 @@
 // Borrow the exact item registry provided to the station-table parser.
-use super::{Ingredient, Items};
-use pluto_inventory_api::crafting::ingredients::{self, Outcome, RegistryView, Request};
+use sunrise_client::crafting::ingredient::Ingredient;
+use sunrise_items::items::Items;
+use pluto_lib::pluto_inventory_api::crafting::ingredients::{self, Outcome, RegistryView, Request};
 
 struct Registry<'a>(&'a Items);
 impl RegistryView for Registry<'_> {

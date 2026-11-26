@@ -147,7 +147,7 @@ pub mod pluto_menu_actions {
     }
 
     /// Whether saved/menu data changed, so metadata-only clicks also dirty the container.
-    pub fn commit(entity: &mut crate::containers::ModBlockEntity, context: &Context) -> bool {
+    pub fn commit(entity: &mut sunrise_client_render::containers::ModBlockEntity, context: &Context) -> bool {
         if !context.changed || entity.id != context.entity { return false; }
         let mut changed = entity.nbt != context.data;
         let menu_data_key = sunrise_world::nbt::JavaString::from("pluto:menu_data");

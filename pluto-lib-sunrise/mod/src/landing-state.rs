@@ -1,5 +1,5 @@
 // Per-player transient landing data, shared by equipment and motion hooks.
-use super::ChunkMap;
+use sunrise_client_render::chunk_map::ChunkMap;
 
 #[derive(Clone, Default)]
 pub struct LandingState {

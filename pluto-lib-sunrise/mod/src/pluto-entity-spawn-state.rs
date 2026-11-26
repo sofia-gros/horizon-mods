@@ -5,7 +5,11 @@
 // Native storage is the Mob-owned Navigation (private fields, concrete Default
 // literal), not the externally constructible Mob. Spawn tails do not replace it;
 // tick-only rider navigation loans occur later. Native attachment validation remains pending.
-use std::{any::Any,cell::Cell,fmt,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}}};
+use std::any::Any;
+use std::cell::Cell;
+use std::fmt;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 #[derive(Clone)]
 pub struct SpawnToken(Arc<()>);
 // Reuse the existing clone-shared logical entity identity, not its spent value.
@@ -90,8 +94,10 @@ pub fn with_head_drop_eligibility<R>(allowed:bool,run:impl FnOnce()->R)->R {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::sync::{Arc,Weak,atomic::{AtomicUsize,AtomicBool,Ordering}};
+    use sunrise_client_lib::mobs::*;
+    use std::sync::{Arc, Weak};
+
+    use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
     struct Lease { drops:Arc<AtomicUsize>,owner:Weak<SpawnState>,unlocked:Arc<AtomicBool> }
     impl Drop for Lease {
         fn drop(&mut self) {

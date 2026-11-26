@@ -3,5 +3,5 @@ fn pluto_block_particle_tint(value:u32,game:&Game<'_>,state:BlockStateId,pos:[i3
     let registry=&game.pack.assets.registry;
     // Native TerrainParticle keeps ordinary grass-block dirt crumbs untinted.
     if registry.state(state).is_some_and(|s|s.name.as_bytes()==b"minecraft:grass_block") {return value;}
-    sunrise_client::mesher::pluto_block_colors::color_in(registry,state,Some(pos),0).unwrap_or(value)
+    crate::pluto_block_colors::color_in(registry,state,Some(pos),0).unwrap_or(value)
 }

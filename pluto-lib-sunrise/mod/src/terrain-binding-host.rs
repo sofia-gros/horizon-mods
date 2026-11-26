@@ -1,10 +1,12 @@
 // Lower-renderer adapter. Only a derived cache; no gameplay/API dependency.
-use super::pluto_terrain_bindings::{
-    self as api, Binding, CacheError, Catalog, CurrentRevision, Error, OwnerCache, Request, Status,
-};
-use super::{MeshTables, Mesher, OPAQUE_LAYER};
+use crate::pluto_terrain_bindings::{self as api, Binding, CacheError, Catalog, CurrentRevision, Error, OwnerCache, Request, Status};
+use sunrise_client_render::mesher::MeshTables;
+use sunrise_client_render::mesher::Mesher;
+use sunrise_client_render::mesher::OPAQUE_LAYER;
 use crate::assets::{Assets, RenderAssets};
-use sunrise_world::{chunk::BlockState, fluid::FluidKind};
+use sunrise_world::chunk::BlockState;
+
+use sunrise_world::fluid::FluidKind;
 use std::sync::{Arc, Mutex};
 
 struct Prepared {

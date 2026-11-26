@@ -5,8 +5,8 @@
 // knows a helmet, a minimap or a mod.
 use std::sync::Mutex;
 
-use sunrise_client::items::ItemStack;
-use sunrise_client::mod_api::Host;
+use sunrise_items::items::ItemStack;
+use mod_api::Host;
 
 /// The offhand swap a map tick is running: the stack the tick displaced, the id of the map
 /// ticking in its place, and the holder the update packet goes to (`HOST` for the local player,

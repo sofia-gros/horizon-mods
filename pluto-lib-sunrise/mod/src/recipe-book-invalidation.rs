@@ -1,7 +1,7 @@
 // Native presentation-cache adapter, owned only by PlutoLib. No recipe policy.
 // Installed below game::recipe_book, where the host's private UI fields live.
 use super::Game;
-use sunrise_client::pluto_inventory::recipe_book::Invalidation;
+use crate::pluto_inventory::recipe_book::Invalidation;
 
 struct GameInvalidation<'a, 'g>(&'a mut Game<'g>);
 impl Invalidation for GameInvalidation<'_, '_> {

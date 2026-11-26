@@ -5,14 +5,14 @@ fn component_damage_bar(
 ) {
     let data = stack.data();
     let max = match data.and_then(|d| d.other("minecraft:max_damage")) {
-        Some(sunrise_world::nbt::Tag::Int(max)) => Some(*max),
+        Some(sunrise_core::nbt::Tag::Int(max)) => Some(*max),
         _ => None,
     };
     let unbreakable = data.is_some_and(|d| d.other("minecraft:unbreakable").is_some());
-    let bundle = sunrise_client::bundle::Contents::of(game.items(), stack).is_some();
+    let bundle = sunrise_items::bundle::Contents::of(game.items(), stack).is_some();
     if let Some((damage, max)) =
         crate::game::pluto_component_bar::bar_input(max, stack.damage, unbreakable, bundle)
     {
-        *bar = sunrise_client::hud_overlays::damage_bar(damage, max);
+        *bar = sunrise_client_render::hud_overlays::damage_bar(damage, max);
     }
 }

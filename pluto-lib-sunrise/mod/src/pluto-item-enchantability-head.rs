@@ -10,7 +10,7 @@ fn pluto_item_enchantability(stack: &ItemStack) -> std::ops::ControlFlow<u32> {
     // `getEnchantmentValue(ItemStack)` is the item's own override, ahead of the
     // `minecraft:enchantable` component the default reads. No answer runs the
     // original component/default lookup below.
-    match sunrise_world::level::pluto_item_behavior_access::enchantability(&stack.item, &data) {
+    match sunrise_world::pluto_item_behavior_access::enchantability(&stack.item, &data) {
         Some(value) => std::ops::ControlFlow::Break(value.max(0) as u32),
         None => std::ops::ControlFlow::Continue(()),
     }

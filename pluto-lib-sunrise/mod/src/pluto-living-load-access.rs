@@ -1,7 +1,7 @@
 // The Host-capable boundary lives in entry, not the lower mobs library. A
 // callback borrows the game only while producing owned writes; it never holds
 // a live Mob borrow at the same time, or retains a game pointer/entity-id map.
-use sunrise_client::mod_api::Host;
+use mod_api::Host;
 use std::sync::OnceLock;
 #[derive(Clone,Debug)]
 pub struct AttributeBase {pub attribute:String,pub value:f64}

@@ -1,13 +1,16 @@
-// Private official-Horizon adapter. Consumers use pluto_api::fluid instead.
+// Private official-Horizon adapter. Consumers use pluto_lib::pluto_api::fluid instead.
 use super::{Game, GameLevel, GuestUse};
-use super::pluto_world_fluid_query::{cell, View};
-use sunrise_client::{first_person::UseResult, items::ItemStack};
+use crate::game::pluto_world_fluid_query::{cell, View};
+use sunrise_client::first_person::UseResult;
+
+use sunrise_client::items::ItemStack;
 use sunrise_core::position::BlockPos;
-use sunrise_world::{
-    level::{flags, ticks::Ticks, LevelAccess, Spread},
-    registry::BlockStateId,
-};
-use pluto_api::fluid::{self, contact, Cell, Position, Sample, World};
+use sunrise_world::level::{flags, LevelAccess, Spread};
+
+use sunrise_world::level::ticks::Ticks;
+
+use sunrise_world::registry::BlockStateId;
+use pluto_lib::pluto_api::fluid::{self, contact, Cell, Position, Sample, World};
 use std::ops::ControlFlow;
 
 fn pos(p: Position) -> BlockPos {
@@ -213,7 +216,7 @@ pub(super) fn use_bucket(
             "minecraft:fluid_place"
         },
         target,
-        Some(sunrise_client::mobs::Who::Player),
+        Some(sunrise_client_lib::mobs::Who::Player),
         None,
     );
     if pickup {

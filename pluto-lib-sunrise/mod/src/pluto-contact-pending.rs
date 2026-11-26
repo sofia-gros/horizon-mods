@@ -86,7 +86,7 @@ impl<T> Pending<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_world::*;
     #[test]
     fn clocks_worlds_clones_and_skipped_phases_do_not_replay_effects() {
         let queue = Pending::default();

@@ -2,7 +2,7 @@
 // HEAD helpers call before any consumer callback can observe a leaving lifetime.
 // Source-integrated only: native attachment/lifecycle verification is still pending.
 use super::*;
-use sunrise_client_render::pluto_client_block_entity_state::client_level_replaced;
+use crate::pluto_client_block_entity_state::client_level_replaced;
 
 pub(crate) fn before_replace(game: &Game<'_>, keep_world: bool, incoming: &str) {
     let Some(remote) = game.remote.as_ref() else { return };

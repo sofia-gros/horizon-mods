@@ -10,7 +10,7 @@
 // anything changed; the local player needs no packet (its client reads the map data live).
 use super::*;
 
-use sunrise_client::mod_api::Host;
+use mod_api::Host;
 
 /// The head slot in the carried inventory (`EquipmentSlot::Head`).
 const HEAD_SLOT: i32 = 103;

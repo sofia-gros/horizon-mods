@@ -7,12 +7,12 @@
 // when it does not), the face, then the map's decorations — all of them, the player arrow
 // included, because the minimap is not an item frame (the game's own map screen draws only the
 // frame-shown ones). The decorations ride the batch here, not the game's 3D map pipeline.
-use super::Game;
-use sunrise_client::hud::HudBatch;
+use crate::game::Game;
+use sunrise_client_render::hud::HudBatch;
 
 impl Game<'_> {
     pub(crate) fn draw_queued_map_faces(&mut self, batch: &mut HudBatch) {
-        for face in sunrise_client::game::pluto_map_face::take_queued() {
+        for face in crate::game::pluto_map_face::take_queued() {
             let Some(id) = crate::game::maps::map_id(&face.stack) else { continue; };
             let face_texture = self.map_texture(id);
             let scale = face.rect[2] / 128.0;

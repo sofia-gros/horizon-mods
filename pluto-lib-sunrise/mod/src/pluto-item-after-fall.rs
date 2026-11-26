@@ -1,7 +1,7 @@
 fn pluto_item_after_fall(value: f64, item: &mut crate::entities::ItemEntity, world: &crate::world::World, collision: &sunrise_world::block_collision::BlockCollisionRegistry<'_>, contact: Option<sunrise_core::position::BlockPos>) -> f64 {
     // Wrap only vertical restitution. The caller retains collision, native
     // contact/discard handlers, fluid/block effects, drag and tracker ordering.
-    use sunrise_world::level::pluto_block_access::{self as transport, AfterFall, StateInfo};
+    use sunrise_world::pluto_block_access::{self as transport, AfterFall, StateInfo};
     let callback = (|| {
         if !item.on_ground { return None; }
         let sink = transport::landing_sink()?;

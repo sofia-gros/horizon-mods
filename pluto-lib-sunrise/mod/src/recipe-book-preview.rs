@@ -1,12 +1,16 @@
 // Explicit ghost preview only; source recipe eligibility stays in the consumer.
 use super::Game;
-use sunrise_client::{
-    crafting::{Ingredient, Shape},
-    items::ItemStack,
-    pluto_inventory::recipe_book::preview::{BookKind, EntryFacts, Error, Preview, Selection},
-    pluto_stack_storage::same_item_snapshot,
-    recipe_book::{BookType, Category, Display, Entry},
-};
+use sunrise_client::items::ItemStack;
+
+use crate::pluto_inventory::recipe_book::preview::{BookKind, EntryFacts, Error, Preview, Selection};
+
+use crate::pluto_stack_storage::same_item_snapshot;
+
+use sunrise_client::recipe_book::{BookType, Category, Display, Entry};
+
+use sunrise_client::crafting::ingredient::Ingredient;
+
+use sunrise_client::crafting::Shape;
 
 pub(crate) struct NativeSelection {
     facts: EntryFacts,

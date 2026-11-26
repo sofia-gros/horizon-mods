@@ -1,18 +1,14 @@
 // Upper-layer projection from the single authoritative fluid definition store.
 // It adds no meshing hook and does not change contact/flow lookup semantics.
-use sunrise_client::{
-    assets::{Assets, RenderAssets},
-    mesher::{
-        pluto_terrain_binding_host,
-        pluto_terrain_bindings::{CurrentRevision, Error, Request},
-        MeshTables,
-    },
-};
+use sunrise_client::assets::{Assets, RenderAssets};
+use crate::pluto_terrain_bindings::{CurrentRevision, Error, Request};
+use sunrise_client::mesher::MeshTables;
+use crate::pluto_terrain_binding_host;
 use std::sync::Arc;
 
 fn requests() -> Result<(Vec<Request>, CurrentRevision), Error> {
-    let snapshot = pluto_api::fluid::registry_snapshot().map_err(|_| Error::RegistryUnavailable)?;
-    if snapshot.len() > sunrise_client::mesher::pluto_terrain_bindings::MAX_BINDINGS / 9 {
+    let snapshot = pluto_lib::pluto_api::fluid::registry_snapshot().map_err(|_| Error::RegistryUnavailable)?;
+    if snapshot.len() > crate::pluto_terrain_bindings::MAX_BINDINGS / 9 {
         return Err(Error::LimitExceeded);
     }
     // Bound projected text before multiplying it into nine owned descriptors.
@@ -29,7 +25,7 @@ fn requests() -> Result<(Vec<Request>, CurrentRevision), Error> {
             .checked_mul(9)
             .and_then(|n| text_bytes.checked_add(n))
             .ok_or(Error::LimitExceeded)?;
-        if text_bytes > sunrise_client::mesher::pluto_terrain_bindings::MAX_TEXT_BYTES {
+        if text_bytes > crate::pluto_terrain_bindings::MAX_TEXT_BYTES {
             return Err(Error::LimitExceeded);
         }
     }

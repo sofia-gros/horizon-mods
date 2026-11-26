@@ -11,14 +11,14 @@ use std::sync::Mutex;
 struct Noted {
     dimension: String,
     pos: [i32; 3],
-    nbt: Option<sunrise_world::nbt::Tag>,
+    nbt: Option<sunrise_core::nbt::Tag>,
 }
 
 static NOTED: Mutex<Vec<Noted>> = Mutex::new(Vec::new());
 
 /// Notes the block entity at `pos` in `dimension` for the break context to take; an entry for the same
 /// position is replaced, and past 64 entries the oldest goes.
-pub fn note_block_entity_nbt(dimension: &str, pos: [i32; 3], nbt: Option<sunrise_world::nbt::Tag>) {
+pub fn note_block_entity_nbt(dimension: &str, pos: [i32; 3], nbt: Option<sunrise_core::nbt::Tag>) {
     let Ok(mut noted) = NOTED.lock() else { return };
     noted.retain(|entry| !(entry.dimension == dimension && entry.pos == pos));
     if noted.len() >= 64 {
@@ -29,7 +29,7 @@ pub fn note_block_entity_nbt(dimension: &str, pos: [i32; 3], nbt: Option<sunrise
 
 /// Takes the noted block entity at `pos` in `dimension`, if the head seam noted one: the saved compound,
 /// or nothing when the block had no block entity. Nothing when the seam did not run.
-pub fn take_block_entity_nbt(dimension: &str, pos: [i32; 3]) -> Option<sunrise_world::nbt::Tag> {
+pub fn take_block_entity_nbt(dimension: &str, pos: [i32; 3]) -> Option<sunrise_core::nbt::Tag> {
     let Ok(mut noted) = NOTED.lock() else { return None };
     let at = noted.iter().position(|entry| entry.dimension == dimension && entry.pos == pos)?;
     noted.remove(at).nbt

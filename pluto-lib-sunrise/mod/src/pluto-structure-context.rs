@@ -2,9 +2,9 @@
 // structure manager, never to structure/start.rs (whose token reprinting fails).
 // Explicit placement, natural template attempts and saved-piece loading use
 // these entries. Avoid-biome sets keep their opaque native policy.
-use super::*;
+use sunrise_world::worldgen::*;
 use crate::heightmap::HeightmapType;
-use crate::level::pluto_structure_access::{self,PlanResult,PlanningWorld};
+use crate::pluto_structure_access::{self,PlanResult,PlanningWorld};
 use sunrise_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
 
 // Owned catalog data with weak resource identities, never borrowed contexts.
@@ -67,7 +67,7 @@ pub fn plan(
 fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk:ChunkPos,any_biome:bool)->Result<Option<Option<StructureStart>>,String> {
     let Some(index)=state.registry.structures.iter().position(|s|s.name==name) else {return Ok(None)};
     let def=&state.registry.structures[index];
-    let super::super::structure::start::StructureKind::Unsupported(kind)=&def.kind else {return Ok(None)};
+    let sunrise_world::worldgen::structure::start::StructureKind::Unsupported(kind)=&def.kind else {return Ok(None)};
     if !pluto_structure_access::is_registered(kind)? {return Ok(None)}
     let snapshot=SOURCES.get(&state.resources)?;
     let source=snapshot.structures.get(name).ok_or_else(||format!("missing structure source snapshot: {name}"))?;
@@ -79,7 +79,7 @@ fn try_start(state:&StructureState,native:&mut impl StartContext,name:&str,chunk
         PlanResult::Unregistered=>Err("registered structure dispatcher disappeared".into()),
         PlanResult::Rejected=>Ok(Some(None)),
         PlanResult::Start(value)=>{
-            use super::super::structure::pluto_structure_piece;
+            use crate::pluto_structure_piece;
             pluto_structure_piece::validate_value(&value)?;
             let object=value.as_object().ok_or("structure plan must be an object")?;
             if object.keys().any(|key|!matches!(key.as_str(),"position"|"pieces")) {return Err("unsupported structure plan field".into())}
@@ -130,13 +130,13 @@ pub(super) fn natural_start(state:&StructureState,native:&mut impl StartContext,
 
 /// The native saved-start path owns cache publication/locking. This hook only
 /// restores our piece; unrelated native piece types keep their original path.
-pub fn saved_piece(state:&StructureState,piece:&crate::nbt::Tag)->std::ops::ControlFlow<Option<Piece>> {
+pub fn saved_piece(state:&StructureState,piece:&sunrise_core::nbt::Tag)->std::ops::ControlFlow<Option<Piece>> {
     use std::ops::ControlFlow::{Break,Continue};
-    use super::super::structure::pluto_structure_piece;
+    use crate::pluto_structure_piece;
     let value=tag_json(piece);
     let restored=match value.get("id").and_then(Value::as_str) {
         Some(pluto_structure_piece::TEMPLATE_KIND)=>pluto_structure_piece::restore(&state.resources,&value),
-        Some(super::super::structure::pluto_registered_piece::KIND)=>super::super::structure::pluto_registered_piece::restore(&state.resources,&value),
+        Some(crate::pluto_registered_piece::KIND)=>crate::pluto_registered_piece::restore(&state.resources,&value),
         _=>return Continue(()),
     };
     match restored {

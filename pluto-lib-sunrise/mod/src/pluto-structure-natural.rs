@@ -1,13 +1,13 @@
 // Natural template starts. Keep native selection, rings, cache and locks.
 // Registered markers execute through the typed generation-world adapter.
-use super::*;
-use crate::level::pluto_structure_access;
+use sunrise_world::worldgen::*;
+use crate::pluto_structure_access;
 use sunrise_core::random::{LegacyRandom,RandomSource,WorldgenRandom};
 use std::ops::ControlFlow;
 
 fn attempt(state:&StructureState,context:&mut impl StartContext,index:usize,chunk:ChunkPos)->Option<StructureStart> {
     let name=&state.registry.structures[index].name;
-    match super::pluto_structure_context::natural_start(state,context,name,chunk) {
+    match crate::pluto_structure_context::natural_start(state,context,name,chunk) {
         Ok(None)=>try_generate(&state.registry,&state.resources,&state.bindings,context,index,chunk,false),
         Ok(Some(start))=>{log::info!("pluto_lib: natural structure start created by the registered planner: {name} at chunk {}, {}",chunk.x,chunk.z);start},
         Err(error)=>{eprintln!("pluto_lib: natural structure {name} rejected: {error}");log::warn!("pluto_lib: natural structure {name} at chunk {}, {} rejected: {error}",chunk.x,chunk.z);None},
@@ -31,11 +31,11 @@ fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chun
         if starts.len()!=before {continue}
         let custom=set.structures.iter().any(|(index,_)| {
             matches!(&state.registry.structures[*index].kind,
-                crate::worldgen::structure::start::StructureKind::Unsupported(kind)
+                sunrise_world::worldgen::structure::start::StructureKind::Unsupported(kind)
                 if pluto_structure_access::is_registered(kind).unwrap_or(false))
         });
         let supported=if custom {
-            match super::pluto_structure_context::natural_set_supported(state,&set.name) {
+            match crate::pluto_structure_context::natural_set_supported(state,&set.name) {
                 Ok(supported)=>supported,
                 Err(error)=>{eprintln!("pluto_lib: natural set {} unavailable: {error}",set.name);log::warn!("pluto_lib: natural structure set {} unavailable: {error}",set.name);false},
             }
@@ -76,7 +76,7 @@ fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chun
 }
 
 pub fn build(state:&StructureState,context:&mut impl StartContext,chunk:ChunkPos,wait:bool)->ControlFlow<Option<Starts>> {
-    use crate::worldgen::structure::start::StructureKind;
+    use sunrise_world::worldgen::structure::start::StructureKind;
     let mut registered=false;
     for def in &state.registry.structures {
         if let StructureKind::Unsupported(kind)=&def.kind {

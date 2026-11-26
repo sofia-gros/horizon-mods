@@ -12,7 +12,9 @@
 // never drawn.
 use std::sync::RwLock;
 
-use super::{Kind, Menu, Role, Slot};
+use sunrise_client_lib::{Role, Slot};
+use sunrise_client::menu::Kind;
+use sunrise_client::menu::Menu;
 
 /// One menu type's equipment: the layout index the equipment starts at, and the pieces in
 /// layout order.
@@ -71,7 +73,7 @@ fn carries(menu: &Menu, first: usize, pieces: &[(usize, Role)]) -> bool {
     let at = first.min(menu.slots.len());
     pieces.iter().enumerate().all(|(offset, (index, role))| {
         menu.slots.get(at + offset).is_some_and(|slot| {
-            slot.container == super::PLAYER && slot.index == *index && same_role(&slot.role, role)
+            slot.container == sunrise_client_lib::PLAYER && slot.index == *index && same_role(&slot.role, role)
         })
     })
 }
@@ -101,13 +103,13 @@ pub fn insert_equipment(menu: &mut Menu) {
     if carries(menu, first, &pieces) { return; }
     let at = first.min(menu.slots.len());
     for (offset, (index, role)) in pieces.into_iter().enumerate() {
-        menu.slots.insert(at + offset, Slot { container: super::PLAYER, index, role });
+        menu.slots.insert(at + offset, Slot { container: sunrise_client_lib::PLAYER, index, role });
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_lib::*;
 
     #[test]
     fn the_pieces_take_the_inventory_menus_armor_indices() {
@@ -135,13 +137,13 @@ mod tests {
         assert_eq!(menu.slot_count(), 42, "six container slots and the player's 36");
         insert_equipment(&mut menu);
         assert_eq!(menu.slot_count(), 47, "the five equipment slots join the menu");
-        assert_eq!(menu.slots[5].container, super::PLAYER);
+        assert_eq!(menu.slots[5].container, sunrise_client_lib::PLAYER);
         assert_eq!(menu.slots[5].index, 39, "the head first, at the layout's index");
         assert!(matches!(menu.slots[5].role, Role::Armor(3)));
         assert_eq!(menu.slots[9].index, 40, "the offhand last");
         assert!(matches!(menu.slots[9].role, Role::Plain));
         assert!(matches!(menu.slots[10].role, Role::ModResult), "the menu's own sixth slot rides along after them");
-        assert_eq!(menu.slots[11].container, super::PLAYER, "the player's inventory follows");
+        assert_eq!(menu.slots[11].container, sunrise_client_lib::PLAYER, "the player's inventory follows");
         set_equipment("test:equipment", 5, &["head", "chest", "legs", "feet", "offhand"]);
         let mut again = Menu::new(kind);
         insert_equipment(&mut again);

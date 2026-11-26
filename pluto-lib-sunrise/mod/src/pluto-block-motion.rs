@@ -1,8 +1,8 @@
 // Concrete player landing response. Preserve native horizontal restitution,
 // then let a registered block own vertical response without newer-version
 // gravity/drag compensation. Unregistered blocks retain the complete native path.
-use super::*;
-use sunrise_world::level::pluto_block_access::{self as pluto_block, AfterFall, StateInfo};
+use sunrise_client_lib::*;
+use crate::pluto_block_access::{self as pluto_block, AfterFall, StateInfo};
 
 pub(super) fn dispatch(world: &mut MotionWorld<'_, '_, '_>, state: BlockStateId, x: bool, z: bool, resolved: Vec3) -> Option<Result<()>> {
     if !world.player.collision.vertical || !world.player.collision.below { return None; }

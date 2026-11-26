@@ -2,15 +2,15 @@
 // License: pluto-lib/LICENSE.horizon. Patrol leadership/target setup precedes
 // finalizeSpawn; raid wave buffs in the caller still follow its return.
 fn pluto_entity_spawn_raid(game:&mut Game<'_>,kind:&str,at:[f64;3],leader:bool,reason:raider::Reason)
-    ->std::ops::ControlFlow<Option<u32>> {
+    ->core::ops::ControlFlow<Option<u32>> {
     use crate::pluto_entity_spawn_access as access;
     use crate::game::pluto_entity_spawn_game as bridge;
     match access::enabled() {
-        Ok(false)=>return std::ops::ControlFlow::Continue(()),
-        Err(error)=>{ log::error!("PlutoLib spawn registry: {error}"); return std::ops::ControlFlow::Break(None); },
+        Ok(false)=>return core::ops::ControlFlow::Continue(()),
+        Err(error)=>{ log::error!("PlutoLib spawn registry: {error}"); return core::ops::ControlFlow::Break(None); },
         Ok(true)=>{},
     }
-    let Some(kind)=game.res.mob_types().get(kind).cloned() else { return std::ops::ControlFlow::Break(None) };
+    let Some(kind)=game.res.mob_types().get(kind).cloned() else { return core::ops::ControlFlow::Break(None) };
     game.next_entity+=1;
     let mut mob=Mob::new(game.next_entity,kind,Vec3::new(at[0],at[1],at[2]),0.0);
     if leader {
@@ -39,7 +39,7 @@ fn pluto_entity_spawn_raid(game:&mut Game<'_>,kind:&str,at:[f64;3],leader:bool,r
         Ok::<_,String>(Some(id))
     })();
     match result {
-        Ok(id)=>std::ops::ControlFlow::Break(id),
-        Err(error)=>{ log::error!("PlutoLib event spawn failed: {error}"); std::ops::ControlFlow::Break(None) },
+        Ok(id)=>core::ops::ControlFlow::Break(id),
+        Err(error)=>{ log::error!("PlutoLib event spawn failed: {error}"); core::ops::ControlFlow::Break(None) },
     }
 }

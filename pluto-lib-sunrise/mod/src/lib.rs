@@ -18,6 +18,13 @@ pub use crate::exports::*;
 /// Block movement factors (speed and jump) for mod blocks.
 pub use pluto_movement_api as movement;
 
+/// The generated API crates, re-exported so native (staged) code — which is
+/// compiled inside the patched game crate and can name only this crate —
+/// reaches them as `pluto_lib::pluto_item_api` and so on.
+pub use pluto_api;
+pub use pluto_inventory_api;
+pub use pluto_item_api;
+
 /// PlutoLib's native entry point. The hook bodies live in [`hooks`], which is
 /// being ported from the Horizon host bridge to this crate's `mod_api`
 /// surface; methods are wired up there as the port lands.

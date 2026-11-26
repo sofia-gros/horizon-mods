@@ -1,8 +1,6 @@
 // Synchronous primary-local saved knowledge restoration, never a new unlock.
-use sunrise_client::pluto_inventory::recipe_book::handoff::{
-    Handoff, Readiness, Restoration, RestoreError, Saved,
-};
-use sunrise_client_render::chunk_map::pluto_saved_book_state::TakeError as StateError;
+use crate::pluto_inventory::recipe_book::handoff::{Handoff, Readiness, Restoration, RestoreError, Saved};
+use crate::pluto_saved_book_state::TakeError as StateError;
 
 struct GameHandoff<'a, 'g>(&'a mut super::Game<'g>);
 impl Handoff for GameHandoff<'_, '_> {
@@ -60,7 +58,7 @@ impl Handoff for GameHandoff<'_, '_> {
             .into_iter()
             .filter(|id| book.to_be_displayed.insert(id.clone()))
             .count();
-        super::recipe_book::pluto_invalidation::with_game(game, |ui| ui.invalidate_definitions());
+        crate::game::recipe_book::pluto_invalidation::with_game(game, |ui| ui.invalidate_definitions());
         Ok(Restoration::Consumed {
             recipes_added,
             highlights_added,

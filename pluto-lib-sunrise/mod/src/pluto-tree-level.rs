@@ -1,9 +1,9 @@
 // Live native trees with borrowed, tracked decorator callbacks.
-use super::{Behaviours, LevelAccess, Ticks, feature_world::LevelFeatureWorld};
-use super::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
-use crate::registry::BlockStateId;
-use crate::worldgen::{feature_graph::{FeatureDefinition, FeatureExecutionError}, placement::PlacementQueryError};
-use crate::worldgen::live::pluto_tree_catalog;
+use sunrise_world::{Behaviours, LevelAccess, Ticks, feature_world::LevelFeatureWorld};
+use crate::pluto_block_access::{StateInfo, LevelView, LevelEdit, TreeCallback, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
+use sunrise_world::registry::BlockStateId;
+use sunrise_world::worldgen::{feature_graph::{FeatureDefinition, FeatureExecutionError}, placement::PlacementQueryError};
+use crate::pluto_tree_catalog;
 use sunrise_core::{position::BlockPos, random::{LegacyRandom, RandomSource}};
 use serde_json::Value;
 
@@ -51,10 +51,10 @@ impl<L: LevelAccess + ?Sized> LevelView for TreeEditor<'_, '_, '_, L> {
     }
     fn brightness(&self, pos: [i32; 3]) -> u8 {
         let level = &*self.world.sim.level;
-        super::raw_brightness(level, at(pos), level.sky_darken()).clamp(0,15) as u8
+        sunrise_world::raw_brightness(level, at(pos), level.sky_darken()).clamp(0,15) as u8
     }
     fn light_passes_up(&self, pos: [i32; 3]) -> bool {
-        use super::data::state_flags::{CAN_OCCLUDE, SHAPE_OCCLUSION};
+        use sunrise_world::data::state_flags::{CAN_OCCLUDE, SHAPE_OCCLUSION};
         use sunrise_core::geometry::Direction;
         let b = self.world.sim.b;
         let state = self.world.sim.state(at(pos));
@@ -150,8 +150,8 @@ pub(super) fn on_world<L: LevelAccess + ?Sized>(
         let selected = callback(&mut editor, pos).map_err(|error| FeatureExecutionError::Query(PlacementQueryError::Failed(error)))?;
         selected.map(|state| editor.resolve(&state).ok_or_else(|| FeatureExecutionError::Query(PlacementQueryError::Failed("root override state invalid".into())))).transpose()
     };
-    let root_override: Option<&mut crate::worldgen::tree::pluto_tree_placement::RootOverride<'_, _, _>> = if has_roots { Some(&mut root_override) } else { None };
-    let result = crate::worldgen::tree::pluto_tree_placement::place_with_plan(&tree, world, random, pos, &mut nested, root_override, plan,
+    let root_override: Option<&mut crate::pluto_tree_placement::RootOverride<'_, _, _>> = if has_roots { Some(&mut root_override) } else { None };
+    let result = crate::pluto_tree_placement::place_with_plan(&tree, world, random, pos, &mut nested, root_override, plan,
         |index, world, random, positions, written| {
             let mut editor = TreeEditor { world, random, written, bound_roots: None };
             decorate(index, &mut editor, positions.logs, positions.leaves, positions.roots)
@@ -201,7 +201,7 @@ fn place_planned_bound(
     if depth == 0 || depth > MAX_FEATURE_DEPTH { return false }
     let Some(features) = behaviours.live_features() else { return false };
     let mut sim = behaviours.sim(level, ticks);
-    super::pluto_block_access::with_random(&mut sim, |sim| sim.random(), |sim, random| {
+    crate::pluto_block_access::with_random(&mut sim, |sim| sim.random(), |sim, random| {
         let mut world = LevelFeatureWorld { sim, features, entities: Vec::new() };
         on_world(&mut world, random, configuration, pos, roots, plan, decorate)
     })

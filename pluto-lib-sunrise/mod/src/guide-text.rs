@@ -1,9 +1,7 @@
 // Restricted semantic native Text conversion. Not a full text-component codec,
 // screen opener, packet handler or permission to interpret consumer metadata.
-use crate::{
-    pluto_inventory::guide::document as api,
-    text::{ClickEvent, Span, Style, Text},
-};
+use crate::pluto_inventory::guide::document as api;
+use crate::text::{ClickEvent, Span, Style, Text};
 
 pub fn from_native(
     pages: &[Text],

@@ -1,7 +1,8 @@
 // Current stored-book adapter. No registry, owner token, state extension or
 // automatic input interception. Installed inside game::books for private APIs.
 use super::{BookScreen, Game};
-use sunrise_client::{pluto_guide_text, pluto_inventory::guide::current_book as api};
+use crate::pluto_guide_text::pluto_guide_text;
+use crate::pluto_inventory::pluto_inventory as api;
 
 fn context_available(game: &Game<'_>) -> bool {
     // Conservative local-gameplay admission, not a physical-input event token.
@@ -168,7 +169,7 @@ mod tests {
         assert_eq!(
             capture_book(Some(&native)),
             Err(api::Unavailable::Document(
-                sunrise_client::pluto_inventory::guide::document::Error::UnsupportedStyle
+                crate::pluto_inventory::guide::document::Error::UnsupportedStyle
             ))
         );
     }

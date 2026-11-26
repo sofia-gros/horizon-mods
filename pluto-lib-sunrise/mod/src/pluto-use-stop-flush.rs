@@ -11,7 +11,7 @@ use super::*;
 
 pub(crate) fn flush(game: &mut Game<'_>) {
     if !game.native_authoritative() { return; }
-    let player = crate::lan::playerdata::ints_uuid(game.acting_player_uuid());
+    let player = sunrise_client_lib::lan::playerdata::ints_uuid(game.acting_player_uuid());
     for queued in crate::pluto_use_stop_access::take_for(player) {
         let Some((slot, ticks)) = game.using else { continue };
         match queued.end {

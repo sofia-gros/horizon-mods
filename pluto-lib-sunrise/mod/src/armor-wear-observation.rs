@@ -1,7 +1,10 @@
 // Private authoritative bridge. An observation records consumption-time facts,
 // not per-piece native wear decisions or an authorization to mutate equipment.
-use super::{Game, pluto_equipment_view::Snapshot};
-use sunrise_client::pluto_inventory::{armor_wear as api, equipment::Actor};
+use super::Game;
+use crate::game::pluto_equipment_view::Snapshot;
+use crate::pluto_inventory::armor_wear as api;
+
+use crate::pluto_inventory::equipment::Actor;
 use sunrise_world::damage_source::DamageTypeId;
 
 // These observed fields are a synchronous scope check, not a world generation
@@ -23,7 +26,7 @@ impl Scope {
             return None;
         }
         let player = game.player.as_ref()?;
-        if !sunrise_client::health::pluto_protection::equipment_allowed(player) {
+        if !crate::pluto_protection::equipment_allowed(player) {
             return None;
         }
         Some(Self {

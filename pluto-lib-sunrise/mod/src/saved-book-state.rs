@@ -52,7 +52,7 @@ impl State {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_render::*;
     fn owners() -> BTreeMap<String, Saved> {
         BTreeMap::from([(
             "test:a".into(),

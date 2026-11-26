@@ -6,7 +6,7 @@ fn pluto_hanging_stand_command(
     id: u32,
     damage_type: &str,
     causing: Option<super::commands::Target>,
-) -> std::ops::ControlFlow<bool> {
+) -> core::ops::ControlFlow<bool> {
     let _ = causing;
     if crate::game::pluto_hanging_game::fancy_stand_refuses(game, id, damage_type) {
         return std::ops::ControlFlow::Break(false);

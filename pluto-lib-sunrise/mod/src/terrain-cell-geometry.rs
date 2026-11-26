@@ -253,7 +253,7 @@ pub fn build(cell: &Cell) -> Result<Batch, Error> {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_render::*;
     fn cell() -> Cell {
         let face = Some(Surface {
             uv: [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]],

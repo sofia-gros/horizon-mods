@@ -1,10 +1,10 @@
 // Uses the native unsaved Instance modifier sets. The native scalar attribute
 // store remains authoritative for knockback bases/permanent modifiers; only
 // transient operations are borrowed from this instance map during computation.
-use super::{Mob,Attr,Op};
+use sunrise_client_lib::mobs::{Mob,Attr,Op};
 use sunrise_world::attributes::{Modifier,Operation,entity::Catalog};
 use std::sync::Arc;
-use crate::mobs::pluto_living_entity_access::AttributeModifier;
+use crate::pluto_living_entity_access::AttributeModifier;
 
 fn scalar_has(mob:&Mob,attribute:Attr,id:&str)->bool {
     mob.extra.attributes.as_ref().is_some_and(|s|s.modifiers.iter().any(|m|m.attr==attribute && m.id==id))
@@ -48,7 +48,7 @@ pub fn initialize(mob:&mut Mob,catalog:&Arc<Catalog>,declarations:Vec<AttributeM
         resistance|=attribute=="minecraft:knockback_resistance";
     }
     if resistance {
-        super::refresh(mob,Attr::KnockbackResistance);
+        sunrise_client_lib::mobs::refresh(mob,Attr::KnockbackResistance);
         mob.gear_knockback_resistance=None;
     }
     Ok(())

@@ -1,7 +1,8 @@
 // Read-only access to the host's registered block-entity fluid tanks.
-use crate::{containers::BlockEntity, world::World};
+use crate::containers::BlockEntity;
+use crate::world::World;
 use sunrise_core::geometry::Direction;
-use sunrise_world::nbt::Tag;
+use sunrise_core::nbt::Tag;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FluidTank {

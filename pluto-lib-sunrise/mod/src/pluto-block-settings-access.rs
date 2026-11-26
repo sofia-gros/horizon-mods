@@ -1,6 +1,7 @@
 // Static mod-block properties before per-state gameplay projection. No numeric
 // IDs, world pointers, whole gameplay JSON copies or runtime state map.
-use std::{collections::{BTreeMap,BTreeSet},sync::OnceLock};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
 #[derive(Clone,Debug)]
 pub struct Declaration {pub block:String,pub piston:u8}
 pub type Provider=fn()->Result<Vec<Declaration>,String>;
@@ -55,7 +56,7 @@ impl Settings {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use sunrise_client_lib::*;
     fn declaration(block:&str,piston:u8)->Declaration {Declaration {block:block.into(),piston}}
     #[test]
     fn actual_settings_keep_reactions_owner_names_and_cache_identity_without_touching_fallback() {

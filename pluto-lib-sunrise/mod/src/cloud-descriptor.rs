@@ -1,6 +1,8 @@
 // Explicit, bounded requests for staged native status clouds. No actor is inferred.
-use sunrise_client::pluto_potions;
-use std::{collections::BTreeMap, fmt};
+use crate::pluto_potions;
+use std::collections::BTreeMap;
+
+use std::fmt;
 
 pub const MAX_EFFECTS: usize = 256;
 pub const MAX_LABEL_BYTES: usize = 4096;

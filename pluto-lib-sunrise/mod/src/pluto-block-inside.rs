@@ -1,14 +1,18 @@
 // Called directly at the pinned native entityInside seam, after ServerStuck's
 // early exit. Horizon retains the complete sweep, pass modes and vanilla effects.
-use super::*;
-use sunrise_world::level::pluto_block_access::{self as transport, StateInfo, InsideMotion};
+use sunrise_client::motion::MotionWorld;
+use sunrise_core::position::BlockPos;
+use sunrise_world::registry::BlockStateId;
+use sunrise_core::geometry::Vec3;
+use sunrise_client_lib::*;
+use crate::pluto_block_access::{self as transport, StateInfo, InsideMotion};
 
 pub(super) fn dispatch(world: &mut MotionWorld<'_, '_, '_>, state: BlockStateId, pos: BlockPos) {
     let Some(sink) = transport::landing_sink() else { return };
     let Some(definition) = world.assets.registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter().map(|(k,v)|(k.to_string(),v.to_string())).collect() };
     if !world.player.client_side {
-        if let Some(dimension) = crate::block_contact::current_level() {
+        if let Some(dimension) = sunrise_client::block_contact::current_level() {
             let bounds = world.player.bounds();
             (sink.entity_inside)(&transport::EntityInside {
                 dimension: dimension.to_string(), state: info.clone(), pos: [pos.x, pos.y, pos.z], entity: world.player.entity_id, kind: "minecraft:player".into(),
@@ -38,8 +42,8 @@ pub(super) fn dispatch(world: &mut MotionWorld<'_, '_, '_>, state: BlockStateId,
     if !player.client_side && request.sync_velocity { player.health.sync_velocity = true; }
     if !player.client_side {
         if let Some([volume, pitch]) = request.step_sound {
-            let _ = sunrise_world::level::pluto_contact_effects::queue_player(&mut world.scene.attachments, player.entity_id, player.health.tick_count,
-                sunrise_world::level::pluto_contact_effects::ContactSound { state, pos: request.pos, volume, pitch });
+            let _ = crate::pluto_contact_effects::queue_player(&mut world.scene.attachments, player.entity_id, player.health.tick_count,
+                crate::pluto_contact_effects::ContactSound { state, pos: request.pos, volume, pitch });
         }
     }
 }

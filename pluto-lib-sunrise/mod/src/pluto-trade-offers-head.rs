@@ -1,8 +1,8 @@
 // Adapted from pinned MIT Horizon game/trading.rs::offers_from_set.
 // License: pluto-lib/LICENSE.horizon. Map and RandomSequences ownership stays
 // identical, and the sequence is returned even on an explicit factory error.
-fn pluto_trade_offers(game: &mut Game<'_>, set: &str, variant: &str, origin: [f64; 3]) -> std::ops::ControlFlow<Vec<MerchantOffer>> {
-    use sunrise_client::merchant::pluto_trade_access as access;
+fn pluto_trade_offers(game: &mut Game<'_>, set: &str, variant: &str, origin: [f64; 3]) -> core::ops::ControlFlow<Vec<MerchantOffer>> {
+    use crate::pluto_trade_access as access;
     if !game.native_authoritative() { return std::ops::ControlFlow::Continue(()) }
     let factories=access::factories(set).expect("PlutoLib trade pool snapshot failed");
     if factories.is_empty() { return std::ops::ControlFlow::Continue(()) }

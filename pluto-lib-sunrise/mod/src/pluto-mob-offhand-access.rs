@@ -26,7 +26,7 @@
 use std::sync::Mutex;
 
 use super::Game;
-use sunrise_world::nbt::{Compound, JavaString, Tag};
+use sunrise_core::nbt::{Compound, JavaString, Tag};
 
 /// One queued off-hand edit: the item the edit names and the custom-data
 /// edits to apply, in order, to the stack in the mob's off hand. An
@@ -78,7 +78,7 @@ pub fn drain(game: &mut Game<'_>) {
 }
 
 fn apply(game: &mut Game<'_>, id: u32, edit: &OffhandEdit) {
-    use crate::mobs::finalize;
+    use sunrise_client_lib::mobs::finalize;
     let Some(mob) = game.mobs.iter_mut().find(|mob| mob.id == id) else { return };
     let Some(mut stack) = finalize::item_stack(mob, finalize::OFFHAND) else { return };
     if &*stack.item != edit.item || stack.count == 0 {
