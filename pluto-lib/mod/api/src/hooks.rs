@@ -4052,6 +4052,12 @@ impl BlockEntityCanvas for HostDraw<'_> {
 
     fn cube(&mut self, from: [f32; 3], to: [f32; 3], sprite: &str, tint: u32) -> bool {
         let face = CubeFace { sprite, uv: None };
+        // The canvas contract is blocks, but the host's draw_cube takes a model
+        // element's texels (16 per block; native_block_entity_draw.rs, API 71),
+        // so the box is scaled up here: forwarding blocks unchanged would bake
+        // it at 1/16 size in the block's corner, invisible inside the block.
+        let from = from.map(|c| c * 16.0);
+        let to = to.map(|c| c * 16.0);
         self.host.draw_cube(self.draw, from, to, [Some(face); 6], tint)
     }
 
