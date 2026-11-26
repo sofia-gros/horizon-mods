@@ -6,7 +6,7 @@
 use horizon_client::mod_api::{
     AddServerReloadListenersEvent, ServerReloadListenerApplyEvent, NativeReloadListener,
     AttackEntityEvent, ChunkLoadEvent, ClientStartEvent, ClientResourcesReloadedEvent, ServerDataLoadedEvent, LootTableLoadEvent, LootFunctionEvent, Text, TooltipEvent, ChunkUnloadEvent, DestroyBlockEvent, EntityJoinLevelEvent, EntityLeaveLevelEvent, Flow, Hooks,
-    Host, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
+    Host, FillBucketEvent, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
     HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenCharTypedPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, StatefulBlockEntityEvent, BlockEntityFromStateEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
@@ -45,7 +45,7 @@ use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
-use crate::pure::{events_interaction_v0, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
+use crate::pure::{events_interaction_v0, fluid_world_api_v1, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
 
 struct StructureQueries<'a>(&'a mut dyn horizon_client::entry::pluto_block::structures::PlanningWorld);
 impl crate::pure::worldgen_api_v1::StructureWorld for StructureQueries<'_> {
@@ -6028,6 +6028,39 @@ impl Hooks for PlutoHooks {
         // neighbours' containers and tanks, so a callback can trade fluid with the clicked block.
         let handle = HostHandle::new(host);
         cancel_if(scoped(host, || world_api_v1::with_ticking_dimension(&dimension, || neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || events_interaction_v0::use_item_on_block(&context)))))
+    }
+
+    fn fill_bucket(&self, host: &mut dyn Host, event: &mut FillBucketEvent<'_>) -> Flow {
+        // The game's own bucket use asks here before it picks fluid up or pours it out, for
+        // every player — the one hook on the bucket paths that never see a block use or the
+        // item use above: a guest's use-item packet runs the bucket code with no block hit
+        // at all, so nothing earlier is ever asked and the game would pour (or pick up)
+        // past the tank the player clicked. A bucket traded with that storage cancels here.
+        // The host names the acting player only for a guest's action; the world's own player is the only one logged in then.
+        let (uuid, name, dimension, creative, game_mode) = match host.acting_player() {
+            Some(player) => (player.uuid, player.name.clone(), player.dimension.clone(), player.game_mode == 1, player.game_mode),
+            None => match sole_player() {
+                Some((uuid, name)) => (uuid, name, host.dimension().to_string(), false, -1),
+                None => return Flow::Continue,
+            },
+        };
+        let context = events_interaction_v0::UseItemOnBlockContext {
+            held: Some(stack_data_of(host, event.stack)),
+            item: event.stack.item.to_string(),
+            count: event.stack.count,
+            pos: event.pos,
+            // The hook names no face; the trade reads the position, not the face.
+            face: [0, 1, 0],
+            dimension: dimension.clone(),
+            creative,
+            game_mode,
+            sneaking: host.sneaking(),
+            player: player_api::ServerPlayer { uuid, name },
+        };
+        // The same reach as the item use above: its dimension ticking, and the neighbours'
+        // containers and tanks, so the trade can reach the clicked block's storage.
+        let handle = HostHandle::new(host);
+        cancel_if(scoped(host, || world_api_v1::with_ticking_dimension(&dimension, || neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || fluid_world_api_v1::fill_bucket_trade(&context)))))
     }
 
     fn living_entity_use_item_finish(&self, host: &mut dyn Host, event: &mut LivingEntityUseItemFinishEvent<'_>) {
