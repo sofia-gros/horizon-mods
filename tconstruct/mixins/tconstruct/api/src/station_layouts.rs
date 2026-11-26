@@ -155,6 +155,16 @@ pub(crate) const PATTERN_SPRITES: &[&str] = &[
     "tconstruct:gui/tinker_pattern/tool_binding", "tconstruct:gui/tinker_pattern/tool_handle",
     "tconstruct:gui/tinker_pattern/tough_binding", "tconstruct:gui/tinker_pattern/tough_handle",
     "tconstruct:gui/tinker_pattern/wire",
+    // Appended after the shipped 49 (issue #1191 shipped their icons too): a pattern's code is
+    // its position plus one, so appending keeps every existing code — and every menu-data word
+    // already published with one — unchanged.
+    "tconstruct:gui/tinker_pattern/arrow", "tconstruct:gui/tinker_pattern/feather",
+    "tconstruct:gui/tinker_pattern/fire", "tconstruct:gui/tinker_pattern/item_frame",
+    "tconstruct:gui/tinker_pattern/map", "tconstruct:gui/tinker_pattern/pattern",
+    "tconstruct:gui/tinker_pattern/result", "tconstruct:gui/tinker_pattern/shield",
+    "tconstruct:gui/tinker_pattern/shield_plus", "tconstruct:gui/tinker_pattern/shuriken",
+    "tconstruct:gui/tinker_pattern/slimeball", "tconstruct:gui/tinker_pattern/tipped_arrow",
+    "tconstruct:gui/tinker_pattern/tool_belt",
 ];
 
 /// The menu-data code of a pattern's sprite: its table index plus one, 0 for a pattern with none.
@@ -327,7 +337,7 @@ mod tests {
 
     #[test]
     fn pattern_sprite_codes_round_trip_and_cover_the_shipped_icons() {
-        assert_eq!(PATTERN_SPRITES.len(), 49);
+        assert_eq!(PATTERN_SPRITES.len(), 62);
         for (index, sprite) in PATTERN_SPRITES.iter().enumerate() {
             assert_eq!(pattern_sprite(index as i32 + 1), Some(*sprite), "{sprite}");
         }
