@@ -363,10 +363,13 @@ pub(crate) fn draw_window(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data:
     let get = |index: usize| data.get(index).copied().unwrap_or(0);
     let [x, y] = origin;
     canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 220.0], [x, y, 176.0, 220.0]);
-    // the side panel behind the melting slots: its width follows the columns the slots fill, and
-    // an occupied slot draws the filled frame, an empty one the empty frame
+    // the side panel behind the melting slots: the generic sheet's border frame, connected
+    // against the window on its left edge (the original's HeatingStructureSideInventoryScreen),
+    // expanded by the border's width so its interior is the field the flat fill used to draw;
+    // its width follows the columns the slots fill, and an occupied slot draws the filled
+    // frame, an empty one the empty frame
     let slots = get(D_SLOTS).max(0) as usize;
-    canvas.fill([x + SIDE_X, y + SIDE_Y - 4.0, columns(slots) as f32 * 18.0 + 8.0, 18.0 * 7.0 + 8.0], 0xFF_C6_C6_C6);
+    crate::station_menu::draw_generic_border(canvas, [x + SIDE_X - 7.0, y + SIDE_Y - 11.0, columns(slots) as f32 * 18.0 + 22.0, 18.0 * 7.0 + 22.0], true);
     for index in 0..slots.min(VISIBLE) {
         if let Some([sx, sy]) = slot_position(index, slots) {
             let occupied = get(D_HEAT + 4 * index + 3) != 0;

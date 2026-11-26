@@ -18,6 +18,9 @@ const SLOT_COUNT: usize = RESULT_SLOT + 1;
 const NAME: &str = "crafting_station";
 /// The icons sheet, as the station windows name it (the tab strip's texture).
 const ICONS: &str = "tconstruct:gui/icons";
+/// The vanilla crafting window's sheet, which the original's screen draws as its background
+/// (`CraftingStationScreen` blits the vanilla crafting table texture).
+const VANILLA_CRAFTING: &str = "minecraft:gui/container/crafting_table";
 
 /// The window's own slots' places: the grid at (30, 17), the result at (124, 35) — the vanilla
 /// crafting window's geometry.
@@ -52,6 +55,10 @@ pub(crate) fn register() {
             Some(positions)
         })
         .on_draw(|draw| {
+            // The original's background is the vanilla crafting sheet itself. The draw is a
+            // plain blit over the host's panel (no own background): a sheet the host cannot
+            // resolve by this name draws nothing and the panel stays, exactly as before.
+            draw.canvas.sprite(VANILLA_CRAFTING, [0.0, 0.0, 176.0, 166.0], [draw.origin[0], draw.origin[1], 176.0, 166.0]);
             tabbed_tables::draw_side_panel(draw.canvas, draw.origin, draw.data, 0);
             tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, 0, ICONS);
         })

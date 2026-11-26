@@ -38,7 +38,7 @@ use crate::{break_speed_hook::with_held_tool, tool_inventory::{with_snapshot_ite
 use pluto_lib::{
     player_api::ServerPlayer,
     block_entity_api_v1::{BlockEntityType, BlockEntityTypeRegistry},
-    screen_handler_api_v1::{NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout},
+    screen_handler_api_v1::{NativeMenuClosed, NativeMenuEvents, NativeMenuInputClosed, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout},
     I18n, Identifier, ItemSlot, StackData,
 };
 use std::collections::HashMap;
@@ -47,6 +47,46 @@ use std::sync::{LazyLock, Mutex, Once};
 /// The item menu's extra-data magic: the versioned mark the client screen reads to tell an item
 /// menu from a block's (`PlayerOps::open_item_menu` documents the contract).
 const ITEM_MENU_MAGIC: &[u8] = b"PLUTO\x01";
+
+/// The window's sheet (`ToolContainerScreen`'s TEXTURE) and its segment geometry
+/// (`ToolContainerMenu`: UI_START 4 + TITLE_SIZE 13 puts the repeating part at 17; the player
+/// inventory segment starts at 17 + 6 rows and is 96 high).
+const TOOL_INVENTORY: &str = "tconstruct:gui/tool_inventory";
+const REPEAT_START: f32 = 17.0;
+const PLAYER_SEGMENT_Y: f32 = REPEAT_START + 6.0 * 18.0;
+const PLAYER_SEGMENT_H: f32 = 96.0;
+
+/// Draws the tool window's background from its sheet, as `ToolContainerScreen.renderBg` builds
+/// it: the top segment up to the slot rows (a single stretch while they fit in six rows, the
+/// six-row chunk repeated past that), the player inventory segment below them, and a slot-row
+/// strip under every row of tool slots (the segments themselves carry no slot frames). The
+/// layout is one pixel taller than the original's window, so the last segment stretches by
+/// that pixel to close the foot. The original's crafting grid, fluid tank bar, per-slot
+/// patterns, offhand shield and selected-slot highlight have no counterpart: this menu holds
+/// none of those slots, and the patterns and the worn slot never reach the client draw.
+fn draw_tool_background(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], rows: usize) {
+    let (x, y) = (origin[0], origin[1]);
+    let slot_background = REPEAT_START + rows as f32 * 18.0;
+    if slot_background < PLAYER_SEGMENT_Y {
+        canvas.sprite(TOOL_INVENTORY, [0.0, 0.0, 176.0, slot_background], [x, y, 176.0, slot_background]);
+    } else {
+        canvas.sprite(TOOL_INVENTORY, [0.0, 0.0, 176.0, PLAYER_SEGMENT_Y], [x, y, 176.0, PLAYER_SEGMENT_Y]);
+        let mut offset = PLAYER_SEGMENT_Y;
+        let mut remaining = slot_background - PLAYER_SEGMENT_Y;
+        while remaining > 6.0 * 18.0 {
+            canvas.sprite(TOOL_INVENTORY, [0.0, REPEAT_START, 176.0, 6.0 * 18.0], [x, y + offset, 176.0, 6.0 * 18.0]);
+            offset += 6.0 * 18.0;
+            remaining -= 6.0 * 18.0;
+        }
+        if remaining > 0.0 {
+            canvas.sprite(TOOL_INVENTORY, [0.0, REPEAT_START, 176.0, remaining], [x, y + offset, 176.0, remaining]);
+        }
+    }
+    canvas.sprite(TOOL_INVENTORY, [0.0, PLAYER_SEGMENT_Y, 176.0, PLAYER_SEGMENT_H], [x, y + slot_background, 176.0, PLAYER_SEGMENT_H + 1.0]);
+    for row in 0..rows {
+        canvas.sprite(TOOL_INVENTORY, [0.0, 238.0, 162.0, 18.0], [x + 7.0, y + REPEAT_START + row as f32 * 18.0, 162.0, 18.0]);
+    }
+}
 
 /// The tool container menu types, one per row count: a tool's inventory is shown in the smallest
 /// that holds it, padded with empty slots to the type's full count. Twelve rows are registered:
@@ -167,11 +207,12 @@ pub(crate) fn register() {
     for (row, kind) in MENU_KINDS.iter().enumerate() {
         let slots = (row + 1) * 9;
         let id = Identifier::parse(kind).expect("valid tool container id");
-        let mut layout = ScreenLayout::new(176.0, 18.0 + (row + 1) as f32 * 18.0 + 96.0).inventory_at(8.0, 18.0 + (row + 1) as f32 * 18.0 + 13.0);
+        let mut layout = ScreenLayout::new(176.0, 18.0 + (row + 1) as f32 * 18.0 + 96.0).inventory_at(8.0, 18.0 + (row + 1) as f32 * 18.0 + 13.0).with_own_background();
         for slot in 0..slots {
             layout = layout.slot(8.0 + (slot % 9) as f32 * 18.0, 18.0 + (slot / 9) as f32 * 18.0);
         }
-        ScreenHandlerRegistry::register(ScreenHandlerType::new(id.clone(), layout));
+        ScreenHandlerRegistry::register(ScreenHandlerType::new(id.clone(), layout)
+            .on_draw(move |draw| draw_tool_background(draw.canvas, draw.origin, row + 1)));
         BlockEntityTypeRegistry::register(BlockEntityType::new(id).item_slots(slots as u32).menu(kind));
     }
 }
@@ -211,6 +252,32 @@ mod tests {
         assert_eq!(menu_kind_for(55), Some("tconstruct:tool_container_7"), "past six rows opens too (issue #1159)");
         assert_eq!(menu_kind_for(108), Some("tconstruct:tool_container_12"));
         assert_eq!(menu_kind_for(109), None, "past twelve rows the menu cannot open");
+    }
+
+    #[derive(Default)]
+    struct Recorder { sprites: Vec<(String, [f32; 4], [f32; 4])> }
+    impl ScreenCanvas for Recorder {
+        fn fill(&mut self, _: [f32; 4], _: u32) {}
+        fn sprite(&mut self, name: &str, src: [f32; 4], dst: [f32; 4]) -> bool { self.sprites.push((name.to_owned(), src, dst)); true }
+        fn sprite_tinted(&mut self, _: &str, _: [f32; 4], _: [f32; 2], _: [f32; 4], _: u32) -> bool { true }
+        fn text(&mut self, _: &str, _: [f32; 2], _: u32, _: bool) {}
+        fn text_width(&self, _: &str) -> f32 { 0.0 }
+    }
+
+    #[test]
+    fn the_tool_background_stretches_one_segment_for_small_inventories_and_repeats_for_large_ones() {
+        let mut canvas = Recorder::default();
+        draw_tool_background(&mut canvas, [10.0, 20.0], 1);
+        assert_eq!(canvas.sprites, vec![
+            (TOOL_INVENTORY.to_owned(), [0.0, 0.0, 176.0, 35.0], [10.0, 20.0, 176.0, 35.0]),
+            (TOOL_INVENTORY.to_owned(), [0.0, 125.0, 176.0, 96.0], [10.0, 55.0, 176.0, 97.0]),
+            (TOOL_INVENTORY.to_owned(), [0.0, 238.0, 162.0, 18.0], [17.0, 37.0, 162.0, 18.0]),
+        ], "one row: a single top segment, the player segment, one slot strip");
+        let mut canvas = Recorder::default();
+        draw_tool_background(&mut canvas, [0.0, 0.0], 12);
+        assert_eq!(canvas.sprites.len(), 15, "twelve rows: top segment + one repeated chunk + player segment + twelve strips");
+        assert_eq!(canvas.sprites[1], (TOOL_INVENTORY.to_owned(), [0.0, 17.0, 176.0, 108.0], [0.0, 125.0, 176.0, 108.0]));
+        assert_eq!(canvas.sprites[2].2, [0.0, 233.0, 176.0, 97.0], "the player segment follows the repeated chunk");
     }
 
     #[test]

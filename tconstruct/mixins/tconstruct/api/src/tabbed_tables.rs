@@ -253,8 +253,10 @@ pub(crate) fn draw_tabs(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &
     }
 }
 
-/// Draws the side inventory's module: its panel, its title, and a frame per shown slot (the
-/// host's own frames sit under this draw, so the module draws its own).
+/// Draws the side inventory's module: the generic sheet's border frame around it, its title
+/// band, and a slot frame per cell — the original's own frame past the container's last slot
+/// (`SideInventoryScreen`: BorderWidget, textBackground, slot/slotEmpty; the host's own frames
+/// sit under this draw too, so the module draws its own, as the original does).
 pub(crate) fn draw_side_panel(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], data: &[i32], base: usize) {
     let count = data.get(base + DATA_SIDE_COUNT).copied().unwrap_or(0).max(0) as usize;
     if count == 0 { return; }
@@ -263,22 +265,15 @@ pub(crate) fn draw_side_panel(canvas: &mut dyn ScreenCanvas, origin: [f32; 2], d
     let left = origin[0] + side_left(columns);
     let width = columns as f32 * 18.0 + 14.0;
     let height = rows as f32 * 18.0 + 24.0;
-    canvas.fill([left, origin[1], width, height], 0xFFC6_C6C6);
-    canvas.fill([left, origin[1], width, 1.0], 0xFFFF_FFFF);
-    canvas.fill([left, origin[1], 1.0, height], 0xFFFF_FFFF);
-    canvas.fill([left, origin[1] + height - 1.0, width, 1.0], 0xFF55_5555);
-    canvas.fill([left + width - 1.0, origin[1], 1.0, height], 0xFF55_5555);
+    crate::station_menu::draw_generic_border(canvas, [left, origin[1], width, height], false);
+    canvas.sprite(crate::station_menu::GENERIC, [25.0, 7.0, 18.0, 10.0], [left + 7.0, origin[1] + 7.0, width - 14.0, 10.0]);
     if let Some(key) = title_key(data.get(base + DATA_SIDE_TITLE).copied().unwrap_or(0)) {
-        canvas.text(&I18n::translate(key), [left + 7.0, origin[1] + 5.0], 0xFF40_4040, false);
+        canvas.text(&I18n::translate(key), [left + 7.0, origin[1] + 6.0], 0xFF40_4040, false);
     }
-    for index in 0..count {
-        let Some(at) = side_slot_position(data, base, index) else { continue; };
-        let (x, y) = (origin[0] + at[0] - 1.0, origin[1] + at[1] - 1.0);
-        canvas.fill([x, y, 18.0, 18.0], 0xFF8B_8B8B);
-        canvas.fill([x, y, 18.0, 1.0], 0xFF37_3737);
-        canvas.fill([x, y, 1.0, 18.0], 0xFF37_3737);
-        canvas.fill([x, y + 17.0, 18.0, 1.0], 0xFFFF_FFFF);
-        canvas.fill([x + 17.0, y, 1.0, 18.0], 0xFFFF_FFFF);
+    for index in 0..rows * columns {
+        let (x, y) = (left + 7.0 + (index % columns) as f32 * 18.0, origin[1] + 17.0 + (index / columns) as f32 * 18.0);
+        let src = if index < count { [7.0, 7.0, 18.0, 18.0] } else { [25.0, 7.0, 18.0, 18.0] };
+        canvas.sprite(crate::station_menu::GENERIC, src, [x - 1.0, y - 1.0, 18.0, 18.0]);
     }
 }
 

@@ -468,10 +468,11 @@ fn draw_station(draw: &mut ScreenDraw<'_>, metal: bool, input_count: usize, icon
         if let Some(icon) = TAB_ICONS.get(full) { draw_icon(canvas, icon, [x + 1.0, y + 1.0], 16.0); }
     }
     // The side info panels, right of the window (the tinker panel at the original's offset, the
-    // modifier panel one panel-height below it).
+    // modifier panel one panel-height below it); their sheet variant follows the table's style.
     let ((caption, lines), (caption2, lines2)) = panel_content(draw.items, input_count + 1, active_full as usize);
-    draw_info_panel(canvas, [ox + 178.0, oy + 15.0], &caption, &lines);
-    draw_info_panel(canvas, [ox + 178.0, oy + 15.0 + PANEL_SIZE.1 + 4.0], &caption2, &lines2);
+    let variant = if metal { PANEL_METAL } else { PANEL_WOOD };
+    draw_info_panel_varied(canvas, [ox + 178.0, oy + 15.0], PANEL_SIZE, &caption, &lines, variant);
+    draw_info_panel_varied(canvas, [ox + 178.0, oy + 15.0 + PANEL_SIZE.1 + 4.0], PANEL_SIZE, &caption2, &lines2, variant);
     // The armor stand preview left of the window, wearing or holding what the station would
     // produce (the staged result, else the tool in the tool slot), as the original's screen
     // draws it (TinkerStationScreen: setupArmorStandPreview(-55, 195, 35); the box's foot
@@ -519,46 +520,118 @@ fn words(path: &str) -> String {
 /// The side info panel's size (the original's `InfoPanelScreen` is 126x83).
 pub(crate) const PANEL_SIZE: (f32, f32) = (126.0, 83.0);
 
-/// Draws one side info panel at a window point: a flat parchment panel with a border, the caption,
-/// then the lines wrapped to the panel's width. Shared with the modifier worktable's panels.
+/// The info panel sheet (`InfoPanelScreen`'s BACKGROUND_IMAGE): the plain panel at the top
+/// left, the wood panel right of it, the metal panel below the wood one.
+const PANEL: &str = "tconstruct:gui/panel";
+/// The panel variants' offsets in the sheet: `InfoPanelScreen.wood`/`metal` shift every
+/// element by a whole panel, wood (126, 0) and metal (126, 83); the plain panel sits at (0, 0).
+pub(crate) const PANEL_PLAIN: (f32, f32) = (0.0, 0.0);
+pub(crate) const PANEL_WOOD: (f32, f32) = (126.0, 0.0);
+pub(crate) const PANEL_METAL: (f32, f32) = (126.0, 83.0);
+
+/// Draws one side info panel at a window point: the original's panel texture as a nine-slice
+/// frame (4px corners and edges, the dark background scaled over the middle), the caption
+/// centred, then the lines wrapped to the panel's width, all in the original's near-white with
+/// a shadow (`InfoPanelScreen.renderBg`). Shared with the modifier worktable's panels. Two
+/// things the original has that this does not: the caption's underline (a text style the canvas
+/// text call cannot carry) and the overflow slider (the text wraps and clips at the panel's
+/// foot instead, as it did here before the texture arrived).
 pub(crate) fn draw_info_panel(canvas: &mut dyn ScreenCanvas, at: [f32; 2], caption: &str, lines: &[String]) {
-    draw_info_panel_sized(canvas, at, PANEL_SIZE, caption, lines);
+    draw_info_panel_varied(canvas, at, PANEL_SIZE, caption, lines, PANEL_PLAIN);
 }
 
 /// [`draw_info_panel`] at a caller-chosen size (the part builder's panel is the window's height).
 pub(crate) fn draw_info_panel_sized(canvas: &mut dyn ScreenCanvas, at: [f32; 2], size: (f32, f32), caption: &str, lines: &[String]) {
+    draw_info_panel_varied(canvas, at, size, caption, lines, PANEL_PLAIN);
+}
+
+/// [`draw_info_panel`] with the sheet variant chosen (the station's panels are wood or metal,
+/// by the table's input count, as `TinkerStationScreen` picks them).
+pub(crate) fn draw_info_panel_varied(canvas: &mut dyn ScreenCanvas, at: [f32; 2], size: (f32, f32), caption: &str, lines: &[String], variant: (f32, f32)) {
     let (w, h) = size;
-    canvas.fill([at[0], at[1], w, h], 0xFFC6_C6C6);
-    canvas.fill([at[0], at[1], w, 1.0], 0xFF55_5555);
-    canvas.fill([at[0], at[1] + h - 1.0, w, 1.0], 0xFF55_5555);
-    canvas.fill([at[0], at[1], 1.0, h], 0xFF55_5555);
-    canvas.fill([at[0] + w - 1.0, at[1], 1.0, h], 0xFF55_5555);
-    canvas.text(caption, [at[0] + 8.0, at[1] + 6.0], 0xFF3F_3F3F, false);
-    let mut y = at[1] + 20.0;
+    let (x, y) = (at[0], at[1]);
+    let (sx, sy) = variant;
+    // The frame: 4x4 corners, the edges and the background scaled between them. The right and
+    // bottom elements sit at the sheet's own offsets within a variant (resW + 4 = 122 across,
+    // resH + 4 = 79 down), wherever the drawn size puts their destinations.
+    canvas.sprite(PANEL, [sx, sy, 4.0, 4.0], [x, y, 4.0, 4.0]);
+    canvas.sprite(PANEL, [sx + 122.0, sy, 4.0, 4.0], [x + w - 4.0, y, 4.0, 4.0]);
+    canvas.sprite(PANEL, [sx, sy + 79.0, 4.0, 4.0], [x, y + h - 4.0, 4.0, 4.0]);
+    canvas.sprite(PANEL, [sx + 122.0, sy + 79.0, 4.0, 4.0], [x + w - 4.0, y + h - 4.0, 4.0, 4.0]);
+    canvas.sprite(PANEL, [sx + 4.0, sy, 118.0, 4.0], [x + 4.0, y, w - 8.0, 4.0]);
+    canvas.sprite(PANEL, [sx + 4.0, sy + 79.0, 118.0, 4.0], [x + 4.0, y + h - 4.0, w - 8.0, 4.0]);
+    canvas.sprite(PANEL, [sx, sy + 4.0, 4.0, 75.0], [x, y + 4.0, 4.0, h - 8.0]);
+    canvas.sprite(PANEL, [sx + 122.0, sy + 4.0, 4.0, 75.0], [x + w - 4.0, y + 4.0, 4.0, h - 8.0]);
+    canvas.sprite(PANEL, [sx + 4.0, sy + 4.0, 118.0, 75.0], [x + 4.0, y + 4.0, w - 8.0, h - 8.0]);
+    // The caption, centred; the lines below it (the first line sits at the caption's place
+    // when there is no caption).
+    let mut line_y = y + 5.0;
+    if !caption.is_empty() {
+        let caption_x = x + ((w - canvas.text_width(caption)) / 2.0).max(5.0);
+        canvas.text(caption, [caption_x, line_y], 0xFFF0_F0F0, true);
+        line_y += 12.0;
+    }
+    let wrap = w - 6.0;
     for line in lines {
         let mut rest = line.as_str();
         loop {
-            if y + 10.0 > at[1] + h - 3.0 { return; }
-            if canvas.text_width(rest) <= 110.0 {
-                canvas.text(rest, [at[0] + 8.0, y], 0xFF3F_3F3F, false);
-                y += 10.0;
+            if line_y + 10.0 > y + h - 5.0 { return; }
+            if canvas.text_width(rest) <= wrap {
+                canvas.text(rest, [x + 5.0, line_y], 0xFFF0_F0F0, true);
+                line_y += 10.0;
                 break;
             }
             // Wrap at the last space that fits; a word longer than the panel is cut by characters.
             let mut cut = 0;
             for (index, _) in rest.char_indices() {
-                if canvas.text_width(&rest[..index]) > 110.0 { break; }
+                if canvas.text_width(&rest[..index]) > wrap { break; }
                 if rest.as_bytes()[index] == b' ' { cut = index; }
             }
             if cut == 0 {
-                cut = rest.char_indices().take_while(|(index, _)| canvas.text_width(&rest[..*index]) <= 110.0).last().map_or(1, |(index, _)| index);
+                cut = rest.char_indices().take_while(|(index, _)| canvas.text_width(&rest[..*index]) <= wrap).last().map_or(1, |(index, _)| index);
             }
-            canvas.text(rest[..cut].trim_end(), [at[0] + 8.0, y], 0xFF3F_3F3F, false);
-            y += 10.0;
+            canvas.text(rest[..cut].trim_end(), [x + 5.0, line_y], 0xFFF0_F0F0, true);
+            line_y += 10.0;
             rest = rest[cut..].trim_start();
             if rest.is_empty() { break; }
         }
     }
+}
+
+/// The shared module sheet (`GenericScreen`'s LOCATION, 64x64): the border corners and edges,
+/// the slot frames and the slider pieces every module screen frames itself with.
+pub(crate) const GENERIC: &str = "tconstruct:gui/generic";
+
+/// Draws a module's border frame from the generic sheet over `rect` (Mantle's `BorderWidget`
+/// with `GenericScreen`'s elements: 7x7 corners, the edges scaled between them). The interior
+/// is left to the caller (a module's slot strips and title band cover its own). When
+/// `overlap_left` holds, the left edge is the connected form a right-side module shows against
+/// its parent window (`SideInventoryScreen`'s overlap pieces: the top corner is the plain
+/// 7-wide top edge, the edge the overlap strip, the bottom corner the overlap corner).
+pub(crate) fn draw_generic_border(canvas: &mut dyn ScreenCanvas, rect: [f32; 4], overlap_left: bool) {
+    let [x, y, w, h] = rect;
+    // Corners: top left (or its overlap form), top right, bottom left (or overlap), bottom right.
+    if overlap_left {
+        canvas.sprite(GENERIC, [14.0, 0.0, 7.0, 7.0], [x, y, 7.0, 7.0]);
+        canvas.sprite(GENERIC, [7.0, 47.0, 7.0, 7.0], [x, y + h - 7.0, 7.0, 7.0]);
+    } else {
+        canvas.sprite(GENERIC, [0.0, 0.0, 7.0, 7.0], [x, y, 7.0, 7.0]);
+        canvas.sprite(GENERIC, [0.0, 57.0, 7.0, 7.0], [x, y + h - 7.0, 7.0, 7.0]);
+    }
+    canvas.sprite(GENERIC, [57.0, 0.0, 7.0, 7.0], [x + w - 7.0, y, 7.0, 7.0]);
+    canvas.sprite(GENERIC, [57.0, 57.0, 7.0, 7.0], [x + w - 7.0, y + h - 7.0, 7.0, 7.0]);
+    // Edges, scaled between the corners; the left edge is the overlap strip when connected.
+    canvas.sprite(GENERIC, [7.0, 0.0, 50.0, 7.0], [x + 7.0, y, w - 14.0, 7.0]);
+    canvas.sprite(GENERIC, [7.0, 57.0, 50.0, 7.0], [x + 7.0, y + h - 7.0, w - 14.0, 7.0]);
+    if overlap_left {
+        canvas.sprite(GENERIC, [21.0, 45.0, 7.0, 14.0], [x, y + 7.0, 7.0, h - 14.0]);
+    } else {
+        canvas.sprite(GENERIC, [0.0, 7.0, 7.0, 50.0], [x, y + 7.0, 7.0, h - 14.0]);
+    }
+    canvas.sprite(GENERIC, [57.0, 7.0, 7.0, 50.0], [x + w - 7.0, y + 7.0, 7.0, h - 14.0]);
+    // The interior: the sheet's own plain field (198 grey, the colour the flat fill used
+    // before), sampled clear of the drawn elements and scaled over the middle.
+    canvas.sprite(GENERIC, [44.0, 40.0, 12.0, 12.0], [x + 7.0, y + 7.0, w - 14.0, h - 14.0]);
 }
 
 /// What the station's two side panels show, read from the window's own synced stacks: a staged or
