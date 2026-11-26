@@ -13,13 +13,13 @@ use pluto_lib::{SkyFade, SkyTextureLayer, SkyTextureRegistry, fade_ticks};
 
 /// The star sphere: magnitudes 4.0–7.0 and the Milky Way with its dark
 /// lanes, painted at the dynamic layer's phase (`stars::MERIDIAN_RA_HOURS`).
-const STAR_SPHERE: &[u8] = include_bytes!("../data/sky1.png");
+const STAR_SPHERE: &[u8] = include_bytes!("data/sky1.png");
 /// The airglow: the upper atmosphere's own glow, a green band standing
 /// some ten degrees over the horizon all night.
-const AIRGLOW: &[u8] = include_bytes!("../data/sky2.png");
+const AIRGLOW: &[u8] = include_bytes!("data/sky2.png");
 /// The zodiacal light: sunlight on interplanetary dust, a cone standing on
 /// the sun along the ecliptic, with its faint band and the gegenschein.
-const ZODIACAL: &[u8] = include_bytes!("../data/sky3.png");
+const ZODIACAL: &[u8] = include_bytes!("data/sky3.png");
 
 /// The night fade the star sphere and the airglow share: in after sunset,
 /// out before sunrise (the pack files' `startFadeIn` 18:20, `endFadeIn`
