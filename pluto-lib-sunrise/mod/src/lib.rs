@@ -117,6 +117,15 @@ impl mod_api::Hooks for Mod {
         hooks::living_jump(event);
     }
 
+    fn living_jump_power(&self, context: &dyn mod_api::LoopContext, event: &mut mod_api::LivingJumpPowerEvent<'_>) {
+        let _ = context;
+        hooks::living_jump_power(event);
+    }
+
+    fn get_equipment_drop_chance(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::GetEquipmentDropChanceEvent<'_>) {
+        hooks::get_equipment_drop_chance(host, event);
+    }
+
     fn living_death(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::LivingDeathEvent<'_>) -> mod_api::Flow {
         hooks::living_death(host, event)
     }

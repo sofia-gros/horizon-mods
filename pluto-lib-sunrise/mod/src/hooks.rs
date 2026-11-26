@@ -13,6 +13,7 @@ use mod_api::{
 
 use crate::pure::entity_events_v1::{self, LivingDamage};
 use crate::pure::living_fall_v1::{self, LivingFall};
+use crate::pure::living_entity_behavior::{EquipmentDropChanceContext, JumpPowerContext, LivingEntityBehaviors};
 use crate::pure::recipe_api_v1;
 use crate::pure::player_api::{self, PlayerOps};
 use mod_api::ItemStack;
@@ -1058,6 +1059,68 @@ pub(crate) fn living_jump(event: &mut mod_api::LivingJumpEvent<'_>) {
     entity_events_v1::living_jump(&entity_events_v1::LivingJump { entity: event.entity as i32, kind: event.kind.to_owned() });
 }
 
+pub(crate) fn living_jump_power(event: &mut mod_api::LivingJumpPowerEvent<'_>) {
+    let Ok(kind) = Identifier::parse(event.kind) else { return };
+    let context = JumpPowerContext {
+        entity: event.entity,
+        entity_type: kind,
+        // The hook carries no host, so a cube's size and the block factor
+        // the inherited computation already folded into `power` cannot be
+        // separated back out; a class answer replaces the whole power, as
+        // the woven reach's did.
+        slime_size: None,
+        block_jump_factor: 1.0,
+    };
+    if let Some(power) = LivingEntityBehaviors::jump_power(&context) {
+        event.power = power;
+    }
+}
+
+/// The killing blow's Looting level for a drop-chance answer: the causing
+/// entity's main hand, read live through the entity-by-id reader.
+fn killer_looting(host: &dyn mod_api::Host, causing: i32) -> i32 {
+    if causing <= 0 {
+        return 0;
+    }
+    let Some(entity) = host.entity(causing as u32) else { return 0 };
+    let Some(living) = host.living(entity) else { return 0 };
+    living
+        .with_hand_item(host, mod_api::Hand::Main, |view| view.project())
+        .flatten()
+        .map(|stack| read_stack(&stack).enchantment_level("minecraft:looting"))
+        .unwrap_or(0)
+}
+
+pub(crate) fn get_equipment_drop_chance(host: &mut dyn mod_api::ServerHost, event: &mut mod_api::GetEquipmentDropChanceEvent<'_>) {
+    let Ok(kind) = Identifier::parse(event.kind) else { return };
+    let slot = match event.slot {
+        mod_api::EquipmentSlot::MainHand => "mainhand",
+        mod_api::EquipmentSlot::OffHand => "offhand",
+        mod_api::EquipmentSlot::Head => "head",
+        mod_api::EquipmentSlot::Chest => "chest",
+        mod_api::EquipmentSlot::Legs => "legs",
+        mod_api::EquipmentSlot::Feet => "feet",
+        mod_api::EquipmentSlot::Body => "body",
+        mod_api::EquipmentSlot::Saddle => "saddle",
+    };
+    let context = EquipmentDropChanceContext {
+        entity_type: kind,
+        slot: slot.to_owned(),
+        // A cube's size rides its entity data, which the death roll does not
+        // lend; the woven module read it off the mob itself.
+        slime_size: None,
+        chance: event.original_chance,
+        looting: killer_looting(host, event.source.causing),
+    };
+    if let Some(answer) = LivingEntityBehaviors::equipment_drop_chance(&context) {
+        // The class answer replaces the recorded chance; the enchantment
+        // share the event's `chance` already carries over the recorded one
+        // (the attacker's Looting included) rides on top, which is the fold
+        // the woven death-loot module applied by hand.
+        event.chance = answer + (event.chance - event.original_chance);
+    }
+}
+
 pub(crate) fn living_death(host: &mut dyn mod_api::ServerHost, event: &mut mod_api::LivingDeathEvent<'_>) -> mod_api::Flow {
     let damage = entity_events_v1::LivingDamage {
         entity: event.entity as i32,
@@ -1087,21 +1150,146 @@ pub(crate) fn living_damage_pre(event: &mut mod_api::LivingDamagePreEvent<'_>) {
     let _ = event.container.set_new_damage(amount);
 }
 
-pub(crate) fn living_incoming_damage(host: &dyn mod_api::HitHost, event: &mut mod_api::LivingIncomingDamageEvent<'_>) -> mod_api::Flow {
-    // The ender dragon's body immunity reads the victim's live health (and,
-    // in the woven bridge, its attack damage) at the incoming stage: the
-    // note is taken here, where the hit context names the victim, and the
-    // pure damage-pre stage of this same hit consumes it (the
-    // `pluto-damage-dragon` replacement). The victim's attack damage has no
-    // reader in the hit context, so the fact carries health only.
-    if event.kind == "minecraft:ender_dragon" {
-        if let Some(victim) = host.victim() {
-            entity_events_v1::note_victim_facts(
-                victim.entity().id() as i32,
-                entity_events_v1::VictimFacts { health: victim.health().unwrap_or(0.0), attack_damage: None },
-            );
+/// The state of a hit's causing entity, as the hit context lends it: the
+/// view names its kind, effects and health. The positional half of the
+/// pure state (on ground, in water, burning) has no reader in the hit
+/// context — the woven report read the mob itself, in the game — and
+/// stays at its defaults.
+fn causing_state(view: &mod_api::LivingView<'_>) -> entity_events_v1::EntityState {
+    let effects: Vec<(String, i32, i32)> = view
+        .effects()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|effect| (mod_api::__private::effect_key_id(effect.id).unwrap_or_default().to_owned(), effect.amplifier, effect.duration))
+        .collect();
+    entity_events_v1::EntityState {
+        kind: view.kind().and_then(mod_api::__private::entity_type_key_id).map(|name| name.to_string()).unwrap_or_default(),
+        effects: effects.iter().map(|(id, _, _)| id.clone()).collect(),
+        effect_levels: effects.iter().map(|(id, amplifier, _)| (id.clone(), *amplifier)).collect(),
+        health: view.health(),
+        max_health: view.max_health(),
+        ..Default::default()
+    }
+}
+
+/// Names the entity behind a hit's causing entity for the damage events
+/// of that hit: its type, the stacks in its hands, its attack attribute
+/// and its state, read from the causing entity the hit context lends.
+/// The woven bridge named them as the game opened the attack (its
+/// knockback scope, which no longer exists); the incoming stage is where
+/// this bridge first sees the hit whole, and the damage stages that read
+/// the facts follow in the same call. Two woven reads have no hit-context
+/// counterpart: the chest piece (the view lends hands, not equipment) and
+/// the positional state above. A player's note carries its hands only,
+/// as the pure contract shapes it.
+fn note_attacker_facts(host: &dyn mod_api::HitHost, causing: i32) {
+    if causing <= 0 {
+        return;
+    }
+    let Some(view) = host.causing() else { return };
+    let state = causing_state(&view);
+    let kind_name = state.kind.clone();
+    let main_hand = view.with_hand_item(mod_api::Hand::Main, |stack| stack.project()).flatten().map(|stack| read_stack(&stack));
+    let off_hand = view.with_hand_item(mod_api::Hand::Off, |stack| stack.project()).flatten().map(|stack| read_stack(&stack));
+    let attack_damage = if kind_name == "minecraft:player" {
+        0.0
+    } else {
+        view.attribute_value("minecraft:attack_damage").map(|value| value as f32).unwrap_or(0.0)
+    };
+    entity_events_v1::note_attacker_facts(
+        causing,
+        entity_events_v1::AttackerFacts { kind: kind_name, main_hand, off_hand, chest: None, attack_damage, state },
+    );
+}
+
+/// Names the hit's victim and its causing entity before the hit's own
+/// stages read them. Both are read from the views the hit context lends:
+/// the victim's health, and a mob's attack attribute (the ender dragon's
+/// is not named, as the pure contract shapes it).
+fn note_damage_facts(host: &dyn mod_api::HitHost, event: &mod_api::LivingIncomingDamageEvent<'_>) {
+    if let Some(victim) = host.victim() {
+        let attack_damage = if event.kind == "minecraft:ender_dragon" {
+            None
+        } else {
+            victim.attribute_value("minecraft:attack_damage").map(|value| value as f32)
+        };
+        entity_events_v1::note_victim_facts(
+            event.entity,
+            entity_events_v1::VictimFacts { health: victim.health().unwrap_or(0.0), attack_damage },
+        );
+    }
+    note_attacker_facts(host, event.source.causing);
+}
+
+/// Notes a hit on a player for the wearer report the incoming stage
+/// resolves: the attacking mob as the hit context lends it, and the armor
+/// the wearer was last reported wearing. The woven bridge's report was
+/// gated on the mob standing within seven blocks of the player and fired
+/// for hits that were never the player's; a report noted from the hit
+/// itself names only hits that truly land on the wearer. The view names
+/// no position, so the report carries none.
+fn note_wearer_hit(host: &dyn mod_api::HitHost, event: &mod_api::LivingIncomingDamageEvent<'_>, damage: &LivingDamage) {
+    if damage.attacker <= 0 {
+        return;
+    }
+    let Some(view) = host.causing() else { return };
+    let state = causing_state(&view);
+    let hit = entity_events_v1::WearerHit {
+        attacker: damage.attacker,
+        kind: state.kind.clone(),
+        damage_type: String::new(),
+        amount: 0.0,
+        direct: -1,
+        attacker_state: state,
+        attacker_position: None,
+        armor: entity_events_v1::armor_of_the_only_wearer(),
+        effects: std::cell::RefCell::new(Vec::new()),
+        self_effects: std::cell::RefCell::new(Vec::new()),
+        counter_damage: std::cell::RefCell::new(Vec::new()),
+        actions: std::cell::RefCell::new(Vec::new()),
+    };
+    entity_events_v1::note_wearer_hit(Some(event.entity), hit);
+}
+
+/// Effect grants a hit resolution computed for an entity, waiting for a
+/// tick with a writable host: the hit context lends reads only, so the
+/// grants cannot land where they are computed.
+static PENDING_EFFECT_GRANTS: std::sync::Mutex<Vec<(i32, entity_events_v1::EffectGrant)>> = std::sync::Mutex::new(Vec::new());
+
+fn queue_effect_grants(entity: i32, grants: Vec<entity_events_v1::EffectGrant>) {
+    if entity <= 0 || grants.is_empty() {
+        return;
+    }
+    if let Ok(mut queue) = PENDING_EFFECT_GRANTS.lock() {
+        queue.extend(grants.into_iter().map(|grant| (entity, grant)));
+    }
+}
+
+/// Applies the queued effect grants, at an entity tick: they land through
+/// the server host at the first tick that runs after the hit, as the
+/// woven queue drain landed them at the next player tick. A target that
+/// left the world drops its grants, as the woven drain dropped them.
+fn drain_effect_grants(host: &mut dyn mod_api::ServerHost) {
+    let pending = match PENDING_EFFECT_GRANTS.lock() {
+        Ok(mut queue) => std::mem::take(&mut *queue),
+        Err(_) => return,
+    };
+    for (entity, grant) in pending {
+        let Some(target) = u32::try_from(entity).ok().and_then(|id| host.entity(id)) else { continue };
+        let Some(living) = host.living(target) else { continue };
+        if let Some(key) = mod_api::__private::effect_key(&grant.effect) {
+            living.add_effect(host, &mod_api::ActiveEffect::new(key, grant.duration, grant.amplifier, false, true, true));
         }
     }
+}
+
+pub(crate) fn living_incoming_damage(host: &dyn mod_api::HitHost, event: &mut mod_api::LivingIncomingDamageEvent<'_>) -> mod_api::Flow {
+    // The parties of the hit, named before the hit's own hooks run, so the
+    // damage events of the hit can read them and clamp by them (the woven
+    // bridge named them from reaches whose targets are gone: a head on the
+    // game's hurt entry for the victim, its knockback scope for the
+    // attacker and the wearer report).
+    note_damage_facts(host, event);
     let damage = entity_events_v1::LivingDamage {
         entity: event.entity,
         kind: event.kind.to_owned(),
@@ -1110,6 +1298,9 @@ pub(crate) fn living_incoming_damage(host: &dyn mod_api::HitHost, event: &mut mo
         direct: event.source.direct,
         amount: event.container.new_damage(),
     };
+    if event.kind == "minecraft:player" {
+        note_wearer_hit(host, event, &damage);
+    }
     if !entity_events_v1::allow_damage(&damage) {
         event.cancelled = true;
         return mod_api::Flow::Cancel;
@@ -1118,12 +1309,15 @@ pub(crate) fn living_incoming_damage(host: &dyn mod_api::HitHost, event: &mut mo
     // protection take their share.
     let amount = entity_events_v1::modify_hurt(&damage);
     let _ = event.container.set_new_damage(amount);
-    // The wearer-hit report resolves here, as in the Horizon bridge; the effect
-    // grants it computes were pushed into the game-side mob-effect module from
-    // the old bridge and are the module side's to pull under the inversion
-    // (L3/L6) — the pure resolution itself still runs, so no report is left
-    // pending.
-    let _grants = entity_events_v1::resolve_wearer_hit(&damage);
+    // The wearer-hit report resolves here, as in the Horizon bridge. The
+    // effect grants it computes for the attacker are queued for the next
+    // entity tick's drain (the hit context lends no entity writes; the
+    // woven drain was a game-side module queue whose flush reaches are
+    // gone, and the queue now lives in this bridge). The report's own
+    // tick-side queues (the wearer's effects, counter damage and actions)
+    // still wait for a flush point; see the L5a section of SUNRISE.md.
+    let grants = entity_events_v1::resolve_wearer_hit(&damage);
+    queue_effect_grants(damage.attacker, grants);
     mod_api::Flow::Continue
 }
 
@@ -2021,6 +2215,7 @@ pub(crate) fn entity_tick_pre(host: mod_api::HostSide, event: &mut mod_api::Enti
 
 pub(crate) fn entity_tick_post(host: mod_api::HostSide, event: &mut mod_api::EntityTickPostEvent<'_>) {
     let mod_api::HostSide::Server(host) = host else { return };
+    drain_effect_grants(host);
     fancy_stand_tick(host, event.entity, event.kind, true);
     if !entity_events_v1::entity_tick_heard() {
         return;

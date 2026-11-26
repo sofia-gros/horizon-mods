@@ -487,14 +487,6 @@ source = "src/pluto-living-entity-access.rs"
 visibility = "pub"
 
 [[native.mixin]]
-id = "pluto-living-entity-jump"
-target = "sunrise_client_lib::mobs::living::Mob::jump_power"
-kind = "HEAD"
-cancellable = true
-helper = "src/pluto-living-entity-jump.rs"
-bindings = [{ name = "mob", ty = "&Mob", value = "self" }, { name = "world", ty = "&MobWorld<'_>", value = "w" }]
-
-[[native.mixin]]
 id = "pluto-living-entity-attack"
 target = "sunrise_client_lib::mobs::cube::attack_damage"
 kind = "HEAD"
@@ -1777,6 +1769,13 @@ source = "src/pluto-contact-access.rs"
 visibility = "pub"
 
 [[native.mixin]]
+id = "pluto-player-visibility"
+target = "sunrise_client_lib::mobs::PlayerView::visibility_percent"
+kind = "RETURN"
+helper = "src/pluto-player-visibility.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&PlayerView", value = "self" }, { name = "targeting", ty = "Option<&str>", value = "targeting" }]
+
+[[native.mixin]]
 id = "pluto-mob-effect-apply"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_living_incoming_damage_v2"
 kind = "RETURN"
@@ -1791,15 +1790,6 @@ name = "pluto_player_hurt_access"
 source = "src/pluto-player-hurt-access.rs"
 visibility = "pub"
 
-[[native.mixin]]
-id = "pluto-player-hurt"
-target = "sunrise_client::game::native_hooks::Game<'_>::knockback_scope"
-kind = "HEAD"
-helper = "src/pluto-player-hurt.rs"
-bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "attacker", ty = "i32", value = "attacker" }]
-
-# The parties of a hit, named for the damage events: what the game knows of the mob behind a synchronous
-# attack and of the entity a hit lands on, and the drops a damage callback asks for at an entity.
 [[native.module]]
 id = "pluto-damage-facts-access"
 file = "crates/sunrise-client/src/client_lib.rs"
@@ -1808,15 +1798,6 @@ source = "src/pluto-damage-facts-access.rs"
 visibility = "pub"
 
 # A hit is opened on a living entity: the mods are told the health a mob victim has before the hit's hooks run.
-[[native.mixin]]
-id = "pluto-damage-victim"
-target = "sunrise_client::game::native_hooks::hurt_server"
-kind = "HEAD"
-helper = "src/pluto-damage-victim.rs"
-bindings = [{ name = "hurting", ty = "&sunrise_client::health::Hurting<'_>", value = "&hurting" }]
-
-# The ender dragon's damage is worked out: the mods are told the health it has (it is no mob, so the mob
-# victim reach cannot name it).
 [[native.module]]
 id = "pluto-sky-access"
 file = "crates/sunrise-client/src/client_lib.rs"
@@ -1841,14 +1822,6 @@ name = "pluto_player_visibility_access"
 source = "src/pluto-player-visibility-access.rs"
 visibility = "pub"
 
-[[native.mixin]]
-id = "pluto-player-visibility"
-target = "sunrise_client_lib::mobs::PlayerView::visibility_percent"
-kind = "RETURN"
-helper = "src/pluto-player-visibility.rs"
-bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&PlayerView", value = "self" }, { name = "targeting", ty = "Option<&str>", value = "targeting" }]
-
-# Every server tick the player's attributes are refreshed: the status effects queued for mobs (a counter that hits an attacker) land then.
 [[native.mixin]]
 id = "pluto-mob-effect-apply-tick"
 target = "sunrise_client::game::lan_attributes::Game<'_>::update_player_attributes"
@@ -1962,7 +1935,7 @@ bindings = [{ name = "value", ty = "Result<bool>", value = "$value" }, { name = 
 
 [[native.mixin]]
 id = "pluto-player-animate-tick"
-target = "sunrise_client::game::native_hooks::Game<'_>::native_player_tick"
+target = "sunrise_client::game::native_hooks::base::Game<'_>::native_player_tick_post"
 kind = "HEAD"
 helper = "src/pluto-player-tick-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
@@ -2458,7 +2431,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "pluto-projectile-flight-game"
-file = "crates/sunrise-client/src/game/creatures.rs"
+file = "crates/sunrise-client/src/game/mobs/creatures/mod.rs"
 name = "pluto_projectile_flight_game"
 source = "src/pluto-projectile-flight-game.rs"
 visibility = "pub(crate)"
@@ -2531,7 +2504,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "pluto-projectile-impact-game"
-file = "crates/sunrise-client/src/game/creatures.rs"
+file = "crates/sunrise-client/src/game/mobs/creatures/mod.rs"
 name = "pluto_projectile_impact_game"
 source = "src/pluto-projectile-impact-game.rs"
 visibility = "pub(crate)"
@@ -2587,7 +2560,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "pluto-throw-sound-game"
-file = "crates/sunrise-client/src/game/creatures.rs"
+file = "crates/sunrise-client/src/game/mobs/creatures/mod.rs"
 name = "pluto_throw_sound"
 source = "src/pluto-throw-sound-game.rs"
 visibility = "pub(crate)"
