@@ -743,6 +743,109 @@ Reclassified (a) -> (c), rows stay in the manifest:
   exactly the L2 baseline set (129) minus the union of both lanes'
   removed rows (17 + 19, disjoint), zero new errors; lints 5x0.
 
+## L5c worldgen / structures / world cluster (2026-11-26, branch `sunrise/l5c-world`)
+
+Base `4ae287fab` (L3 merge). Cluster = the 12 (c) rows for worldgen,
+structures and the world, plus the G9 in-tree verification. Per-row
+dispositions (pinned Sunrise source is the authority throughout; the
+ffb8601b full-source clone stands in for game internals, whose only
+6a02076f delta is the mod_api surface per L1):
+
+- **Resolved by re-anchor (2 rows).** `pluto-map-tick` and
+  `pluto-block-entity-client-level` failed only on their module anchor
+  files, which moved when `game.rs` reorganised: `mod maps` now lives
+  at `game/blocks/maps/mod.rs` (`tick_maps` :1363,
+  `tick_lodestone_compasses` :1335 — the sibling mixins targeting
+  `game::maps::…` already passed) and `mod remote` at
+  `game/network/remote/mod.rs`. Anchors updated; both rows pass.
+- **Resolved by retarget (1 row).** `pluto-block-facts-head` targeted
+  the removed shim `native_hooks::Game::native_break_speed`; the
+  break-speed shim now lives at
+  `native_hooks::player_break_speed::Game<'_>::native_player_break_speed`
+  (the engine target of `hook:player_break_speed` in surface.json).
+  Retargeted; the row passes, so the dig report's level build range is
+  again published at the head of every native break-speed call.
+- **Retarget measured, still refused (1 row).**
+  `pluto-block-facts-publish` now names the true target
+  `sunrise_client::game::world_rest::load_world_rest` (world_rest.rs:4;
+  its `resources: &Resources` parameter matches the binding, and its
+  body itself starts from `resources.facts()`), but a HEAD there is
+  refused `E_MIXIN_NOT_REPLACEABLE` — the body names
+  `super::remote::builtin_registries`, crossing a non-public `use` in
+  `game::remote` (the same reason the SDK index records). The only
+  callers (runtime/resource_load.rs:983,1016) build `Resources` as a
+  local `Arc` mid-function, so no caller-side binding exists either.
+  Drafted upstream: a publication point for the block-facts table
+  (issues/05 in the L5c record).
+- **Structures (5 rows) — drafted upstream.** `pluto-structure-*`
+  (generation-start, natural-start, sources, start, saved-piece): every
+  target is `pub(super)` or private inside `sunrise_world`
+  (`StructureState` itself is `pub(super)`, generator_structures.rs:35;
+  `new` :308, `build_starts` ~:601, `structure_start` ~:670,
+  `saved_pool_piece` ~:571; `Decoration::decorate` pub(super),
+  generator_decoration.rs:361 — with nine parameters including
+  `dependencies`, where the manifest lists eight), every caller is
+  inside `sunrise_world`, the worldgen `#[replaceable]` list holds only
+  the two aquifer functions, and the mod_api worldgen surface registers
+  features, not structure starts. One draft: "Worldgen structure-start
+  hooks" (issues/01).
+- **`pluto-retexture-layer` — drafted upstream** (the L4 ask):
+  `#[replaceable]` on `Mesher::face` or a per-face layer seam.
+  `Mesher::mesh` is replaceable (mesher.rs:2373-4) but `face` is a
+  private fn (:2897) and the `own: TileLayer` decision is its local
+  (:3004) (issues/02).
+- **`pluto-block-entity-revision` — drafted upstream.** The kept-geometry
+  key is the game entity's `revision().changes`; the mod API's
+  `ModBlockEntity::revision` handle counts handle-side changes only and
+  no surface requests a re-submit for client-only data commits (the
+  B3-1 primitive). Ask: an invalidation surface, or `revision`
+  replaceable (issues/03). L7 note: the helper reads the client-state
+  store through the quarantined accessor; L6's module-owned static
+  store supersedes that accessor at integration, and the fold into
+  `changes` is the missing link either way.
+- **`pluto-map-face-flush` — drafted upstream, and §A2 narrowed.** The
+  HUD post hooks now exist (`gui_layer_post`, `render_gui_post`), so
+  the old "HUD render callback" ask is half satisfied; what remains is
+  that no drawing surface can draw a map's face: `DrawContext` /
+  `GuiCanvas` have no map-face operation, the pure
+  `ScreenCanvas::map` (screen_handler_api_v1.rs:60-65) stays its no-op
+  default, and the game-side queue + `Game::draw_queued_map_faces`
+  have no producer and no trigger since `native_hud` disappeared.
+  Ask: an immediate map-face draw on the drawing surfaces (issues/04).
+- **G9 — RESOLVED in-tree.** SDK 6a02076f's `fluid_passage` hook is
+  exactly the per-position `FlowingFluid.canPassThrough` primitive
+  (server-side, listen-only, `passes` starts true and is asked only
+  after the game's own answer allowed the step — close-only). Wiring
+  implemented: a pure `BlockBehavior::fluid_passage` predicate slot
+  with `FluidPassageContext` and the `block_api_v1::fluid_passage`
+  answer fn (the entered block's behaviour answers, following the
+  `slime_block` / `stick_to` pattern), `Hooks::fluid_passage` on `Mod`
+  (lib.rs) delegating to `hooks::fluid_passage`, which converts the
+  event through `LevelHost::state_string` + `BlockState::parse` and
+  `pure_face`, and clears `event.passes` only on a `Some(false)`
+  answer. One new pure test (entered-block semantics, directional
+  false preserved). Upstream #5087's ask is thereby answered by the
+  hook as shipped; no draft needed.
+- **S1 DEFER world items — noted, not L5c code.** §A `world_api_v1`
+  items (SoundSource, `logical_height`, SurvivalFacts/HardnessLookup)
+  and §B `pluto-level-facts` are pure-API-shape / master-sync
+  reconciliation for the S1/L7 line, not (c) rows; the level-height
+  half already rides a host-carrying hook in-tree
+  (`hooks::chunk_load` publishes `world_api_v1::publish_level_height`).
+  §D `structure-boundaries.json` is a Horizon-side tooling contract
+  (L7 tooling).
+
+Verification (scoped, this tree only): MSVC `cargo check` exit 0;
+pure lib 426/426 (425 baseline + the 1 new fluid-passage test);
+doctests 1307 pass / 1 ignored (checkpoint-identical); plan failing-id
+set 69 -> 66 by unique `pluto_lib:<id>` extraction — the pristine base
+re-measured in the same session with the same extraction (the L3
+merge section's 93 was a precomputed expectation in a mixed format;
+this lane's comparator is the measured 69) — resolved exactly the 3
+rows above, zero new; lints 5x0. Issue drafts live in the L5c lane
+record (`~/workspace/sunrise-l5c/issues/`), to be shown to the owner
+before any filing; nothing was filed.
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is

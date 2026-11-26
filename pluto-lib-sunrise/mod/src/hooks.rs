@@ -1687,6 +1687,32 @@ pub(crate) fn chunk_unload(event: &mut mod_api::ChunkUnloadEvent<'_>) {
     lifecycle_events_v1::chunk_unloaded(event.dimension, event.chunk);
 }
 
+pub(crate) fn fluid_passage(host: &dyn mod_api::LevelHost, event: &mut mod_api::FluidPassageEvent<'_>) {
+    // The game asks only after its own shape-based answer allowed the step, and `passes`
+    // arrives true: a registered behaviour can only close the passage, never open a wall.
+    // The entered block's behaviour answers; no predicate leaves the game's answer alone.
+    if !event.passes {
+        return;
+    }
+    let Some(to_state) = host.state_string(event.to_state).and_then(|text| world_api_v1::BlockState::parse(&text).ok()) else {
+        return;
+    };
+    let Some(from_state) = host.state_string(event.from_state).and_then(|text| world_api_v1::BlockState::parse(&text).ok()) else {
+        return;
+    };
+    let context = block_api_v1::FluidPassageContext {
+        fluid: event.fluid,
+        from: [event.from.x, event.from.y, event.from.z],
+        from_state,
+        direction: pure_face(event.direction),
+        to: [event.to.x, event.to.y, event.to.z],
+        to_state,
+    };
+    if block_api_v1::fluid_passage(&context) == Some(false) {
+        event.passes = false;
+    }
+}
+
 pub(crate) fn entity_join_level(host: &mut dyn mod_api::ServerHost, event: &mut mod_api::EntityJoinLevelEvent<'_>) -> mod_api::Flow {
     let id = event.subject.id();
     scoped(host, || entity_events_v1::entity_loaded(id, event.kind, event.dimension));

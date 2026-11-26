@@ -75,6 +75,10 @@ impl mod_api::Hooks for Mod {
         hooks::chunk_unload(event);
     }
 
+    fn fluid_passage(&self, host: &dyn mod_api::LevelHost, event: &mut mod_api::FluidPassageEvent<'_>) {
+        hooks::fluid_passage(host, event);
+    }
+
     fn entity_join_level(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::EntityJoinLevelEvent<'_>) -> mod_api::Flow {
         hooks::entity_join_level(host, event)
     }

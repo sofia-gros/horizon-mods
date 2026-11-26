@@ -628,6 +628,26 @@ type TickFn = Arc<dyn Fn(&mut TickContext<'_>) + Send + Sync>;
 type BonemealCheckFn = Arc<dyn Fn(&BonemealContext<'_>) -> bool + Send + Sync>;
 type BonemealSuccessFn = Arc<dyn Fn(&mut TickContext<'_>) -> bool + Send + Sync>;
 type PlaceOnFn = Arc<dyn Fn(&PlaceOnContext<'_>) -> bool + Send + Sync>;
+type FluidPassageFn = Arc<dyn Fn(&FluidPassageContext<'_>) -> bool + Send + Sync>;
+
+/// What a fluid passage question is told (Minecraft: `FlowingFluid.canPassThrough`): a fluid is
+/// about to flow from the cell `from` one step toward `direction` into the cell `to`. The game
+/// asks only after its own shape-based answer allowed the step, so a behaviour's answer can
+/// only ever close a passage the game would have opened, never open one it closed.
+pub struct FluidPassageContext<'a> {
+    /// The flowing fluid's id (`minecraft:water`, `minecraft:lava`, or a mod fluid's id).
+    pub fluid: &'a str,
+    /// The cell the fluid flows from.
+    pub from: BlockPos,
+    /// The state in the cell the fluid flows from.
+    pub from_state: BlockState,
+    /// The step's direction.
+    pub direction: Direction,
+    /// The cell the fluid flows into: the answering block's own cell.
+    pub to: BlockPos,
+    /// The state in the cell the fluid flows into: the answering block's own state.
+    pub to_state: BlockState,
+}
 
 /// Minecraft's block piston reaction, independent of slime/sticky predicates.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -664,12 +684,13 @@ pub struct BlockBehavior {
     may_place_on: Option<PlaceOnFn>,
     pick_stack: Option<PickFn>,
     flammable: Option<(i32, i32)>,
+    fluid_passage: Option<FluidPassageFn>,
 }
 
 impl BlockBehavior {
     /// A behaviour for `block` that changes nothing yet.
     pub fn new(block: Identifier) -> Self {
-        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, fall_on: None, after_fall: None, inside_motion: None, slime_block: None, sticky_block: None, stick_to: None, path_node_type: None, piston_behavior: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None, flammable: None }
+        Self { block, can_survive: None, state_for_placement: None, update_shape: None, entity_inside: None, fall_on: None, after_fall: None, inside_motion: None, slime_block: None, sticky_block: None, stick_to: None, path_node_type: None, piston_behavior: None, random_tick: None, scheduled_tick: None, can_bonemeal: None, bonemeal_success: None, on_bonemeal: None, may_place_on: None, pick_stack: None, flammable: None, fluid_passage: None }
     }
 
     /// Where the block may stay: answer `false` and it is refused when placed and breaks (with its drops) when a neighbour changes.
@@ -822,6 +843,15 @@ impl BlockBehavior {
         self.flammable
     }
 
+    /// Whether fluid may flow into this block's cell (Minecraft: `FlowingFluid.canPassThrough`):
+    /// answer `false` to close a passage the game's shape-based answer would have opened. The
+    /// game asks on the server while fluid spreads — often, and on a hot path — so keep it short
+    /// and answer from the context alone.
+    pub fn fluid_passage(mut self, f: impl Fn(&FluidPassageContext<'_>) -> bool + Send + Sync + 'static) -> Self {
+        self.fluid_passage = Some(Arc::new(f));
+        self
+    }
+
     /// The block this behaviour belongs to.
     pub fn block(&self) -> &Identifier {
         &self.block
@@ -879,6 +909,13 @@ pub(crate) fn sticky_block(state: &BlockState) -> Option<bool> {
 pub(crate) fn stick_to(state: &BlockState, other: &BlockState) -> Option<bool> {
     let callback = BlockBehaviors::get(&state.block.to_string())?.stick_to?;
     Some(callback(state, other))
+}
+
+/// The fluid passage answer of the block the fluid flows into (`context.to_state`'s block):
+/// `None` when that block registered no passage predicate, leaving the game's own answer.
+pub(crate) fn fluid_passage(context: &FluidPassageContext<'_>) -> Option<bool> {
+    let callback = BlockBehaviors::get(&context.to_state.block.to_string())?.fluid_passage?;
+    Some(callback(context))
 }
 
 pub(crate) fn inside_motion_handler(block: &str) -> Option<InsideMotionFn> {
@@ -1521,6 +1558,32 @@ mod tests {
         assert_eq!(fire_odds("example:plain"), None);
         BlockBehaviors::register(BlockBehavior::new(id("example:flammable")));
         assert_eq!(fire_odds("example:flammable"), None);
+    }
+
+    #[test]
+    fn fluid_passage_answers_come_from_the_entered_blocks_behaviour() {
+        let entered = BlockState::parse("example:fluid_gate").unwrap();
+        let plain = BlockState::parse("example:plain_block").unwrap();
+        let context = |to_state: BlockState| FluidPassageContext {
+            fluid: "minecraft:water",
+            from: [0, 64, 0],
+            from_state: BlockState::parse("minecraft:water").unwrap(),
+            direction: Direction::East,
+            to: [1, 64, 0],
+            to_state,
+        };
+        assert_eq!(fluid_passage(&context(entered.clone())), None, "unregistered block leaves the game's answer");
+        // The gate closes only for lava flowing down into it; everything else passes.
+        BlockBehaviors::register(BlockBehavior::new(id("example:fluid_gate")).fluid_passage(|ctx| {
+            !(ctx.fluid == "minecraft:lava" && ctx.direction == Direction::Down)
+        }));
+        BlockBehaviors::register(BlockBehavior::new(id("example:plain_block")));
+        assert_eq!(fluid_passage(&context(entered.clone())), Some(true), "water eastward passes");
+        let mut lava_down = context(entered.clone());
+        lava_down.fluid = "minecraft:lava";
+        lava_down.direction = Direction::Down;
+        assert_eq!(fluid_passage(&lava_down), Some(false), "lava downward is closed by the entered block");
+        assert_eq!(fluid_passage(&context(plain)), None, "a behaviour without a predicate answers None");
     }
 
     #[test]
