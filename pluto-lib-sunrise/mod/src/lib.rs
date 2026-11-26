@@ -6,6 +6,7 @@
 //! one file that connects it to the game.
 
 mod exports;
+mod block_part;
 mod hooks;
 pub mod pure;
 
@@ -112,11 +113,35 @@ impl mod_api::Hooks for Mod {
 
     fn living_incoming_damage(&self, host: &mut dyn mod_api::HitHost, event: &mut mod_api::LivingIncomingDamageEvent<'_>) -> mod_api::Flow {
         let _ = host;
-        hooks::living_incoming_damage(event)
+        hooks::living_incoming_damage(host, event)
     }
 
     fn living_experience_drop(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::LivingExperienceDropEvent<'_>) -> mod_api::Flow {
         hooks::living_experience_drop(host, event)
+    }
+
+    fn entity_tick_pre(&self, host: mod_api::HostSide, event: &mut mod_api::EntityTickPreEvent<'_>) -> mod_api::Flow {
+        hooks::entity_tick_pre(host, event)
+    }
+
+    fn entity_tick_post(&self, host: mod_api::HostSide, event: &mut mod_api::EntityTickPostEvent<'_>) {
+        hooks::entity_tick_post(host, event)
+    }
+
+    fn entity_interact_specific(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::EntityInteractSpecificEvent<'_>) -> mod_api::Flow {
+        hooks::entity_interact_specific(host, event)
+    }
+
+    fn projectile_impact(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::ProjectileImpactEvent<'_>) -> mod_api::Flow {
+        hooks::projectile_impact(host, event)
+    }
+
+    fn mob_split(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::MobSplitEvent<'_>) -> mod_api::Flow {
+        hooks::mob_split(host, event)
+    }
+
+    fn add_server_reload_listeners(&self, _context: &dyn mod_api::ReloadContext, event: &mut mod_api::AddServerReloadListenersEvent<'_>) {
+        hooks::add_server_reload_listeners(event)
     }
 
     fn player_attack_cooldown_reset(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::PlayerAttackCooldownResetEvent<'_>) {

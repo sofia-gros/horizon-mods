@@ -539,6 +539,133 @@ are folded into the release procedure (DESIGN §5).
   `register` compiles against the new supertrait
   (EnchantingTableOffsetsRegistrar) unchanged.
 
+## L3b native-API clusters (2026-11-26, branch `sunrise/l3b-native-api`)
+
+Base: L2 tip `142291ae3`. Scope: the (a) rows of the spawn/damage, content
+and native_hooks clusters, plus the L2 hand-over adapters in that range
+(reload A6 wiring, mob_split, the entity-by-id reader, the HostEntities
+scope). Verified by MSVC `cargo check` (exit 0); plan re-run and the
+pure/lint battery are recorded in the lane record
+(`~/workspace/sunrise-l3b/STATUS.md`). 19 manifest rows removed:
+
+- **BlockPart (`mod/src/block_part.rs`, new).** One stateless
+  `PlutoBlockPart` is attached per pure-registered behaviour block
+  (`register_parts` from `Hooks::register`; consumers attaching later use
+  the pub `attach` helper). It replaces the ten `pluto-block-*` rows
+  (survive, may-place-on, placement, update-shape, random-tick,
+  scheduled-tick, bonemeal valid/success/perform, fire-odds) by running
+  the same pure `block_api_v1` dispatch over LevelHost/LevelWriteHost/
+  LevelRandomHost adapters. `placement_facts` answers None: the class
+  chain was a woven-bridge artifact — in the Part model the game owns
+  vanilla survival and behaviour answers come first. `break_block` is
+  None and `place_feature` false: the writable level host has neither
+  call. The bonemeal-success roll runs over a read-only editor (writes
+  fail, draws work), because that part call lends only a random host.
+- **Fluid rows ride the same part.** `world-fluid-tick`: `tick_block`
+  claims a fluid cell first and runs `pluto_api::fluid::tick` over a
+  FluidWorld adapter (cell rule mirrors the game-side adapter: block id
+  -> `fluid::for_block`, `level` property 0..=8). `world-fluid-neighbor`:
+  `update_shape` schedules the cell's block tick after the definition's
+  delay. Difference kept from the game side: its `replace` also gated
+  spread through the protection surface (`allow_spread`); that gate
+  belongs to the protection rows, not to this engine port.
+- **`pluto-block-settings-gameplay` + the item-placement trio**
+  (`-export-write`, `-root-gate`, `-root-path`): manifest entries only.
+  Sunrise content is static declaration and the vocabulary matches the
+  pure mapping 1:1 — `BlockProperties.push_reaction` is the settings
+  row's declaration half, and its runtime half is the part's
+  `piston_push_reaction` (same registry, same 0..4 mapping). The overlay
+  gate/path/write machinery (`mod_content::pluto_item_placement_export`)
+  has no runtime counterpart; the support modules stay for other rows.
+  Caveat: declarations computed at runtime from code-registered pure
+  registries have no dynamic channel in Sunrise — consumers author them
+  as static content.
+- **`pluto-mob-split-children`** -> the `mob_split` Hooks adapter.
+  Child writes are recorded as Dress entries during `inherit` and
+  replayed one pending-child editor at a time, as the woven bridge did.
+  Partial, with evidence: (1) no equipment drop-chance reader exists in
+  mod_api (only the drop-chance hook), so `head_drop_chance` is
+  vanilla's 0.085; (2) the parent's random stream is lent only inside a
+  hit context, so the adapter seeds a mod-owned `LegacyRandomSource`
+  from one level-stream draw — same distribution, not the same stream;
+  (3) `PendingChildEditor` has no no-ai / invulnerability write, so
+  those two dress entries are recorded but not applied (pure defaults
+  are false; only a true request differs); (4) pending children have no
+  entity id, so the pure child `info().id` is 0. Candidates for L5's
+  upstream filing list.
+- **`pluto-damage-dragon`** -> `living_incoming_damage` now takes the
+  hit host and, for an ender-dragon victim, notes `VictimFacts { health,
+  attack_damage: None }` from `HitHost::victim()` before the hurt/damage
+  stages; the note's 100 ms thread-local lifetime covers the same hit's
+  damage-pre stage. The victim's attack damage has no reader in the hit
+  context.
+- **`pluto-hanging-stand-tick-head`** -> `entity_tick_pre/post` with a
+  `minecraft:armor_stand` kind filter: the stand's kept `Variant` NBT
+  resolves through the pure `HangingRegistry`; fire is cleared pre and
+  post, and post also sets invisibility from the variant's
+  hidden-when-equipped rule. The sibling woven after-pass helper
+  (`pluto-hanging-stand-tick-after.rs`, riding the tick-cushions head)
+  duplicates the post behaviour idempotently; its row may be dropped at
+  integration.
+- **Reload adapter (A6, mod-crate wiring).** `add_server_reload_listeners`
+  registers one native listener per pure JSON listener
+  (`json_reload_listeners(ServerData)`), each with its
+  `FileToIdConverter::json(directory)`. Prepare decodes its folder's
+  winning layers into a capture shared by the whole pass, so a handler
+  reading another folder via `reload_json_stacks` does not depend on
+  listener order; the apply closure installs the capture with
+  `with_reload_folders` and calls `apply_json_reload_listener` with the
+  effective (top-layer) files. Two documented differences from the
+  woven bridge: handlers run at apply time, so a handler failure cannot
+  preserve that listener's previous data the way a prepare failure
+  preserves every listener's; and registry enumeration has no source in
+  the reload context, so the context's registry half is empty (a lookup
+  answers "unavailable"). No server reload-finished hook exists, so the
+  simple listeners fire (`server_data_reloaded`) from the last
+  registered listener's apply closure, which runs after the other
+  applies in registration order; if no JSON listener is registered the
+  simple listeners do not fire. The woven reload rows
+  (`pluto-reload-registry`, `pluto-reload-before-tables-reload`) are (c)
+  and stay for L5.
+- **Entity-by-id reader + HostEntities scope.** The reader is
+  `Host::entity(id)` plus the handles' own methods
+  (`entity.position(host)`, `entity.nbt(host)`, `LivingRef::visit_effects`,
+  ... — most entity reads/writes are inherent handle methods, not host
+  trait methods). `living_experience_drop` now reads the dying entity's
+  effects through it (was `Vec::new()`), and `projectile_impact` reads
+  motion, NBT and the target's effect ids through it. `HostEntities`
+  implements the pure `EntityOps` in full; `scoped_entities` opens it
+  under the player/world/book scopes for `entity_tick_pre/post`,
+  `entity_interact_specific` (pure `entity_interact`) and
+  `projectile_impact`. Impact residuals: the arrow's pierced list has
+  no reader in mod_api (only its pierce level), so `piercing_ignored`
+  is empty and the ignore-list write-back is not applied; impact actions
+  apply their effect grants directly, the rest stay module-side as in
+  L2's player actions.
+
+Reclassified (a) -> (c), rows stay in the manifest:
+
+- **`pluto-entity-spawn-add`.** The completion half consumes a Pending
+  state that the woven prepare points produce (natural prepare is (b),
+  runtime prepare is (c) — both outside this cluster) and that lives in
+  a game-side mob nav-state field the mod crate cannot reach under the
+  inversion. `finalize_spawn`'s `UnspawnedMobEditor` cannot consume it,
+  there is no post-join `mob_spawned` hook (the 748-method Hooks
+  surface has only the pre-join `finalize_spawn`, with `&dyn Host`), and
+  a mod-side prepare at finalize would double-prepare while the woven
+  prepare still runs, without the entity id or a random loan. Unblocks
+  when the prepare points migrate (L5 spawn work).
+- **`pluto-item-particle-factory`.** No particle-add interception hook
+  exists in the Hooks trait (only `effect_particle_modification`,
+  `register_particle_groups`, `register_particle_providers`); the
+  game-side QUERY provider (`pluto_item_particles::set_provider`) is
+  never installed anywhere in this tree and no pure item-particle
+  registry exists. Existing surfaces for L5's filing:
+  `register_particle_providers` (typed client factories),
+  `ItemParticlesClientHost::item_particle_options(stack)`,
+  `ClientHost::add_particle(options, at, velocity)`,
+  `ParticlesRegistrar::register_particle_type`.
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is

@@ -36,7 +36,7 @@ use crate::pure::{projectile_events_v1, projectile_events_v1::ProjectileImpact};
 use crate::pure::block_api_v1;
 use crate::pure::command_api_v2;
 use crate::pure::config_api::{self, ConfigKind, ModConfig};
-use crate::pure::{events_interaction_v0, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, networking_api_v1, resource_loader_v0};
+use crate::pure::{events_interaction_v0, hanging_api_v1, hanging_api_v1::HangingRegistry, hud_api_v1, item_api_v1, lifecycle_events_v1, loot_api_v2, mob_split_api, networking_api_v1, resource_loader_v0};
 
 fn resolve_dynamic_screen_slots(
     block: &str,
@@ -987,6 +987,7 @@ pub(crate) fn register(registrar: &mut dyn Registrar, _cx: &RegistrationContext)
     if let (Ok(plain), Ok(synced)) = (registrar.register_attachment_type(plain), registrar.register_attachment_type(synced)) {
         let _ = JSON_KEYS.set((plain, synced));
     }
+    crate::block_part::register_parts(registrar);
 }
 
 /// The issued key for the JSON attachment of the given sync class, once registered.
@@ -1063,7 +1064,21 @@ pub(crate) fn living_damage_pre(event: &mut mod_api::LivingDamagePreEvent<'_>) {
     let _ = event.container.set_new_damage(amount);
 }
 
-pub(crate) fn living_incoming_damage(event: &mut mod_api::LivingIncomingDamageEvent<'_>) -> mod_api::Flow {
+pub(crate) fn living_incoming_damage(host: &dyn mod_api::HitHost, event: &mut mod_api::LivingIncomingDamageEvent<'_>) -> mod_api::Flow {
+    // The ender dragon's body immunity reads the victim's live health (and,
+    // in the woven bridge, its attack damage) at the incoming stage: the
+    // note is taken here, where the hit context names the victim, and the
+    // pure damage-pre stage of this same hit consumes it (the
+    // `pluto-damage-dragon` replacement). The victim's attack damage has no
+    // reader in the hit context, so the fact carries health only.
+    if event.kind == "minecraft:ender_dragon" {
+        if let Some(victim) = host.victim() {
+            entity_events_v1::note_victim_facts(
+                victim.entity().id() as i32,
+                entity_events_v1::VictimFacts { health: victim.health().unwrap_or(0.0), attack_damage: None },
+            );
+        }
+    }
     let damage = entity_events_v1::LivingDamage {
         entity: event.entity,
         kind: event.kind.to_owned(),
@@ -1101,9 +1116,12 @@ pub(crate) fn living_experience_drop(host: &mut dyn mod_api::ServerHost, event: 
     }
     // Sunrise names the attacking player on the event itself; the loot
     // report's note is the fallback for a report that names none. The dying
-    // entity's own effects, which the Horizon bridge read off the host, have
-    // no reader here (the event names no entity handle): the drop runs with
-    // an empty effect list until an entity-by-id reader is wired (L3).
+    // entity's own effects come through the entity-by-id reader (L3b).
+    let effects: Vec<(String, i32)> = u32::try_from(event.entity)
+        .ok()
+        .and_then(|id| host.entity(id))
+        .map(|entity| entity_effects(host, entity).into_iter().map(|(id, amplifier, _)| (id, amplifier)).collect())
+        .unwrap_or_default();
     let attacker = event.attacking_player.or(noted_attacker);
     let player = attacker.and_then(|uuid| host.player(uuid).map(|player| (uuid, player.entity().id() as i32)));
     let looting_slot = attacker.and_then(entity_events_v1::take_looting_slot);
@@ -1111,7 +1129,7 @@ pub(crate) fn living_experience_drop(host: &mut dyn mod_api::ServerHost, event: 
         entity: event.entity as i32,
         kind: event.kind.to_owned(),
         player,
-        effects: Vec::new(),
+        effects,
         projectile_tool,
         looting_slot,
         experience: std::cell::Cell::new(event.amount),
@@ -1688,4 +1706,709 @@ pub(crate) fn client_resources_reloaded() {
     // The prototype refresh the Horizon bridge ran here read the host's resource registries;
     // in Sunrise that refresh belongs to the client reload listeners (add_client_reload_listeners).
     resource_loader_v0::client_resources_reloaded();
+}
+
+
+
+// ---- L3b: the entity-by-id reader, the entity scope, and the adapters ----
+// ---- for the spawn / damage / interaction hooks that name entities by id ----
+
+/// A pure stack as a native stack (the `give_stack` conversion, shared).
+fn native_stack(data: &player_api::StackData) -> Option<ItemStack> {
+    let key = mod_api::__private::item_key(&data.item)?;
+    let mut native = ItemStack::new(key, data.count.max(1))?;
+    let mut slot = ItemSlot::new(Identifier::parse(&data.item).ok()?, data.count);
+    slot.damage = data.damage;
+    slot.max_damage = data.max_damage;
+    slot.custom_data = data.custom_data.clone();
+    slot.custom_model_data = data.custom_model_data.clone();
+    slot.enchantments = Some(data.enchantments.clone());
+    write_slot(&mut native, &slot);
+    Some(native)
+}
+
+/// The type id of an entity, through its kind key's canonical name.
+fn entity_kind_id(host: &dyn mod_api::Host, entity: mod_api::EntityRef) -> Option<Identifier> {
+    let key = entity.kind(host)?;
+    let name = mod_api::__private::entity_type_key_id(key)?;
+    Identifier::parse(name.as_str()).ok()
+}
+
+/// The effects a living entity carries, as (id, amplifier, ticks left): the
+/// entity-by-id reader the experience drop and the projectile impact read
+/// through (`Host::entity` resolves the id an event carries, in place).
+fn entity_effects(host: &dyn mod_api::Host, entity: mod_api::EntityRef) -> Vec<(String, i32, i32)> {
+    let Some(living) = host.living(entity) else { return Vec::new() };
+    let mut found = Vec::new();
+    let _ = living.visit_effects(host, &mut |effect| {
+        found.push(effect);
+        core::ops::ControlFlow::Continue(())
+    });
+    found
+        .into_iter()
+        .map(|effect| {
+            (
+                mod_api::__private::effect_key_id(effect.id).unwrap_or_default().to_owned(),
+                effect.amplifier,
+                effect.duration,
+            )
+        })
+        .collect()
+}
+
+/// Runs `f` with the player, world, book and entity scopes all open over the
+/// host: the entity scope is what the pure entity events (ticks, generic
+/// interactions, impacts) read and write through while their callbacks run.
+pub(crate) fn scoped_entities<R>(
+    host: &mut dyn mod_api::ServerHost,
+    dimension: &str,
+    f: impl FnOnce() -> R,
+) -> R {
+    let mut handle = ServerHandle::new(&mut *host);
+    scoped(&mut *host, || {
+        entity_api_v1::with_entities(
+            &mut HostEntities { host: handle, dimension: dimension.to_owned() },
+            f,
+        )
+    })
+}
+
+impl EntityOps for HostEntities {
+    fn entities_in(&mut self, min: [f64; 3], max: [f64; 3]) -> Vec<entity_api_v1::WorldEntity> {
+        let host = self.host.get();
+        let Some(level) = host.level(&self.dimension) else { return Vec::new() };
+        let mut refs = Vec::new();
+        let _ = level.visit_entities_in(host, min, max, &mut |entity| {
+            refs.push(entity);
+            core::ops::ControlFlow::Continue(())
+        });
+        let mut found = Vec::new();
+        for entity in refs {
+            let Some(kind) = entity_kind_id(host, entity) else { continue };
+            if let Some(item) = host.item_entity(entity) {
+                let stack = item.with_stack(host, |view| view.project()).flatten();
+                found.push(entity_api_v1::WorldEntity {
+                    id: u64::from(entity.id()),
+                    kind,
+                    item: stack.and_then(|stack| slot_of(&stack)),
+                    living: None,
+                });
+                continue;
+            }
+            if host.living(entity).is_some() {
+                let effects = entity_effects(host, entity);
+                found.push(entity_api_v1::WorldEntity {
+                    id: u64::from(entity.id()),
+                    kind,
+                    item: None,
+                    living: Some(entity_api_v1::LivingFacts {
+                        fire_immune: entity.fire_immune(host).unwrap_or(false),
+                        invulnerable: entity.permanently_invulnerable(host).unwrap_or(false),
+                        fire_resistant: effects.iter().any(|(id, _, _)| is_fire_resistance(id)),
+                    }),
+                });
+            }
+        }
+        found
+    }
+
+    fn discard(&mut self, id: u64) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.discard(host)
+    }
+
+    fn set_item(&mut self, id: u64, stack: &ItemSlot) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        let Some(item) = host.item_entity(entity) else { return false };
+        let data = player_api::StackData {
+            item: stack.item.to_string(),
+            count: stack.count,
+            damage: stack.damage,
+            max_damage: stack.max_damage,
+            custom_data: stack.custom_data.clone(),
+            custom_model_data: stack.custom_model_data.clone(),
+            enchantments: stack.enchantments.clone().unwrap_or_default(),
+        };
+        let Some(native) = native_stack(&data) else { return false };
+        item.set_stack(host, Some(native)).unwrap_or(false)
+    }
+
+    fn hurt(&mut self, id: u64, amount: f32, damage_type: &str) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.hurt(host, damage_type, amount, None, None).unwrap_or(false)
+    }
+
+    fn position_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        host.entity(u32::try_from(id).ok()?).and_then(|entity| entity.position(host))
+    }
+
+    fn effects_of(&mut self, id: u64) -> Vec<(String, i32, i32)> {
+        let host = self.host.get();
+        let Some(entity) = u32::try_from(id).ok().and_then(|id| host.entity(id)) else { return Vec::new() };
+        entity_effects(host, entity)
+    }
+
+    fn velocity_of(&mut self, id: u64) -> Option<[f64; 3]> {
+        let host = self.host.get();
+        host.entity(u32::try_from(id).ok()?).and_then(|entity| entity.velocity(host))
+    }
+
+    fn bounds_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        let host = self.host.get();
+        host.entity(u32::try_from(id).ok()?).and_then(|entity| entity.bounding_box(host))
+    }
+
+    fn bounding_box_of(&mut self, id: u64) -> Option<[[f64; 3]; 2]> {
+        self.bounds_of(id)
+    }
+
+    fn set_velocity(&mut self, id: u64, velocity: [f64; 3]) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.set_velocity(host, velocity)
+    }
+
+    fn teleport(&mut self, id: u64, pos: [f64; 3]) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.teleport_to(host, pos, None)
+    }
+
+    fn passengers_of(&mut self, vehicle: u64) -> Vec<u64> {
+        let host = self.host.get();
+        let Some(entity) = u32::try_from(vehicle).ok().and_then(|id| host.entity(id)) else { return Vec::new() };
+        let mut found = Vec::new();
+        let _ = entity.visit_passengers(host, &mut |passenger| {
+            found.push(u64::from(passenger.id()));
+            core::ops::ControlFlow::Continue(())
+        });
+        found
+    }
+
+    fn vehicle_of(&mut self, passenger: u64) -> Option<u64> {
+        let host = self.host.get();
+        host.entity(u32::try_from(passenger).ok()?)
+            .and_then(|entity| entity.vehicle(host))
+            .map(|vehicle| u64::from(vehicle.id()))
+    }
+
+    fn start_riding(&mut self, passenger: u64, vehicle: u64) -> bool {
+        let host = self.host.get();
+        let (Ok(passenger), Ok(vehicle)) = (u32::try_from(passenger), u32::try_from(vehicle)) else { return false };
+        let (Some(passenger), Some(vehicle)) = (host.entity(passenger), host.entity(vehicle)) else { return false };
+        passenger.start_riding(host, vehicle, false).is_ok()
+    }
+
+    fn stop_riding(&mut self, passenger: u64) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(passenger) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.stop_riding(host)
+    }
+
+    fn id_of_uuid(&mut self, uuid: u128) -> Option<u64> {
+        let host = self.host.get();
+        host.player(uuid).map(|player| u64::from(player.entity().id()))
+    }
+
+    fn kind_of(&mut self, id: u64) -> Option<Identifier> {
+        let host = self.host.get();
+        let entity = host.entity(u32::try_from(id).ok()?)?;
+        entity_kind_id(host, entity)
+    }
+
+    fn knockback(&mut self, id: u64, strength: f64, x: f64, z: f64) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        let Some(living) = host.living(entity) else { return false };
+        living.knockback(host, strength, [x, z])
+    }
+
+    fn push(&mut self, id: u64, delta: [f64; 3]) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        entity.push(host, delta)
+    }
+
+    fn add_effect(&mut self, id: u64, effect: &str, duration: i32, amplifier: u8) -> bool {
+        let host = self.host.get();
+        let Ok(id) = u32::try_from(id) else { return false };
+        let Some(entity) = host.entity(id) else { return false };
+        let Some(living) = host.living(entity) else { return false };
+        let Some(key) = mod_api::__private::effect_key(effect) else { return false };
+        living.add_effect(host, &mod_api::ActiveEffect::new(key, duration, i32::from(amplifier), false, true, true))
+    }
+}
+
+/// The fancy armor stands' tick pass (the `pluto-hanging-stand-tick-head`
+/// replacement, with its after-pass): a stand with a registered variant is
+/// fire immune at the class level, so its fire ticks are cleared before its
+/// tick and again after it, and the clear stand's invisibility follows its
+/// equipment. Runs per stand from the entity tick events, which is the same
+/// set the woven pass walked in the game's stand list.
+fn fancy_stand_tick(host: &mut dyn mod_api::ServerHost, entity: u32, kind: &str, after: bool) {
+    if kind != "minecraft:armor_stand" {
+        return;
+    }
+    let Some(entity_ref) = host.entity(entity) else { return };
+    let Some(nbt) = entity_ref.nbt(host) else { return };
+    let nbt = compound_from_tag(&nbt);
+    let variant = match nbt.get("Variant") {
+        Some(Nbt::Int(value)) => *value,
+        Some(Nbt::Byte(value)) => i32::from(*value),
+        _ => return,
+    };
+    let Some(facts) = HangingRegistry::stand_for_variant(variant) else { return };
+    let _ = entity_ref.clear_fire(host);
+    if after {
+        let equipped = host.living(entity_ref).is_some_and(|living| {
+            mod_api::EquipmentSlot::ALL.iter().any(|slot| {
+                living.with_equipment(host, *slot, |view| view.project()).is_some()
+            })
+        });
+        let _ = entity_ref.set_invisible(host, facts.hidden(equipped));
+    }
+}
+
+pub(crate) fn entity_tick_pre(host: mod_api::HostSide, event: &mut mod_api::EntityTickPreEvent<'_>) -> mod_api::Flow {
+    let mod_api::HostSide::Server(host) = host else { return mod_api::Flow::Continue };
+    fancy_stand_tick(host, event.entity, event.kind, false);
+    if !entity_events_v1::entity_tick_heard() {
+        return mod_api::Flow::Continue;
+    }
+    let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+    let allowed = scoped_entities(host, event.dimension, || entity_events_v1::entity_tick_before(&info));
+    if !allowed {
+        event.cancelled = true;
+        return mod_api::Flow::Cancel;
+    }
+    mod_api::Flow::Continue
+}
+
+pub(crate) fn entity_tick_post(host: mod_api::HostSide, event: &mut mod_api::EntityTickPostEvent<'_>) {
+    let mod_api::HostSide::Server(host) = host else { return };
+    fancy_stand_tick(host, event.entity, event.kind, true);
+    if !entity_events_v1::entity_tick_heard() {
+        return;
+    }
+    let info = entity_events_v1::EntityInfo { id: event.entity, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() };
+    scoped_entities(host, event.dimension, || entity_events_v1::entity_tick_after(&info));
+}
+
+pub(crate) fn entity_interact_specific(
+    host: &mut dyn mod_api::ServerHost,
+    event: &mut mod_api::EntityInteractSpecificEvent<'_>,
+) -> mod_api::Flow {
+    if !events_interaction_v0::entity_interact_heard() {
+        return mod_api::Flow::Continue;
+    }
+    let context = events_interaction_v0::InteractEntityContext {
+        entity: event.entity,
+        kind: event.kind.to_owned(),
+        stack: event.stack.map(read_stack),
+        player: None,
+    };
+    let dimension = u32::try_from(event.entity)
+        .ok()
+        .and_then(|id| host.entity(id))
+        .and_then(|entity| entity.level(host))
+        .map(|level| level.dimension_id().to_owned())
+        .unwrap_or_default();
+    let handled = scoped_entities(host, &dimension, || events_interaction_v0::entity_interact(&context));
+    if handled {
+        event.cancelled = true;
+        return mod_api::Flow::Cancel;
+    }
+    mod_api::Flow::Continue
+}
+
+pub(crate) fn projectile_impact(
+    host: &mut dyn mod_api::ServerHost,
+    event: &mut mod_api::ProjectileImpactEvent<'_>,
+) -> mod_api::Flow {
+    if !projectile_events_v1::heard() {
+        return mod_api::Flow::Continue;
+    }
+    let projectile_ref = host.entity(event.projectile);
+    let motion = projectile_ref.and_then(|entity| entity.velocity(host)).unwrap_or([0.0; 3]);
+    let data = projectile_ref
+        .and_then(|entity| entity.nbt(host))
+        .map(|nbt| compound_from_tag(&nbt))
+        .unwrap_or_default();
+    let entity_effects = event
+        .entity
+        .and_then(|id| host.entity(id))
+        .map(|entity| entity_effects(host, entity).into_iter().map(|(id, _, _)| id).collect())
+        .unwrap_or_default();
+    let impact = ProjectileImpact {
+        dimension: event.dimension.to_owned(),
+        projectile: event.projectile,
+        kind: event.kind.to_owned(),
+        owner: if event.owner == 0 { -1 } else { i64::from(event.owner) },
+        entity: event.entity,
+        entity_kind: event.entity_kind.to_owned(),
+        entity_effects,
+        block: event.block,
+        face: event.face,
+        at: event.at,
+        motion,
+        data,
+        // The arrow's pierced list has no reader in mod_api (only its pierce
+        // level does); the woven bridge read the live arrow's own list.
+        piercing_ignored: Vec::new(),
+        discard: std::cell::Cell::new(false),
+        motion_after: std::cell::RefCell::new(None),
+        ignore_entities: std::cell::RefCell::new(Vec::new()),
+        actions: std::cell::RefCell::new(Vec::new()),
+    };
+    let allowed = scoped_entities(host, event.dimension, || projectile_events_v1::impact(&impact));
+    if impact.discard.get() {
+        if let Some(entity) = projectile_ref {
+            let _ = entity.discard(host);
+        }
+    } else if let Some(motion) = impact.motion_after.borrow_mut().take() {
+        if let Some(entity) = projectile_ref {
+            let _ = entity.set_velocity(host, motion);
+        }
+    }
+    // The ignore-list write-back has no call in mod_api either; the effect
+    // grants land through the same application the player actions use.
+    let actions = std::mem::take(&mut *impact.actions.borrow_mut());
+    apply_entity_actions(host, event.entity, event.owner, actions);
+    if !allowed {
+        event.cancelled = true;
+        return mod_api::Flow::Cancel;
+    }
+    mod_api::Flow::Continue
+}
+
+/// Entity actions a callback queued against a hit's parties: an effect grant
+/// to a living party lands directly, as in `apply_player_actions`; the rest
+/// were handed to game-side module queues in the woven bridge and are the
+/// module side's to pull under the inversion (L3/L6).
+fn apply_entity_actions(
+    host: &mut dyn mod_api::ServerHost,
+    victim: Option<u32>,
+    attacker: u32,
+    actions: Vec<entity_events_v1::EntityAction>,
+) {
+    for action in actions {
+        let entity_events_v1::EntityAction::AddEffect { target, effect, duration, amplifier } = action else { continue };
+        let target = match target {
+            entity_events_v1::ActionTarget::Victim => victim,
+            entity_events_v1::ActionTarget::Attacker => (attacker != 0).then_some(attacker),
+        };
+        let Some(target) = target else { continue };
+        if let Some(living) = host.entity(target).and_then(|entity| host.living(entity)) {
+            if let Some(key) = mod_api::__private::effect_key(&effect) {
+                let _ = living.add_effect(host, &mod_api::ActiveEffect::new(key, duration, amplifier, false, true, true));
+            }
+        }
+    }
+}
+
+
+// ---- L3b: the mob split adapter and the server reload adapter (A6) ----
+
+/// One recorded child dressing from a split callback, applied to the game's
+/// pending child after the pass: the pure child surface is write-only, so the
+/// writes are collected during `inherit` and replayed one editor at a time
+/// (the game's editors borrow the child list per call), as the woven bridge
+/// recorded its Dress entries.
+enum SplitDress {
+    Equipment(mod_api::EquipmentSlot, Option<ItemStack>),
+    Name(Option<mod_api::Text>),
+    // Recorded but not applicable: PendingChildEditor has no no-ai or
+    // invulnerability write (the woven bridge wrote the game's own fields).
+    // The pure defaults are false, so only a callback asking for true differs.
+    NoAi(bool),
+    Invulnerable(bool),
+}
+
+struct SplitChild {
+    index: usize,
+    info: entity_events_v1::EntityInfo,
+    dresses: std::rc::Rc<std::cell::RefCell<Vec<(usize, SplitDress)>>>,
+}
+
+impl mob_split_api::MobSplitChild for SplitChild {
+    fn info(&self) -> entity_events_v1::EntityInfo {
+        self.info.clone()
+    }
+
+    fn set_equipment(&mut self, slot: &str, stack: player_api::StackData) -> Result<(), String> {
+        let slot = match slot {
+            "mainhand" | "main_hand" => mod_api::EquipmentSlot::MainHand,
+            "offhand" | "off_hand" => mod_api::EquipmentSlot::OffHand,
+            "feet" => mod_api::EquipmentSlot::Feet,
+            "legs" => mod_api::EquipmentSlot::Legs,
+            "chest" => mod_api::EquipmentSlot::Chest,
+            "head" => mod_api::EquipmentSlot::Head,
+            "body" => mod_api::EquipmentSlot::Body,
+            "saddle" => mod_api::EquipmentSlot::Saddle,
+            other => return Err(format!("unknown equipment slot {other}")),
+        };
+        let native = native_stack(&stack).ok_or_else(|| format!("unbuildable split stack {}", stack.item))?;
+        self.dresses.borrow_mut().push((self.index, SplitDress::Equipment(slot, Some(native))));
+        Ok(())
+    }
+
+    fn set_custom_name(&mut self, name: Option<String>) -> Result<(), String> {
+        self.dresses.borrow_mut().push((self.index, SplitDress::Name(name.map(mod_api::Text::literal))));
+        Ok(())
+    }
+
+    fn set_no_ai(&mut self, no_ai: bool) -> Result<(), String> {
+        self.dresses.borrow_mut().push((self.index, SplitDress::NoAi(no_ai)));
+        Ok(())
+    }
+
+    fn set_invulnerable(&mut self, invulnerable: bool) -> Result<(), String> {
+        self.dresses.borrow_mut().push((self.index, SplitDress::Invulnerable(invulnerable)));
+        Ok(())
+    }
+}
+
+/// The split's random source: the parent's own stream is lent only inside a
+/// hit context in mod_api, so the adapter seeds a mod-owned legacy source
+/// from one draw of the level's stream — the same distribution the woven
+/// bridge drew from its clone of the parent mob's generator.
+struct SplitRandom {
+    source: mod_api::LegacyRandomSource,
+}
+
+impl mob_split_api::MobSplitRandom for SplitRandom {
+    fn next_float(&mut self) -> f32 {
+        mod_api::RandomSource::next_float(&mut self.source)
+    }
+
+    fn next_int(&mut self, bound: i32) -> Result<i32, String> {
+        if bound <= 0 {
+            return Err("random bound must be positive".into());
+        }
+        Ok(mod_api::RandomSource::next_int_bound(&mut self.source, bound))
+    }
+}
+
+/// A text's plain characters: literal content and its children, in order.
+/// Name tags in the game are literal components; anything richer reads as
+/// its literal parts only.
+fn text_plain(text: &mod_api::Text) -> String {
+    let mut out = String::new();
+    if let mod_api::text::TextContent::Literal(literal) = &text.content {
+        out.push_str(literal);
+    }
+    for child in &text.children {
+        out.push_str(&text_plain(child));
+    }
+    out
+}
+
+pub(crate) fn mob_split(host: &mut dyn mod_api::ServerHost, event: &mut mod_api::MobSplitEvent<'_>) -> mod_api::Flow {
+    if !mob_split_api::MobSplitCallbacks::has_callbacks() {
+        return mod_api::Flow::Continue;
+    }
+    let Some(parent_ref) = host.entity(event.parent) else { return mod_api::Flow::Continue };
+    let context = mob_split_api::MobSplitContext {
+        parent: entity_events_v1::EntityInfo { id: event.parent, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() },
+        position: parent_ref.position(host).unwrap_or([0.0; 3]),
+        size: event.size,
+        child_size: event.child_size,
+    };
+    let mut count = u32::try_from(event.children.len()).unwrap_or(0);
+    let mut cancel = false;
+    if let Err(error) = mob_split_api::MobSplitCallbacks::prepare(&context, &mut count, &mut cancel) {
+        eprintln!("pluto-lib: mob split prepare failed: {error}");
+        return mod_api::Flow::Continue;
+    }
+    if cancel {
+        event.cancelled = true;
+        return mod_api::Flow::Cancel;
+    }
+    while event.children.len() > count as usize {
+        let last = event.children.len() - 1;
+        event.children.remove(last);
+    }
+    while event.children.len() < count as usize {
+        let (Ok(kind), Ok(dimension)) = (mod_api::Identifier::parse(event.kind), mod_api::Identifier::parse(event.dimension)) else { break };
+        let spec = mod_api::PendingMobSpec::new(kind, dimension, context.position, 0.0, false);
+        match event.children.construct(host, spec) {
+            Ok(child) => {
+                if event.children.push(child).is_err() {
+                    break;
+                }
+                if let Some(mut editor) = event.children.get_mut(event.children.len() - 1) {
+                    let _ = editor.set_size(u32::try_from(event.child_size.max(0)).unwrap_or(0));
+                }
+            }
+            Err(_) => break,
+        }
+    }
+    let head = host.living(parent_ref).and_then(|living| {
+        living.with_equipment(host, mod_api::EquipmentSlot::Head, |view| view.project()).flatten().map(|stack| read_stack(&stack))
+    });
+    let custom_name = parent_ref
+        .custom_name(host)
+        .ok()
+        .flatten()
+        .map(|name| text_plain(&name))
+        .filter(|name| !name.is_empty());
+    let no_ai = host.mob(parent_ref).and_then(|mob| mob.no_ai(host)).unwrap_or(false);
+    let invulnerable = parent_ref.permanently_invulnerable(host).unwrap_or(false);
+    let seed = host
+        .level(event.dimension)
+        .and_then(|level| level.with_random(host, |rng| mod_api::RandomSource::next_long(rng)))
+        .unwrap_or(0);
+    let mut random = SplitRandom { source: mod_api::LegacyRandomSource::new(seed) };
+    let dresses = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let mut children: Vec<Box<dyn mob_split_api::MobSplitChild>> = (0..event.children.len())
+        .map(|index| {
+            Box::new(SplitChild {
+                index,
+                // A pending child has no entity id yet; the woven bridge named
+                // the game's own id space, which mod_api does not expose here.
+                info: entity_events_v1::EntityInfo { id: 0, kind: event.kind.to_owned(), dimension: event.dimension.to_owned() },
+                dresses: dresses.clone(),
+            }) as Box<dyn mob_split_api::MobSplitChild>
+        })
+        .collect();
+    let mut inheritance = mob_split_api::MobSplitInheritance {
+        context: &context,
+        head,
+        // mod_api reads no equipment drop chance (only the drop-chance hook
+        // writes one), so the head's chance is vanilla's default, as the
+        // woven bridge's fallback was.
+        head_drop_chance: 0.085,
+        custom_name,
+        no_ai,
+        invulnerable,
+        random: &mut random,
+        children: &mut children,
+    };
+    if let Err(error) = mob_split_api::MobSplitCallbacks::inherit(&mut inheritance) {
+        eprintln!("pluto-lib: mob split inheritance failed: {error}");
+        return mod_api::Flow::Continue;
+    }
+    for (index, dress) in dresses.borrow_mut().drain(..) {
+        let Some(mut editor) = event.children.get_mut(index) else { continue };
+        match dress {
+            SplitDress::Equipment(slot, stack) => {
+                let _ = editor.set_equipment(slot, stack);
+            }
+            SplitDress::Name(name) => {
+                let _ = editor.set_custom_name(name);
+            }
+            SplitDress::NoAi(_) | SplitDress::Invulnerable(_) => {}
+        }
+    }
+    mod_api::Flow::Continue
+}
+
+/// The captured JSON folders of one reload pass, shared by every listener of
+/// the pass: all prepares finish before any apply runs, so by apply time the
+/// capture holds every folder and a handler reading another folder through
+/// the pure helper does not depend on listener order (the A6 design).
+type ReloadCapture = std::sync::Arc<std::sync::Mutex<std::collections::BTreeMap<String, Vec<resource_loader_v0::JsonResourceStack>>>>;
+
+struct PureReloadListener {
+    id: String,
+    directory: String,
+    capture: ReloadCapture,
+    last: bool,
+}
+
+impl mod_api::ServerReloadListener for PureReloadListener {
+    fn prepare(
+        &self,
+        context: &mod_api::ServerReloadContext,
+    ) -> Result<Box<dyn FnOnce() + Send + 'static>, mod_api::ReloadResourceError> {
+        // The context is scoped to this listener's converter and its read
+        // returns the winning pack layer, so each resource contributes the
+        // one layer the pure decoder expects to find on top.
+        let records: Vec<(String, Vec<Result<Vec<u8>, String>>)> = context
+            .list()
+            .map(|id| {
+                let layer = context.read(id).map(|bytes| bytes.to_vec()).ok_or_else(|| "resource vanished during reload".to_string());
+                (id.to_string(), vec![layer])
+            })
+            .collect();
+        let refs: Vec<(&str, &[Result<Vec<u8>, String>])> =
+            records.iter().map(|(id, layers)| (id.as_str(), layers.as_slice())).collect();
+        let stacks = resource_loader_v0::decode_json_stacks(refs).map_err(|error| {
+            mod_api::ReloadResourceError::new(
+                mod_api::Identifier::parse(&self.id).unwrap_or_else(|_| mod_api::Identifier::parse("pluto_lib:reload").unwrap()),
+                std::io::Error::other(error),
+            )
+        })?;
+        if let Ok(mut capture) = self.capture.lock() {
+            capture.insert(self.directory.clone(), stacks);
+        }
+        let capture = self.capture.clone();
+        let id = self.id.clone();
+        let directory = self.directory.clone();
+        let last = self.last;
+        Ok(Box::new(move || {
+            let folders = capture.lock().map(|capture| capture.clone()).unwrap_or_default();
+            let stacks = folders.get(&directory).cloned().unwrap_or_default();
+            // The effective file of a resource is its top layer; a broken top
+            // layer drops the resource (vanilla logs and skips it), no lower
+            // layer silently replaces it.
+            let files: Vec<(String, serde_json::Value)> = stacks
+                .iter()
+                .filter_map(|stack| match stack.layers.last() {
+                    Some(Ok(value)) => Some((stack.id.to_string(), value.clone())),
+                    _ => None,
+                })
+                .collect();
+            // Registry enumeration has no source in the reload context, so
+            // the registry half of the pure context stays empty (a lookup
+            // answers "unavailable"); the folder half is complete.
+            resource_loader_v0::with_reload_folders(Default::default(), folders, || {
+                // The pure handlers run here, at apply time, so a handler
+                // failure cannot preserve this listener's previous data the
+                // way a prepare failure preserves every listener's — the one
+                // two-phase difference from the woven bridge (A6).
+                if let Err(error) = resource_loader_v0::apply_json_reload_listener(
+                    resource_loader_v0::ResourceType::ServerData,
+                    &id,
+                    &directory,
+                    &files,
+                ) {
+                    eprintln!("pluto-lib: reload listener {id} failed: {error}");
+                }
+                if last {
+                    // No reload-finished hook exists; the simple listeners
+                    // fire from the last registered listener's apply, which
+                    // runs after the other applies in registration order.
+                    resource_loader_v0::server_data_reloaded();
+                }
+            });
+        }))
+    }
+}
+
+pub(crate) fn add_server_reload_listeners(event: &mut mod_api::AddServerReloadListenersEvent<'_>) {
+    let Ok(listeners) = resource_loader_v0::json_reload_listeners(resource_loader_v0::ResourceType::ServerData) else { return };
+    if listeners.is_empty() {
+        return;
+    }
+    let capture: ReloadCapture = std::sync::Arc::new(std::sync::Mutex::new(std::collections::BTreeMap::new()));
+    let total = listeners.len();
+    for (index, (id, directory)) in listeners.into_iter().enumerate() {
+        let Some(native_id) = mod_api::Identifier::parse_namespaced(&id.to_string()) else { continue };
+        let listener = PureReloadListener { id: id.to_string(), directory: directory.clone(), capture: capture.clone(), last: index + 1 == total };
+        let Ok(converter) = mod_api::FileToIdConverter::json(&directory) else { continue };
+        let _ = event.listeners.add_listener(native_id, converter, std::sync::Arc::new(listener));
+    }
 }
