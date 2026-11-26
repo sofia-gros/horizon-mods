@@ -37,7 +37,7 @@ class SkySurfaceTests(unittest.TestCase):
         pure = (API / 'pure' / 'sky_api_v1.rs').read_text(encoding='utf-8')
         self.assertIn('pub mod sky_api_v1;', (API / 'pure' / 'mod.rs').read_text(encoding='utf-8'))
         exports = (API / 'exports.rs').read_text(encoding='utf-8')
-        self.assertIn('pub use crate::pure::sky_api_v1::{self, SkyDarkening, SkyFrame, SkyLayer, SkyQuad, SkyRegistry, SkyStar, Twinkle, VanillaStars, celestial_direction, frame_quads, twinkle_factor};', exports)
+        self.assertIn('pub use crate::pure::sky_api_v1::{self, SkyBlend, SkyDarkening, SkyFade, SkyFrame, SkyLayer, SkyNow, SkyQuad, SkyRegistry, SkyStar, SkyTextureConditions, SkyTextureDraw, SkyTextureLayer, SkyTextureRegistry, SkyWeather, Twinkle, VanillaStars, celestial_direction, fade_ticks, frame_quads, png_size, texture_draws, twinkle_factor};', exports)
         support = (API / 'pure' / 'base' / 'support.rs').read_text(encoding='utf-8')
         self.assertIn('sky_api_v1::SkyRegistry::{register,layer,registered_worlds} / frame_quads', support)
         for name in ('pub struct Twinkle', 'pub struct SkyStar', 'pub struct SkyDarkening',

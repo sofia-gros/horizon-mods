@@ -234,6 +234,12 @@ pub const MATRIX: &[SupportEntry] = &[
         unblocked_by: "native attachment: the combined build is the first compile of the celestial reach, the access module and the sink; then game verification of twinkling bright stars, a darkening over the galactic centre, and the vanilla stars' absence",
     },
     SupportEntry {
+        api: "sky_api_v1::SkyTextureRegistry::{register,layers,registered_worlds} / texture_draws",
+        support: Support::Stub,
+        behaviour: "textured sky layers are pure-tested: registration validates whole (PNG header size, the host's 64M texel budget over the whole census, fade ticks on the day, a normalised axis) and appends per world; the frame evaluation (fade brightness with the replace rule, weather admission eased by each layer's transition with a snap on world change, turns counted from noon of day 0) transcribes the host's own pack-layer evaluation and is unit-tested against its cases; the transport is source-declared: a cancellable head reach on the renderer's custom-sky load wraps the pack's layers in a composite that appends the registered layers' textures and draws, the textures decoded by the host's own image decoder at pack assembly; no native compile or game check yet",
+        unblocked_by: "native attachment: the combined build is the first compile of the load reach, the access module and the sink; then game verification of a mod-carried static sky (the Milky Way layer) with no resource pack enabled",
+    },
+    SupportEntry {
         api: "color_provider_api_v1::ColorProviderRegistry::{register_item,item_color}",
         support: Support::Stub,
         behaviour: "owned-stack item registration/direct lookup work; shared baked-layer LOAD adapter and merged-component forwarding are source-declared, native-unvalidated; structural helper test covers RGB/ARGB, sparse indices, decline/special/native fallback and shared-geometry isolation, not native rendering; indices above 4095 retain native tint",

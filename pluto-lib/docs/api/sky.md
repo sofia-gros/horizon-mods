@@ -2,9 +2,11 @@
 
 A mod draws the bright end of its sky itself: stars too bright for a texture to do justice, each
 with its own colour and its own twinkle, and dark patches — a black hole's shadow — laid over the
-glow beneath. The faint end of the sky stays a pack custom-sky texture (the host's OptiFine-format
-layers); this surface is the part a texture cannot do, because a texture cannot flicker and cannot
-darken what another layer drew.
+glow beneath. The faint end of the sky is a texture, and a mod carries that texture itself: a
+textured layer (below) is a skybox in the host's custom-sky format — the OptiFine-format layer a
+resource pack would ship — registered by the mod, so no pack is needed for a mod's sky. The
+dynamic layer is the part a texture cannot do, because a texture cannot flicker and cannot darken
+what another layer drew.
 
 ```rust
 use pluto_lib::{SkyDarkening, SkyLayer, SkyRegistry, SkyStar, Twinkle, VanillaStars};
@@ -46,6 +48,42 @@ equatorial, as the catalogs give them (J2000 right ascension in hours, declinati
 > natively compiled yet: its first compile is the combined build, and the darkening rings'
 > softness rides on the celestial pass's alpha blending, which the moon's own rain fade already
 > exercises.
+
+A textured layer is the static half of a mod's sky: the Milky Way and the faint stars, painted
+once and turning with the sun. Stellarsky's star sphere, registered for the Overworld:
+
+```rust
+use pluto_lib::{SkyFade, SkyTextureLayer, SkyTextureRegistry, fade_ticks};
+
+// A PNG header declaring 6x4 stands in for the layer's skybox texture (a 3x2
+// grid of faces); the real layer ships the painted sphere.
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&6u32.to_be_bytes());
+header.extend_from_slice(&4u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+let mut layer = SkyTextureLayer::new(header);
+// In after sunset, out before sunrise, turning with the sun.
+layer.fade = Some(SkyFade::new(fade_ticks(18, 20).unwrap(), fade_ticks(19, 20).unwrap(), fade_ticks(5, 40).unwrap()));
+SkyTextureRegistry::register(0, layer).unwrap();
+assert!(SkyTextureRegistry::registered_worlds().contains(&0));
+assert_eq!(SkyTextureRegistry::layers(0).len(), 1);
+```
+
+The game reads the registered layers when it assembles a pack: their textures join the pack's
+own custom-sky textures (the pack's first, so its indices do not move) and their draws follow
+the pack's layers in the frame, under the dynamic layers' quads. A layer whose PNG the game's
+decoder refuses is dropped at that point, as a pack layer is. Register at startup, from the
+mod's hooks — a registration after a pack has assembled waits for the next assembly.
+
+> **Use with Caution.** The registry, the validation and the frame evaluation are pure-tested
+> against the host's own pack-layer cases. The transport is source-declared: a cancellable head
+> reach on the renderer's custom-sky load wraps the pack's layers in a composite that appends
+> the registered layers (a return reach cannot weave here: the load's own empty answer is built
+> inside a closure, which the weaver cannot re-emit). With no layer registered the reach
+> continues and the load runs untouched. Its first compile is the combined build.
 
 ## Reference
 
@@ -292,4 +330,338 @@ use pluto_lib::sky_darken;
 assert_eq!(sky_darken(0.0, 0.0, 6000), 0);
 assert_eq!(sky_darken(0.0, 0.0, 18000), 11);
 assert!(sky_darken(1.0, 1.0, 6000) > sky_darken(1.0, 0.0, 6000));
+```
+
+### `SkyBlend`
+
+How a textured layer mixes with what is drawn under it: the host's own custom-sky blends
+(OptiFine's `blend=`). `Add` is the format's default.
+
+```rust
+use pluto_lib::SkyBlend;
+
+assert_eq!(SkyBlend::default(), SkyBlend::Add);
+assert_ne!(SkyBlend::Replace, SkyBlend::Alpha);
+```
+
+### `SkyNow`
+
+The weather of a frame, as a textured layer's admission reads it: thunder is a storm's rain,
+so it is only `Thunder`.
+
+```rust
+use pluto_lib::SkyNow;
+
+let now = SkyNow::Clear;
+assert_ne!(now, SkyNow::Thunder);
+```
+
+### `SkyWeather`
+
+The weathers a textured layer shows in: `clear`, `rain` and `thunder`. Clear alone by
+default, so a layer without a say hides in the rain, like the vanilla stars.
+
+```rust
+use pluto_lib::{SkyNow, SkyWeather};
+
+let weather = SkyWeather::default();
+assert!(weather.clear && !weather.rain && !weather.thunder);
+assert!(weather.admits(SkyNow::Clear));
+```
+
+### `SkyWeather::admits`
+
+Whether the layer shows in the frame's weather.
+
+```rust
+use pluto_lib::{SkyNow, SkyWeather};
+
+let wet = SkyWeather { clear: false, rain: true, thunder: true };
+assert!(!wet.admits(SkyNow::Clear));
+assert!(wet.admits(SkyNow::Rain));
+assert!(wet.admits(SkyNow::Thunder));
+```
+
+### `fade_ticks`
+
+A clock time as ticks of the day, as the pack format's fade times are written: 6:00 is tick 0
+(sunrise), 12:00 is 6000, 18:00 is 12000, 0:00 is 18000. `None` off the clock.
+
+```rust
+use pluto_lib::fade_ticks;
+
+assert_eq!(fade_ticks(6, 0), Some(0));
+assert_eq!(fade_ticks(18, 20), Some(12333));
+assert_eq!(fade_ticks(24, 0), None);
+```
+
+### `SkyFade`
+
+The fade times of a textured layer, in ticks of the day: `start_in` and `end_in` bound the
+fade in, `start_out` and `end_out` the fade out; each span may cross midnight.
+
+```rust
+use pluto_lib::SkyFade;
+
+let fade = SkyFade { start_in: 12000, end_in: 14000, start_out: 22000, end_out: 0 };
+assert_eq!(fade.brightness(13000), 0.5);
+```
+
+### `SkyFade::new`
+
+A fade from its in-times and its out end: the fade out starts as long before the end as the
+fade in takes, as the pack format derives it when `startFadeOut` is absent.
+
+```rust
+use pluto_lib::SkyFade;
+
+// In from 18:00 to 20:00, out by 6:00: the fade out starts at 4:00.
+let fade = SkyFade::new(12000, 14000, 0);
+assert_eq!(fade.start_out, 22000);
+```
+
+### `SkyFade::brightness`
+
+The brightness at a day time (ticks; any day): 0 before the fade in, 1 between the fades, 0
+after the fade out.
+
+```rust
+use pluto_lib::SkyFade;
+
+let fade = SkyFade::new(12000, 14000, 0);
+assert_eq!(fade.brightness(12000), 0.0);
+assert_eq!(fade.brightness(18000), 1.0);
+assert_eq!(fade.brightness(6000), 0.0);
+```
+
+### `SkyTextureLayer`
+
+One textured sky layer a mod draws itself: its `png` skybox texture (six faces in a 3x2
+grid), its `blend`, its `fade` times, whether it `rotate`s and at what `speed` around its
+`axis`, the `weather` it shows in, and the `transition` its brightness eases over. Layers of
+a world draw in registration order, over the pack's layers and under the dynamic layers'
+quads.
+
+```rust
+use pluto_lib::{SkyBlend, SkyTextureLayer, SkyWeather};
+
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&6u32.to_be_bytes());
+header.extend_from_slice(&4u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+let layer = SkyTextureLayer {
+    png: header, blend: SkyBlend::Add, fade: None, rotate: true, speed: 1.0,
+    axis: [0.0, 0.0, 1.0], weather: SkyWeather::default(), transition: 1.0,
+};
+assert_eq!(layer.speed, 1.0);
+```
+
+### `SkyTextureLayer::new`
+
+A layer of just a texture, with the pack format's defaults: `add`, no fade, turning with the
+sun about the south-north axis, clear weather only, a second's transition.
+
+```rust
+use pluto_lib::{SkyBlend, SkyTextureLayer};
+
+let layer = SkyTextureLayer::new(vec![0x89, b'P', b'N', b'G']);
+assert_eq!(layer.blend, SkyBlend::Add);
+assert!(layer.rotate);
+assert_eq!(layer.axis, [0.0, 0.0, 1.0]);
+```
+
+### `SkyTextureLayer::shows`
+
+Whether the frame's weather admits the layer.
+
+```rust
+use pluto_lib::{SkyNow, SkyTextureLayer};
+
+let layer = SkyTextureLayer::new(Vec::new());
+assert!(layer.shows(SkyNow::Clear));
+assert!(!layer.shows(SkyNow::Rain));
+```
+
+### `SkyTextureLayer::brightness`
+
+The brightness of the fade times at a day time; a `replace` layer is all or nothing.
+
+```rust
+use pluto_lib::{SkyBlend, SkyFade, SkyTextureLayer};
+
+let mut layer = SkyTextureLayer::new(Vec::new());
+layer.blend = SkyBlend::Replace;
+layer.fade = Some(SkyFade::new(0, 2000, 14000));
+assert_eq!(layer.brightness(500), 1.0, "half way in, yet full");
+assert_eq!(layer.brightness(20000), 0.0);
+```
+
+### `SkyTextureLayer::turns`
+
+How far the layer has turned around its axis, in turns, when the sun stands at `sun_turns`:
+a turn a day at speed 1, counted from noon of day 0, so a slower speed carries on across
+days.
+
+```rust
+use pluto_lib::SkyTextureLayer;
+
+let layer = SkyTextureLayer::new(Vec::new());
+assert_eq!(layer.turns(12000, 0.25), 0.25);
+let mut still = SkyTextureLayer::new(Vec::new());
+still.rotate = false;
+assert_eq!(still.turns(12000, 0.25), 0.0);
+```
+
+### `png_size`
+
+The size a PNG declares in its header, without decoding it: the registry reads sizes to hold
+layers to the host's texture budget before any decode is paid for.
+
+```rust
+use pluto_lib::png_size;
+
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&3072u32.to_be_bytes());
+header.extend_from_slice(&2048u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+assert_eq!(png_size(&header), Some((3072, 2048)));
+assert_eq!(png_size(&[]), None);
+```
+
+### `SkyTextureRegistry`
+
+The registered textured sky layers, by world number (the host's custom-sky numbering: 0 the
+Overworld, 1 the End). Registration is process-lifetime; a world's layers draw in
+registration order. Layers are read when the game assembles a pack, so a mod registers its
+layers at startup, from its hooks.
+
+```rust
+use pluto_lib::{SkyTextureLayer, SkyTextureRegistry};
+
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&6u32.to_be_bytes());
+header.extend_from_slice(&4u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+SkyTextureRegistry::register(81, SkyTextureLayer::new(header)).unwrap();
+assert_eq!(SkyTextureRegistry::layers(81).len(), 1);
+```
+
+### `SkyTextureRegistry::register`
+
+Appends a layer to a world's textured layers. The layer is validated whole first — its PNG
+header must declare a size, the registry's whole census must stay within the host's
+custom-sky texture budget (64M texels), fade ticks on the day, a finite speed, an axis that
+is not the zero vector (it is normalised), a transition that is not negative — so a refused
+layer changes nothing.
+
+```rust
+use pluto_lib::{SkyTextureLayer, SkyTextureRegistry};
+
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&6u32.to_be_bytes());
+header.extend_from_slice(&4u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+SkyTextureRegistry::register(82, SkyTextureLayer::new(header)).unwrap();
+let mut bad = SkyTextureLayer::new(Vec::new());
+bad.axis = [0.0, 0.0, 0.0];
+assert!(SkyTextureRegistry::register(82, bad).is_err());
+assert_eq!(SkyTextureRegistry::layers(82).len(), 1, "the refusal added nothing");
+```
+
+### `SkyTextureRegistry::layers`
+
+The textured layers registered for a world, in drawing order.
+
+```rust
+use pluto_lib::SkyTextureRegistry;
+
+assert!(SkyTextureRegistry::layers(83).is_empty());
+```
+
+### `SkyTextureRegistry::registered_worlds`
+
+Every world that has textured layers, sorted: the registry's own census, for tests and
+tools.
+
+```rust
+use pluto_lib::{SkyTextureLayer, SkyTextureRegistry};
+
+let mut header = Vec::new();
+header.extend_from_slice(b"\x89PNG\r\n\x1a\n");
+header.extend_from_slice(&13u32.to_be_bytes());
+header.extend_from_slice(b"IHDR");
+header.extend_from_slice(&6u32.to_be_bytes());
+header.extend_from_slice(&4u32.to_be_bytes());
+header.extend_from_slice(&[8, 6, 0, 0, 0]);
+SkyTextureRegistry::register(84, SkyTextureLayer::new(header)).unwrap();
+assert!(SkyTextureRegistry::registered_worlds().contains(&84));
+```
+
+### `SkyTextureConditions`
+
+What one frame asks the textured layers for: `day_time` (ticks of the day, counting the
+days) and the frame's `weather`. (Biome and height gating stay with pack layers; a mod layer
+that needs them is a pack layer.)
+
+```rust
+use pluto_lib::{SkyNow, SkyTextureConditions};
+
+let noon = SkyTextureConditions { day_time: 6000, weather: SkyNow::Clear };
+assert_eq!(noon.day_time, 6000);
+```
+
+### `SkyTextureDraw`
+
+One textured layer of a frame, ready to draw: its `image` (a texture index over every
+registered layer's texture, in census order), its `blend`, its `brightness`, and its turning
+— the `axis` it turns around and the `turns` it has turned.
+
+```rust
+use pluto_lib::{SkyNow, SkyTextureConditions, SkyTextureLayer, texture_draws};
+
+let layer = SkyTextureLayer::new(Vec::new());
+let conditions = SkyTextureConditions { day_time: 6000, weather: SkyNow::Clear };
+let mut eased = Vec::new();
+let draws = texture_draws(&[layer], 3, &conditions, 0.0, 0.0, true, &mut eased);
+assert_eq!(draws.len(), 1);
+assert_eq!(draws[0].image, 3);
+assert_eq!(draws[0].brightness, 1.0);
+assert_eq!(draws[0].turns, 0.0);
+```
+
+### `texture_draws`
+
+The textured draws of one world's layers for one frame: each layer the weather admits eases
+toward full brightness over its transition (a layer the weather refuses eases out), is lit by
+its fade times, and turns as its rotation says. `first_image` is the texture index of the
+world's first layer over the whole census; `eased` is the caller's per-layer eased
+brightness, kept between frames — a length mismatch, or `snap`, lands every layer on its
+target at once, as the host's own evaluation does on a world change.
+
+```rust
+use pluto_lib::{SkyNow, SkyTextureConditions, SkyTextureLayer, texture_draws};
+
+let mut layer = SkyTextureLayer::new(Vec::new());
+layer.transition = 2.0;
+let layers = [layer];
+let clear = SkyTextureConditions { day_time: 6000, weather: SkyNow::Clear };
+let mut eased = Vec::new();
+let draws = texture_draws(&layers, 0, &clear, 0.0, 0.05, true, &mut eased);
+assert_eq!(draws[0].brightness, 1.0, "arrival snaps");
+// Rain refuses the layer (clear only): it eases out over its two seconds.
+let rain = SkyTextureConditions { weather: SkyNow::Rain, ..clear };
+let draws = texture_draws(&layers, 0, &rain, 0.0, 0.5, false, &mut eased);
+assert_eq!(draws[0].brightness, 0.75);
 ```
