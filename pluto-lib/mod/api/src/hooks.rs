@@ -239,10 +239,6 @@ pub fn hooks() -> Box<dyn Hooks> {
         horizon_client::entry::pluto_break_complete_access::BreakCompleteSink { completed: break_complete_sink },
     )
     .expect("PlutoLib break completion sink installs once");
-    horizon_client::entry::pluto_block_remove_access::set_block_remove_sink(
-        horizon_client::entry::pluto_block_remove_access::BlockRemoveSink { removed: block_remove_sink },
-    )
-    .expect("PlutoLib block removal sink installs once");
     horizon_client::entry::pluto_throw_sound_access::set_sink(horizon_client::entry::pluto_throw_sound_access::Sink {
         throw_sound: projectile_api_v1::throw_sound_for,
     }).expect("PlutoLib throw sound sink installs once");
@@ -3188,43 +3184,6 @@ fn flush_break_complete(
     }
 }
 
-/// The removal the game's block entity removal reports (see `pluto_block_remove_access`): the block
-/// entity of `removed.block` at `removed.pos` is being removed with its side effects, and its type's
-/// removal hook answers the stacks it keeps outside its slots. The game drops them at the position;
-/// what the hook leaves in the slots the game spills itself, as it does for any container.
-fn block_remove_sink(
-    host: &mut dyn Host,
-    removed: horizon_client::entry::pluto_block_remove_access::BlockRemoved,
-) -> Vec<ItemStack> {
-    if !block_entity_api_v1::has_remove_hook(&removed.block) {
-        return Vec::new();
-    }
-    let dimension = removed.dimension.clone();
-    let (pos, block) = (removed.pos, removed.block.clone());
-    let mut drops: Vec<ItemSlot> = Vec::new();
-    let handle = HostHandle::new(host);
-    world_api_v1::with_ticking_dimension(&dimension, || {
-        world_api_v1::with_world(&mut HostWorld(handle), || {
-            neighbour_api_v1::with_neighbours(&mut HostNeighbours { host: handle, dimension: dimension.clone() }, || {
-                host.change_mod_block_entity(pos, &mut |entity| {
-                    with_block_entity(entity, |data, items| {
-                        drops = block_entity_api_v1::BlockEntityTypeRegistry::remove_block(&block, pos, data, items);
-                        true
-                    });
-                });
-            });
-        });
-    });
-    drops
-        .iter()
-        .filter(|slot| slot.count > 0)
-        .map(|slot| {
-            let mut made = ItemStack::new(&slot.item.to_string(), slot.count);
-            write_slot(&mut made, slot);
-            made
-        })
-        .collect()
-}
 
 /// Reports one earlier break to `AFTER`: the break-completion seam (see `break_complete_sink`) runs the `AFTER` of
 /// most breaks inside the break itself; a break the seam did not report — the host returned an error after the removal,

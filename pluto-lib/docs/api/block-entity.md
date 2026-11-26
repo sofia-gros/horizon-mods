@@ -1313,6 +1313,8 @@ let kind = BlockEntityType::new(Identifier::parse("example:carrier").unwrap())
 let _ = kind;
 ```
 
+Reach status (#1196): the pure surface on this page is complete and tested, but the woven reach that would call it is not in the tree. The removal funnel in the pinned host is `GameLevel::remove_entity` (`crates/horizon-client/src/game/spill.rs`), and the bridge sink contract needs `&mut dyn Host`, which only `Game` implements (the generated impl in horizon-mod-api-gen) - no `Game` is reachable from that funnel, so the HEAD reach the first attempt declared (`Game::remove_entity`, a target that does not exist) was refused by the weave plan (E_TARGET_NOT_FOUND) and removed at the wave-4+5 integration. Follow-up design: a HEAD on `GameLevel::remove_entity` captures the removal (position, block, and the block entity's saved data) into a support-module queue, and a Game-context hook drains the queue into `BlockEntityTypeRegistry::remove_block` while the captured data still answers for the removed entity. Until that lands, `on_remove` hooks are registered but never fire, and stacks a type keeps outside its slots are not dropped when its block entity is removed.
+
 ### `BlockEntityTypeRegistry::remove_block`
 
 `fn remove_block(block: &str, pos: BlockPos, data: &NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> Vec<ItemSlot>`. Runs the `on_remove` hook of `block` over the saved data and slots of the block entity being removed: the extra stacks it asks to drop (what it keeps outside its slots). Empty when the block has no hook; what the hook leaves in the slots is the game's to spill.
