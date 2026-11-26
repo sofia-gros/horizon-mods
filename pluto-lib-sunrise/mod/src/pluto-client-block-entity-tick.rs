@@ -12,6 +12,12 @@
 use super::*;
 use sunrise_client_render::pluto_client_block_entity_state::{ClientCandidate, client_targets};
 
+/// The entity's module-owned client state, keyed by its native identity.
+fn client_state(entity: &sunrise_client_render::chunk::block_entity::ModBlockEntity)
+    -> std::sync::Arc<sunrise_client_render::pluto_client_block_entity_state::ClientState<sunrise_world::nbt::Compound>> {
+    sunrise_client_render::pluto_client_block_entity_state::client_state::<sunrise_world::nbt::Compound>(entity.revision().identity())
+}
+
 /// The current world's real Mod entities include untemplated custom blocks,
 /// which Renderer::block_entities() may omit. No camera/frustum/fade test.
 pub(super) fn targets(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32; 3]> {
@@ -38,7 +44,7 @@ pub(super) fn observe(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32
     // interior state through shared references, never the saved-data revision.
     for (pos, entity) in &game.world.block_entities {
         if let sunrise_client::containers::BlockEntity::Mod(entity) = entity {
-            let _ = entity.__horizon_mixins_pluto_lib_pluto_block_entity_client_state()
+            let _ = client_state(entity)
                 .set_client_active(active.contains(&[pos.0, pos.1, pos.2]));
         }
     }
@@ -92,7 +98,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
             let state = game.world.block(pos[0], pos[1], pos[2]);
             let block = game.res.facts().get(state).name.to_string();
             if !(sink.has)(&block) { return None; }
-            let update = entity.__horizon_mixins_pluto_lib_pluto_block_entity_client_state().begin().ok()?;
+            let update = client_state(entity).begin().ok()?;
             Some((block, entity.nbt.clone(), update))
         })();
         let Some((block, saved, mut update)) = prepared else { continue };
@@ -106,7 +112,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
 fn reset_world(world: &sunrise_client::world::World) {
     for (_, entity) in &world.block_entities {
         if let sunrise_client::containers::BlockEntity::Mod(entity) = entity {
-            let _ = entity.__horizon_mixins_pluto_lib_pluto_block_entity_client_state().reset();
+            let _ = client_state(entity).reset();
         }
     }
 }

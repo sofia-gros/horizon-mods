@@ -6,6 +6,9 @@ use super::*;
 use sunrise_client::mobs::drops;
 use crate::game::pluto_living_drops as access;
 
+fn head_deaths(game:&Game<'_>)->std::sync::Arc<sunrise_client::game::combat::pluto_living_drop_state::HeadDeaths> {
+    sunrise_client::game::combat::pluto_living_drop_state::state(std::ptr::from_ref(&game.combat) as usize)
+}
 fn killer_id(m:&Mob)->Option<u32> {
     match m.last_damage.and_then(|(damage,_)|damage.attacker) {Some(Who::Mob(id))=>Some(id),_=>None}
 }
@@ -54,25 +57,25 @@ fn can_claim(game:&Game<'_>,killer:Option<u32>)->std::result::Result<bool,String
     if let Some(mob)=game.mobs.iter().find(|mob|mob.id==id) {
         return Ok(mob.species()==Species::Creeper && mob.extra.charged
             && mob.ai.nav.__horizon_mixins_pluto_lib_pluto_entity_spawn_state().head_drop_available()
-            && game.combat.__horizon_mixins_pluto_lib_pluto_living_drop_state().available(id)?);
+            && head_deaths(game).available(id)?);
     }
     if !game.combat.charged_exploders.contains(&id) {return Ok(false);}
-    game.combat.__horizon_mixins_pluto_lib_pluto_living_drop_state().available(id)
+    head_deaths(game).available(id)
 }
 fn claim(game:&mut Game<'_>,killer:Option<u32>)->std::result::Result<bool,String> {
     let Some(id)=killer else {return Ok(false)};
     if let Some(mob)=game.mobs.iter().find(|mob|mob.id==id) {
         if mob.species()!=Species::Creeper || !mob.extra.charged
-            || !game.combat.__horizon_mixins_pluto_lib_pluto_living_drop_state().available(id)?
+            || !head_deaths(game).available(id)?
             || !mob.ai.nav.__horizon_mixins_pluto_lib_pluto_entity_spawn_state().claim_head_drop() {return Ok(false);}
         // Carry this spent flag if the still-live creeper explodes later in the
         // current wave; begin_wave seeds future waves from the live Nav flags.
-        return game.combat.__horizon_mixins_pluto_lib_pluto_living_drop_state().claim(id);
+        return head_deaths(game).claim(id);
     }
     if !game.combat.charged_exploders.contains(&id) {return Ok(false);}
     // Keep powered source identity available for ordinary loot of every later
     // victim; head availability is separate, not removal from the native list.
-    game.combat.__horizon_mixins_pluto_lib_pluto_living_drop_state().claim(id)
+    head_deaths(game).claim(id)
 }
 struct Context<'a,'g> {game:&'a mut Game<'g>,info:access::Info,killer:Option<u32>,at:[f64;3]}
 impl access::Context for Context<'_,'_> {

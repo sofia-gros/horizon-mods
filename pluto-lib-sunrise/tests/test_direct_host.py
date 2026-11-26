@@ -165,56 +165,73 @@ class DirectHostTests(unittest.TestCase):
                 direct.prepare(source, output)
             self.assertFalse(output.exists())
 
-    def test_actual_state_helpers_with_direct_fields_and_native_constructor_shapes(self):
-        # A minimal host fixture retains the relevant native shapes: a closure
-        # before KeptEntry construction and CombatTracker's derived Default /
-        # struct update. The transformation and both state helpers are real.
-        cache = direct.transform('''
-struct KeptEntry {
-    vertices: Vec<u32>,
+    def test_actual_state_helpers_with_module_stores(self):
+        # The Sunrise modules own their state stores; no field is woven.
+        # The fixture keeps the relevant native shapes: a KeptGeometry
+        # driven through the real cache-get guard's get -> keep -> get
+        # pipeline, and CombatTracker values (derived Default / struct
+        # update) whose drop state the real store keys by instance.
+        # Both state modules and the cache-get guard are the real files.
+        module = ROOT / 'pluto-lib-sunrise/mod/src'
+        rust = '''extern crate self as sunrise_client_render;
+pub mod pluto_client_block_entity_state {
+    use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+    pub static GENERATION: AtomicU64 = AtomicU64::new(0);
+    pub static AVAILABLE: AtomicBool = AtomicBool::new(true);
+    pub fn cache_generation() -> Option<u64> {
+        AVAILABLE.load(Ordering::Relaxed).then(|| GENERATION.load(Ordering::Relaxed))
+    }
 }
-fn keep(old: Option<KeptEntry>) -> KeptEntry {
-    let vertices = old.map_or_else(Vec::new, |e| e.vertices);
-            KeptEntry {
-                vertices,
-            }
-}
-''', 'pluto-block-entity-cache-generation', 'KeptEntry', 'u64',
-            'crate::game::pluto_block_entity_cache::frame_generation()')
-        combat = direct.transform('''
-#[derive(Default)]
-struct CombatTracker { damage: u32 }
-fn message_tracker() -> CombatTracker {
-    let damage = Some(4).map(|n| n + 1).unwrap();
-    CombatTracker { damage, ..CombatTracker::default() }
-}
-''', 'pluto-living-drop-state', 'CombatTracker',
-            'crate::game::combat::pluto_living_drop_state::HeadDeaths',
-            '::core::default::Default::default()')
-        module = ROOT / 'pluto-lib/mod'
-        rust = '''mod game {
+mod game {
+    pub mod native_block_entity_draw {
+        pub struct KeptEntry { pub vertices: Vec<u32> }
+        pub struct KeptGeometry { pub entries: std::collections::BTreeMap<[i32; 3], KeptEntry> }
+        include!(GET_PATH);
+        pub(crate) fn get(cache: &mut KeptGeometry, pos: [i32; 3]) { pluto_block_entity_cache_get(cache, pos); }
+    }
     pub mod pluto_block_entity_cache { include!(CACHE_PATH); }
-    pub mod combat { pub mod pluto_living_drop_state { include!(DROP_PATH); } }
+    pub mod combat {
+        #[derive(Default)]
+        pub struct CombatTracker { pub damage: u32 }
+        pub mod pluto_living_drop_state { include!(DROP_PATH); }
+    }
 }
-'''.replace('CACHE_PATH', '"' + (module / 'pluto-block-entity-cache.rs').as_posix() + '"').replace('DROP_PATH', '"' + (module / 'pluto-living-drop-state.rs').as_posix() + '"')
-        rust += cache + combat + '''
+'''.replace('CACHE_PATH', '"' + (module / 'pluto-block-entity-cache.rs').as_posix() + '"').replace('DROP_PATH', '"' + (module / 'pluto-living-drop-state.rs').as_posix() + '"').replace('GET_PATH', '"' + (module / 'pluto-block-entity-cache-get.rs').as_posix() + '"')
+        rust += '''
 #[test]
-fn direct_storage_preserves_owner_and_capture() {
-    use game::pluto_block_entity_cache as cache;
-    cache::begin_lookup(Some(11));
-    let entry = keep(None);
-    cache::begin_lookup(Some(12));
-    assert_eq!(*entry.__horizon_mixins_pluto_lib_pluto_block_entity_cache_generation(), 11);
-    assert!(!cache::reusable(*entry.__horizon_mixins_pluto_lib_pluto_block_entity_cache_generation(), Some(12)));
-    let next = keep(Some(entry));
-    assert_eq!(*next.__horizon_mixins_pluto_lib_pluto_block_entity_cache_generation(), 12);
-    let first = CombatTracker::default();
-    let second = message_tracker();
+fn module_stores_preserve_owner_and_capture() {
+    use game::native_block_entity_draw::{get, KeptEntry, KeptGeometry};
+    use std::sync::atomic::Ordering;
+    let pos = [1, 2, 3];
+    let mut geometry = KeptGeometry { entries: std::collections::BTreeMap::new() };
+    // Frame at generation 11: the get misses, the keep stores the entry.
+    pluto_client_block_entity_state::GENERATION.store(11, Ordering::Relaxed);
+    get(&mut geometry, pos);
+    geometry.entries.insert(pos, KeptEntry { vertices: vec![1] });
+    // Same generation: the entry survives its get.
+    get(&mut geometry, pos);
+    assert!(geometry.entries.contains_key(&pos));
+    // Generation 12: the entry kept under 11 is evicted, and the
+    // replacement the same frame keeps is stamped with 12.
+    pluto_client_block_entity_state::GENERATION.store(12, Ordering::Relaxed);
+    get(&mut geometry, pos);
+    assert!(!geometry.entries.contains_key(&pos));
+    geometry.entries.insert(pos, KeptEntry { vertices: vec![2] });
+    get(&mut geometry, pos);
+    assert!(geometry.entries.contains_key(&pos));
+    // An unavailable generation clears the cache outright.
+    pluto_client_block_entity_state::AVAILABLE.store(false, Ordering::Relaxed);
+    get(&mut geometry, pos);
+    assert!(geometry.entries.is_empty());
+    // Drop state: each tracker instance owns its claims.
+    use game::combat::pluto_living_drop_state as drops;
+    let first = game::combat::CombatTracker::default();
+    let second = game::combat::CombatTracker { damage: Some(4).map(|n| n + 1).unwrap(), ..Default::default() };
     assert_eq!(second.damage, 5);
-    let state = first.__horizon_mixins_pluto_lib_pluto_living_drop_state();
+    let state = drops::state(std::ptr::from_ref(&first) as usize);
     assert!(state.claim(7).unwrap());
     assert!(!state.claim(7).unwrap());
-    assert!(second.__horizon_mixins_pluto_lib_pluto_living_drop_state().claim(7).unwrap());
+    assert!(drops::state(std::ptr::from_ref(&second) as usize).claim(7).unwrap());
     state.begin_wave([7]).unwrap();
     assert!(!state.available(7).unwrap());
     state.clear().unwrap();

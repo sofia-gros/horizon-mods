@@ -55,12 +55,8 @@ def check(plan, metadata):
             if actual != expected[field]:
                 raise ValueError("module placement/source drift: " + field)
     states = [s for s in plan.get("states", []) if s.get("mod_id") == MOD]
-    if len(states) != 1:
-        raise ValueError("one owned state required")
-    state = states[0]
-    for field, value in metadata["state"].items():
-        if state.get(field) != value:
-            raise ValueError("owned state/constructor drift: " + field)
+    if states:
+        raise ValueError("owned states are migrated to the module store; none may be woven")
 
 if __name__ == "__main__":
     try:
@@ -74,4 +70,4 @@ if __name__ == "__main__":
     except (OSError, KeyError, ValueError) as error:
         print("guide lifetime experiment rejected: " + str(error), file=sys.stderr)
         raise SystemExit(1)
-    print("Experimental guide source, owned state and invalidation composition verified.")
+    print("Experimental guide source and invalidation composition verified.")

@@ -522,6 +522,8 @@ are folded into the release procedure (DESIGN §5).
   Attachment. (Where a future row IS holder-shaped, the Attachments route
   with `AttachmentDescriptor` / `AttachmentKey` applies; mind gap G6 —
   attachment codecs get no Host access at save time.)
+  **L6 (2026-11-26): five rows migrated, five held on one shared host
+  gap — see the L6 section below.**
 - **R5 — Bridge inversion + API-substitution pass.** First the inversion
   (checkpoint above): support modules call INTO `pluto_lib`; hooks.rs's
   game-type adaptation moves into the modules/helpers; the 44 missing
@@ -552,6 +554,83 @@ are folded into the release procedure (DESIGN §5).
 - **R8 — Registry v2.** Registration (numeric repo ID + 8-char project ID)
   in sunrise-org/sunrise-mods, then `cargo sunrise-mod release`; native
   mods ship source + Cargo.lock and are built on the player's machine.
+
+## L6 state migration (2026-11-26, branch `sunrise/l6-state`)
+
+Five of the ten quarantined state rows moved to module-owned static
+stores (no Attachments, no woven field); their `[[state]]` blocks
+left the quarantine files and every consumer was repointed:
+
+- `pluto-living-drop-state` (HeadDeaths on CombatTracker): store in
+  pluto-living-drop-state.rs keyed by the tracker address
+  (`state(key)`; callers pass `from_ref(&game.combat) as usize`).
+  CombatTracker is the long-lived Game's combat field, never
+  value-swapped, and `begin_wave` replaces the claim set wholesale
+  at each wave boundary. Consumers: pluto-head-wave-reset.rs,
+  pluto-living-drops-game.rs.
+- `pluto-block-entity-client-state` (ClientState on ModBlockEntity):
+  store in pluto-client-block-entity-state.rs keyed by the entity's
+  native identity, `ModRevision::identity()` — the host's own
+  process-wide `new_identity()` counter (one per entity made; a
+  clone is another entity, matching the state's clone-fresh
+  semantics; the host itself keeps an identity-keyed static store,
+  UPDATE_FIELDS). Consumers: pluto-block-entity-revision.rs,
+  pluto-client-block-entity-tick.rs. **L2 handoff:** the hooks.rs
+  snapshot call site (hooks.rs:4861) still uses the old accessor —
+  repoint to
+  `client_state::<Compound>(event.entity.revision().identity()).snapshot()`.
+- `pluto-block-entity-cache-generation` (u64 on KeptEntry):
+  thread-local stamps in pluto-block-entity-cache.rs keyed by
+  (cache address, pos). The active manifest has no keep seam, so
+  the get guard reconstructs the stamp from the get side of the
+  serial get -> draw -> keep pipeline: a miss or eviction records a
+  pending stamp at the lookup generation, committed when the kept
+  entry is next seen. Every failure direction is a spurious
+  eviction, never a wrong reuse.
+- `pages` (Pages on Creative): store in paging.rs keyed by the
+  screen address (`take`/`put`/`with`, preserving the consumers'
+  mem::take flow). Consumers: click.rs, prepare.rs, draw.rs.
+- guide-lifetime `session` (State on ChunkMap): store in the
+  experiment's state.rs keyed by the active map's address
+  (`with_session`/`with_session_mut`/`evict_session`). Sound here —
+  unlike the library ChunkMap rows below — because every access
+  goes through `game.world.chunks` and the session's own
+  epoch/owner validation guards transitions. The experiment guard
+  now requires ZERO woven states and pins the new sources
+  (test_guard.py 12/12, run in-tree); one pre-existing pin drift
+  was refreshed with it (source.json's sunrise-mod.toml hash
+  predated the Sunrise conversion, so the guard was already red).
+
+Held — one shared design blocker: `pluto-entity-spawn-state`
+(SpawnState on Navigation) and the ChunkMap rows
+`pluto-advancement-tags` (both bundles), `landing-state`,
+`saved-book-pending`. The pinned host exposes no move-stable
+per-instance identity for Navigation or ChunkMap: Navigation is
+plain values end to end (SpawnState's sharing semantics are
+intrinsic to living inside the cloned value), ChunkMap has no
+identity field, and worlds are value-swapped between Game.world
+and Levels.parked — so any static key either loses a parked
+world's state or leaks one world's state into the next (the
+advancement-tags test vehicle pins exactly those value-move
+semantics; the saved-book handoff crosses the PreparedWorld ->
+Game.world move between install and take). Resolution belongs to
+the primitive-gap track: a per-instance identity token for
+entities / levels exposed to mods. Their quarantine rows stay
+untouched.
+
+Verification (scoped, this lane): pure suite 430/430 unit
+(427 baseline + 3 new store tests) and 1307/1307 doctests; guide
+state.rs standalone tests 12/12; test_guard.py 12/12 in-tree; the
+reworked tests/test_direct_host.py fixture for rows 2+4 (real
+module files, get -> keep -> get pipeline + per-tracker claims)
+5/5 compiled and run under the gnu 1.99.1 rustc (the python test
+itself shells to `rustc +1.95.0` and was not run as-is). A tree
+sweep finds no remaining accessor for the migrated rows except
+the hooks.rs:4861 handoff above. tests/advancement-tags does not
+compile at baseline (pre-existing: its `#[path]`s point at
+mixins/pluto_native_creative/, which the conversion never
+populated); its rows are held anyway. Weave-plan / build
+verification is L7's.
 
 ## Maintenance
 

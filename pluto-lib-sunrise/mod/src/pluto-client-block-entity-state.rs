@@ -1,6 +1,7 @@
 // Instance-owned, unsaved client block-entity state. This module is tested
-// directly by the pure suite. A native state declaration exists in source;
-// actual plan/constructor validation and native compilation remain pending.
+// directly by the pure suite. The state lives in the module-owned identity
+// store below (client_state), not in a woven field; native compilation of
+// the consumers remains pending.
 // Owner candidate: ModBlockEntity's private-field constructor. Its custom Clone
 // calls new, and live block rendering borrows the world's entity, not a clone.
 // State/constructor contracts exist in source but await real plan review.
@@ -25,6 +26,38 @@ pub fn set_cache_generation_provider(provider: fn() -> Option<u64>) -> Result<()
     CACHE_GENERATION.set(provider).map_err(|_| "cache generation provider already installed")
 }
 pub fn cache_generation() -> Option<u64> { CACHE_GENERATION.get().and_then(|provider| provider()) }
+
+static CLIENT_STATES: Mutex<std::collections::BTreeMap<u64, Arc<dyn std::any::Any + Send + Sync>>> =
+    Mutex::new(std::collections::BTreeMap::new());
+
+/// The client state owned by the block entity with the given native
+/// identity (`ModBlockEntity::revision().identity()`: one per entity
+/// made, never reused in-process; a clone is another entity with a
+/// fresh identity, matching this state's "clone = fresh default"
+/// semantics). The Sunrise host carries no woven field for this state,
+/// so the module owns the store, keyed by that identity; the host
+/// itself keeps an identity-keyed static store for the same entities
+/// (UPDATE_FIELDS in sunrise-mod-runtime). Level unload resets the
+/// states of the entities it visits instead of evicting them: parked
+/// worlds keep their entities, whose states resume on restore. A
+/// caller asking for a different T than the stored one receives a
+/// fresh detached state instead of another instance's data — the
+/// conservative direction, like a busy or poisoned state refusing
+/// reuse.
+pub fn client_state<T: Default + Send + Sync + 'static>(identity: u64) -> Arc<ClientState<T>> {
+    let mut store = CLIENT_STATES
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(existing) = store.get(&identity) {
+        if let Ok(state) = Arc::clone(existing).downcast::<ClientState<T>>() {
+            return state;
+        }
+        return Arc::new(ClientState::default());
+    }
+    let state = Arc::new(ClientState::default());
+    store.insert(identity, Arc::clone(&state) as Arc<dyn std::any::Any + Send + Sync>);
+    state
+}
 
 /// The native animation pass also has server callers. Window tick events alone
 /// are insufficient because they run paused and on title screens as well.
@@ -229,6 +262,22 @@ mod tests {
             stale.commit().unwrap();
             assert!(state.snapshot().unwrap().is_empty());
         }
+    }
+
+    #[test]
+    fn identity_store_shares_one_state_per_identity_and_detaches_type_mismatches() {
+        let first = client_state::<Vec<i32>>(1_001);
+        let mut update = first.begin().unwrap();
+        update.data_mut().push(5);
+        update.commit().unwrap();
+        assert!(Arc::ptr_eq(&first, &client_state::<Vec<i32>>(1_001)));
+        assert_eq!(client_state::<Vec<i32>>(1_001).snapshot().unwrap(), [5]);
+        let other = client_state::<Vec<i32>>(1_002);
+        assert!(other.snapshot().unwrap().is_empty());
+        // A different T for a live identity never sees the stored data.
+        let mismatched = client_state::<BTreeMap<String, i32>>(1_001);
+        assert!(mismatched.snapshot().unwrap().is_empty());
+        assert_eq!(client_state::<Vec<i32>>(1_001).snapshot().unwrap(), [5]);
     }
 
     #[test]

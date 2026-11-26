@@ -3,15 +3,7 @@
 # (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
 # [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
 # of the native build. Kept verbatim for the migration work.
-
-[[state]]
-id = "pages"
-target = "sunrise_client::creative::Creative"
-ty = "crate::creative::pluto_paging::Pages<crate::creative::Tab>"
-initial = "::core::default::Default::default()"
-
-[[state.constructor]]
-target = "sunrise_client::creative::Creative::new"
-selector = "Self"
-require = 1
+# Migration (L6, 2026-11-26): pages moved to a module-owned static
+# store in pluto_paging (take/put/with keyed by the Creative screen's
+# address) and was removed from this file. Nothing remains here.
 
