@@ -496,6 +496,48 @@ are folded into the release procedure (DESIGN §5).
   `pluto-lib-sunrise/sunrise-6a02076f-mixins-e59da909`; base follow-up
   work on it (the ffb8601b-named branch is kept for history).
 
+## L2 bridge inversion (2026-11-26, branch `sunrise/l2-bridge`)
+
+- The mod crate (`mod/src/hooks.rs` + `lib.rs`) now names only `mod_api`
+  and `crate::pure`: the Horizon `hooks()` bundle is deleted, and each
+  game-side support module registers into the pure registries itself
+  (the 48 `set_*` calls already passed pure functions; only the game-type
+  adapter closures move module-side). The manifest pin moved to the L1
+  target `6a02076f89cd…`. Verified by MSVC `cargo check` (exit 0); the
+  shipped build stays the tool's gnu build at L7.
+- 41 Hooks-trait methods are wired (45 of the old 111 names; merges:
+  living_incoming_damage v1+v2+v3, ingredient+ingredient_test,
+  perform_command → register_commands executors). Host adapters
+  (PlayerOps/WorldOps) run over the generated ref types under the same
+  scope nesting as Horizon. Attachments are Descriptor/Key: two
+  multiplexed JSON attachments (`pluto_lib:json`, `pluto_lib:json_synced`)
+  preserve the per-id public API; the 10 quarantined state rows migrate
+  to module-owned statics in L6.
+- 22 old names are Part-scoped hooks, not Hooks-trait methods
+  (menu_clicked, block_entity_*, the fluid/capability family, use_item…)
+  — L3 registers Parts forwarding to the same pure entries. 44 are
+  residuals with per-item reasons in the lane record: the largest class
+  is HostSide hooks (player/entity ticks, break speed, use-item trio),
+  whose pure bodies need host reads the hook does not carry; then event
+  shapes that lost facts (arrow_loose, projectile_impact,
+  compute_fov_modifier, critical_hit) and true gaps (hud = A2,
+  world_primitives = A9, destroy cancellation = A4, reload apply = A6 —
+  the add_server_reload_listeners adapter is designed, L3/L5).
+- Bridge audit of the 40 `*access` modules: 29 cannot become
+  `[[native.bridge]]` (23 woven into `sunrise_client_lib`, 5 into
+  sunrise-world, 1 into sunrise-assets; bridges target `sunrise_client`
+  only). 11 are crate-eligible (block_exp, block_settings, entity_climb,
+  entity_ignite, entity_push, entity_ride, entity_teleport,
+  living_entity, mob_offhand, player_visibility, trade); their
+  per-function conversion travels with L4's weave work, so no
+  declarations were added here.
+- A11 verdicts: open_menu/close_menu have no bridge call sites (no-op);
+  entity_join_level v5 wired; chunk_data had no old body (chunk state
+  rides attachments — closed); mob_split's trait hook exists but its
+  adapter is an L3 rebuild; typed capability providers are the
+  Part-scoped family (L3 + A1). `Registrar` has no PlutoLib-side impl;
+  `register` compiles against the new supertrait
+  (EnchantingTableOffsetsRegistrar) unchanged.
 
 ## Remaining (precise; in dependency order)
 
