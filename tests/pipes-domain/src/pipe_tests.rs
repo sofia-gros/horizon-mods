@@ -471,7 +471,7 @@ fn the_registered_types_open_one_inbox_slot_per_face_and_refuse_takes() {
     assert!(allowed(face_index(Direction::East), Some(Direction::East), TransferMode::Insert));
     assert!(!allowed(face_index(Direction::West), Some(Direction::East), TransferMode::Insert), "a stack may only enter through the slot of the face it arrives on");
     assert!(!allowed(face_index(Direction::East), Some(Direction::East), TransferMode::Take), "takes are refused");
-    let tanks = BlockEntityTypeRegistry::read_tanks("pipes:fluid_pipe", &NbtCompound::new()).expect("fluid pipe tanks");
+    let tanks = BlockEntityTypeRegistry::read_tanks("pipes:fluid_pipe", &NbtCompound::new(), &[]).expect("fluid pipe tanks");
     assert_eq!(tanks.len(), 1);
     assert_eq!(tanks[0].capacity, fluid_pipe::CAPACITY);
 }
