@@ -49,6 +49,12 @@ pub trait BlockEntityCanvas {
     fn push(&mut self);
     /// Comes back to the pose of the matching [`push`](Self::push).
     fn pop(&mut self);
+    /// Raises the block light of what is drawn from here to at least `level` (0..=15), keeping the sky
+    /// light — `FluidRenderer.withBlockLight`, which lights a fluid's own geometry by the fluid's light
+    /// level on top of the light where it sits. The raise lasts until the matching [`pop`](Self::pop),
+    /// which restores the light in force at the matching [`push`](Self::push), so a raise is always made
+    /// inside a push/pop pair. Canvases without light control ignore it.
+    fn raise_block_light(&mut self, _level: u8) {}
     /// Moves the pose by `by` blocks.
     fn translate(&mut self, by: [f32; 3]);
     /// Rotates the pose by `degrees` about `axis` through `pivot`.
@@ -141,6 +147,7 @@ impl BlockEntityCanvas for CacheCanvas<'_> {
     fn game_time(&self) -> Option<i64> { self.inner.game_time() }
     fn push(&mut self) { self.inner.push(); }
     fn pop(&mut self) { self.inner.pop(); }
+    fn raise_block_light(&mut self, level: u8) { self.inner.raise_block_light(level); }
     fn translate(&mut self, by: [f32; 3]) { self.inner.translate(by); }
     fn rotate_about(&mut self, axis: [f32; 3], degrees: f32, pivot: [f32; 3]) { self.inner.rotate_about(axis, degrees, pivot); }
     fn scale(&mut self, by: [f32; 3]) { self.inner.scale(by); }
