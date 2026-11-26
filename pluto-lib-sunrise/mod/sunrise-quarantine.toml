@@ -3,6 +3,12 @@
 # (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
 # [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
 # of the native build. Kept verbatim for the migration work.
+# Migration (L6, 2026-11-26): pluto-block-entity-client-state,
+# pluto-block-entity-cache-generation and pluto-living-drop-state moved
+# to module-owned static stores and were removed from this file.
+# pluto-entity-spawn-state and pluto-advancement-tags remain: the
+# pinned host exposes no move-stable per-instance identity for
+# Navigation / ChunkMap (design blocker; see SUNRISE.md, L6 section).
 
 [[state]]
 id = "pluto-entity-spawn-state"
@@ -13,43 +19,6 @@ initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "sunrise_client_lib::mobs::nav::<Navigation as Default>::default"
 selector = "Self"
-require = 1
-
-# Explicit custom block-entity types preempt native name/template factories once.
-# Source-integrated; actual attachment planning and native verification remain pending.
-[[state]]
-id = "pluto-block-entity-client-state"
-target = "sunrise_client_render::chunk::block_entity::ModBlockEntity"
-ty = "crate::pluto_client_block_entity_state::ClientState<sunrise_world::nbt::Compound>"
-initial = "::core::default::Default::default()"
-
-[[state.constructor]]
-target = "sunrise_client_render::chunk::block_entity::ModBlockEntity::new"
-selector = "Self"
-require = 1
-
-# Cache entries remember the registration epoch captured before drawing; native
-# revisions also include committed client data, without changing saved fields.
-[[state]]
-id = "pluto-block-entity-cache-generation"
-target = "sunrise_client::game::native_block_entity_draw::KeptEntry"
-ty = "u64"
-initial = "crate::game::pluto_block_entity_cache::frame_generation()"
-
-[[state.constructor]]
-target = "sunrise_client::game::native_block_entity_draw::KeptGeometry::keep"
-selector = "KeptEntry"
-require = 1
-
-[[state]]
-id = "pluto-living-drop-state"
-target = "sunrise_client::game::combat::CombatTracker"
-ty = "crate::game::combat::pluto_living_drop_state::HeadDeaths"
-initial = "::core::default::Default::default()"
-
-[[state.constructor]]
-target = "sunrise_client::game::combat::Game<'_>::mob_death_message"
-selector = "CombatTracker"
 require = 1
 
 [[crate]]

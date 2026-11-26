@@ -124,6 +124,44 @@ impl State {
     }
 }
 
+// The Sunrise host carries no woven field for this state, so the
+// module owns the sessions: keyed by an owner-supplied identity for
+// the map they belong to. Every caller passes the address of the one
+// active map (game.world.chunks); the session's own epoch/owner
+// validation and the invalidation seams guard every transition, and
+// ChunkMap::clear evicts its key outright.
+static SESSIONS: std::sync::Mutex<std::collections::BTreeMap<usize, State>> =
+    std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Read the session stored under `key`; an absent key reads as a
+/// fresh, inactive state.
+pub fn with_session<R>(key: usize, run: impl FnOnce(&State) -> R) -> R {
+    let store = SESSIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    match store.get(&key) {
+        Some(state) => run(state),
+        None => run(&State::default()),
+    }
+}
+
+/// Mutate the session stored under `key`, creating the default
+/// state on first use.
+pub fn with_session_mut<R>(key: usize, run: impl FnOnce(&mut State) -> R) -> R {
+    let mut store = SESSIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    run(store.entry(key).or_default())
+}
+
+/// Drop the session stored under `key`, if any.
+pub fn evict_session(key: usize) {
+    let mut store = SESSIONS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    store.remove(&key);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,6 +292,22 @@ mod tests {
         state.session.as_mut().unwrap().sequence = u64::MAX;
         assert_eq!(state.request(opening), Err(Error::Exhausted));
         assert!(!state.active(opening));
+    }
+    #[test]
+    fn session_store_isolates_keys_and_evicts() {
+        let a = 0xA11CEusize;
+        let b = 0xB0B5usize;
+        evict_session(a);
+        evict_session(b);
+        let opening = with_session_mut(a, |state| state.open(7, OWNER, CHANNEL).unwrap());
+        assert!(with_session(a, |state| state.active(opening)));
+        assert!(!with_session(b, |state| state.active(opening)));
+        let reply = with_session_mut(a, |state| state.request(opening).unwrap());
+        assert!(with_session_mut(a, |state| {
+            state.accept(reply, Some(7), true, OWNER, CHANNEL)
+        }));
+        evict_session(a);
+        assert!(!with_session(a, |state| state.active(opening)));
     }
     #[test]
     fn malformed_owner_names_do_not_activate() {

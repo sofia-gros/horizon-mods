@@ -3,14 +3,10 @@
 # (manifest.md @ 3d34bbe) - state must migrate to mod_api Attachments.
 # [[crate]]: no Sunrise manifest equivalent - becomes a Cargo dependency
 # of the native build. Kept verbatim for the migration work.
-
-[[state]]
-id = "session"
-target = "sunrise_client_render::chunk_map::ChunkMap"
-ty = "crate::chunk_map::pluto_guide_lifetime_state::State"
-initial = "::core::default::Default::default()"
-[[state.constructor]]
-target = "sunrise_client_render::chunk_map::<ChunkMap as Default>::default"
-selector = "Self"
-require = 1
+# Migration (L6, 2026-11-26): session moved to a module-owned static
+# store in pluto_guide_lifetime_state (with_session / with_session_mut
+# / evict_session, keyed by the active map's address) and was removed
+# from this file. Unlike the library's ChunkMap states, every access
+# here goes through game.world.chunks and the session's own
+# epoch/owner validation guards transitions. Nothing remains here.
 

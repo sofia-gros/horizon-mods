@@ -15,7 +15,7 @@ class GuardTests(unittest.TestCase):
             "inputs": self.meta["official_sources"],
             "injections": [{**h, "mod_id": guard.MOD} for h in self.meta["hooks"]]
                 + self.meta["allowed_disjoint_clear_hooks"],
-            "states": [{**self.meta["state"], "mod_id": guard.MOD}],
+            "states": [],
             "modules": [{**m, "mod_id": guard.MOD} for m in self.meta["modules"]] + self.meta["allowed_disjoint_modules"],
         }
     def rejected(self):
@@ -36,8 +36,8 @@ class GuardTests(unittest.TestCase):
         self.plan["injections"][0]["priority"] = 1; self.rejected()
     def test_rejects_helper_replacement(self):
         self.plan["injections"][0]["helper_source"] = "fn nope() {}"; self.rejected()
-    def test_rejects_state_constructor_drift(self):
-        self.plan["states"][0]["constructors"] = []; self.rejected()
+    def test_rejects_any_owned_state(self):
+        self.plan["states"] = [{"mod_id": guard.MOD, "name": "session"}]; self.rejected()
     def test_rejects_module_placement(self):
         self.plan["modules"][0]["file"] = "other.rs"; self.rejected()
     def test_rejects_source_drift(self):
