@@ -40,10 +40,8 @@ API documents.
 """
 
 authors = ["sofia-gros"]
-license = "MIT"
 homepage = "https://github.com/sofia-gros/horizon-mods"
 issues = "https://github.com/sofia-gros/horizon-mods/issues"
-source = "https://github.com/sofia-gros/horizon-mods"
 
 [[screenshots]]
 path = "page/plutolib-smeltery-gui.png"
