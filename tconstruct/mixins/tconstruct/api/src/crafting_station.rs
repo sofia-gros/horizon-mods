@@ -10,7 +10,7 @@
 //! chest's side inventory beside the grid are carried (see `tabbed_tables`), the side
 //! inventory through the menu's linked slots.
 use crate::tabbed_tables;
-use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
 
 /// Slots 0..=8 are the grid, slot 9 the result.
 pub(crate) const RESULT_SLOT: usize = 9;
@@ -19,8 +19,13 @@ const NAME: &str = "crafting_station";
 /// The icons sheet, as the station windows name it (the tab strip's texture).
 const ICONS: &str = "tconstruct:gui/icons";
 /// The vanilla crafting window's sheet, which the original's screen draws as its background
-/// (`CraftingStationScreen` blits the vanilla crafting table texture).
-const VANILLA_CRAFTING: &str = "minecraft:gui/container/crafting_table";
+/// (`CraftingStationScreen` blits the vanilla crafting table texture). The host's GUI atlas
+/// keys vanilla sheets without a namespace (`gui/...`, where a mod's own sheets are keyed
+/// `<mod>:gui/...`): `native_sprite` (pinned host `native_hooks.rs`, API 19) looks the name up
+/// verbatim, and the host's own crafting background is drawn under exactly this key
+/// (`game.rs`). The `minecraft:`-prefixed form therefore never resolved, and the window fell
+/// back to the host's plain panel (step-2 B8, confirmed in-game).
+const VANILLA_CRAFTING: &str = "gui/container/crafting_table";
 
 /// The window's own slots' places: the grid at (30, 17), the result at (124, 35) — the vanilla
 /// crafting window's geometry.
@@ -33,6 +38,13 @@ fn own_positions() -> Vec<Option<[f32; 2]>> {
     }
     positions.push(Some([124.0, 35.0]));
     positions
+}
+
+/// The window's background: the vanilla crafting sheet itself, blitted over the host's panel
+/// (no own background). A sheet the host cannot resolve by this name draws nothing and the
+/// panel stays.
+fn draw_background(canvas: &mut dyn ScreenCanvas, origin: [f32; 2]) {
+    canvas.sprite(VANILLA_CRAFTING, [0.0, 0.0, 176.0, 166.0], [origin[0], origin[1], 176.0, 166.0]);
 }
 
 /// Registers the block entity type and the window. Called once from the product's hooks.
@@ -55,10 +67,7 @@ pub(crate) fn register() {
             Some(positions)
         })
         .on_draw(|draw| {
-            // The original's background is the vanilla crafting sheet itself. The draw is a
-            // plain blit over the host's panel (no own background): a sheet the host cannot
-            // resolve by this name draws nothing and the panel stays, exactly as before.
-            draw.canvas.sprite(VANILLA_CRAFTING, [0.0, 0.0, 176.0, 166.0], [draw.origin[0], draw.origin[1], 176.0, 166.0]);
+            draw_background(draw.canvas, draw.origin);
             tabbed_tables::draw_side_panel(draw.canvas, draw.origin, draw.data, 0);
             tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, 0, ICONS);
         })
@@ -81,10 +90,35 @@ pub(crate) fn register() {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[derive(Default)]
+    struct Recorder { sprites: Vec<(String, [f32; 4], [f32; 4])> }
+    impl ScreenCanvas for Recorder {
+        fn fill(&mut self, _: [f32; 4], _: u32) {}
+        fn sprite(&mut self, name: &str, src: [f32; 4], dst: [f32; 4]) -> bool { self.sprites.push((name.to_owned(), src, dst)); true }
+        fn text(&mut self, _: &str, _: [f32; 2], _: u32, _: bool) {}
+        fn text_width(&self, _: &str) -> f32 { 0.0 }
+    }
+
     #[test]
     fn the_grid_and_result_fill_the_declared_slots() {
         assert_eq!(super::SLOT_COUNT, 10, "nine grid slots and the result, as the menu declaration says");
         assert_eq!(super::own_positions().len(), super::SLOT_COUNT);
         assert_eq!(super::own_positions()[super::RESULT_SLOT], Some([124.0, 35.0]), "the result at the vanilla crafting place");
+    }
+
+    #[test]
+    fn the_background_blits_the_vanilla_crafting_sheet_under_its_atlas_key() {
+        // The host's GUI atlas keys vanilla sheets without a namespace (the host's own
+        // crafting background is drawn as `gui/container/crafting_table`); the earlier
+        // `minecraft:`-prefixed name never resolved and the window kept the plain panel.
+        assert_eq!(super::VANILLA_CRAFTING, "gui/container/crafting_table");
+        let mut canvas = Recorder::default();
+        super::draw_background(&mut canvas, [10.0, 20.0]);
+        assert_eq!(canvas.sprites.len(), 1, "the background is the one sheet blit");
+        let (name, src, dst) = &canvas.sprites[0];
+        assert_eq!(name, super::VANILLA_CRAFTING);
+        assert_eq!((*src, *dst), ([0.0, 0.0, 176.0, 166.0], [10.0, 20.0, 176.0, 166.0]), "the sheet's crafting window, at the window's origin");
     }
 }

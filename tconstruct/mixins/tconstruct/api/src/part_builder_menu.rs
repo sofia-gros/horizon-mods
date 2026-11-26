@@ -478,6 +478,26 @@ mod tests {
     }
 
     #[test]
+    fn every_station_and_chest_block_resolves_its_type_and_window() {
+        // The menu-open gate (pluto-lib's right-click bridge) opens a block's window when
+        // the block entity registry resolves the block to a type carrying a menu, and the
+        // host's open chain then needs the block's window in the screen handler registry.
+        // Step 2 found this window — alone among the stations — not opening in-game at
+        // 564c574aa, though it opened before wave 3; the audit of the whole chain found
+        // the mod side uniform and fault-free (the remaining suspects are host-runtime),
+        // so the resolution is pinned here for the whole station/chest family.
+        crate::station_menu::register();
+        crate::crafting_station::register();
+        register();
+        crate::worktable_menu::register();
+        crate::chests::register();
+        for block in ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:crafting_station", "tconstruct:part_builder", "tconstruct:modifier_worktable", "tconstruct:tinkers_chest", "tconstruct:part_chest", "tconstruct:cast_chest"] {
+            assert!(BlockEntityTypeRegistry::get(block).is_some(), "{block} resolves to a block entity type");
+            assert!(ScreenHandlerRegistry::get(block).is_some(), "{block} resolves to a window");
+        }
+    }
+
+    #[test]
     fn buttons_address_the_scrolled_window() {
         assert_eq!(button_at([52.0, 16.0], 0, 40), Some(0));
         assert_eq!(button_at([52.0, 16.0], 16, 40), Some(16));
