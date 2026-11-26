@@ -38,6 +38,10 @@ pub(crate) struct State {
     pub drained: Option<FluidStack>,
     pub render: Option<FluidStack>,
     pub last_redstone: bool,
+    /// An activation whose own attempt found nothing, owed one more attempt by the next tick: the click seam's
+    /// neighbour answers are the host's to give, and a silent "nothing there" there must not spend the click
+    /// when the tick's reach — the one the pipes pour through — would have found the tank and the table.
+    pub armed: bool,
 }
 
 fn sized(stack: &FluidStack, amount: i32) -> FluidStack { FluidStack { fluid: stack.fluid.clone(), amount: amount.max(0) as u32, tag: stack.tag.clone() } }
@@ -54,6 +58,7 @@ impl State {
     /// reset.
     fn reset(&mut self) {
         self.stop = false;
+        self.armed = false;
         self.drained = None;
         if self.mode != Mode::Off || self.render.is_some() {
             self.mode = Mode::Off;
@@ -64,7 +69,14 @@ impl State {
     /// activate: right click or redstone.
     pub(crate) fn activate(&mut self, plumbing: &mut dyn Plumbing) {
         match self.mode {
-            Mode::Off => { self.stop = false; self.do_transfer(true, plumbing); }
+            Mode::Off => {
+                self.stop = false;
+                self.do_transfer(true, plumbing);
+                // Still off: the attempt found nothing to pour. That answer is only as good as the reach
+                // that gave it, so the next tick owes one more attempt in its own reach before the click
+                // is believed; a faucet with genuinely nothing to pour simply stays off, one tick later.
+                if self.mode == Mode::Off { self.armed = true; }
+            }
             Mode::Powered => { self.mode = Mode::Off; self.sync(None, false); }
             Mode::Pouring => self.stop = true,
         }
@@ -81,7 +93,14 @@ impl State {
 
     /// tick: one game tick.
     pub(crate) fn tick(&mut self, plumbing: &mut dyn Plumbing) {
-        if self.mode == Mode::Off { return; }
+        if self.mode == Mode::Off {
+            // The retry an activation armed when its own attempt found nothing: one attempt, then it rests.
+            if self.armed {
+                self.armed = false;
+                self.do_transfer(true, plumbing);
+            }
+            return;
+        }
         if self.mode == Mode::Powered && self.do_transfer(false, plumbing) {
             self.mode = Mode::Pouring;
             return;
@@ -97,7 +116,7 @@ impl State {
 
     /// doTransfer: starts (or, with `execute` false, only checks) moving an ingot's worth.
     fn do_transfer(&mut self, execute: bool, plumbing: &mut dyn Plumbing) -> bool {
-        if plumbing.has_input() && plumbing.has_output() {
+        if plumbing.has_input() {
             if let Some(peek) = plumbing.peek_input(PACKET_SIZE) {
                 let filled = plumbing.fill_output(&peek, false);
                 if filled > 0 {
@@ -117,8 +136,8 @@ impl State {
                     }
                 }
             }
-            // powered: keep the faucet running
-            if self.last_redstone {
+            // powered: keep the faucet running (the original asks both handlers before holding it open)
+            if self.last_redstone && plumbing.has_output() {
                 if execute && (self.mode == Mode::Off || self.render.is_some()) { self.sync(None, true); }
                 self.mode = Mode::Powered;
                 return false;
@@ -131,11 +150,6 @@ impl State {
     /// pour: one step of the buffered liquid into the output.
     fn pour(&mut self, plumbing: &mut dyn Plumbing) {
         let Some(drained) = self.drained.clone() else { return };
-        if !plumbing.has_output() {
-            // the output got lost: the buffered liquid with it
-            self.reset();
-            return;
-        }
         let offer = sized(&drained, (drained.amount as i32).min(MB_PER_TICK));
         let filled = plumbing.fill_output(&offer, false);
         if filled > 0 {
@@ -143,6 +157,9 @@ impl State {
             let left = drained.amount as i32 - filled;
             self.drained = (left > 0).then(|| sized(&drained, left));
             plumbing.fill_output(&sized(&drained, filled), true);
+        } else if !plumbing.has_output() {
+            // the output got lost: the buffered liquid with it (a full one merely refuses, and the buffer waits)
+            self.reset();
         }
     }
 
@@ -157,6 +174,7 @@ impl State {
             drained: stack("drained"),
             render: stack("render_fluid"),
             last_redstone: data.get_int("lastRedstone", 0) != 0,
+            armed: data.get_int("armed", 0) != 0,
         }
     }
 
@@ -164,6 +182,7 @@ impl State {
         data.insert("state".to_owned(), Nbt::Int(self.mode as i32));
         data.insert("stop".to_owned(), Nbt::Int(i32::from(self.stop)));
         data.insert("lastRedstone".to_owned(), Nbt::Int(i32::from(self.last_redstone)));
+        data.insert("armed".to_owned(), Nbt::Int(i32::from(self.armed)));
         for (key, value) in [("drained", &self.drained), ("render_fluid", &self.render)] {
             match value {
                 Some(stack) => {
@@ -331,13 +350,75 @@ mod tests {
         faucet.activate(&mut small);
         for _ in 0..10 { faucet.tick(&mut small); }
         assert_eq!((small.delivered, small.source, faucet.mode), (25, 975, Mode::Off));
-        let mut small = Pipes { source: 1000, room: 10_000, delivered: 0, output: true };
+        let mut gone = Gate { pipes: Pipes { source: 1000, room: 10_000, delivered: 0, output: true }, blind: false, output: Output::Present };
         let mut faucet = State::default();
-        faucet.activate(&mut small);
+        faucet.activate(&mut gone);
         assert_eq!(faucet.mode, Mode::Pouring);
-        small.output = false;
-        faucet.tick(&mut small);
+        gone.output = Output::Gone;
+        faucet.tick(&mut gone);
         assert_eq!((faucet.mode, faucet.drained.clone()), (Mode::Off, None), "a lost output loses the buffer");
+    }
+
+    /// How the block below answers the host's two separate questions about it: whether it is there at all
+    /// (the tanks query) and whether it takes fluid (the fill). In the game they ride different paths and
+    /// can disagree; a lost output fails both.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Output { Present, MissedByQuery, Gone }
+
+    /// Plumbing over `Pipes` whose answers can be blind (a seam whose reach silently finds nothing) and
+    /// whose output presence and output fill can disagree, as the host's can.
+    struct Gate { pipes: Pipes, blind: bool, output: Output }
+    impl Plumbing for Gate {
+        fn has_input(&mut self) -> bool { !self.blind && self.pipes.has_input() }
+        fn has_output(&mut self) -> bool { !self.blind && self.output == Output::Present && self.pipes.has_output() }
+        fn peek_input(&mut self, amount: i32) -> Option<FluidStack> { if self.blind { None } else { self.pipes.peek_input(amount) } }
+        fn drain_input(&mut self, amount: i32) -> Option<FluidStack> { if self.blind { None } else { self.pipes.drain_input(amount) } }
+        fn fill_output(&mut self, stack: &FluidStack, execute: bool) -> i32 {
+            if self.blind || self.output == Output::Gone { 0 } else { self.pipes.fill_output(stack, execute) }
+        }
+    }
+
+    #[test]
+    fn a_click_that_found_nothing_retries_once_on_the_next_tick() {
+        let mut gate = Gate { pipes: Pipes { source: 200, room: 10_000, delivered: 0, output: true }, blind: true, output: Output::Present };
+        let mut faucet = State::default();
+        faucet.activate(&mut gate);
+        assert_eq!((faucet.mode, faucet.armed, gate.pipes.delivered), (Mode::Off, true, 0), "the blind click starts nothing, but the faucet owes one more attempt");
+        gate.blind = false;
+        faucet.tick(&mut gate);
+        assert_eq!((faucet.mode, faucet.armed, gate.pipes.source, gate.pipes.delivered), (Mode::Pouring, false, 110, 10), "the tick's attempt finds the tank and pours");
+        // a retry that still finds nothing is not repeated
+        let mut gate = Gate { pipes: Pipes { source: 0, room: 10_000, delivered: 0, output: true }, blind: true, output: Output::Present };
+        let mut faucet = State::default();
+        faucet.activate(&mut gate);
+        gate.blind = false;
+        faucet.tick(&mut gate);
+        faucet.tick(&mut gate);
+        assert_eq!((faucet.mode, faucet.armed, gate.pipes.delivered), (Mode::Off, false, 0), "one retry, then it rests");
+    }
+
+    #[test]
+    fn an_output_the_presence_query_misses_still_takes_the_pour() {
+        let mut gate = Gate { pipes: Pipes { source: 200, room: 10_000, delivered: 0, output: true }, blind: false, output: Output::MissedByQuery };
+        let mut faucet = State::default();
+        faucet.activate(&mut gate);
+        assert_eq!((faucet.mode, gate.pipes.delivered), (Mode::Pouring, 10), "the fill is the gate that matters, not the presence answer");
+        for _ in 0..8 { faucet.tick(&mut gate); }
+        assert_eq!(gate.pipes.delivered, 90, "the whole buffer pours through the fill the query could not see");
+    }
+
+    #[test]
+    fn a_full_output_keeps_the_buffer_until_it_has_room_again() {
+        let mut pipes = Pipes { source: 1000, room: 45, delivered: 0, output: true };
+        let mut faucet = State::default();
+        faucet.activate(&mut pipes);
+        assert_eq!((pipes.delivered, faucet.drained.as_ref().map(|stack| stack.amount)), (10, Some(35)), "it drew what the target could take and poured the first nugget");
+        pipes.room = 0;
+        faucet.tick(&mut pipes);
+        assert_eq!((faucet.mode, faucet.drained.as_ref().map(|stack| stack.amount)), (Mode::Pouring, Some(35)), "full but present: the buffer waits, it is not lost");
+        pipes.room = 100;
+        faucet.tick(&mut pipes);
+        assert_eq!(pipes.delivered, 20, "and it pours on once there is room");
     }
 
     #[test]
@@ -355,7 +436,7 @@ mod tests {
 
     #[test]
     fn the_state_round_trips_through_saved_data() {
-        let state = State { mode: Mode::Powered, stop: true, drained: Some(fluid(40)), render: Some(fluid(10)), last_redstone: true };
+        let state = State { mode: Mode::Powered, stop: true, drained: Some(fluid(40)), render: Some(fluid(10)), last_redstone: true, armed: true };
         let mut data = NbtCompound::new();
         state.save(&mut data);
         assert_eq!(State::load(&data), state);
