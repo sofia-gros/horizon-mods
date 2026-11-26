@@ -43,6 +43,8 @@ meaning one aimed particle). A client draws a mod's type from the sprite set in 
 
 ### `ParticleFactory`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What one particle of a registered type is made of: the type's client factory, in the original's
 terms. `ItemCrumb` particles are fragments of the held stack; `SpriteSet` particles are billboards
 from the sprite set the mod ships under the type's name; `FluidSprite` particles are billboards
@@ -60,6 +62,8 @@ assert_ne!(slash, fluid);
 
 ### `ParticleData`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The per-spawn data a particle type's factory reads, beyond the type itself. Most types take `Plain`;
 a fluid-sprite type takes the fluid stack the spawn draws — fluid, amount and tag together, as the
 original's fluid particle data carries them.
@@ -73,6 +77,8 @@ assert_ne!(plain, fluid);
 ```
 
 ### `ParticleTypeRegistry`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 The declared particle types of every mod, by name. Registration is process-lifetime and
 re-registering a name replaces its factory. The registry is the declaration store only: an item-crumb
@@ -89,6 +95,8 @@ assert!(ParticleTypeRegistry::registered().contains(&"example:puff".to_owned()))
 ```
 
 ### `ParticleTypeRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Declares the particle type with its factory. An item-crumb factory is validated and stored by the
 item-factory registry first — a valid item id, a count in range, a positive durability override — so
@@ -108,6 +116,8 @@ assert!(ParticleTypeRegistry::register(id.clone(), ParticleFactory::ItemCrumb(ba
 
 ### `ParticleTypeRegistry::factory`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The declared factory of a type, or None when no mod declared it. An item-crumb factory is read back
 from the item-factory registry, so a stack replaced there is the factory seen here.
 
@@ -120,6 +130,8 @@ assert_eq!(ParticleTypeRegistry::factory(&id), Some(ParticleFactory::FluidSprite
 ```
 
 ### `ParticleTypeRegistry::registered`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Every declared particle type's name, sorted: the registry's own census, for tests and tools.
 
@@ -134,6 +146,8 @@ assert!(ParticleTypeRegistry::registered().iter().any(|name| name == "example:ce
 ```
 
 ### `ParticleTypeRegistry::register_entity_particle`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Replaces one entity type's inherited particle with a registered item-crumb type — the cube landing
 override, by which a mod's cube bursts fragments of its own item where the vanilla cube bursts the
@@ -155,6 +169,8 @@ ParticleTypeRegistry::register_entity_particle(
 ```
 
 ### `World::send_particles`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Sends particles of a type to the players near a point (Minecraft: `ServerLevel.sendParticles`):
 `count` of them, each offset by a Gaussian times the spread and moving at a Gaussian times the speed;
@@ -178,6 +194,8 @@ assert_eq!(ops.particles.len(), 1);
 ```
 
 ### `ParticleRecord`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One particle send a `MemoryWorldOps` was asked for, as it was asked: the `dimension` it was sent in,
 the `particle` type's name, the spawn's `data`, the centre `at`, the Gaussian `spread` scale per

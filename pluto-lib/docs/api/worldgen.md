@@ -119,6 +119,8 @@ assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is
 
 ### `FeatureContext`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `FeatureContext<'a> { world: &'a mut dyn BlockEditor, origin: BlockPos }`. A borrowed placement context. Read/write blocks and draw random values through `world`; `origin` is the supplied world coordinate. Unlike Java's separate world/random arguments, this API keeps the random operations on the same editor.
 
 ```rust
@@ -133,6 +135,8 @@ assert!(context.world.is_air(context.origin));
 
 ### `ConfiguredFeature`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 An immutable decoded configuration bound to its algorithm. Cloning shares the thread-safe generator, not a borrowed placement context. Hold validated settings in its closure.
 
 ```rust
@@ -144,6 +148,8 @@ let _same_algorithm = configured.clone();
 
 ### `ConfiguredFeature::new`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn new(generate: impl Fn(&mut FeatureContext<'_>) -> bool + Send + Sync + 'static) -> ConfiguredFeature`. Bind settings to generation. Returning false preserves already completed writes; no rollback is implied. The closure must not retain its borrowed context.
 
 ```rust
@@ -154,6 +160,8 @@ let _configured = ConfiguredFeature::new(move |context| context.origin[1] < maxi
 ```
 
 ### `ConfiguredFeature::generate`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn generate(&self, context: &mut FeatureContext<'_>) -> bool`. Run a decoded algorithm against the caller's context. This direct method neither registers a type nor decodes configuration.
 
@@ -167,6 +175,8 @@ assert!(configured.generate(&mut FeatureContext { world: &mut world, origin: [0,
 
 ### `FeatureTypeRegistry`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 A namespaced registry of feature codecs. A later registration replaces only its own type. A lookup clones the factory handle before invoking mod code, so both codecs and generators may register other types without retaining a registry lock.
 
 ```rust
@@ -178,6 +188,8 @@ assert!(FeatureTypeRegistry::register(Identifier::parse("example:empty_patch").u
 ```
 
 ### `FeatureTypeRegistry::register`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<ConfiguredFeature, String> + Send + Sync + 'static) -> bool`. Register or replace the type. The codec validates the configuration and returns an algorithm or diagnostic. False means the registry could not be written. Replaced captured values are destroyed outside the write lock. A registration does not schedule placement or remesh a chunk.
 
@@ -192,6 +204,8 @@ assert!(FeatureTypeRegistry::register(Identifier::parse("example:unit_feature").
 
 ### `FeatureTypeRegistry::generate`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn generate(id: &Identifier, configuration: &serde_json::Value, context: &mut FeatureContext<'_>) -> Result<Option<bool>, String>`. Decode and execute. `Ok(None)` means the type is not registered, `Ok(Some(true/false))` is the registered generator's result, and `Err` reports a codec/registry failure. A codec error occurs before generation/world writes. Neither false nor an error permits native fallback for that registered type.
 
 ```rust
@@ -204,6 +218,8 @@ assert_eq!(FeatureTypeRegistry::generate(&missing, &serde_json::Value::Null, &mu
 ```
 
 ### `TreeDecoration`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `enum TreeDecoration { Native(usize), Custom(TreeDecorator) }`. One step for `BlockEditor::place_tree_with_plan`. `Native(index)` refers to the zero-based index in the native configuration's `decorators` array. Each native decorator must appear exactly once; omitted, repeated or out-of-range native indices reject placement before tree writes. `Custom` holds an already decoded algorithm. Both variants clone without world access. A plan may contain at most 512 steps, including at most 256 native decorators.
 
@@ -221,6 +237,8 @@ assert!(matches!(plan[1].clone(), TreeDecoration::Native(0)));
 
 ### `TreeDecoratorContext`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `TreeDecoratorContext<'a> { world: &'a mut dyn BlockEditor, logs: &'a [BlockPos], leaves: &'a [BlockPos], roots: &'a [BlockPos] }`. Borrowed tree positions and the generator's editor/RNG; the context cannot be retained by a decorator. The caller provides the required iteration order, including stable ordering of equal-height positions where its algorithm requires it.
 
 ```rust
@@ -232,6 +250,8 @@ assert_eq!(context.leaves[0], [0, 65, 0]);
 
 ### `TreeDecorator`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 An immutable decoded algorithm. Cloning shares its thread-safe captured settings, never a borrowed world. Decode every decorator before starting a tree's writes.
 
 ```rust
@@ -241,6 +261,8 @@ let _snapshot = decorator.clone();
 ```
 
 ### `TreeDecorator::new`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn new(decorate: impl Fn(&mut TreeDecoratorContext<'_>) -> Result<(), String> + Send + Sync + 'static) -> TreeDecorator`. Capture validated settings. Return `Err` for failed reads/writes; no rollback or fallback is implied. Use explicit update flags when the algorithm needs them.
 
@@ -259,6 +281,8 @@ let _decorator = TreeDecorator::new(move |context| {
 
 ### `TreeDecorator::decorate`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn decorate(&self, context: &mut TreeDecoratorContext<'_>) -> Result<(), String>`. Run against the supplied lists without decoding, registering or rearranging them. Successful prior writes remain after an error.
 
 ```rust
@@ -270,6 +294,8 @@ assert_eq!(decorator.decorate(&mut TreeDecoratorContext { world: &mut world, log
 
 ### `TreeDecoratorTypeRegistry`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Namespaced codec registry for explicit tree-generator calls. Later registration replaces the codec for that ID; already decoded decorators retain their previous algorithm. Callbacks and replaced capture destructors run outside registry locks.
 
 ```rust
@@ -279,6 +305,8 @@ assert!(TreeDecoratorTypeRegistry::decode(&Identifier::parse("example:missing_de
 
 ### `TreeDecoratorTypeRegistry::register`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<TreeDecorator, String> + Send + Sync + 'static) -> bool`. Register or replace a codec; false means the registry could not be written. Codecs validate configuration without any world access.
 
 ```rust
@@ -287,6 +315,8 @@ assert!(TreeDecoratorTypeRegistry::register(Identifier::parse("example:noop_deco
 ```
 
 ### `TreeDecoratorTypeRegistry::decode`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<TreeDecorator>, String>`. Return `Ok(None)` for unknown types, a decoded decorator for registered valid configuration, or `Err` for a codec/registry failure. A registered type's error must not silently select another algorithm.
 
@@ -298,6 +328,8 @@ assert_eq!(TreeDecoratorTypeRegistry::decode(&id, &serde_json::Value::Null).err(
 ```
 
 ### `WorldgenBindings`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `WorldgenBindings { block_sets: Vec<serde_json::Value>, state_providers: Vec<serde_json::Value> }`. Ordered immutable configuration inputs once captured by a root override. The lists are independent; their indices are local handles, never engine state IDs. `Default` makes empty lists. Cloning preserves full descriptors, not sampled states.
 
@@ -311,6 +343,8 @@ assert_eq!(copy.block_sets, bindings.block_sets);
 
 ### `RootPlacementWorld`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Extends `BlockEditor` with `fn matches_block_set(&mut self, index: usize, pos: BlockPos) -> Result<bool, String>` and `fn sample_state_provider(&mut self, index: usize, pos: BlockPos) -> Result<BlockState, String>`. Use indices from the override's binding lists. Missing bindings/positions and provider failures are errors, not false matches or native fallback. A selected provider producing no state is also an error; it must not silently reuse the current block. The trait defaults and `MemoryBlockView` report unsupported bindings without writing or sampling.
 
 ```rust
@@ -323,6 +357,8 @@ assert!(world.writes.is_empty());
 
 ### `RootPlacementContext`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `RootPlacementContext<'a> { world: &'a mut dyn RootPlacementWorld, pos: BlockPos }`. A borrowed editor plus the current root position. No world/RNG borrow may be retained beyond the callback.
 
 ```rust
@@ -334,6 +370,8 @@ assert_eq!(context.pos, [-4, 64, 2]);
 
 ### `RootPlacement`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 A decoded per-position root-write override plus binding descriptors. Cloning shares its immutable algorithm; native parent shape/simulation is not copied into this value.
 
 ```rust
@@ -343,6 +381,8 @@ let _copy = roots.clone();
 ```
 
 ### `RootPlacement::new`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn new(bindings: WorldgenBindings, place: impl Fn(&mut RootPlacementContext<'_>) -> Result<Option<BlockState>, String> + Send + Sync + 'static) -> RootPlacement`. Capture descriptors/settings. The host compiles all bindings before tree writes. The callback returns a replacement, explicit parent fallback, or an error; an error is never permission to run the parent instead.
 
@@ -354,6 +394,8 @@ let _roots = RootPlacement::new(WorldgenBindings::default(), move |_| Ok(Some(st
 
 ### `RootPlacement::bindings`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn bindings(&self) -> &WorldgenBindings`. Read the original ordered descriptors; this does not bind registries, sample providers, access a world or draw random values.
 
 ```rust
@@ -363,6 +405,8 @@ assert!(roots.bindings().block_sets.is_empty());
 ```
 
 ### `RootPlacement::place`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn place(&self, context: &mut RootPlacementContext<'_>) -> Result<Option<BlockState>, String>`. Execute one position override. Direct calls do not bind the context's providers or perform native parent placement/waterlogging/tracking; the caller must handle the returned decision.
 
@@ -376,6 +420,8 @@ assert!(world.writes.is_empty());
 
 ### `RootPlacementTypeRegistry`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Namespaced per-position root-override codecs. Existing native root simulation remains in the supplied base tree configuration. Registration alone does not alter native root-type decoding or natural generation. Replaced captures and user callbacks execute outside locks.
 
 ```rust
@@ -385,6 +431,8 @@ assert!(RootPlacementTypeRegistry::decode(&Identifier::parse("example:missing_ro
 
 ### `RootPlacementTypeRegistry::register`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 `fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<RootPlacement, String> + Send + Sync + 'static) -> bool`. Register or replace a codec; false means the registry could not be written. The codec validates configuration structure without world writes. Host registry-binding errors are checked separately before native generation.
 
 ```rust
@@ -393,6 +441,8 @@ assert!(RootPlacementTypeRegistry::register(Identifier::parse("example:parent_ro
 ```
 
 ### `RootPlacementTypeRegistry::decode`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<RootPlacement>, String>`. `Ok(None)` is unknown; `Ok(Some(...))` is a decoded override; `Err` is a codec/registry failure. Preserve registered errors rather than falling through to another algorithm.
 
@@ -404,6 +454,8 @@ assert_eq!(RootPlacementTypeRegistry::decode(&id, &serde_json::Value::Null).err(
 ```
 
 ### `NativeTreeRoute`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 A native tree configuration prepared for explicit placement: the configuration rewritten to the form the host tree codec accepts, the decoded root override (`roots`, when the root placer type is registered) and the decoration `plan` interleaving native and custom steps in configuration order.
 
@@ -418,6 +470,8 @@ assert!(route.roots.is_none() && route.plan.is_empty());
 ```
 
 ### `native_tree_route`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 `fn native_tree_route(configuration: &serde_json::Value) -> Result<Option<NativeTreeRoute>, String>`. Prepares a `minecraft:tree` configuration whose root placer or decorators use registered component types for `BlockEditor::place_tree_with_plan`: a registered root placer is decoded into the route's override and retagged to the native mangrove placer whose simulation it rides on, and registered decorators are decoded into custom plan steps and removed from the native decorator array. `Ok(None)` means the configuration names no registered component (or is not a tree configuration object) and native placement keeps it, including its errors; a registered codec's rejection stays an error. The feature dispatcher routes tree configurations through this preparation, so configured features placed by behaviours or structures grow with their registered components. No world access is performed.
 
@@ -434,6 +488,8 @@ assert_eq!(route.configuration["root_placer"]["type"], "minecraft:mangrove_root_
 ```
 
 ### `StructureWorld`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Borrowed query/RNG interface for one structure attempt. These required methods have no guessed default implementation:
 
@@ -475,6 +531,8 @@ assert!(world.random_int(0).is_err());
 
 ### `StructureContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `StructureContext<'a> { world: &'a mut dyn StructureWorld, chunk: [i32; 2] }`. The `chunk` identifies the generation attempt, and `world` supplies that attempt's queries/randomness. There is deliberately no block-writing editor during planning.
 
 ```rust
@@ -496,6 +554,8 @@ assert!(context.world.first_occupied_height(-25, 55).is_err());
 
 ### `StructurePiece`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `StructurePiece { kind: Identifier, configuration: serde_json::Value }`. The owned `kind` selects a piece codec; `configuration` carries its settings and anchors, not host registry IDs. The plain native codec accepts `pluto_lib:template_piece`, with exactly `template` (namespaced ID), `origin` (three i32 coordinates), `rotation` (`NONE`, `CLOCKWISE_90`, `CLOCKWISE_180`, `COUNTERCLOCKWISE_90`) and `mirror` (`NONE`, `LEFT_RIGHT`, `FRONT_BACK`). All four fields are required. Empty/missing templates, entities, structure markers, jigsaws, unsafe template paths and overflowing transformed bounds reject before start publication. Structure void blocks are ignored; native plain-template placement supplies flags 2. Registered template/marker codecs use the separate `StructurePieceTypeRegistry` adapter for explicit and natural placement. Starts are bounded to 1–256 pieces; descriptors are limited to depth 128, 65,536 nodes and 1 MiB of strings, with encoded piece settings also capped at 1 MiB. Settings are saved with piece version 1 and decoded again on restore; saved bounds do not override recomputed bounds. The explicit placement subset passes eleven live cases, and plain/registered-template persisted starts pass fresh/reopened-world gates. Every possible rotation/mirror combination and all descriptor-budget boundaries have not been runtime-verified.
 
 ```rust
@@ -508,6 +568,8 @@ assert_eq!(piece.clone().configuration["origin"], serde_json::json!([8,80,8]));
 ```
 
 ### `StructureStart`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `StructureStart { position: BlockPos, pieces: Vec<StructurePiece> }`. `position` is the generation stub's biome-check origin. `pieces` are owned codec descriptors in the planner's order; template anchors may be elsewhere inside their configuration. This value is not a native cached start and does not write or save any blocks.
 
@@ -523,6 +585,8 @@ assert_eq!(start.clone(), start);
 
 ### `ConfiguredStructure`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A cloneable decoded structure algorithm with owned immutable captures. Each invocation uses the caller's `StructureContext`; cloning does not duplicate a world/random stream or cache a native start.
 
 ```rust
@@ -532,6 +596,8 @@ let _snapshot = structure.clone();
 ```
 
 ### `ConfiguredStructure::new`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn new(plan: impl Fn(&mut StructureContext<'_>) -> Result<Option<StructureStart>, String> + Send + Sync + 'static) -> ConfiguredStructure`. Capture already-validated settings. `Ok(None)` rejects the current attempt; `Err` propagates a query/planning failure rather than requesting another implementation. The planner must not place blocks.
 
@@ -545,6 +611,8 @@ let _structure = ConfiguredStructure::new(move |_| {
 ```
 
 ### `ConfiguredStructure::find_generation_point`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn find_generation_point(&self, context: &mut StructureContext<'_>) -> Result<Option<StructureStart>, String>`. Execute the decoded planner, preserving its rejection or error. Direct execution is not natural generation, command dispatch, template placement or piece persistence.
 
@@ -569,6 +637,8 @@ assert_eq!(structure.find_generation_point(&mut StructureContext { world: &mut w
 
 ### `StructureTypeRegistry`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Namespaced structure-type codecs. Registration is process-local; decoded snapshots retain their captures when a type is replaced. Codecs and replaced-capture destructors run outside registry locks. Explicit native placement, natural plain/registered-template starts and persisted-piece restoration are game-checked. Registration alone does not verify either path or every consumer configuration.
 
 ```rust
@@ -578,6 +648,8 @@ assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is
 ```
 
 ### `StructureTypeRegistry::register`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<ConfiguredStructure, String> + Send + Sync + 'static) -> bool`. Register or replace a decoder. False reports a poisoned registry lock. Validate settings before querying a world or consuming structure RNG.
 
@@ -590,6 +662,8 @@ assert!(StructureTypeRegistry::register(Identifier::parse("example:empty_structu
 
 ### `StructureTypeRegistry::decode`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructure>, String>`. Unknown types return `Ok(None)`; registered types return their snapshot or a codec error. A registered error is never permission for native fallback. This method does not query or write a world.
 
 ```rust
@@ -600,6 +674,8 @@ assert_eq!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).err().as
 ```
 
 ### `StructureRotation`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `enum StructureRotation { None, Clockwise90, Clockwise180, Counterclockwise90 }`. Rotation about the template's origin with zero pivot; `Default` is `None`. The native adapter must apply the mirror first.
 
@@ -613,6 +689,8 @@ assert_eq!(rotations.len(), 4);
 
 ### `StructureMirror`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `enum StructureMirror { None, LeftRight, FrontBack }`. Minecraft's mirror before rotation. `Default` is `None`.
 
 ```rust
@@ -622,6 +700,8 @@ assert_ne!(StructureMirror::LeftRight, StructureMirror::FrontBack);
 ```
 
 ### `StructurePieceTemplate`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `StructurePieceTemplate { template: Identifier, origin: BlockPos, rotation: StructureRotation, mirror: StructureMirror }`. Owned immutable settings for a registered template piece. Native binding must validate the template and bounds before any piece writes. Template entities are ignored; DATA markers are dispatched separately in native order.
 
@@ -637,6 +717,8 @@ assert_eq!(template.clone().origin, [-8,70,24]);
 > **Use with Caution.** Native explicit `/place structure` supports registered template pieces through the typed placement adapter: it validates all piece definitions before writes, clips DATA markers per chunk, and shares the actual world and RNG with configured-feature placement. Mutable state belongs to each live piece. The natural FEATURES-world adapter shares its actual generation RNG with template, marker and tree execution. Cross-chunk marker state and saved-piece restoration without marker replay pass the fresh/reopened-world game gate; full island save/LAN remains unverified. Explicit commands do not create cached saved starts.
 
 ### `StructurePieceWorld`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Required fallible operations for one piece's real post-processing world. Never substitute default blocks, independent RNG, unrestricted writes or successful feature placement for an unavailable operation.
 
@@ -675,6 +757,8 @@ assert!(world.place_feature(&Identifier::parse("example:tree").unwrap(), [0,70,0
 
 ### `StructureMarkerContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `StructureMarkerContext<'a> { world: &'a mut dyn StructurePieceWorld, marker: &'a str, position: BlockPos, state: &'a mut serde_json::Value }`. The host supplies an already transformed/clipped DATA marker and mutable state belonging to this actual piece. It must serialize concurrent access and save state separately from immutable codec settings. Neither context nor world may be retained.
 
 ```rust
@@ -694,6 +778,8 @@ assert_eq!(state, 1);
 
 ### `ConfiguredStructurePiece`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An immutable template piece definition with owned initial state and marker behavior. It does not itself own a live piece's changing counter.
 
 ```rust
@@ -706,6 +792,8 @@ assert!(piece.initial_state().is_null());
 ```
 
 ### `ConfiguredStructurePiece::new`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn new(template: StructurePieceTemplate, initial_state: serde_json::Value, marker: impl Fn(&mut StructureMarkerContext<'_>) -> Result<(), String> + Send + Sync + 'static) -> Self`. Captures immutable settings, initial state and a marker callback. `fn template(&self) -> &StructurePieceTemplate` and `fn initial_state(&self) -> &serde_json::Value` borrow those values. `fn handle_data_marker(&self, context: &mut StructureMarkerContext<'_>) -> Result<(), String>` directly invokes the callback. Clones share the callback, not a live piece's mutable state. Errors preserve earlier writes and state changes; this API is not a transaction.
 
@@ -724,6 +812,8 @@ assert_eq!(piece.clone().initial_state()["count"], 0);
 
 ### `StructurePieceTypeRegistry`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Registry of namespaced template-piece codecs; decoded snapshots outlive registry replacement.
 
 ```rust
@@ -733,6 +823,8 @@ assert!(StructurePieceTypeRegistry::decode(&unknown, &serde_json::Value::Null).u
 ```
 
 ### `StructurePieceTypeRegistry::register`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn register(id: Identifier, codec: impl Fn(&serde_json::Value) -> Result<ConfiguredStructurePiece, String> + Send + Sync + 'static) -> bool`. Register or replace a piece codec; false means the registry lock is poisoned. Decoders and destructors of replaced captures run outside the lock. `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructurePiece>, String>` returns an immutable snapshot, `None` for unknown kinds, or the registered error. Neither operation writes a world; native dispatch is not connected yet.
 
@@ -754,6 +846,8 @@ assert!(StructurePieceTypeRegistry::decode(&id, &serde_json::json!(false)).is_er
 
 ### `ConfiguredStructurePiece::template`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn template(&self) -> &StructurePieceTemplate`. Borrow immutable settings; changing a separate clone does not move this piece.
 
 ```rust
@@ -765,6 +859,8 @@ assert_eq!(piece.template().origin, [0,70,0]);
 ```
 
 ### `ConfiguredStructurePiece::initial_state`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn initial_state(&self) -> &serde_json::Value`. Borrow the initial snapshot. Clone it once per actual piece; never mutate a shared global state for all placements.
 
@@ -780,6 +876,8 @@ assert_eq!(piece.initial_state()["placed"], 0);
 ```
 
 ### `ConfiguredStructurePiece::handle_data_marker`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn handle_data_marker(&self, context: &mut StructureMarkerContext<'_>) -> Result<(), String>`. Invoke the captured callback directly on the supplied piece's mutable state. Unknown marker policy belongs to that callback. This does not create or place a native template.
 
@@ -818,6 +916,8 @@ assert_eq!(piece.initial_state(), &serde_json::json!(0));
 
 ### `StructurePieceTypeRegistry::decode`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn decode(id: &Identifier, configuration: &serde_json::Value) -> Result<Option<ConfiguredStructurePiece>, String>`. Clone the decoder outside the registry lock, then decode. Unknown kinds return `Ok(None)`; registered errors stay errors and do not permit native fallback.
 
 ```rust
@@ -830,6 +930,8 @@ assert_eq!(StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).err
 ```
 
 ### `ConfiguredStructurePiece::with_state_validator`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn with_state_validator(self, validator: impl Fn(&serde_json::Value) -> Result<(), String> + Send + Sync + 'static) -> Self`. Attach a type-specific saved-state check. Hosts must run it on initial/restored state before template writes and before saving; direct marker calls run it before and after successful callbacks. Without a validator state is opaque JSON, still subject to the host's independent depth/size budgets. Validation errors do not roll back prior writes or mutations.
 
@@ -846,6 +948,8 @@ assert!(piece.validate_state(&serde_json::json!(-1)).is_err());
 ```
 
 ### `ConfiguredStructurePiece::validate_state`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn validate_state(&self, state: &serde_json::Value) -> Result<(), String>`. Validate without querying or writing a world. This does not replace host JSON budgets, registry binding or a real save/reload test.
 

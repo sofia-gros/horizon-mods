@@ -52,6 +52,8 @@ The game pages mod tabs, ten to a page, with arrows on the screen; you do nothin
 
 ### `ItemStack`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A stack of an item, optionally with data. `item` is the item, `count` how many, `components` the stack's data components as an SNBT compound (None for a plain stack).
 
 ```rust
@@ -65,7 +67,12 @@ assert_eq!(plain.item.to_string(), "minecraft:stick");
 
 ### `ItemStack::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(item: Identifier, count: u32) -> ItemStack`. A plain stack.
+
+> A plain stack of the given item with the given count and no custom data. Stacks that must carry
+> data — a tank's fluid, a tool's parts — are made with the data-carrying constructors instead.
 
 ```rust
 use pluto_lib::{Identifier, ItemStack};
@@ -75,6 +82,8 @@ assert_eq!(ten_apples.count, 10);
 ```
 
 ### `ItemStack::with_components`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn with_components(self, snbt_compound: &str) -> ItemStack`. The same stack with data components, given as an SNBT compound.
 
@@ -88,6 +97,8 @@ assert!(named.components.is_some());
 
 ### `ItemStack::to_snbt`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn to_snbt(&self) -> String`. The stack in the SNBT form the creative inventory data uses.
 
 ```rust
@@ -100,6 +111,8 @@ assert_eq!(named.to_snbt(), "{count:2,id:\"minecraft:stick\",components:{\"minec
 ```
 
 ### `ItemGroup`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A creative tab. `id` names it, `display_name` is the title shown, `icon` the stack drawn on its button, `entries` the stacks it holds in order.
 
@@ -117,7 +130,12 @@ assert_eq!(group.icon.count, 1);
 
 ### `ItemGroup::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(id: Identifier, display_name: &str, icon: ItemStack) -> ItemGroup`. A tab with no entries yet.
+
+> A creative tab with the given id, display name and icon stack, and no entries yet. Entries are
+> appended with entry, in the order the tab should show them.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -129,7 +147,12 @@ assert_eq!(group.entries.len(), 0);
 
 ### `ItemGroup::entry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn entry(self, stack: ItemStack) -> ItemGroup`. One more entry at the end.
+
+> Returns the tab with one more entry appended at the end. Because a tab is built by chaining, the
+> order of the entry calls is the order the tab's contents appear in.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -140,6 +163,8 @@ assert_eq!(group.entries.len(), 1);
 ```
 
 ### `ItemGroup::entries`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn entries(self, stacks: impl IntoIterator<Item = ItemStack>) -> ItemGroup`. Several more entries at the end.
 
@@ -154,6 +179,8 @@ assert_eq!(group.entries.len(), 3);
 
 ### `ItemGroupRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers tabs (Fabric: `Registry.register(Registries.ITEM_GROUP, ...)`).
 
 ```rust
@@ -164,6 +191,8 @@ ItemGroupRegistry::register(ItemGroup::new(Identifier::new("example", "first").u
 ```
 
 ### `ItemGroupRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(group: ItemGroup)`. Adds the tab to the creative inventory. Registering the same id again replaces the earlier tab.
 
@@ -181,6 +210,8 @@ assert_eq!(mine[0].display_name, "New");
 
 ### `ItemGroupRegistry::registered`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn registered() -> Vec<ItemGroup>`. The tabs registered so far, in registration order.
 
 ```rust
@@ -192,6 +223,8 @@ assert!(ItemGroupRegistry::registered().iter().any(|g| g.id.path() == "listed"))
 ```
 
 ### `ModifyEntries`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a modify-entries callback receives. `group` is the tab being filled, `added` the stacks to add after the tab's own entries (callbacks push onto it with `borrow_mut`).
 
@@ -208,6 +241,8 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|entries: &ModifyEntries| {
 
 ### `ItemGroupEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The events that edit tab entries. Fabric: `ItemGroupEvents`.
 
 ```rust
@@ -217,6 +252,8 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|_| {});
 ```
 
 ### `ItemGroupEvents::MODIFY_ENTRIES_ALL`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs for every tab, vanilla's and mods', as the creative inventory is built. Check `entries.group` to pick the tab.
 
@@ -232,6 +269,8 @@ assert_eq!(context.added.borrow().len(), 1);
 ```
 
 ### `ItemGroupEvents::modify_entries_event`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn modify_entries_event(group: Identifier, callback: impl Fn(&ModifyEntries) + Send + Sync + 'static)`. Runs `callback` for one tab only, vanilla's (`minecraft:ingredients`) or a mod's.
 

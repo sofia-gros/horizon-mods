@@ -110,6 +110,8 @@ PlayerBlockBreakEvents::EXPERIENCE.register(|drop| {
 
 ### `UseItemContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player used an item in the air. `item` is the item id, `count` the stack size, `stack` the stack as used, with its damage and custom data (a tool's stats and modifiers live there), and `player` who used it (`None` when the host named no acting player and the world has not exactly one player). The host's use event names no hand; the hand holding the stack is the one whose carried stack equals `stack`.
 
 ```rust
@@ -123,6 +125,8 @@ assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Fail);
 ```
 
 ### `UseBlockContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player used a block. `pos` is the block position `[x, y, z]`, `face` the clicked face as a direction vector (for example `[0, 1, 0]` is the top).
 
@@ -138,6 +142,8 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `AttackEntityContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player attacked an entity. `entity` is the entity id, `kind` its type id, `pos` its position `[x, y, z]`.
 
 ```rust
@@ -152,6 +158,8 @@ assert_eq!(result, ActionResult::Fail);
 
 ### `BlockBreakContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A player breaking a block. `pos` is its position `[x, y, z]`, `dimension` the level (empty when unknown), `state` the block as it was (`None` when unreadable), `player` who breaks it, `held` the stack in their main hand, `equipment` the pieces the breaker wears or holds in the off hand (as (slot, stack): `feet`, `legs`, `chest`, `head`, then `offhand`, as of their last tick; only the pieces carrying custom data) and `actions` the `EntityAction`s a callback queues for the player (`BlockBreakContext::at` makes a context with a position only). `face` is the face of the block the player hit as the dig started (`None` when the game did not report one), `yaw` and `pitch` are where the player looks in degrees, and `extra_breaks` holds the extra block positions a `BEFORE` callback adds with `break_extra`. `creative` says whether the breaker is in creative mode and `may_build` whether their game type lets them build (both as the break started; `creative` is false and `may_build` true when the game names no player), and `offhand_place_on` holds the off hand stack's adventure-mode place tag entries (a block id, a `#tag`, or an id with a `[key=value,...]` state suffix), empty when it carries none. `offhand_place_predicates` holds the same tag's structured predicates (blocks, state ranges and block-entity NBT — see `AdventurePlacePredicate`), and `mined_block_entity` is the mined block's block entity (`None` when it had none).
 
 ```rust
@@ -165,6 +173,8 @@ assert!(context.face.is_none() && context.yaw == 0.0 && context.pitch == 0.0 && 
 
 ### `BlockBreakContext::at`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A context that holds only a position: the other fields are empty. Useful in tests and for callbacks that only read `pos`.
 
 ```rust
@@ -175,6 +185,8 @@ assert!(context.player.is_none() && context.held.is_none() && context.actions.bo
 ```
 
 ### `AfterUseContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player's use finished without the game consuming it. `player` is the player (its methods work inside the callback), `dimension` the level, `eye` where the player's eyes are and `look` where they look (a unit vector), `crouching` whether the player is sneaking, `creative` whether nothing is used up, and `consumed` whether the game's own handling consumed the use (false at both seams that report a use today: the hand's use, and a click on an entity the game did not take). The chestplate takeover a worn piece answers on (Tinkers' sleeves) reads the aim and the crouch state here.
 
@@ -190,6 +202,8 @@ assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
 ```
 
 ### `AdventurePlacePredicate`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One entry of an adventure-mode place tag (`minecraft:can_place_on`), read whole: the blocks it names (`None` means any block), the state tests (an exact value, or a minimum and maximum the mined state must lie between), and the block-entity NBT it must match (`None` when the entry carries no NBT test). `adventure_place_predicates` reads them from the component, and `place_predicates_allow` answers whether any of them allows a mined block with its block entity, as the host's own adventure-mode matcher does — the flattened `offhand_place_on` entries cannot carry the NBT test, so a tag that has one answers only through these.
 
@@ -209,7 +223,12 @@ assert!(!place_predicates_allow(&predicates, &mined, None, None));
 
 ### `UseItemCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the use-item event.
+
+> The holder of the use-item event. Callbacks registered on it are asked when a player uses an
+> item in the air — a right-click with nothing targeted — before the item's own use handling runs.
 
 ```rust
 use pluto_lib::UseItemCallback;
@@ -218,6 +237,8 @@ UseItemCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `UseItemCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs when a player uses an item. Answer `Fail` to cancel, `Success` / `Consume` to take the action yourself, `Pass` to leave it to the game.
 
@@ -230,6 +251,8 @@ assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
 ```
 
 ### `DispenseRegistry`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The registry of dispenser behaviours, keyed by the item dispensed. The game asks its mods before a dispenser ejects (its dispense hook); PlutoLib answers for the items registered here — spawning the shot, consuming one item and playing the projectile-launch event — and an item nobody claims keeps the game's own dispensing.
 
@@ -246,6 +269,8 @@ assert!(DispenseRegistry::get("example:unclaimed").is_none());
 
 ### `DispenseBehavior`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a dispenser does with one item. `Shoot { entity, power, inaccuracy }` fires the item as a projectile of the entity type `entity` (the original's `ShootProjectileDispenserBehavior`): the projectile spawns at the dispenser's mouth carrying the item, flies the shot [`dispense_shot`](#dispense_shot) computes, and one item is consumed.
 
 ```rust
@@ -256,6 +281,8 @@ assert!(matches!(shoot, DispenseBehavior::Shoot { power, .. } if power == 1.1));
 ```
 
 ### `dispense_shot`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn dispense_shot(pos: [i32; 3], facing: Direction, power: f32) -> ([f64; 3], [f64; 3])`. Where a shot spawns and the motion it starts with: the dispenser's dispense position (the block's centre stepped 0.7 along the facing) and the facing stepped up by 0.1, normalised and scaled by `power`. The spread the inaccuracy would add needs a random source the dispense hook does not hand over, so the shot is the mean shot and flies true.
 
@@ -270,6 +297,8 @@ assert!((length - f64::from(1.1f32)).abs() < 1e-9, "the shot flies at its power"
 
 ### `UseBlockCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the use-block event.
 
 ```rust
@@ -279,6 +308,8 @@ UseBlockCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `UseBlockCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs when a player uses (right-clicks) a block.
 
@@ -290,6 +321,8 @@ assert!(UseBlockCallback::EVENT.invoke(&UseBlockContext { pos: [0, 0, 0], face: 
 ```
 
 ### `UseItemOnBlockContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player used an item on a block. `item` is the item id, `count` how many are held, `pos` the block, `face` the face that was clicked as a unit offset, `dimension` the dimension id, `player` the player (its methods work inside the callback), `creative` whether the player is in creative mode and `sneaking` whether the player is sneaking.
 
@@ -316,6 +349,8 @@ assert!(!used.creative);
 
 ### `UseItemOnBlockCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player used an item on a block, before the game handles it. Answer `Success` after doing the job and the game does not handle it; the first answer that is not `Pass` wins.
 
 ```rust
@@ -325,6 +360,8 @@ UseItemOnBlockCallback::EVENT.register(|used| if used.item == "example:wand" { A
 ```
 
 ### `UseItemOnBlockCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The event itself, to register on or to invoke in a test.
 
@@ -341,6 +378,8 @@ assert_eq!(UseItemOnBlockCallback::EVENT.invoke(&used), ActionResult::Fail);
 
 ### `AfterUseCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the finished-use event.
 
 ```rust
@@ -350,6 +389,8 @@ AfterUseCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `AfterUseCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs when a player's use finished without the game consuming it: the hand is empty, the player is not a spectator, and nothing the game did took the click. A click on an entity the game's own interaction did not take is reported the same way. Answer `Success` after doing the job, `Pass` to leave the click to the game.
 
@@ -366,6 +407,8 @@ assert_eq!(AfterUseCallback::EVENT.invoke(&used), ActionResult::Success);
 
 ### `Hand`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The hand a player used an item in (`Main` or `Off`; Minecraft: `InteractionHand`).
 
 ```rust
@@ -375,6 +418,8 @@ assert_ne!(Hand::Main, Hand::Off);
 ```
 
 ### `UseItemFinishContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player finished eating or drinking an item. `item` is the item id and `player` the player (its methods work inside the callback). `stack` is the stack that was used (damage, max damage and custom data) and `hand` the hand it was used in. `slot` is what that hand holds now with all its components (`None` when the last of a stack was eaten), and `replacement` is where a callback puts a changed copy of it: the later callbacks see it, and the game writes it to the hand. `dimension` and `position` say where the player is, and `creative` whether nothing is used up.
 
@@ -392,6 +437,8 @@ assert_eq!(done.hand, Hand::Main);
 ```
 
 ### `UseItemFinishCallback`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player finished eating or drinking an item (NeoForge: `LivingEntityUseItemEvent.Finish`). Called after the food and the item's own effects have been given, only for a player on the server. A callback may wear the used stack or change what the hand holds through `replacement`.
 
@@ -414,6 +461,8 @@ UseItemFinishCallback::EVENT.register(|done| {
 
 ### `UseItemFinishCallback::EVENT`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The event to register on. Every callback is called in turn.
 
 ```rust
@@ -433,6 +482,8 @@ assert_eq!(FINISHED.load(Ordering::SeqCst), 1);
 
 ### `BreakSpeedContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 How fast the player digs a block. `pos` is the block, `block` its state, `original` the speed as vanilla works it out (it does not change), `speed` the speed now (a `Cell`: change it with `set`) `held` the stack the player digs with (damage, max damage and custom data; None for an empty hand) and `player`, a `DiggingPlayer` with `on_ground` and `eyes_in_water` (None when the game does not say who digs). Vanilla already slows a dig in the air and under water, so a callback that needs those multipliers reads them from `original` and `player`. The dig's own facts ride along too: `block_light` and `sky_light` at the block (each 0 to 15, None when the game did not report them), `sky_darken` (how much of the sky light the time of day and the weather take off) and `biome_temperature`, the temperature of the biome at the block (None for a biome PlutoLib has no temperature for). Three more facts ride along for the modules that read block properties: `blast_resistance`, the block's explosion resistance (None when the game did not report it, and a variable over it takes its fallback), `requires_tool`, whether the block needs the correct tool for drops (None when the game did not report it), and `build_height`, the build range of the level the dig is in as [min, max) (None when the game did not report it).
 
 ```rust
@@ -448,6 +499,8 @@ assert_eq!(dig.block.block.path(), "stone");
 
 ### `DiggingPlayer`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What a break-speed callback may read about the player who digs: `on_ground` (the player's last accepted move put them on the ground), `eyes_in_water` (the block at their eye height holds water or is waterlogged), `effect_levels` the effects on the player as (effect id, amplifier), and `rain_exposed` whether rain falls on the player.
 
 ```rust
@@ -459,6 +512,8 @@ assert!(!airborne.on_ground && !airborne.eyes_in_water);
 
 ### `BreakSpeedCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 How fast a player digs a block (NeoForge: `PlayerEvent.BreakSpeed`).
 
 ```rust
@@ -468,6 +523,8 @@ BreakSpeedCallback::EVENT.register(|dig| dig.speed.set(dig.speed.get() + 1.0));
 ```
 
 ### `BreakSpeedCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 The event itself, to register on or to invoke in a test.
 
@@ -483,6 +540,8 @@ assert_eq!(dig.speed.get(), 0.0);
 
 ### `AttackEntityCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the attack-entity event.
 
 ```rust
@@ -492,6 +551,8 @@ AttackEntityCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `AttackEntityCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs when a player attacks an entity. `Fail` cancels the attack.
 
@@ -505,6 +566,8 @@ assert!(!AttackEntityCallback::EVENT.invoke(&attack).is_accepted());
 
 ### `PlayerBlockBreakEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The block-break events. `BEFORE` decides whether a break may proceed; a veto emits `CANCELED` once for that attempt; `AFTER` hears a break that removed the block.
 
 ```rust
@@ -514,6 +577,8 @@ PlayerBlockBreakEvents::BEFORE.register(|_| true);
 ```
 
 ### `PlayerBlockBreakEvents::BEFORE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Before a block is broken. Answer `false` to cancel the break; one `false` is enough.
 
@@ -527,6 +592,8 @@ assert!(PlayerBlockBreakEvents::BEFORE.invoke(&BlockBreakContext::at([1, 64, 0])
 
 ### `PlayerBlockBreakEvents::AFTER`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 After a player's break removed a block (Fabric: `PlayerBlockBreakEvents.AFTER`). Read the player, the block's `state` and the worn `held` tool from the context and queue `actions` for the player; see "Breaking Blocks" for when it runs and what it leaves out.
 
 ```rust
@@ -539,6 +606,8 @@ PlayerBlockBreakEvents::AFTER.register(|broken| {
 
 ### `PlayerBlockBreakEvents::CANCELED`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A break was vetoed by `BEFORE`. Receives the same `BlockBreakContext { pos }` once per rejected attempt, even when multiple listeners would reject it. Allowed attempts do not emit this event. The block has not been removed. Rejections outside PlutoLib's `BEFORE` event are not reported here.
 
 ```rust
@@ -548,6 +617,8 @@ PlayerBlockBreakEvents::CANCELED.register(|_| {});
 ```
 
 ### `DiggingFacts`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 What the world reports about a dig besides the block itself. `block_light` and `sky_light` are the light at the block (each 0 to 15, `None` when the game did not report them), `sky_darken` is how much of the sky light the time of day and the weather take off, and `biome_temperature` is the temperature of the biome at the block (`None` for a biome with no known temperature). It also carries `blast_resistance`, the block's explosion resistance, `requires_tool`, whether the block needs the correct tool for drops, and `build_height`, the build range of the level as [min, max); each of the three is `None` when the game did not report it.
 
@@ -561,6 +632,8 @@ assert_eq!(DiggingFacts::default(), DiggingFacts { block_light: None, sky_light:
 ```
 
 ### `UseItemOnEntityContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player used an item on an entity (right click, not an attack). `entity` is the entity id, `kind` its type id, `hand` the hand the item is used with, `held` the stack in that hand (`None` for an empty hand), `player` the player (`None` when the game names none), `dimension` the dimension the interaction happens in, `player_dimension` the dimension the player is in, and `creative` whether the player is in creative mode, and `actions` the `EntityAction`s a callback queues for the player.
 
@@ -586,6 +659,8 @@ assert!(click.actions.borrow().is_empty());
 
 ### `EntityReach::ignite_creeper`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn ignite_creeper(id: u64) -> bool`. Ignites the creeper `id`, as flint and steel does: the creeper's own ignited flag is set, so its fuse starts and it explodes at max swell. Only a creeper is ignited. A host may apply an accepted ignite at its next rider synchronisation rather than instantly, as for a knockback; a refusal there (the entity is gone, or not a creeper) is final. False outside a scope.
 
 ```rust
@@ -605,6 +680,8 @@ assert!(!EntityReach::ignite_creeper(2), "outside a scope");
 
 ### `InteractEntityContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player interacted with an entity at the game's own generic claim point, before any hand-specific handling, so the context names no hand. `entity` is the entity id, `kind` its type id, `stack` the stack the interaction is made with (`None` when the game names none) and `player` the player (`None` when the game names none).
 
 ```rust
@@ -617,6 +694,8 @@ assert!(click.stack.is_none() && click.player.is_none());
 ```
 
 ### `FishingContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player's fishing rod changed state. `player` is the player fishing, `state` the state's number (see `FISHING_CAST` and `FISHING_BITE`), `hand` the hand holding the rod, `rod` the rod stack in that hand (`None` when the game did not read it), `cancel` a flag a callback sets to true to cancel the state and `actions` the `EntityAction`s a callback queues for the player.
 
@@ -636,6 +715,8 @@ assert!(!fish.cancel.get() && fish.actions.borrow().is_empty());
 
 ### `FISHING_CAST`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The fishing state for a cast: `pub const FISHING_CAST: i32 = 0`. A `FishingContext` whose `state` is this value means the bobber was cast.
 
 ```rust
@@ -645,6 +726,8 @@ assert_eq!(FISHING_CAST, 0);
 ```
 
 ### `FISHING_BITE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The fishing state for a bite: `pub const FISHING_BITE: i32 = 1`. A `FishingContext` whose `state` is this value means a fish bit.
 
@@ -656,6 +739,8 @@ assert_ne!(FISHING_BITE, FISHING_CAST);
 ```
 
 ### `BlockBreakContext::break_extra`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Takes another block with this break: `fn break_extra(&self, pos: [i32; 3])`. The block itself, a duplicate and anything past 64 extra blocks are refused; the game breaks the extra blocks through its own destroy path and they fire no break events of their own.
 
@@ -671,6 +756,8 @@ assert_eq!(*context.extra_breaks.borrow(), vec![[11, 64, 10]]);
 
 ### `UseEntityCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the use-item-on-entity event (Fabric: `UseEntityCallback`). It is heard once for each hand the game tries, the main hand first.
 
 ```rust
@@ -680,6 +767,8 @@ UseEntityCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `UseEntityCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The event itself: `pub const EVENT: &'static Event<UseItemOnEntityContext, ActionResult>`. Runs when a player uses an item on an entity; the first answer that is not `Pass` takes the click and neither the entity's own interaction nor the item's runs.
 
@@ -701,6 +790,8 @@ assert_eq!(UseEntityCallback::EVENT.invoke(&click), ActionResult::Success);
 
 ### `InteractEntityCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the generic entity-interaction event. It runs at the game's own claim point, before its hand-specific handling.
 
 ```rust
@@ -710,6 +801,8 @@ InteractEntityCallback::EVENT.register(|_| pluto_lib::ActionResult::Pass);
 ```
 
 ### `InteractEntityCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The event itself: `pub const EVENT: &'static Event<InteractEntityContext, ActionResult>`. Runs when a player interacts with an entity; the first answer that is not `Pass` takes the interaction and the game does not handle it.
 
@@ -725,6 +818,8 @@ assert_eq!(InteractEntityCallback::EVENT.invoke(&other), ActionResult::Pass);
 
 ### `PlayerFishEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The fishing events (Bukkit: `PlayerFishEvent`). Every callback runs, and any one of them may cancel the state through the context's `cancel` flag.
 
 ```rust
@@ -734,6 +829,8 @@ PlayerFishEvents::EVENT.register(|_| {});
 ```
 
 ### `PlayerFishEvents::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The event itself: `pub const EVENT: &'static Event<FishingContext, ()>`. Runs when a player's fishing rod changes state; a cancelled cast throws no bobber and a cancelled reel-in catches nothing.
 
@@ -758,6 +855,8 @@ assert!(!bite.cancel.get(), "the bite is not");
 ## Entity reach and entity events
 
 ### `EntityReach::in_box`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn in_box(min: [f64; 3], max: [f64; 3]) -> Vec<WorldEntity>`. Every living entity and item entity whose position is inside the box (min corner, max corner), in the host's order; empty outside a scope.
 
@@ -790,6 +889,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::discard`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn discard(id: u64) -> bool`. Removes the item entity `id`, which was taken whole; false outside a scope, when there is no such entity, or when it is not an item entity.
 
@@ -824,6 +925,8 @@ assert_eq!(ops.discarded, vec![1]);
 ```
 
 ### `EntityReach::set_item`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_item(id: u64, stack: &ItemSlot) -> bool`. Leaves `stack` in the item entity `id` (what did not fit where it was taken to); false outside a scope or where there is no such item entity.
 
@@ -860,6 +963,8 @@ assert_eq!(ops.left[0].1.count, 1);
 
 ### `EntityReach::hurt`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn hurt(id: u64, amount: f32, damage_type: &str) -> bool`. Hurts entity `id` by `amount` of the damage type `damage_type`, with no attacker; whether it took any. False outside a scope, for an item entity, or when the host refuses an invulnerable, dead or creative target.
 
 ```rust
@@ -892,6 +997,8 @@ assert_eq!(ops.hurt, vec![(2, 5.0, "minecraft:in_fire".to_owned())]);
 ```
 
 ### `EntityReach::position_of`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn position_of(id: u64) -> Option<[f64; 3]>`. Where entity `id` stands (its feet position); `None` outside a scope or when the host cannot reach it.
 
@@ -926,6 +1033,8 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::effects_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn effects_of(id: u64) -> Vec<(String, i32, i32)>`. The mob effects entity `id` carries, as (effect id, amplifier, ticks left); empty outside a scope, when it carries none, or when the host cannot say.
 
 ```rust
@@ -947,6 +1056,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::velocity_of`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn velocity_of(id: u64) -> Option<[f64; 3]>`. The velocity entity `id` moves with (`Entity.getDeltaMovement`); `None` outside a scope or when the host cannot reach it. A player's is the motion their client last reported.
 
@@ -970,6 +1081,8 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::bounds_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn bounds_of(id: u64) -> Option<[[f64; 3]; 2]>`. The two corners of entity `id`'s bounding box (min, max), as `Entity.getBoundingBox` gives them; `None` outside a scope or when the host cannot reach it.
 
 ```rust
@@ -991,6 +1104,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::set_velocity`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False outside a scope, for a player, or when the host cannot.
 
@@ -1014,6 +1129,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::teleport`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn teleport(id: u64, pos: [f64; 3]) -> bool`. Moves entity `id` to `pos`; a mob's navigation stops and its fall distance resets, as the game's own teleport does. False outside a scope, for a player, or when the host cannot move it.
 
@@ -1048,6 +1165,8 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::id_of_uuid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn id_of_uuid(uuid: u128) -> Option<u64>`. The entity id of the player whose uuid is `uuid`, resolved through the host's entity-by-uuid call; `None` outside a scope or when no such player is there. This is the bridge from a player a callback names (a `ServerPlayer`) to the entity ids the ride reach and the other queries speak of.
 
 ```rust
@@ -1061,6 +1180,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::kind_of`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn kind_of(id: u64) -> Option<Identifier>`. The type of the entity `id`; `None` outside a scope or when there is no such entity.
 
@@ -1082,6 +1203,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::passengers_of`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn passengers_of(vehicle: u64) -> Vec<u64>`. The direct passengers of `vehicle`, in the order they mounted; empty outside a scope, when the entity carries nobody, or when the host cannot say.
 
@@ -1116,6 +1239,8 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::vehicle_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn vehicle_of(passenger: u64) -> Option<u64>`. The vehicle `passenger` rides, if it rides one; `None` outside a scope, when it rides nothing, or when the host cannot say.
 
 ```rust
@@ -1148,6 +1273,8 @@ with_entities(&mut ops, || {
 ```
 
 ### `EntityReach::start_riding`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn start_riding(passenger: u64, vehicle: u64) -> bool`. Puts `passenger` on `vehicle`; true when the mount was accepted. The host refuses what the game refuses — the same entity twice, a passenger that already rides something, a cycle, and any mount its own mount event cancels — and an accepted mount may only become observable through `vehicle_of` from the next tick. False outside a scope.
 
@@ -1184,6 +1311,8 @@ assert_eq!(ops.mounts, vec![(2, 3)]);
 
 ### `EntityReach::stop_riding`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn stop_riding(passenger: u64) -> bool`. Takes `passenger` off whatever it rides; true when it was riding and the dismount was accepted, which the host may likewise apply at its next rider synchronisation. False outside a scope.
 
 ```rust
@@ -1219,6 +1348,8 @@ assert!(ops.mounts.is_empty());
 
 ### `ServerEntityEvents::ENTITY_TICK_PRE`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An entity is about to tick: return `false` from a callback to cancel that entity's tick (the post event is then not heard for it). Heard for every kind the game ticks, derived types included; the entity and world reaches are open while the callbacks run.
 
 ```rust
@@ -1233,6 +1364,8 @@ assert!(!ServerEntityEvents::ENTITY_TICK_PRE.invoke(&item));
 
 ### `ServerEntityEvents::ENTITY_TICK_POST`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An entity has ticked: a notification, heard after the entity's own tick ran, and not at all for a tick that `ENTITY_TICK_PRE` cancelled.
 
 ```rust
@@ -1246,6 +1379,8 @@ ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraf
 
 ### `MobTick`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 A mob's tick, heard after the mob's own tick ran, for every living entity that is not a player: `entity` is the entity id, `kind` its type, `dimension` the dimension it is in, `position` its feet position, `velocity` the motion it moves with, `on_ground` whether it stands on the ground, `in_water` whether it is in water, `on_climbable` whether it is on a climbable block (the game's own check: a climbing kind reads its own climbing flag, a gliding mob passing a block it can glide through never counts, kinds that never climb read false), `climbing` whether it climbs a wall (a spider or cave spider pressed against one), `gliding` whether it glides with an elytra, `armor` every piece worn (as (slot, stack): `feet`, `legs`, `chest`, `head`), `hands` the stacks held (as (slot, stack): `mainhand`, `offhand`) and `effects` its effects as (effect id, amplifier, ticks left). Unlike a player's report the armor lists every piece, not only those carrying custom data: a mob's attribute values are worked out from this report alone. The world and entity scopes are open while it runs.
 
 ```rust
@@ -1256,6 +1391,8 @@ assert_eq!(tick.effects.len(), 1);
 ```
 
 ### `ServerLivingEntityEvents::MOB_TICK`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A mob's tick, heard on a server after the mob's own tick ran, for every living entity that is not a player. It carries the mob's position, motion and state, every piece it wears and holds, and its effects (see [`MobTick`](#mobtick)); a mob's attribute values are worked out from the report.
 
@@ -1271,6 +1408,8 @@ ServerLivingEntityEvents::MOB_TICK.register(|tick| {
 
 ### `EntityReach::set_velocity`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn set_velocity(id: u64, velocity: [f64; 3]) -> bool`. Sets entity `id`'s velocity to `velocity` (`Entity.setDeltaMovement`): the motion is replaced, not added. A player is not set (its client moves it); an item entity or a mob is. False when the host cannot (no such entity, a player, an entity the game does not simulate, or a value that is not finite), and outside a scope.
 
 ```rust
@@ -1284,6 +1423,8 @@ assert_eq!(ops.velocities, vec![(2, [0.1, 2.7, -0.2])]);
 
 ### `CarriedSlot`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One place a player carries a stack, as the wider events that report a player's whole carrying name them: `Equipment(StackSlot)` is a hand or an armor slot, and `Inventory(u32)` is a main-inventory slot, 0 to 35, the hotbar first.
 
 ```rust
@@ -1295,6 +1436,8 @@ assert_ne!(CarriedSlot::Inventory(0), CarriedSlot::Inventory(35));
 ```
 
 ### `CarriedStack`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A stack a player carries, with the place it sits in: `slot` is where the stack sits and `stack` is the stack itself, with all its components. An event that enumerates a player's stacks reports one of these for each non-empty place.
 
@@ -1310,6 +1453,8 @@ assert_eq!(carried.stack.count, 1);
 ```
 
 ### `CarriedEdit`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A whole new stack for a place a player carries, which a callback queues in an event's edits: `slot` is the place to write and `stack` is the stack to put there. The host writes it after the callbacks ran; a count of 0 empties the place, and writing a place the event did not list is allowed.
 
@@ -1328,6 +1473,8 @@ assert_eq!(edit.stack.count, 0, "a count of 0 empties the place");
 
 ### `CauseFallDamageContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The landing a class `cause_fall_damage` decides on: `entity` and `entity_type` name the landing entity, `distance` is the fall distance after any living-fall event adjustment, `multiplier` is the damage multiplier the landing carries, `velocity` is the entity's motion as it lands, and `suppressing_bounce` reports a sneaking player (a mob never suppresses).
 
 ```rust
@@ -1340,6 +1487,8 @@ assert!(!context.suppressing_bounce);
 
 ### `FallOutcome`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What a `cause_fall_damage` override does instead of applying fall damage: `Cancel` applies nothing beyond the block's own `fallOn`; `Bounce` rebounds with the given motion, airborne again, playing `sound` at the entity when present.
 
 ```rust
@@ -1350,6 +1499,8 @@ assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
 ```
 
 ### `EquipmentDropChanceContext`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The equipment drop chance one class computes for one slot at death: `entity_type` is the dying type, `slot` is the equipment slot name, `slime_size` is present only for native cube/slime implementations, `chance` is the recorded chance (or the game's default for the slot) the class may replace for this death's roll only, and `looting` is the killing blow's Looting level. A LAN guest killer's level is read from the guest's own hand, as the host resolved it for the kill. The roll a class's own `dropCustomDeathLoot` makes is `(nextFloat - looting * 0.01) < chance`, so a returned value is rolled even when the recorded chance is exactly 0: with looting, a 0-chance slot still drops at `looting` percent.
 
@@ -1363,6 +1514,8 @@ assert_eq!(context.slot, "head");
 
 ### `LivingEntityBehavior::cause_fall_damage`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Registers the class's own `causeFallDamage`: returning an outcome replaces the inherited fall-damage application for the landing; returning `None` keeps it.
 
 ```rust
@@ -1373,6 +1526,8 @@ let _ = behavior;
 ```
 
 ### `LivingEntityBehavior::equipment_drop_chance`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Registers the class's own per-slot equipment drop chance at death; returning `None` keeps the recorded chance for that slot.
 
@@ -1385,6 +1540,8 @@ let _ = behavior;
 
 ### `LivingEntityBehaviors::cause_fall_damage`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Dispatches the registered `cause_fall_damage` override for the context's type; `None` keeps the inherited application.
 
 ```rust
@@ -1395,6 +1552,8 @@ assert_eq!(LivingEntityBehaviors::cause_fall_damage(&context), None);
 ```
 
 ### `LivingEntityBehaviors::equipment_drop_chance`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Dispatches the registered per-slot drop chance for the context's type; `None` keeps the recorded chance.
 
@@ -1411,6 +1570,8 @@ Spawn placements and the fishing registry are documented in [world.md](world.md)
 
 ### `BlockExperienceContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The experience a player's block break is about to drop (the experience half of NeoForge's `BlockEvent.BreakEvent`), heard through `PlayerBlockBreakEvents::EXPERIENCE`: `pos` is the block's position, `dimension` the dimension it is in (empty when the game does not name it), `player` the player who breaks it (None when the game names none), `player_entity` the breaking player's entity id (0 when the game names none), `held` the stack in the player's main hand as the drop is sampled (None for an empty hand), and `experience` the experience now, which callbacks change with `set`; each callback sees the last one's.
 
 ```rust
@@ -1424,6 +1585,8 @@ assert_eq!(context.experience.get(), 7);
 
 ### `StateMatcher`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One state test of a block predicate: `Exact` (the property must equal this value), `Range` (the property's value, read as an integer, must lie between the bounds; each bound absent means open — a value or bound that is not an integer fails the test) or `Never` (a test that never passes: a state entry the game cannot read).
 
 ```rust
@@ -1436,6 +1599,8 @@ assert_eq!(StateMatcher::Exact("true".into()), StateMatcher::Exact("true".into()
 
 ### `AdventurePlacePredicate::never`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn never() -> AdventurePlacePredicate`. A predicate that matches no block: what a malformed predicate becomes, so it is kept in the list (and fails) rather than dropped, which would let another predicate pass in its place.
 
 ```rust
@@ -1446,6 +1611,8 @@ assert!(!AdventurePlacePredicate::never().allows(&state, None, None));
 ```
 
 ### `AdventurePlacePredicate::from_nbt`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn from_nbt(value: &Nbt) -> AdventurePlacePredicate`. One predicate from a `can_place_on` component value: a bare block id string, or a compound naming `blocks`, `state` tests and an `nbt` test, as the game's own `BlockPredicate` reads it.
 
@@ -1459,6 +1626,8 @@ assert!(!predicate.allows(&BlockState::parse("minecraft:dirt").unwrap(), None, N
 
 ### `AdventurePlacePredicate::allows`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn allows(&self, mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether this predicate accepts the mined block: its blocks name it, its state tests hold, and its NBT test matches the mined block's block entity. `blocks` resolves `#tag`s; None means no snapshot, so a tag names nothing.
 
 ```rust
@@ -1471,6 +1640,8 @@ assert!(!predicate.allows(&state, None, None), "no snapshot, so the tag names no
 
 ### `adventure_place_predicates`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn adventure_place_predicates(component: &Nbt) -> Vec<AdventurePlacePredicate>`. The block predicates of a `minecraft:can_place_on` component, in the order the tag lists them: a list of predicates, one compound predicate, or a bare block id (the shorthand the game's own text path reads as an id).
 
 ```rust
@@ -1482,6 +1653,8 @@ assert_eq!(predicates.len(), 1);
 
 ### `place_predicates_allow`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn place_predicates_allow(predicates: &[AdventurePlacePredicate], mined: &BlockState, mined_block_entity: Option<&NbtCompound>, blocks: Option<&RegistryLookup>) -> bool`. Whether any of the place tag's predicates accepts the mined block (the game's `AdventureModePredicate.test`), with the mined block's block entity for the NBT tests. An empty predicate list accepts nothing.
 
 ```rust
@@ -1492,6 +1665,8 @@ assert!(!place_predicates_allow(&[], &state, None, None));
 ```
 
 ### `PlayerBlockBreakEvents::EXPERIENCE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 The experience half of NeoForge's `BlockEvent.BreakEvent`: the `BlockExperienceContext` of a player's block break, heard as the game samples the drop on the player's own break path, before the game's silk-touch rule is applied to the sampled amount.
 
@@ -1507,6 +1682,8 @@ assert_eq!(context.experience.get(), 4);
 
 ### `EntityReach::bounding_box_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn bounding_box_of(id: u64) -> Option<[[f64; 3]; 2]>`. The box entity `id` occupies, as [min corner, max corner]; None outside a scope or when the host cannot reach it.
 
 ```rust
@@ -1516,6 +1693,8 @@ assert_eq!(EntityReach::bounding_box_of(4), None, "no entity scope is open");
 ```
 
 ### `EntityReach::has_scope`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn has_scope() -> bool`. Whether an entity scope is open on this thread: the reach answers "nothing there" outside one, and a caller that must tell "nothing there" from "never looked" asks this.
 
@@ -1527,6 +1706,8 @@ assert!(!EntityReach::has_scope());
 
 ### `EntityReach::spin_attack`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn spin_attack(id: u64) -> bool`. Starts the player `id`'s spin attack; whether the spin was accepted. False outside a scope.
 
 ```rust
@@ -1536,6 +1717,8 @@ assert!(!EntityReach::spin_attack(4), "no entity scope is open");
 ```
 
 ### `Grapple::starts_spin_attack`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn starts_spin_attack(self) -> bool`. Whether a grapple of this kind starts the owner's spin attack when it pulls (the original's `pullGrapple`): only a drill does, on the landing pull and on the hooked-entity pull alike.
 

@@ -127,6 +127,8 @@ assert!(canvas.texts.iter().any(|t| t == ">"), "the next-page arrow is drawn");
 
 ### `Book`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A whole book: `id`, `appearance` and `sections` in order. `Book::new(id, sections)` gives it the default appearance. `page_count()` counts the pages across all sections, `locate(page)` turns a flat page index into `(section, page in section)`, `flat_index(section, page)` goes back, and `page(page)` borrows the page at a flat index.
 
 ```rust
@@ -142,6 +144,8 @@ assert_eq!(book.page(0).map(|p| p.kind()), Some("mantle:text"));
 ```
 
 ### `BookSection`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One section of a book: its `name` for the section list, its optional `icon` and its `pages` in order.
 
@@ -160,6 +164,8 @@ assert_eq!(section.pages.len(), 1);
 
 ### `BookPage`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One page. `Text` and `ImageText` carry a `title` and `text` runs (an image page also its `image`); `TextImage` is the same pair with the text beside the image; `Showcase` carries a `title`, the `item` it shows large, its `tooltip` lines and a `text`; `Crafting` carries a `title`, the `recipe` it shows, a `grid_size`, the `ingredients` and `result` the grid draws (the page's JSON names only the recipe, so the mod that owns it fills those in) and a `description`; `Table` carries the `kind` of the content it stands for, a `title`, `intro` text, its `rows`, `text` below them and a `sidebar` of display items drawn in a column at the page's right edge (a material's built tools, a tool's recipe parts, a modifier's recipe, a fluid's bucket) — the page a mod generates from its registries (one row per material, tool or modifier); `Structure` carries a `title`, the `data` id of its structure template and the `structure` the loader filled from it; `Opaque` keeps any other kind's `kind` id and `data`. The section rail draws each section's icon beside its name. `kind()` is the Mantle page kind's id and `title()` the page's title. `BookPage::from_json(kind, data)` decodes one localized page from its JSON (see [Building a book](#building-a-book-from-the-original-data)); it decodes the text, image-text, text-image, showcase, crafting, structure and padding kinds, and keeps the rest opaque.
 
 ```rust
@@ -174,6 +180,8 @@ assert_eq!(page.title(), Some("Welcome"));
 ```
 
 ### `BookStructure`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A structure a book page shows: the blocks of a vanilla structure template as scene blocks, with the template's `size`. `BookStructure::from_template(template)` reads the template compound (the root of its binary NBT document, read with `Nbt::from_binary`): the palette's names and properties become each block's state, a block entry's own `nbt` becomes its scene entity's data, and air is left out. A structure page draws it turning slowly, one revolution a minute.
 
@@ -197,6 +205,8 @@ assert_eq!(structure.blocks[0].block.block.to_string(), "minecraft:stone");
 
 ### `BookStructure::from_template`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Reads a vanilla structure template compound (the root of its binary NBT document) into a structure: the palette's names and properties become each block's state, a block entry's own `nbt` becomes its scene entity's data, and air is left out. An error names why the compound is not a template.
 
 ```rust
@@ -206,6 +216,8 @@ assert!(BookStructure::from_template(&NbtCompound::new()).is_err());
 ```
 
 ### `BookRow`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One row of a table page: `Header { icon, text }` names what follows (a group, a stat block) and is drawn underlined; `Entry { icon, label, value, link }` is one entry of the table — its `label`, an optional `value` drawn right-aligned on the same line, an optional `icon`, and an optional `link` to the flat index of another page of the same book, which a click on the row opens. A row is one line tall when drawn; a table longer than a page is split into several table pages by its producer.
 
@@ -225,6 +237,8 @@ assert!(matches!(entry, BookRow::Entry { link: Some(3), .. }));
 
 ### `BookText`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One run of text on a page: `text` and `paragraph` (a blank line is drawn before a paragraph run). `BookText::plain` and `BookText::paragraph` build the two forms.
 
 ```rust
@@ -239,6 +253,8 @@ assert!(paragraph.paragraph);
 
 ### `BookImage`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 An image on a page: the GUI texture `file` and its `width` and `height` in texture pixels.
 
 ```rust
@@ -251,6 +267,8 @@ assert_eq!((image.width, image.height), (100, 50));
 
 ### `GridSize`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How big a crafting page draws its grid: `Small` (the default) or `Large`; `GridSize::parse` reads the book data's name.
 
 ```rust
@@ -262,6 +280,8 @@ assert_eq!(GridSize::default(), GridSize::Small);
 ```
 
 ### `BookIcon`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a section's list entry shows: `Item(item)` or `ItemWithData { item, data }`. `BookIcon::from_json` decodes the index's `icon`; `item()` is the icon's item either way.
 
@@ -287,6 +307,8 @@ assert_eq!((refs[0].name.as_str(), refs[0].data.as_str()), ("intro", "intro"));
 
 ### `BookAppearance`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How a book looks: `cover_texture`, `cover_color`, `book_texture`, `arrow_color`, `slot_color` (a colour of 0 means the data did not set it), `draw_section_list_text`, `large_page_titles`, `center_page_titles` and `export_title`. `BookAppearance::from_json` decodes an `appearance.json`.
 
 ```rust
@@ -302,6 +324,8 @@ assert_eq!(appearance.arrow_color, 0);
 ```
 
 ### `BookRegistry`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The registry of books a reader can open. `register(book)` fails, keeping the earlier registration, for a duplicate id, a book with no sections, a section with no name or a section with no pages. `replace(book)` registers a book over any earlier registration of its id — the rebuild a mod makes when the registries its generated pages come from reload. `get(id)` returns the registered book and `all()` every registered book, by id.
 
@@ -319,6 +343,8 @@ assert!(BookRegistry::all().iter().any(|b| b.id == id));
 ```
 
 ### `BookView`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Where a reader is in a book: the `book` and the flat `page` showing. `next_page` and `prev_page` turn one spread and answer false at the ends; `goto_section` jumps to a section's first page; `section` says which section the current page is in.
 
@@ -346,6 +372,8 @@ assert_eq!(view.page, 0);
 What a click on the book screen means: `NextPage`, `PrevPage`, `Section(index)`, `Page(index)` (a table row's link) or `None`. `book_click(book, view, area, at)` reads a click at `at` (GUI pixels, in the same space as `area`, the screen's panel rect) against the layout `draw_book` draws.
 
 ### `draw_book`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 `fn draw_book(canvas, book, view, area)`. Draws the page `view` shows of `book` into `area`: the panel (the book's page texture when it has one and the canvas knows it, else a flat panel in the cover colour or the renderer's parchment), the section rail, the page's title and content, and the page arrows.
 
@@ -375,6 +403,8 @@ assert!(canvas.texts.iter().any(|t| t == "body"));
 
 ### `wrap_text`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn wrap_text(canvas, text, width) -> Vec<String>`. Wraps `text` to lines of at most `width` GUI pixels, measured by the canvas; a word longer than a line is split by characters.
 
 ```rust
@@ -391,6 +421,8 @@ assert_eq!(wrap_text(&Canvas, "one two three four", 60.0), vec!["one two", "thre
 ```
 
 ### `BookOps`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 What the game can do for a book reader: `open_book`, `close_book` and `open_book_id`. PlutoLib implements it over the game's mod screen; `MemoryBookOps` implements it in memory for tests, recording `opens`, the `open` book and `closes`.
 
@@ -411,6 +443,8 @@ assert_eq!(ops.open_book_id(), None);
 
 ### `BookText::plain`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Builds a plain run of text with `fn plain(text: &str) -> BookText`: the `text` is kept as given and `paragraph` is false, so no blank line is drawn before it.
 
 ```rust
@@ -422,6 +456,8 @@ assert!(!run.paragraph);
 ```
 
 ### `BookText::paragraph`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Builds a paragraph run with `fn paragraph(text: &str) -> BookText`: the `text` is kept as given and `paragraph` is true, so a blank line is drawn before it.
 
@@ -435,6 +471,8 @@ assert!(run.paragraph);
 
 ### `GridSize::parse`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Reads the book data's name with `fn parse(name: &str) -> GridSize`: `"large"` gives `Large` and any other name gives `Small`.
 
 ```rust
@@ -447,6 +485,8 @@ assert_eq!(GridSize::parse("unknown"), GridSize::Small);
 
 ### `BookPage::kind`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The Mantle page kind's id, with `fn kind(&self) -> &str`: for example `mantle:text` for a `Text` page, or the stored kind for an `Opaque` page.
 
 ```rust
@@ -457,6 +497,8 @@ assert_eq!(page.kind(), "mantle:text");
 ```
 
 ### `BookPage::title`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The page's title, if it has one, with `fn title(&self) -> Option<&str>`; an opaque page's title is read from its data's `title` string.
 
@@ -470,6 +512,8 @@ assert_eq!(untitled.title(), None);
 ```
 
 ### `BookPage::from_json`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Decodes one localized page from its JSON with `fn from_json(kind: &str, data: &serde_json::Value) -> Result<BookPage, String>`, by its Mantle kind; unknown kinds decode to `Opaque` with the JSON kept as NBT.
 
@@ -492,6 +536,8 @@ assert!(BookPage::from_json("mantle:crafting", &serde_json::json!({})).is_err())
 
 ### `BookIcon::from_json`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Decodes a section's `icon` from the index JSON with `fn from_json(value: &serde_json::Value) -> Result<BookIcon, String>`: an `nbt` field gives `ItemWithData`, otherwise the icon is `Item`.
 
 ```rust
@@ -508,6 +554,8 @@ assert!(matches!(plain, BookIcon::Item(_)));
 
 ### `BookIcon::item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The icon's item either way, with `fn item(&self) -> &Identifier`, for both `Item` and `ItemWithData`.
 
 ```rust
@@ -518,6 +566,8 @@ assert_eq!(icon.item().to_string(), "minecraft:crafting_table");
 ```
 
 ### `SectionPageRef`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A page entry of a section file, before its localized page is loaded: its `name` within the section, its `kind` (the page kind's id, such as `mantle:text`) and its `data` (the path of the page's localized JSON, relative to the book's language folder).
 
@@ -531,6 +581,8 @@ assert_eq!(entry.data, "intro");
 ```
 
 ### `section_page_refs`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Reads a section file's page entries with `fn section_page_refs(section_json: &serde_json::Value) -> Result<Vec<SectionPageRef>, String>`; the consumer loads each entry's page JSON and decodes it with `BookPage::from_json`.
 
@@ -550,6 +602,8 @@ assert!(section_page_refs(&serde_json::json!({})).is_err());
 
 ### `BookAppearance::from_json`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Decodes a book's `appearance.json` with `fn from_json(data: &serde_json::Value) -> Result<BookAppearance, String>`; colours are the JSON integers Mantle writes, and a missing field keeps its default.
 
 ```rust
@@ -567,6 +621,8 @@ assert_eq!(appearance.arrow_color, 0);
 
 ### `Book::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A book with the default appearance, built with `fn new(id: Identifier, sections: Vec<BookSection>) -> Book` from its `id` and its `sections` in order.
 
 ```rust
@@ -583,6 +639,8 @@ assert_eq!(book.appearance.cover_color, 0);
 ```
 
 ### `Book::page_count`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 How many pages the book has across all sections, with `fn page_count(&self) -> usize`.
 
@@ -602,6 +660,8 @@ assert_eq!(book.page_count(), 3);
 ```
 
 ### `Book::locate`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The `(section, page in section)` a flat page index names, with `fn locate(&self, page: usize) -> Option<(usize, usize)>`; `None` past the end.
 
@@ -624,6 +684,8 @@ assert_eq!(book.locate(3), None);
 
 ### `Book::flat_index`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The flat page index of a `(section, page in section)`, with `fn flat_index(&self, section: usize, page: usize) -> Option<usize>`; `None` if either is out of range.
 
 ```rust
@@ -645,6 +707,8 @@ assert_eq!(book.flat_index(2, 0), None);
 
 ### `Book::page`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The page at a flat index, with `fn page(&self, page: usize) -> Option<&BookPage>`; `None` past the end.
 
 ```rust
@@ -661,6 +725,8 @@ assert!(book.page(1).is_none());
 
 ### `BookSpread`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One two-page spread of a book: `left` and `right` are the flat page indices on its halves. A half is `None` when the spread ends the book or a padding marker leaves it blank; a half naming a [`BookPage::Padding`](#bookpage) page draws blank (a `mantle:blank` page that took the half).
 
 ```rust
@@ -671,6 +737,8 @@ assert_eq!((spread.left, spread.right), (Some(0), Some(1)));
 ```
 
 ### `BookSpread::contains`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Whether this spread is the one a reader of flat page `page` is looking at, with `fn contains(&self, page: usize) -> bool`.
 
@@ -683,6 +751,8 @@ assert!(!spread.contains(3));
 ```
 
 ### `spreads`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Pairs a book's flat pages into the two-page spreads a reader turns through, with `fn spreads(book: &Book) -> Vec<BookSpread>`, consuming its padding markers as Mantle's book layout does: pages fill a spread's left half, then its right; a `mantle:blank` page takes whichever half comes next (and draws blank there); a `mantle:right_padding` page must take a right half, so with no left half pending it is dropped (the next page starts a fresh spread's left, which is all the marker exists to arrange). Spreads that would show nothing at all — padding alone — are left out.
 
@@ -702,6 +772,8 @@ assert_eq!(spreads(&book), vec![
 
 ### `BookRegistry::register`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers a book with `fn register(book: Book) -> Result<(), String>`; it fails, keeping the earlier registration, for a duplicate id, a book with no sections, a section with no name or a section with no pages.
 
 ```rust
@@ -717,6 +789,8 @@ assert!(BookRegistry::register(book).is_err(), "duplicate id");
 ```
 
 ### `BookRegistry::replace`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Registers a book over any earlier registration of the same id, with `fn replace(book: Book) -> Result<(), String>`; it fails, keeping the earlier registration, for a book with no sections, a section with no name or a section with no pages. A book already open keeps the copy it opened with.
 
@@ -739,6 +813,8 @@ assert!(BookRegistry::replace(bad).is_err(), "a book with no sections is refused
 
 ### `BookRegistry::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The book registered under an id, if any, with `fn get(id: &Identifier) -> Option<Book>`.
 
 ```rust
@@ -756,6 +832,8 @@ assert!(BookRegistry::get(&Identifier::parse("example:missing").unwrap()).is_non
 
 ### `BookRegistry::all`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Every registered book, by id, with `fn all() -> Vec<Book>`.
 
 ```rust
@@ -772,6 +850,8 @@ assert!(BookRegistry::all().iter().any(|b| b.id == id));
 
 ### `BookView::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A view of a book at its first page, built with `fn new(book: Identifier) -> BookView`: its `book` is the given id and its `page` is 0.
 
 ```rust
@@ -783,6 +863,8 @@ assert_eq!(view.page, 0);
 ```
 
 ### `BookView::next_page`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Turns to the next spread with `fn next_page(&mut self, book: &Book) -> bool`; false when already on the last spread, and the `page` does not move then.
 
@@ -805,6 +887,8 @@ assert_eq!(view.page, 2);
 
 ### `BookView::prev_page`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Turns to the previous spread with `fn prev_page(&mut self, book: &Book) -> bool`; false when already on the first spread, and the `page` does not move then.
 
 ```rust
@@ -825,6 +909,8 @@ assert_eq!(view.page, 0);
 ```
 
 ### `BookView::goto_section`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Jumps to a section's first page with `fn goto_section(&mut self, book: &Book, section: usize) -> bool`; false for a section the book does not have.
 
@@ -848,6 +934,8 @@ assert!(!view.goto_section(&book, 5));
 
 ### `BookView::section`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The section the current page is in, with `fn section(&self, book: &Book) -> usize`.
 
 ```rust
@@ -870,6 +958,8 @@ assert_eq!(view.section(&book), 1);
 
 ### `BookClick`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a click on the book screen means: `None` when nothing was clicked, `NextPage` for the next-page arrow, `PrevPage` for the previous-page arrow, `Section(index)` for a section's row in the section list, or `Page(index)` for a table row's link (the flat index of the page it opens). A link click is read against the rows the last `draw_book` of that page drew, so it lands exactly on the row that was drawn.
 
 ```rust
@@ -882,6 +972,8 @@ assert_eq!(BookClick::Page(4), BookClick::Page(4));
 ```
 
 ### `book_click`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a click at a position means, with `fn book_click(book: &Book, view: &BookView, area: [f32; 4], at: [f32; 2]) -> BookClick`, read against the same layout `draw_book` draws.
 
@@ -904,6 +996,8 @@ assert_eq!(book_click(&book, &view, area, [200.0, 150.0]), BookClick::None);
 
 ### `with_books`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 Runs a closure with a book reach available, with `fn with_books(ops: &mut dyn BookOps, f: impl FnOnce() -> R) -> R`, returning the closure's result; inside it `open_book`, `close_book` and `current_book` use that reach.
 
 ```rust
@@ -922,6 +1016,8 @@ assert_eq!(ops.opens, vec![id]);
 ```
 
 ### `open_book`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 Opens a registered book for the local reader, with `fn open_book(book: &Identifier) -> bool`; false outside a `with_books` scope, for an unregistered book, or when the screen cannot open now.
 
@@ -943,6 +1039,8 @@ assert_eq!(ops.opens, vec![id]);
 ```
 
 ### `close_book`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 Closes the book opened through the current reach, with `fn close_book() -> bool`; false when none is open through this reach.
 
@@ -966,6 +1064,8 @@ assert_eq!(ops.closes, 1);
 
 ### `current_book`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 The book currently open through the current reach, if any, with `fn current_book() -> Option<Identifier>`; `None` outside a `with_books` scope or when no book is open.
 
 ```rust
@@ -988,6 +1088,8 @@ with_books(&mut ops, || {
 ```
 
 ### `MemoryBookOps`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 An in-memory book reach for tests: its `open` field is the book currently open, its `opens` field records every book opened in order, and its `closes` field counts how many times a book was closed. Opening records the book and closing clears `open`.
 

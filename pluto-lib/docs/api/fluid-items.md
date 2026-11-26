@@ -75,6 +75,8 @@ assert_eq!(world.blocks[&[1, 1, 0]].property("level"), Some("3"), "a drop of 3 l
 
 ### `FluidItemDef`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One kind of item that holds fluid. `item` is the item it describes.
 
 ```rust
@@ -86,6 +88,8 @@ assert_eq!(def.item.to_string(), "example:tank");
 
 ### `FluidItemDef::tank`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn tank(item: Identifier, key: &str, capacity: u32) -> FluidItemDef`. Any one fluid up to `capacity` millibuckets, kept under `key` in the stack's custom data as `{FluidName, Amount}`.
 
 ```rust
@@ -96,6 +100,8 @@ assert_eq!(FluidItemDef::tank(Identifier::parse("example:tank").unwrap(), "tank"
 
 ### `FluidItemDef::portion`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn portion(item: Identifier, key: &str, amount: u32) -> FluidItemDef`. Exactly `amount` of one fluid or nothing, kept as the fluid id under `key`; a stack of several holds `amount` each.
 
 ```rust
@@ -105,6 +111,8 @@ assert_eq!(FluidItemDef::portion(Identifier::parse("example:can").unwrap(), "flu
 ```
 
 ### `FluidItemDef::constant`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`. An item that always holds `amount` of `fluid`; drained, it becomes `empty` or vanishes.
 
@@ -117,6 +125,8 @@ assert_eq!(FluidItemDef::constant(id("example:bottle"), id("example:honey"), 250
 
 ### `FluidItemDef::empty_container`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn empty_container(item, accepts: impl Fn(&Identifier) -> bool, amount: u32, filled: Identifier) -> FluidItemDef`. An empty item that becomes `filled` when `amount` of an accepted fluid goes in.
 
 ```rust
@@ -128,6 +138,8 @@ assert_eq!(bowl.item.to_string(), "minecraft:bowl");
 ```
 
 ### `FluidItemDef::fills`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn fills(self, accepts, amount: u32, filled: Identifier) -> FluidItemDef`. One more filling of the same empty item, tried after the earlier ones.
 
@@ -142,6 +154,8 @@ assert_eq!(bottle.item.path(), "glass_bottle");
 
 ### `FluidItemDef::scaled`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn scaled(self) -> FluidItemDef`. A tank whose stack of n items is one tank of n times the capacity; amounts are kept per item and transfers move in steps of n.
 
 ```rust
@@ -155,6 +169,8 @@ assert_eq!(filled.amount, 4000);
 
 ### `FluidItemDef::fill_stack_limit`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fill_stack_limit(self, limit: u32) -> FluidItemDef`. A tank that takes no fluid while the stack holds more than `limit` items; draining is unaffected.
 
 ```rust
@@ -167,6 +183,8 @@ assert_eq!(FluidItems::fill(&ItemSlot::new(id("example:limited"), 17), &FluidSta
 
 ### `FluidItemDef::key`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn key(&self) -> Option<&str>`. The custom data key that holds the fluid; `None` for constant and empty containers.
 
 ```rust
@@ -176,6 +194,8 @@ assert_eq!(FluidItemDef::tank(Identifier::parse("example:t").unwrap(), "tank", 1
 ```
 
 ### `Filled`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a fill did: `amount` that went in and the `container` stack afterwards (same count, possibly another item).
 
@@ -190,6 +210,8 @@ assert_eq!((filled.amount, filled.container.item.path()), (30, "f"));
 
 ### `Drained`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a drain did: the `fluid` that came out and the `container` afterwards (`None` when nothing is left of the stack).
 
 ```rust
@@ -203,6 +225,8 @@ assert!(drained.container.is_none());
 ```
 
 ### `FluidTarget`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A tank to trade with: `fill` and `drain`, each with an `execute` flag that false turns into a question. See the Basic Example.
 
@@ -219,6 +243,8 @@ assert_eq!(Nothing.fill(&FluidStack { fluid: Identifier::parse("minecraft:water"
 
 ### `TransferDirection`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which way a held stack and a tank trade: `Auto` (stack into tank first, otherwise tank into stack), `ToTank`, `FromTank`.
 
 ```rust
@@ -229,6 +255,8 @@ assert_eq!(TransferDirection::Auto, TransferDirection::Auto);
 ```
 
 ### `Interaction`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a trade did: `held` (the hand afterwards), `give` (stacks for the player), `moved` (the fluid) and `into_tank` (whether it went into the tank).
 
@@ -249,6 +277,8 @@ assert_eq!((done.moved.amount, done.held.unwrap().item.path().to_owned()), (250,
 
 ### `FluidItems`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The registry and the transfers.
 
 ```rust
@@ -259,6 +289,8 @@ assert!(FluidItems::get("example:reg").is_some());
 ```
 
 ### `FluidItems::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(def: FluidItemDef)`. Makes the item a container; the same item again replaces the earlier definition.
 
@@ -271,6 +303,8 @@ FluidItems::register(FluidItemDef::tank(Identifier::parse("example:again").unwra
 
 ### `FluidItems::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn get(item: &str) -> Option<FluidItemDef>`. The definition registered for an item id.
 
 ```rust
@@ -280,6 +314,8 @@ assert!(FluidItems::get("example:never_registered").is_none());
 ```
 
 ### `FluidItems::registered`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn registered() -> Vec<FluidItemDef>`. Every definition registered so far, in registration order.
 
@@ -292,6 +328,8 @@ assert!(FluidItems::registered().is_empty(), "nothing is registered in a fresh p
 ```
 ### `FluidItems::is_container`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn is_container(stack: &ItemSlot) -> bool`. Whether the stack's item holds or can be filled with fluid.
 
 ```rust
@@ -301,6 +339,8 @@ assert!(!FluidItems::is_container(&ItemSlot::new(Identifier::parse("minecraft:st
 ```
 
 ### `FluidItems::contents`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn contents(stack: &ItemSlot) -> Option<FluidStack>`. What the stack holds, the whole stack's amount for a scaled tank or a stack of portions.
 
@@ -313,6 +353,8 @@ assert_eq!(FluidItems::contents(&ItemSlot::new(id("example:c"), 1)).unwrap().amo
 ```
 
 ### `FluidItems::capacity`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn capacity(stack: &ItemSlot) -> u32`. How much the stack holds at most; 0 for an item that is not a container.
 
@@ -327,6 +369,8 @@ assert_eq!(FluidItems::capacity(&ItemSlot::new(id("minecraft:stick"), 1)), 0);
 
 ### `FluidItems::fill`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fill(stack: &ItemSlot, fluid: &FluidStack) -> Filled`. The stack with fluid put in as far as it goes; asking and doing are the same call.
 
 ```rust
@@ -340,6 +384,8 @@ assert_eq!(filled.amount, 100);
 
 ### `FluidItems::drain`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn drain(stack: &ItemSlot, wanted: Option<&Identifier>, max: u32) -> Option<Drained>`. The fluid the stack gives up to `max`; a portion or constant gives all of it or nothing.
 
 ```rust
@@ -352,6 +398,8 @@ assert_eq!(FluidItems::drain(&full, None, 30).unwrap().fluid.amount, 30);
 ```
 
 ### `FluidItems::interact`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn interact(held: Option<&ItemSlot>, target: &mut dyn FluidTarget, direction: TransferDirection) -> Option<Interaction>`. A trade between the held stack and a tank (`FluidUtil.interactWithFluidHandler`). A container that is not a scaled tank trades one at a time, splitting one off a stack and giving its result in `give`.
 
@@ -368,6 +416,8 @@ assert!(FluidItems::interact(None, &mut Empty, TransferDirection::Auto).is_none(
 
 ### `FluidFlow`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How a fluid flows: `tick_delay` game ticks per step, `level_drop` levels lost per block, `slope_distance` blocks searched for a way down.
 
 ```rust
@@ -379,7 +429,13 @@ assert_ne!(flow, FluidFlow::standard());
 
 ### `FluidFlow::standard`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `const fn standard() -> FluidFlow`. Water-like flow: 5, 1 and 4.
+
+> The flow numbers of water: a tick delay of 5, a level drop of 1 and a slope distance of 4. It is
+> the starting point for a fluid that should spread the way water does; adjust the fields from
+> there.
 
 ```rust
 use pluto_lib::FluidFlow;
@@ -388,6 +444,8 @@ assert_eq!(FluidFlow::standard().tick_delay, 5);
 ```
 
 ### `FluidDef::flow`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn flow(self, tick_delay: u16, level_drop: u8, slope_distance: u8) -> FluidDef`. How the fluid flows in the world.
 
@@ -399,6 +457,8 @@ assert_eq!(def.flow.level_drop, 2);
 ```
 
 ### `FluidDef::bucket_sounds`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn bucket_sounds(self, fill: &str, empty: &str) -> FluidDef`. The sound events the bucket makes taking the fluid up and pouring it out.
 
@@ -412,6 +472,8 @@ assert!(def.bucket_fill_sound.is_some());
 
 ### `FluidWorld`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The rules of a mod fluid in the world.
 
 ```rust
@@ -421,6 +483,8 @@ assert_eq!(FluidWorld::bucket_id(&Identifier::parse("example:oil").unwrap()).to_
 ```
 
 ### `FluidWorld::LEVEL`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The block state property that carries the level.
 
@@ -432,6 +496,8 @@ assert_eq!(FluidWorld::LEVEL, "level");
 
 ### `FluidWorld::BLOCK_LEVELS`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The values of the property: `0` source, `1` to `7` flowing, `8` falling.
 
 ```rust
@@ -442,7 +508,13 @@ assert_eq!(FluidWorld::BLOCK_LEVELS.len(), 9);
 
 ### `FluidWorld::state`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn state(fluid: &Identifier, level: u8) -> BlockState`. The fluid block at a level.
+
+> The block state of the fluid's own block at the given level — what a world query answers for a
+> position the fluid fills to that height. Levels run from a full block down to the thinnest film
+> the fluid can stand at.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -451,6 +523,8 @@ assert_eq!(FluidWorld::state(&Identifier::parse("example:oil").unwrap(), 2).to_s
 ```
 
 ### `FluidWorld::block_id`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn block_id(fluid: &Identifier) -> Identifier`. The fluid's block id, `<id>_fluid` (so a fluid and a building block of the same name do not clash).
 
@@ -462,6 +536,8 @@ assert_eq!(FluidWorld::block_id(&Identifier::parse("a:b").unwrap()).path(), "b_f
 
 ### `FluidWorld::bucket_id`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn bucket_id(fluid: &Identifier) -> Identifier`. The fluid's bucket item id, `<id>_bucket`.
 
 ```rust
@@ -471,6 +547,8 @@ assert_eq!(FluidWorld::bucket_id(&Identifier::parse("a:b").unwrap()).path(), "b_
 ```
 
 ### `FluidWorld::level_of`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn level_of(state: &BlockState, fluid: &Identifier) -> Option<u8>`. The level of a state of the fluid's block; `None` for another block or a level above 8.
 
@@ -483,6 +561,8 @@ assert_eq!(FluidWorld::level_of(&BlockState::parse("minecraft:stone").unwrap(), 
 ```
 
 ### `FluidWorld::source_block`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn source_block(fluid: &Identifier) -> Option<BlockState>`. The source block of a fluid that has a world form: water and lava (whose block id is the fluid's own id) and a registered fluid with world blocks (its block at level 0). `None` for a fluid with no world form, so a bucket module's world halves know the fluid cannot be placed. The forward half of the fluid's world-block form, with `fluid_of` as the reverse.
 
@@ -498,6 +578,8 @@ assert!(FluidWorld::source_block(&Identifier::parse("example:potion").unwrap()).
 
 ### `FluidWorld::fluid_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_of(state: &BlockState) -> Option<(Identifier, u8)>`. The fluid and level a block state holds, if it is a fluid's world form: a registered fluid's `<id>_fluid` block with its `level` (0 source, 1 to 7 flowing, 8 falling), or water and lava by their own block id (a missing `level` reads as a source; a vanilla level of 8 to 15 is a falling cell, the port's 8). `None` for any other block. The reverse half of the fluid's world-block form.
 
 ```rust
@@ -510,6 +592,8 @@ assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:stone").unwrap()),
 
 ### `FluidWorld::is_world_fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn is_world_fluid(block: &Identifier) -> bool`. Whether `block` is the block (`<id>_fluid`) of a defined fluid with world blocks.
 
 ```rust
@@ -519,6 +603,8 @@ assert!(!FluidWorld::is_world_fluid(&Identifier::parse("minecraft:stone").unwrap
 ```
 
 ### `FluidWorld::place_source`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn place_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`. Puts a source at `pos` and schedules its tick; only into air or a replaceable non-fluid block.
 
@@ -533,6 +619,8 @@ assert!(!FluidWorld::place_source(&mut world, [0, 64, 0], &def));
 
 ### `FluidWorld::pick_up_source`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn pick_up_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`. Removes a source of this fluid; a flowing cell is refused.
 
 ```rust
@@ -545,6 +633,8 @@ assert!(FluidWorld::pick_up_source(&mut world, [0, 64, 0], &def));
 ```
 
 ### `FluidWorld::tick`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn tick(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef)`. One scheduled tick of a cell (`FlowingFluid.tick`): a flowing cell settles to what its neighbours make of it, then the cell spreads down or toward the nearest drop; changed cells are scheduled again.
 
@@ -560,6 +650,8 @@ assert!(world.blocks.contains_key(&[0, 63, 0]), "it falls");
 
 ### `FluidWorld::register_behaviour`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn register_behaviour(def: &FluidDef)`. Gives the fluid's block the flow behaviour; `FluidRegistry::register` calls it for a fluid with world blocks. Extend the registered behaviour with `BlockBehaviors::get` rather than replacing it.
 
 ```rust
@@ -571,6 +663,8 @@ assert!(BlockBehaviors::get("example:tar_fluid").is_some());
 
 ### `World::schedule_tick`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool`. Asks for the block at `pos` to tick after `delay` game ticks; false outside a callback, for a delay below 1, or when the host cannot schedule from this callback.
 
 ```rust
@@ -579,6 +673,8 @@ use pluto_lib::World;
 assert!(!World::new("minecraft:overworld").schedule_tick([0, 0, 0], "example:oil", 5), "no world in a plain test");
 ```
 ### `FluidItemDef::tagged_constant`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn tagged_constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`. An item that always holds `amount` of `fluid` together with a tag: the stack's own custom data is the fluid's tag, so a stack with no custom data holds the plain fluid. Drained, it becomes `empty` or vanishes and hands the tag back with the fluid.
 
@@ -598,6 +694,8 @@ assert_eq!(contents.tag, Some(tag));
 
 ### `FluidItemDef::empty_container_tagged`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn empty_container_tagged(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. An empty item that becomes `filled` when `amount` of an accepted fluid goes in, taking the fluid's tag as the filled stack's own custom data.
 
 ```rust
@@ -614,6 +712,8 @@ assert_eq!(filled.container.custom_data, tag);
 ```
 
 ### `FluidItemDef::fills_tagged`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn fills_tagged(self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. One more filling of the same empty item, tried after the earlier ones, whose filled stack takes the fluid's tag as its own custom data. Does nothing to other kinds of item.
 

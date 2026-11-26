@@ -48,6 +48,8 @@ ConfigEvents::RELOADING.register(|config| {
 
 ### `ConfigKind`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which side reads a config and when. `Client` loads on the window when the game starts, `Common` once per process (the window or a dedicated server), `Server` for each world the server opens.
 
 ```rust
@@ -59,7 +61,13 @@ assert_eq!(kinds.len(), 3);
 
 ### `ConfigRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers config files.
+
+> Registers a mod's config files: the mod names a file and its kind, and the game reads the file
+> and hands back the parsed ModConfig when it loads. Registrations are made once, while the mod
+> sets itself up.
 
 ```rust
 use pluto_lib::{ConfigKind, ConfigRegistry};
@@ -68,6 +76,8 @@ ConfigRegistry::register("example", ConfigKind::Common, "greeting = \"hello\"\n"
 ```
 
 ### `ConfigRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(mod_id: &str, kind: ConfigKind, default_text: &str)`. Asks for `config/<mod_id>-<kind>.toml` (`example-common.toml` above), created from `default_text` when missing.
 
@@ -79,6 +89,8 @@ ConfigRegistry::register("example", ConfigKind::Server, "difficulty = 2\n");
 
 ### `ConfigRegistry::register_file`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn register_file(mod_id: &str, kind: ConfigKind, file: &str, default_text: &str)`. The same in another file inside `config/`, such as `example/machines.toml`.
 
 ```rust
@@ -88,6 +100,8 @@ ConfigRegistry::register_file("example", ConfigKind::Common, "example/machines.t
 ```
 
 ### `ConfigSpec`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A config as registered. `mod_id` is the owner, `kind` when it loads, `file` the file name inside `config/` if it is not the default one, `default_text` what is written when the file is missing. PlutoLib builds these from `register` and `register_file`; read them back with a `ConfigSpec` only in tooling.
 
@@ -102,6 +116,8 @@ assert!(spec.default_text.is_empty());
 ```
 
 ### `ModConfig`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A config file as the game read it. `mod_id` is the owner, `kind` its kind, `file` the name inside `config/`, `text` the file's contents.
 
@@ -123,6 +139,8 @@ ConfigEvents::LOADING.invoke(&ModConfig {
 
 ### `ConfigEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The three config events. Every mod hears every config, so a callback checks `config.mod_id`.
 
 ```rust
@@ -134,6 +152,8 @@ ConfigEvents::UNLOADING.register(|_| {});
 ```
 
 ### `ConfigEvents::LOADING`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A registered config was read. Parse `config.text` here.
 
@@ -153,6 +173,8 @@ assert!(!GREETING_ON.load(Ordering::Relaxed));
 
 ### `ConfigEvents::RELOADING`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A loaded config's file changed on disk; `config.text` is the new text. Not fired when the same text is saved again.
 
 ```rust
@@ -163,6 +185,8 @@ ConfigEvents::RELOADING.invoke(&ModConfig { mod_id: "example".into(), kind: Conf
 ```
 
 ### `ConfigEvents::UNLOADING`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A `Server` config was dropped as its server stopped; the next world reads it again. `Client` and `Common` configs stay until the game quits.
 

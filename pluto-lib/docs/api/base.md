@@ -52,6 +52,8 @@ E.invoke(&());
 
 ### `Event`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `Event<A, R>` is a list of callbacks. `A` is what each callback receives (by reference), `R` is what it returns. Callbacks run in registration order unless a phase says otherwise, and the combiner turns the list of answers into one `R`.
 
 ```rust
@@ -76,6 +78,8 @@ ON_SCORE.invoke(&5);
 
 ### `Event::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `const fn new(combiner: &'static dyn Combiner<R>) -> Event<A, R>`. Makes an event with the given combiner. Use it in a `static`. The shorthand constructors below cover the usual combiners.
 
 ```rust
@@ -86,6 +90,8 @@ assert_eq!(CLICKED.invoke(&1), ActionResult::Pass); // no callback: the combiner
 ```
 
 ### `Event::void`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `const fn void() -> Event<A, ()>`. An event whose callbacks return nothing (every callback runs).
 
@@ -98,6 +104,8 @@ PING.invoke(&());
 ```
 
 ### `Event::first_not_pass`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `const fn first_not_pass() -> Event<A, ActionResult>`. Callbacks answer with an `ActionResult`; the first answer that is not `Pass` wins and stops the rest. With no such answer the result is `Pass`.
 
@@ -113,6 +121,8 @@ assert_eq!(USE.invoke(&()), ActionResult::Fail);
 
 ### `Event::allow_all`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `const fn allow_all() -> Event<A, bool>`. Callbacks answer yes (`true`) or no. Any `false` vetoes and stops the rest; all `true` (or none) allows.
 
 ```rust
@@ -125,6 +135,8 @@ assert!(!ALLOW.invoke(&-1));
 ```
 
 ### `Event::first_some`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `const fn first_some() -> Event<A, Option<T>>`. Callbacks answer with `Some` when they know the answer for the request, `None` when they pass. The first `Some` wins and stops the rest; all `None` (or none) is `None`.
 
@@ -140,6 +152,8 @@ assert_eq!(LOOKUP.invoke(&3), None);
 
 ### `Event::register`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn register(&self, callback: impl Fn(&A) -> R + Send + Sync + 'static)`. Adds a callback in the default phase. Registering from inside a running callback is allowed.
 
 ```rust
@@ -151,6 +165,8 @@ E.invoke(&"hi".to_owned());
 ```
 
 ### `Event::register_with_phase`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register_with_phase(&self, phase: Identifier, callback: ...)`. Adds a callback in a named phase. Phases run in the order set by `add_phase_ordering`; callbacks inside one phase keep registration order.
 
@@ -164,6 +180,8 @@ E.invoke(&());
 ```
 
 ### `Event::add_phase_ordering`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn add_phase_ordering(&self, first: Identifier, second: Identifier) -> Result<(), PhaseOrderingCycle>`. Says `first` runs before `second`. A contradicting ordering is refused and the event keeps working.
 
@@ -179,6 +197,8 @@ assert!(E.add_phase_ordering(b, a).is_err()); // would make a cycle
 
 ### `Event::is_empty`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn is_empty(&self) -> bool`. Whether no callback is registered. The game uses it to pay for an expensive hook only when someone listens.
 
 ```rust
@@ -192,6 +212,8 @@ assert!(!E.is_empty());
 
 ### `Event::invoke`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn invoke(&self, args: &A) -> R`. Runs the callbacks and returns the combined answer. PlutoLib calls it for its own events; a mod calls it for events it defines (and tests use it to drive a callback).
 
 ```rust
@@ -204,6 +226,8 @@ SUM.invoke(&7);
 
 ### `Callback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `type Callback<A, R> = Arc<dyn Fn(&A) -> R + Send + Sync>`. How an event stores a callback; a `Combiner` receives them.
 
 ```rust
@@ -215,6 +239,8 @@ assert_eq!(double(&4), 8);
 ```
 
 ### `Combiner`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Trait that turns the callbacks into one result. Implement it for a custom event; the four provided ones (`Unit`, `FirstNotPass`, `AllowAll`, `FirstSome`) cover PlutoLib's events.
 
@@ -237,6 +263,8 @@ assert_eq!(TOTAL.invoke(&()), 5);
 
 ### `Unit`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Combiner for events whose callbacks return `()`: every callback runs.
 
 ```rust
@@ -247,6 +275,8 @@ E.invoke(&());
 ```
 
 ### `FirstNotPass`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Combiner for `ActionResult` events: the first answer that is not `Pass` wins.
 
@@ -260,6 +290,8 @@ assert_eq!(E.invoke(&()), ActionResult::Consume);
 
 ### `AllowAll`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Combiner for `bool` events: any `false` vetoes.
 
 ```rust
@@ -271,6 +303,8 @@ assert!(!E.invoke(&()));
 ```
 
 ### `FirstSome`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Combiner for `Option<T>` events: the first `Some` wins.
 
@@ -285,6 +319,8 @@ assert_eq!(E.invoke(&2), None);
 
 ### `default_phase`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn default_phase() -> Identifier`. The phase callbacks join when registered with `register`. Order a custom phase before or after it.
 
 ```rust
@@ -297,6 +333,8 @@ E.register_with_phase(early, |_| {});
 ```
 
 ### `PhaseOrderingCycle`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The error `add_phase_ordering` returns when two orderings contradict. The fields name the pair that was refused.
 
@@ -316,6 +354,8 @@ assert_eq!((refused.first, refused.second), (b, a));
 
 ### `ActionResult`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What an interaction callback decided: `Success` (happened, swing the hand), `Consume` (happened, no swing), `ConsumePartial` (partly happened), `Pass` (not handled here) and `Fail` (cancel).
 
 ```rust
@@ -326,6 +366,8 @@ assert_eq!(answers.iter().filter(|a| a.is_accepted()).count(), 3);
 ```
 
 ### `ActionResult::is_accepted`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn is_accepted(self) -> bool`. True for every result except `Pass` and `Fail`.
 
@@ -339,7 +381,13 @@ assert!(!ActionResult::Fail.is_accepted());
 
 ### `ActionResult::should_swing_hand`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn should_swing_hand(self) -> bool`. True only for `Success`.
+
+> Whether the game should swing the player's hand for this result. Only Success swings: Consume
+> reports an action that happened without a swing, and Pass means the interaction did not happen
+> at all.
 
 ```rust
 use pluto_lib::ActionResult;
@@ -352,6 +400,8 @@ assert!(!ActionResult::Consume.should_swing_hand());
 
 ### `Identifier`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A namespaced name such as `tconstruct:flint_pickaxe`. The namespace allows `a-z 0-9 _ . -`, the path also `/`. Displays as `namespace:path`.
 
 ```rust
@@ -363,7 +413,13 @@ assert_eq!(id.to_string(), "tconstruct:tools/pickaxe");
 
 ### `Identifier::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(namespace: &str, path: &str) -> Result<Identifier, IdentifierError>`.
+
+> Builds an identifier from a namespace and a path, validating both parts. The Err case carries an
+> IdentifierError naming which part was rejected and why, so bad data fails at construction
+> instead of downstream.
 
 ```rust
 use pluto_lib::Identifier;
@@ -374,6 +430,8 @@ assert!(Identifier::new("example", "").is_err());      // so is an empty path
 ```
 
 ### `Identifier::parse`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn parse(text: &str) -> Result<Identifier, IdentifierError>`. Reads `namespace:path`; without a colon the namespace is `minecraft`.
 
@@ -386,7 +444,12 @@ assert_eq!(Identifier::parse("stone").unwrap().to_string(), "minecraft:stone");
 
 ### `Identifier::namespace`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn namespace(&self) -> &str`.
+
+> The part before the colon — for example `tconstruct` in `tconstruct:flint_pickaxe`. The
+> namespace names the mod or pack that owns the thing the identifier refers to.
 
 ```rust
 use pluto_lib::Identifier;
@@ -396,7 +459,12 @@ assert_eq!(Identifier::new("example", "a").unwrap().namespace(), "example");
 
 ### `Identifier::path`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn path(&self) -> &str`.
+
+> The part after the colon — for example `flint_pickaxe` in `tconstruct:flint_pickaxe`. Together
+> with the namespace it forms the full name every registry in the API is keyed by.
 
 ```rust
 use pluto_lib::Identifier;
@@ -405,6 +473,8 @@ assert_eq!(Identifier::new("example", "a/b").unwrap().path(), "a/b");
 ```
 
 ### `DEFAULT_NAMESPACE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `const DEFAULT_NAMESPACE: &str = "minecraft"`. The namespace `Identifier::parse` uses when the text has none.
 
@@ -415,6 +485,8 @@ assert_eq!(Identifier::parse("dirt").unwrap().namespace(), DEFAULT_NAMESPACE);
 ```
 
 ### `IdentifierError`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Why an identifier was rejected: `InvalidNamespace` or `InvalidPath`, each with the offending text.
 
@@ -433,6 +505,8 @@ PlutoLib always offers the whole API. Where Horizon cannot do what a call means 
 
 ### `Support`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Whether a call works on the pinned Horizon: `Implemented`, `Stub` (callable but inert: no host hook exists) or `BlockedByMixins` (inert: the pinned Horizon Mixins refuses the hook that would implement it).
 
 ```rust
@@ -443,6 +517,8 @@ assert_ne!(Support::Stub, Support::BlockedByMixins);
 ```
 
 ### `SupportEntry`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One row of the matrix. `api` names the call, `support` says how far it works, `behaviour` says what it does meanwhile, `unblocked_by` says what host change makes it work.
 
@@ -456,6 +532,8 @@ let _ = row.support;
 
 ### `MATRIX`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `const MATRIX: &[SupportEntry]`. Every call that is not fully implemented.
 
 ```rust
@@ -466,7 +544,13 @@ assert!(MATRIX.iter().all(|row| !row.api.is_empty()));
 
 ### `entries_with`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn entries_with(support: Support) -> impl Iterator<Item = &'static SupportEntry>`. The rows in one class.
+
+> The rows of the support matrix whose support class is the given one. Tools and pages use it to
+> list, for one class at a time, which calls are implemented, which are stubs and which are
+> unsupported.
 
 ```rust
 use pluto_lib::{entries_with, Support};
@@ -478,6 +562,8 @@ for row in entries_with(Support::Stub) {
 
 ### `Nbt::parse_snbt`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn parse_snbt(text: &str) -> Result<Nbt, String>`. Parses SNBT text (the game's stringified NBT) into a value; the error says where the text stopped making sense.
 
 ```rust
@@ -488,6 +574,8 @@ assert!(Nbt::parse_snbt("{count: 3").is_err());
 ```
 
 ### `compare_nbt`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn compare_nbt(expected: &Nbt, actual: Option<&Nbt>) -> bool`. Whether `actual` carries the pattern `expected` (the game's `NbtUtils.compareNbt` with the third argument true): the kinds must match exactly (a byte is not an int, and no number widens); a compound pattern matches when the data has at least its entries and every one matches; a list pattern matches when the data has at least its elements and every pattern element matches some data element; anything else must be equal. No data at all never matches.
 

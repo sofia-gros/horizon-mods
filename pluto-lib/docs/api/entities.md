@@ -145,6 +145,8 @@ The reach can also move a living entity the way the game itself moves one: `Enti
 
 ### `CalculateFallDamageContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Owned class-query data: `entity: u32`, `entity_type: Identifier`, post-event `distance: f64`, `multiplier: f32` and inherited native calculation `inherited: f64`. The calculation runs before block-specific alterations; the host's result representation does not promise the original Java's baseline rounding.
 
 ```rust
@@ -156,6 +158,8 @@ assert_eq!(query.inherited, 3.0);
 
 ### `LivingEntityBehavior::calculate_fall_damage`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `calculate_fall_damage(self, callback: impl Fn(&CalculateFallDamageContext) -> Option<i32> + Send + Sync + 'static) -> Self` configures the class calculation. The integer result follows the Minecraft method's shape. `None` delegates, while zero means no calculated damage, not an event cancellation.
 
 ```rust
@@ -165,6 +169,8 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:no_fall_dam
 ```
 
 ### `LivingEntityBehaviors::calculate_fall_damage`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `calculate_fall_damage(context: &CalculateFallDamageContext) -> Option<i32>` dispatches the registered class calculation outside the lock. It applies neither block effects nor damage itself.
 
@@ -177,6 +183,8 @@ assert_eq!(LivingEntityBehaviors::calculate_fall_damage(&query), None);
 
 ### `JumpPowerContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Owned query data: `entity: u32`, `entity_type: Identifier`, `slime_size: Option<i32>` and `block_jump_factor: f32`. A missing subtype size must not be guessed as one.
 
 ```rust
@@ -188,6 +196,8 @@ assert_eq!(query.slime_size, Some(9));
 
 ### `AttackDamageContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Owned contact-query data: `entity: u32`, `entity_type: Identifier`, `attribute: f64`. `attribute` is the effective attribute, without an inherited class bonus or a prior conversion to float.
 
 ```rust
@@ -197,6 +207,8 @@ assert_eq!(query.attribute, 3.0);
 ```
 
 ### `LivingEntityBehavior`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A cloneable set of per-type class methods; the builder retains thread-safe callbacks, not entities or world handles.
 
@@ -208,6 +220,8 @@ let _owned_copy = behavior.clone();
 
 ### `LivingEntityBehavior::new`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `new(entity_type: Identifier) -> Self` starts with inherited methods.
 
 ```rust
@@ -216,6 +230,8 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:inherited")
 ```
 
 ### `LivingEntityBehavior::jump_power`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `jump_power(self, callback: impl Fn(&JumpPowerContext) -> Option<f32> + Send + Sync + 'static) -> Self` configures the no-argument jump-power override. `None` delegates; zero is explicit.
 
@@ -227,6 +243,8 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:jump").unwr
 
 ### `LivingEntityBehavior::attack_damage`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `attack_damage(self, callback: impl Fn(&AttackDamageContext) -> Option<f32> + Send + Sync + 'static) -> Self` configures contact attack damage, independently of jump power.
 
 ```rust
@@ -237,6 +255,8 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:contact").u
 
 ### `LivingEntityBehaviors`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Process-local registry and dispatch for class queries, keyed by symbolic entity type rather than runtime entity ID.
 
 ```rust
@@ -246,6 +266,8 @@ assert_eq!(LivingEntityBehaviors::attack_damage(&query), None);
 ```
 
 ### `LivingEntityBehaviors::register`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `register(behavior: LivingEntityBehavior) -> Result<(), String>` rejects duplicate type IDs, duplicate class attribute/ID pairs and poisoned registration without changing the old entry.
 
@@ -258,6 +280,8 @@ assert!(LivingEntityBehaviors::register(LivingEntityBehavior::new(id)).is_err())
 
 ### `LivingEntityBehaviors::jump_power`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `jump_power(context: &JumpPowerContext) -> Option<f32>` invokes the registered method or returns `None` for inheritance. Native callers must honor the difference between `None` and zero.
 
 ```rust
@@ -268,6 +292,8 @@ assert_eq!(LivingEntityBehaviors::jump_power(&query), None);
 ```
 
 ### `LivingEntityBehaviors::attack_damage`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `attack_damage(context: &AttackDamageContext) -> Option<f32>` invokes the registered contact method or delegates.
 
@@ -395,6 +421,8 @@ assert!(MobSpawnCallback::register(id, |_| Ok(None)).is_err());
 
 ### `EntityTypeRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The registry for derived entity-type declarations. Register during initialization, before the native resource adapter collects its owned snapshot. An ID cannot be replaced by a later registration.
 
 ```rust
@@ -404,6 +432,8 @@ EntityTypeRegistry::register_derived(Identifier::parse("example:registry_slime")
 ```
 
 ### `EntityTypeRegistry::register_derived`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register_derived(id: Identifier, factory: Identifier, width: f32, height: f32, tracking_chunks: u32, velocity_updates: bool) -> Result<(), String>`. `id` is a custom type, not a replacement in `minecraft`; `factory` names an existing vanilla runtime type (existence still needs native validation). Dimensions must be finite and positive; tracking must be `1..=i32::MAX` chunks. `velocity_updates` whether the type requests velocity synchronization. It rejects duplicate IDs, a poisoned registry and registrations after collection.
 
@@ -420,6 +450,8 @@ assert!(EntityTypeRegistry::register_derived(id, factory, 1.0, 1.0, 8, false).is
 
 ### `EntityInfo`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An entity entering or leaving a world. `id` is the entity id, `kind` its type id such as `minecraft:zombie`, `dimension` the dimension id.
 
 ```rust
@@ -434,6 +466,8 @@ ServerEntityEvents::ENTITY_LOAD.invoke(&EntityInfo { id: 5, kind: "minecraft:zom
 ```
 
 ### `LivingDamage`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Damage about to be applied to a living entity. `entity` is the victim's id and `kind` its type. `damage_type` is the damage type id such as `minecraft:player_attack`. `attacker` is the id of the entity that caused it (negative if none) and `direct` the entity that dealt it directly, a projectile for example (negative if none). `amount` is the damage. `in_damage_type_tag(tag)` reads the vanilla damage-type tags (the pinned game's memberships: `bypasses_effects` is only starvation), and `is_direct_damage()` is Tinkers' directness: a causer, no direct entity or the causer, and a type outside `minecraft:avoids_guardian_thorns`.
 
@@ -455,6 +489,8 @@ assert!(!fall.is_direct_damage());
 
 ### `ServerEntityEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Entity load and unload events.
 
 ```rust
@@ -465,6 +501,8 @@ ServerEntityEvents::ENTITY_UNLOAD.register(|_| {});
 ```
 
 ### `ServerEntityEvents::ENTITY_LOAD`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 An entity joined a world (spawned, or loaded with its chunk).
 
@@ -477,6 +515,8 @@ ServerEntityEvents::ENTITY_LOAD.invoke(&EntityInfo { id: 9, kind: "minecraft:cow
 
 ### `ServerEntityEvents::ENTITY_UNLOAD`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An entity left a world (died, was removed, or its chunk unloaded).
 
 ```rust
@@ -488,7 +528,13 @@ ServerEntityEvents::ENTITY_UNLOAD.invoke(&EntityInfo { id: 9, kind: "minecraft:c
 
 ### `ServerLivingEntityEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Events for living entities.
+
+> The holder of the living-entity events: each field is one event — damage, death and their kin —
+> that happens to living entities. A mod registers a callback on a field to be asked about that
+> event.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;
@@ -497,6 +543,8 @@ ServerLivingEntityEvents::ALLOW_DAMAGE.register(|_| true);
 ```
 
 ### `ServerLivingEntityEvents::ALLOW_DAMAGE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Damage is about to be applied. Answer `false` to cancel it; any `false` cancels.
 
@@ -510,6 +558,8 @@ assert!(ServerLivingEntityEvents::ALLOW_DAMAGE.invoke(&hit));
 
 ### `KnockbackModification`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Knockback about to be applied, for a callback to change or cancel. `entity` is the id of the entity pushed and `kind` its type; `attacker` is the id of what caused it, negative for none. `attacker_main` and `attacker_off` are the stacks in the attacker's hands, with damage, max damage and custom data; `None` for an empty hand. `strength`, `x` and `z` are the strength and the horizontal direction now (each a `Cell`: change it with `set`); `cancel` set to true gives no knockback.
 
 ```rust
@@ -522,6 +572,8 @@ assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
 ```
 
 ### `ItemDamage`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player's item about to lose durability, for a callback to change or cancel. `player` is the uuid, `name` the player's name; `item` the id of the item worn, `stack` the stack as the player holds or wears it (`None` when none is found). `amount` is the wear now (a `Cell`: change it with `set`; 0 or less leaves the item whole); `cancel` set to true gives no wear; `slot` is the stack as an item slot, with its components; `replacement` a whole new stack a callback may set (a `RefCell`), written to the main-inventory stack that carried the old data, after which the game wears it by 0. A stack outside the main inventory (worn armor) is not rewritten; the game wears it by `amount`, so a callback that sets `replacement` also sets `amount` to the wear left. `holder` what the player was doing as the stack wore, as an [`EntityState`](#entitystate); `None` when the game did not name the player.
 
@@ -538,6 +590,8 @@ The player tick sections — `PlayerTick`, `MovementInput` and `ServerLivingEnti
 
 ### `VisibilityModification`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 How far a mob sees a player, for a callback to scale: `wearer` is the player's uuid, `observer` the type id of the mob that is looking, `armor` the pieces the player wore as of their last tick (as (slot, stack); only those carrying custom data), `armor_revision` a number that changes whenever what any player wears changes (never 0; keep what you worked out from `armor` while it stays the same) and `multiplier` the factor on the range now (a `Cell`: 1 leaves it whole, 0.5 halves it).
 
 ```rust
@@ -551,6 +605,8 @@ assert_eq!(look.multiplier.get(), 0.5);
 
 ### `CounterDamage`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Damage for a callback to deal to the mob that hurt the player: `damage_type` is the damage type id (`minecraft:thorns`) and `amount` the amount.
 
 ```rust
@@ -562,6 +618,8 @@ assert_eq!(damage.amount, 2.5);
 
 ### `ActionTarget`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which party of a hit an [`EntityAction`](#entityaction) is done to: `Attacker` or `Victim`. In a weapon hit the attacker is the player and the victim the mob; in a hit on a player (`WearerHit`) the attacker is the mob and the victim the wearer.
 
 ```rust
@@ -572,6 +630,8 @@ assert_ne!(ActionTarget::Attacker, ActionTarget::Victim);
 
 ### `KnockbackDirection`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How a knockback action picks the way the mob is pushed: `AwayFromOther` pushes it away from the other party of the hit, as the game's damage knockback does; `AgainstFacing` pushes it against the way it faces, as `Entity.knockback(strength, -sin(yaw), cos(yaw))` does.
 
 ```rust
@@ -581,6 +641,8 @@ assert_ne!(KnockbackDirection::AwayFromOther, KnockbackDirection::AgainstFacing)
 ```
 
 ### `EntityAction`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a callback does to one party of a hit, pushed onto the hit's `actions`. A weapon hit's actions are done just before its damage lands; a hit on a player's, on that player's next tick. Each action is guarded; one the target cannot take is skipped silently: `SetFire { target, seconds }` sets it burning for `seconds` when longer than it burns (a fire-immune mob is skipped; a player only when reachable); `Heal { target, amount }` heals a mob or player by `amount`, cut to their maximum; `Freeze { target, ticks }` freezes a mob (its frozen ticks become the larger of 140 and what it has, plus `ticks`, its fire goes out; never a player or a freeze-immune kind); `Knockback { target, strength, direction }` pushes a mob horizontally (and up when it stands on the ground), as `LivingEntity.knockback` does, without the mob's knockback resistance (a player is not pushed: the host has no call for it). `AddEffect { target, effect, amplifier, duration }` puts a status effect on a player or a mob (`amplifier` is the level less one, `duration` in ticks; an unknown effect id, a negative amplifier or no duration gives nothing; the shooter or shearer is reached by uuid, the world owner included). `EditStackData { target, slot, item, edits }` applies the [`StackDataEdit`](#stackdataedit)s to the custom data of the stack the target carries in [`slot`](#stackslot), but only when that stack is still of `item`, and to the stack as it is when the action lands, so wear in between stays. It reaches the acting player of the hit (the world owner included) and a mob, through its living equipment write; a mob's off hand is edited through the off-hand transport at the rider synchronisation, on the whole stack kept there. A slot holding another item and an edit that changes nothing are skipped. `Hurt { target, amount, damage_type }` deals a player or mob `amount` damage of `damage_type` with no attacker, through the host's hurt call: armor, effects, invulnerability time and the damage hooks all apply and hear it, and a creative player or a dead mob is skipped. `SetEffectDuration { target, effect, duration }` sets the ticks left of an effect a player has, keeping level and flags (shortening too); an effect the player lacks, a non-positive duration and a mob are skipped. `Teleport { target, position }` moves the target to `position` (`Entity.teleportTo`): a mob's navigation stops and its fall distance resets, as the game's own teleport does, and another entity keeps its facing; a player is moved by the game's own server teleport, queued for the rider synchronisation, landing by the next tick. `DropItem { target, stack }` drops `stack` at the target on its next tick. `Summon { target, kind }` summons `kind` at the target.
 
@@ -607,6 +669,8 @@ ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
 
 ### `StackSlot`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which stack of a player or mob an `EntityAction::EditStackData` edits: `MainHand` (the selected hotbar slot), `OffHand`, `Feet`, `Legs`, `Chest` or `Head`.
 
 ```rust
@@ -618,6 +682,8 @@ assert_ne!(StackSlot::MainHand, StackSlot::OffHand);
 
 ### `armor_stack_slot`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The [`StackSlot`](#stackslot) of an armor slot name that `armor` lists use (`feet`, `legs`, `chest`, `head`); None for any other name.
 
 ```rust
@@ -628,6 +694,8 @@ assert!(armor_stack_slot("chest").is_some() && armor_stack_slot("body").is_none(
 
 ### `equipment_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The equipment of the player `uuid`, as (slot, stack) pairs: the armor the game's ticks reported for them, in `feet`, `legs`, `chest`, `head` order, then the off hand under the name `offhand`. Only pieces carrying custom data are recorded. Empty when the player is not known.
 
 ```rust
@@ -637,6 +705,8 @@ assert!(equipment_of(0).is_empty());
 ```
 
 ### `StackDataEdit`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One change to a stack's custom data for `EntityAction::EditStackData`: `value` is put at `path` (compound keys from the root of the custom data, the compounds on the way made when missing, a value in the way replaced by a compound) or, when `value` is None, the entry at `path` is removed. Edits are applied in order; an empty path is skipped. Edits state the value they want, not a change.
 
@@ -655,6 +725,8 @@ ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
 
 ### `ServerEntityEvents::SHEAR`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A player is about to shear a mob (Bukkit: `PlayerShearEntityEvent`), heard on a server before the shears act. Set `attempt.cancel` to stop the shearing, or push `EntityAction`s for the player (`ActionTarget::Attacker`) onto `attempt.actions`; they land even when a later callback cancels the shearing. `attempt.tool` is the stack in the shearing hand. The game reports only a guest's shearing on the world owner's LAN world; the owner's own shearing is heard by no hook.
 
 ```rust
@@ -671,6 +743,8 @@ ServerEntityEvents::SHEAR.register(|attempt| {
 ```
 
 ### `ShearAttempt`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player about to shear a mob. `player` is the player's uuid and `name` their name, `entity` the mob's entity id, `off_hand` whether the shears are in the off hand, `tool` the stack in that hand (its damage, max damage and custom data; `None` for an empty hand), `cancel` a `Cell<bool>` to set to stop the shearing and `actions` the `EntityAction`s to do to the player.
 
@@ -689,6 +763,8 @@ ServerEntityEvents::SHEAR.register(|attempt| {
 
 ### `EffectGrant`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A status effect for a callback to put on the mob a weapon hit: `effect` is the effect id (an id the game does not know is skipped), `amplifier` the level less one (0 is level I) and `duration` how long it lasts, in ticks.
 
 ```rust
@@ -699,6 +775,8 @@ assert_eq!((grant.amplifier + 1, grant.duration), (3, 120));
 ```
 
 ### `WeaponHit`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player's weapon hit on a mob: `entity` the mob's id, `kind` its type id, `attacker` the player's entity id, `dimension` the dimension, `weapon` the stack used (its damage, max damage and custom data; None for an empty hand), `damage_dealt` the damage the hit is about to deal, before armor takes its share (a hit the armor absorbs whole still reads pre-armor), `attack_ticks` the attacker's ticks since their last swing (a mob attacker reads as fully charged), `attacker_state` and `target_state` what the player and the mob were doing, `target_position` the mob's position, `attacker_position` where the attacking player stands (their feet), `armor` the pieces the player wore as of their last tick (as (slot, stack): `feet`, `legs`, `chest`, `head`; only those carrying custom data; empty when the player is not known), `effects` the effects callbacks push for the mob, and `actions` the [`EntityAction`](#entityaction)s they push for the player (`Attacker`) or the mob (`Victim`), done just before the hit's damage lands. `fully_charged(attack_speed)` is the host's charge gate for the weapon's attack speed; the ticks are tracked from the player's ticks and reset on a swing and on a main-hand change.
 
@@ -712,6 +790,8 @@ assert!(hit.effects.borrow().is_empty() && hit.armor.is_empty() && hit.actions.b
 
 ### `WearerHit`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A mob hurting the player: `attacker` the mob's id, `kind` its type id, `damage_type` the damage type id and `amount` the amount the game works the hit out as, both resolved at the damage event, `direct` what directly dealt it (the attacker for a melee hit), `attacker_state` what the mob was doing, `attacker_position` its position, `armor` the pieces the player wore (only the pieces carrying custom data), `effects` the effects for the mob, `self_effects` the ones for the wearer, `counter_damage` the damage for the mob, and `actions` the [`EntityAction`](#entityaction)s for the mob (`Attacker`) or the wearer (`Victim`), which land on the player's next tick.
 
 ```rust
@@ -723,6 +803,8 @@ assert!(hit.armor.is_empty() && hit.effects.borrow().is_empty() && hit.self_effe
 ```
 
 ### `EntityState`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a living entity was doing when a player's weapon hit it, and the facts a condition may ask: `kind` is its entity type id; `sprinting` whether it was sprinting; `on_ground` whether it stood on the ground (false in the air); `in_water` whether it was in water; `fire_ticks` how long it burns for (0 or less when it does not); `fire_immune` whether fire cannot hurt it; `effects` the ids of the effects on it; `effect_levels` the same effects as (id, amplifier), the amplifier being the level less one (see [`EntityState::effect_level`](#entitystateeffect_level)); `health` and `max_health` its health and maximum (the `minecraft:max_health` attribute), `None` when not reported; `biome` the biome it stands in, `biome_temperature` that biome's temperature at its height (`Biome.getTemperature`), `None` for a biome PlutoLib has no temperature for; `eyes_in_water` whether its eyes are in water, where `in_water` is a touch of it; `rain_exposed` whether rain falls on it; `thundering` whether it is thundering where it stands; `enchantments` the ids of the enchantments on its equipment (presence only, not levels); `armor_coverage` the share of its four armor slots holding armor, 0.0 to 1.0, `None` when not reported; `equipment` the names of the equipment slots holding an item (`mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`), `None` when not reported; `armor_stacks` its worn armor as (slot, stack) pairs (custom-data pieces only); `crouching` whether it crouches (a player holding sneak; a mob never does); `y` the height of its feet, `None` when not reported; `block_light` and `sky_light` the two light layers at the block it stands in, each 0 to 15 (`Level.getBrightness`), `None` when not reported; `sky_darken` how much the time of day and the weather take off the sky light, 0 to 11 (see `sky_darken` on the sky page). Every field has a default, so build one with `..EntityState::default()`.
 
@@ -740,6 +822,8 @@ assert_eq!((state.crouching, state.y, state.block_light), (false, Some(64.0), No
 
 ### `EntityState::effect_level`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The level of an effect on the entity: the amplifier plus one, so 1 for level I, and 0 when it does not have the effect or the game did not report levels.
 
 ```rust
@@ -753,6 +837,8 @@ assert_eq!(state.effect_level("minecraft:speed"), 0);
 
 ### `EffectCategory`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A status effect's category, as `MobEffectCategory`: `Beneficial`, `Harmful` or `Neutral`.
 
 ```rust
@@ -764,6 +850,8 @@ assert_eq!(effect_category("minecraft:speed"), Some(EffectCategory::Beneficial))
 
 ### `effect_category`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `effect_category(id)` is the category of a vanilla effect id (`minecraft:poison` is harmful), or `None` for an id that is not vanilla's: PlutoLib does not know another mod's effects.
 
 ```rust
@@ -774,6 +862,8 @@ assert_eq!(effect_category("example:unknown"), None);
 ```
 
 ### `DamageModification`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Damage about to be applied, for a callback to change. `damage` the hit, `amount` the amount now (a `Cell`), `attacker_stack` the stack a player attacked with (None when no player's attack caused it). `armor` lists what a player wore as of their last tick, as (slot, stack) for the four pieces (custom-data only). It fires after protection. `attacker_state`/`target_state` say what the parties were doing as the hit landed. Any attacker is reported (`attacker_kind`, `attacker_is_player`, `attacker_main_hand`, `attacker_chest`, `attacker_attack_damage`), the victim's health and attack attribute (`target_health`/`target_attack_damage`), and where the parties stand (`attacker_position`/`target_position`, their feet). A player's arrow hit names the hand that launched it (`attacker_launcher_hand`, `attacker_launcher_stack`); `None` for another hit — a trident's shot names no weapon — or when neither hand holds the weapon any more. `actions` takes [`EntityAction`](#entityaction)s for the damaged player (`ActionTarget::Victim`), landing on their next tick; only a custom-data-armor player is served by that queue, a mob party's kept for its next tick.
 
@@ -787,6 +877,8 @@ hit.amount.set(hit.amount.get() + 2.0);
 ```
 
 ### `ServerLivingEntityEvents::WEARER_HIT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A mob hurting the player, heard on a server as the damage arrives, with the type the damage event resolves. It carries the mob's id, type and state, the damage type and amount, and the armor the player wore as of their last tick; push status effects on the mob with `effects`, which the game puts on it, or on the wearer with `self_effects`, or damage to the mob with `counter_damage` (an armor's thorns, as hurt by the player), the last two landing on the player's next tick; set it on fire, freeze it or knock it back with `actions`, which land then too. The hit is heard once per attacker per tick, only when the mob is within a few blocks of a player. Only a single-player or one-wearer world names the armor; with several players online `armor` is empty.
 
@@ -802,6 +894,8 @@ ServerLivingEntityEvents::WEARER_HIT.register(|hit| {
 
 ### `ServerLivingEntityEvents::WEAPON_HIT`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player's weapon hit on a mob, heard on a server before the hit's damage lands. It carries the weapon and what the player and the mob were doing; push status effects on the mob with `effects`, and the game puts them on it right after.
 
 ```rust
@@ -815,6 +909,8 @@ ServerLivingEntityEvents::WEAPON_HIT.register(|hit| {
 ```
 
 ### `ServerLivingEntityEvents::MODIFY_KNOCKBACK`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 NeoForge: `LivingKnockBackEvent`. Heard on a server for each knockback: change the strength or the direction with `set`, or set `cancel` for none. It carries the stacks in the attacker's hands.
 
@@ -830,6 +926,8 @@ ServerLivingEntityEvents::MODIFY_KNOCKBACK.register(|push| {
 
 ### `ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player's item is about to lose durability: change the amount with `amount.set`, set `cancel` for no wear, or put a whole new stack in `replacement`. The game's own hook is heard for a LAN player only; PlutoLib reports the local player's wear too.
 
 ```rust
@@ -843,6 +941,8 @@ ServerLivingEntityEvents::MODIFY_ITEM_DAMAGE.register(|wear| {
 ```
 
 ### `ServerLivingEntityEvents::MODIFY_VISIBILITY`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 NeoForge: `LivingVisibilityEvent`. Heard on a server each time a mob works out how far it sees a player who wears armor carrying custom data; the game's own factors (sneaking, invisibility, worn heads) are already counted, and a callback scales the range further with `multiplier.set` (a disguise). Nothing is heard for a player wearing no such armor, and the factor never blocks a mob that is already targeting.
 
@@ -858,6 +958,8 @@ ServerLivingEntityEvents::MODIFY_VISIBILITY.register(|look| {
 
 ### `ServerLivingEntityEvents::EXPERIENCE_DROP`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 NeoForge: `LivingExperienceDropEvent`. The `ExperienceDrop` a mob killed by a player is about to drop, before the orbs split: change the total with `experience.set`. `projectile_tool` is the stack the killing projectile was launched from; `looting_slot` the slot the killing blow claimed (an armor piece or the off hand, else the main hand).
 
 
@@ -872,6 +974,8 @@ ServerLivingEntityEvents::EXPERIENCE_DROP.invoke(&drop);
 assert_eq!(drop.experience.get(), 10);
 ```
 ### `ServerLivingEntityEvents::MODIFY_DAMAGE`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 NeoForge: `LivingDamageEvent.Pre`. Called for damage that goes ahead, before armor and effects take their share; change the amount with `amount.set`. For a player's attack on the server it carries the stack used.
 
@@ -899,6 +1003,8 @@ ServerLivingEntityEvents::MODIFY_DAMAGE.register(|hit| {
 
 ### `ServerLivingEntityEvents::MODIFY_HURT`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 NeoForge: `LivingIncomingDamageEvent`. Called as damage that goes ahead arrives, before armor and enchantment protection take a share and before `MODIFY_DAMAGE` hears of it: the amount as it arrives, which callbacks may change with `amount.set`. It carries the same `DamageModification` as the damage event — the armor worn, the states of the hit, the attacking stack — and its actions queue the same way, for the wearer or the attacker; the damage event that follows reads the same hit, only later.
 
 ```rust
@@ -913,6 +1019,8 @@ ServerLivingEntityEvents::MODIFY_HURT.register(|hit| {
 
 ### `ServerLivingEntityEvents::AFTER_DEATH`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 An entity died: called when a living entity's death goes ahead, just before it is removed. Players are not reported yet.
 
 ```rust
@@ -924,6 +1032,8 @@ ServerLivingEntityEvents::AFTER_DEATH.register(|death| {
 ```
 
 ### `EntityReach`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The facade a ticker uses to reach the entities around it. Outside a scope every call answers nothing and every action fails.
 
@@ -960,6 +1070,8 @@ with_entities(&mut ops, || {
 
 ### `EntityReach::knockback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn knockback(id: u64, strength: f64, x: f64, z: f64) -> bool`. Knocks entity `id` back with `strength` along the horizontal direction (`x`, `z`), as `LivingEntity.knockback` does: the entity's own knockback resistance scales the strength, its horizontal motion is halved against the push, and it rises by the strength (at most 0.4) when it stands on the ground. A player is knocked back the same way, and their client is told the new motion. Only a living entity or a player can be knocked back. A host may apply an accepted knockback at its next rider synchronisation rather than instantly; a refusal there (the entity is gone, or not living) is final. False outside a scope.
 
 ```rust
@@ -979,6 +1091,8 @@ assert!(!EntityReach::knockback(2, 1.0, 1.0, 0.0), "outside a scope");
 
 ### `EntityReach::push`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn push(id: u64, delta: [f64; 3]) -> bool`. Adds `delta` to entity `id`'s velocity, as `Entity.push` does: no resistance and no halving, the motion simply grows by the vector. A player is pushed the same way, and their client is told. Only a living entity or a player is pushed. A host may apply an accepted push at its next rider synchronisation rather than instantly, as [`EntityReach::knockback`](#entityreachknockback) describes. False outside a scope.
 
 ```rust
@@ -996,6 +1110,8 @@ assert_eq!(ops.pushed, vec![(2, [0.1, 0.4, -0.2])]);
 ```
 
 ### `EntityReach::leave_ground`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn leave_ground(id: u64) -> bool`. Lifts the player `id` off the ground for a launch, as `Entity.move(MoverType.SELF, (0, 1.3, 0))` does at the head of one: standing on the ground, they rise by 1.3, or to the first ceiling the move would stop at. Only a player is lifted, and only while they stand on the ground. A host may apply an accepted lift at its next rider synchronisation rather than instantly, as [`EntityReach::knockback`](#entityreachknockback) describes. False outside a scope.
 
@@ -1016,6 +1132,8 @@ assert_eq!(ops.lifted, vec![2]);
 
 ### `EntityReach::add_effect`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn add_effect(id: u64, effect: &str, duration: i32, amplifier: u8) -> bool`. Gives living entity `id` the mob effect for `duration` ticks at `amplifier` (level - 1).
 
 
@@ -1026,6 +1144,8 @@ use pluto_lib::EntityReach;
 assert!(!EntityReach::add_effect(4, "minecraft:speed", 100, 0), "no entity scope is open");
 ```
 ### `EntityOps`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `trait EntityOps`. The operations behind [`EntityReach`](#entityreach): `entities_in(min, max)`, `discard(id)`, `set_item(id, stack)`, `hurt(id, amount, damage_type)`, `position_of(id)` (default `None`), `effects_of(id)` (default empty), `velocity_of(id)` (default `None`), `bounds_of(id)` (default `None`), `set_velocity(id, velocity)` (default `false`), `teleport(id, pos)` (default `false`), `id_of_uuid(uuid)` (default `None`) and `kind_of(id)` (default `None`). An adapter implements it and opens it with `with_entities`.
 
@@ -1050,6 +1170,8 @@ with_entities(&mut world, || {
 
 ### `WorldEntity`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `struct WorldEntity { id: u64, kind: Identifier, item: Option<ItemSlot>, living: Option<LivingFacts> }`. One entity in a box: an item entity carries its `item` stack and no living facts, a living entity carries `living` facts and no stack, anything else neither.
 
 ```rust
@@ -1067,6 +1189,8 @@ assert!(zombie.item.is_none() && zombie.living.is_some());
 
 ### `LivingFacts`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `struct LivingFacts { fire_immune: bool, invulnerable: bool, fire_resistant: bool }`. The facts about a living entity a consumer's rules read: it does not burn, it cannot be hurt by the damage being dealt, and it has fire resistance.
 
 ```rust
@@ -1077,6 +1201,8 @@ assert!(facts.fire_immune && !facts.invulnerable && !facts.fire_resistant);
 ```
 
 ### `MemoryEntityOps`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 An in-memory [`EntityOps`](#entityops) for tests: `entities` placed at fixed positions, with `discarded`, `left` (the stacks `set_item` left) and `hurt` recording what was done, a `hurts_land` switch for a damage the host refuses, and `mounts` recording who rides whom as `(passenger, vehicle)` pairs in the order they mounted, and `knocked`, `pushed`, `lifted`, `velocities` and `spun` recording the knockbacks, pushes, lifts, velocity sets and spins asked for, and `effect_lists` and `bounding_boxes` holding the effects and bounding box each entity answers with. `boxes` sets the bounding box an entity answers with, by id, as [min corner, max corner]; an entity with no entry has no box.
 
@@ -1108,6 +1234,8 @@ assert_eq!(ops.ignited_creepers, vec![4]);
 
 ### `with_entities`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn with_entities(ops: &mut dyn EntityOps, body: impl FnOnce() -> R) -> R`. Opens the entity reach over `ops` for `body`; the host opens it around a block entity ticker. The previous scope is restored when `body` returns.
 
 ```rust
@@ -1121,6 +1249,8 @@ assert!(EntityReach::in_box([0.0, 0.0, 0.0], [4.0, 70.0, 4.0]).is_empty(), "the 
 
 ### `LivingDamage::in_damage_type_tag`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn in_damage_type_tag(&self, tag: &str) -> bool`. Whether the damage type is in the vanilla damage-type tag `tag` (`minecraft:<name>`), from the flattened vanilla table; false for a tag the table does not name.
 
 ```rust
@@ -1132,6 +1262,8 @@ assert!(!hit.in_damage_type_tag("minecraft:bypasses_effects"));
 ```
 
 ### `LivingDamage::is_direct_damage`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn is_direct_damage(&self) -> bool`. Whether the hit is a direct one: an attacker caused it, what directly dealt it is the attacker or nothing named, and its type is not in `avoids_guardian_thorns`.
 
@@ -1146,6 +1278,8 @@ assert!(!magic.is_direct_damage());
 
 ### `ATTACK_TICKS_CHARGED`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `pub const ATTACK_TICKS_CHARGED: u32 = 10_000`. The attack ticks a fresh or unknown attacker reads as: the host starts a player's ticker at 100 and a swing's delay is at most a few hundred ticks, so this is fully charged for any weapon.
 
 ```rust
@@ -1155,6 +1289,8 @@ assert_eq!(ATTACK_TICKS_CHARGED, 10_000);
 ```
 
 ### `WeaponHit::attack_strength_scale`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn attack_strength_scale(&self, attack_speed: f32) -> f32`. The swing's charge as a scale from 0 to 1: the attack ticks (plus a half) over the ticks a full charge takes at `attack_speed`, clamped.
 
@@ -1168,6 +1304,8 @@ assert_eq!(hit.attack_strength_scale(4.0), 1.0);
 
 ### `WeaponHit::fully_charged`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fully_charged(&self, attack_speed: f32) -> bool`. Whether the swing was fully charged: the host's `scale > 0.9` gate over `attack_strength_scale`.
 
 ```rust
@@ -1179,6 +1317,8 @@ assert!(hit.fully_charged(4.0));
 ```
 
 ### `CriticalHit`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A player's melee hit about to be a critical hit, or not (NeoForge: `CriticalHitEvent`), heard through `ServerLivingEntityEvents::CRITICAL_HIT`: `attacker_entity` is the attacking player's entity id (-1 when the game names no acting player, as for a guest's hit on a LAN world), `attacker_on_ground` whether the attacker stands on the ground, `attacker_in_water` whether they stand in water, `target_kind` the target's entity type id, `vanilla_critical` vanilla's answer without a mod, `critical` whether the hit is critical now (change it with `set`), and `damage_multiplier` the multiplier now (change it with `set`), which scales the damage only while `critical` ends true.
 
@@ -1194,6 +1334,8 @@ assert!(!hit.critical.get());
 
 ### `LivingJump`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A living entity jumped (NeoForge: `LivingEvent.LivingJumpEvent`), heard through `ServerLivingEntityEvents::LIVING_JUMP` on both games: `entity` is the entity's numeric id and `kind` its type id. The event carries no host and no velocity, so a callback that needs to move the entity defers the push to the entity's next tick.
 
 ```rust
@@ -1205,6 +1347,8 @@ assert_eq!(jump.kind, "minecraft:player");
 ```
 
 ### `ExperienceDrop`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Experience a mob killed by a player is about to drop, before the game splits the total into orbs (NeoForge: `LivingExperienceDropEvent`), heard through `ServerLivingEntityEvents::EXPERIENCE_DROP`: `entity` is the dying mob's id, `kind` its type id, `player` the player who killed it as (uuid, entity id) (None when the game names no player), `effects` the dying mob's effects as of the drop as (id, amplifier), `projectile_tool` the stack the killing projectile was launched from when a launch named its tool (None otherwise), `looting_slot` the slot the killing blow claimed (None when no weapon hit named one, and the main hand reads then), and `experience` the experience now, which callbacks change with `set` (0 or less drops no orbs).
 
@@ -1218,6 +1362,8 @@ assert_eq!(drop.experience.get(), 12);
 ```
 
 ### `ServerLivingEntityEvents::CRITICAL_HIT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 NeoForge: `CriticalHitEvent`. A player's melee hit about to be a critical hit: `critical` starts as vanilla's answer and `damage_multiplier` at 1.5 for a vanilla critical, 1.0 otherwise; a callback may force or deny the critical and change the multiplier, which scales the damage only while `critical` ends true.
 
@@ -1237,6 +1383,8 @@ assert!(hit.critical.get());
 
 ### `ServerLivingEntityEvents::LIVING_JUMP`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 NeoForge: `LivingEvent.LivingJumpEvent`. A living entity jumped, heard on both games; the event carries no host and no velocity.
 
 ```rust
@@ -1247,6 +1395,8 @@ ServerLivingEntityEvents::LIVING_JUMP.invoke(&LivingJump { entity: 4, kind: "min
 ```
 
 ### `ServerLivingEntityEvents::MOVEMENT_INPUT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 NeoForge: `MovementInputUpdateEvent`. The local player's movement input, after the game read it and before it applies it (client only): a callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump).
 
@@ -1266,6 +1416,8 @@ assert_eq!(input.forward.get(), 0.5);
 
 ### `LivingFall`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A living entity is about to handle a fall, heard through `LivingFallEvents::FALL`: `entity` is the falling entity's id, `kind` its type, `distance` the fall distance in blocks and `multiplier` the damage multiplier (1 by default); a callback changes either by setting its cell, and answering `false` cancels the fall handling.
 
 ```rust
@@ -1279,6 +1431,8 @@ assert_eq!(fall.distance.get(), 0.0);
 ```
 
 ### `LivingFallEvents`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Events about a living entity's fall (the host's `LivingFallEvent`). Its one event is `FALL`.
 
@@ -1294,6 +1448,8 @@ LivingFallEvents::FALL.register(|fall| {
 ```
 
 ### `LivingFallEvents::FALL`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A living entity is about to handle a fall, before the fall damage is applied. Answer `false` to cancel the fall handling (the block's own `fallOn` still runs with zero damage); one `false` is enough. Heard for the local player and for mobs, on both sides.
 

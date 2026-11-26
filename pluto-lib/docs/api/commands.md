@@ -54,6 +54,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrationCallback`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Holder of the registration event.
 
 ```rust
@@ -65,6 +67,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 ```
 
 ### `CommandRegistrationCallback::EVENT`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Runs when the server builds its command tree; the callback receives a `CommandRegistrar`.
 
@@ -82,6 +86,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrar`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Collects the commands one registration pass adds; it is handed to the callback of `CommandRegistrationCallback::EVENT`.
 
 ```rust
@@ -94,6 +100,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 ```
 
 ### `CommandRegistrar::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(&self, usage: &str, handler: impl Fn(&CommandContext) -> i32 + Send + Sync + 'static)`. A command every player may run.
 
@@ -111,6 +119,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrar::register_op`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn register_op(&self, usage: &str, level: u8, handler: ...)`. A command for operators of `level` (1 to 4) and above.
 
 ```rust
@@ -122,6 +132,8 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 ```
 
 ### `CommandContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a handler receives. `source` is the player who ran the command (its methods work inside the handler), `args` the argument words in the order the usage lists them; an omitted optional argument is absent. Build one yourself to test a handler.
 

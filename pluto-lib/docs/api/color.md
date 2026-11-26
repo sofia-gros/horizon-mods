@@ -66,6 +66,8 @@ assert_eq!(ColorProviderRegistry::item_color(&face), Some(0x123456));
 
 ### `BlockColorContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a block colour provider is asked. `state` is the block's state including its properties, `pos` the world position when one is supplied, and `tint_index` the model's `tintindex`. `None` represents a lookup without a position; automatic item/hand lookups are not connected by the world-mesh adapter.
 
 ```rust
@@ -79,6 +81,8 @@ assert_eq!(face.state.block.path(), "meadow_leaves");
 
 ### `ItemColorContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `ItemColorContext { stack: StackData, tint_index: i32 }` carries the stack being drawn, including count, damage, durability override and custom data, plus the model face's tint index. It has no fabricated world position.
 
 ```rust
@@ -90,6 +94,8 @@ assert_eq!(face.tint_index, 1);
 
 ### `ColorProviderRegistry::register_item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn register_item(items: &[Identifier], provider: impl Fn(&ItemColorContext) -> Option<u32> + Send + Sync + 'static)` registers one provider for each item. Later registrations replace earlier ones; callback execution and replaced callback destruction occur outside the lock. **Stub:** native item/hand renderers do not invoke it yet.
 
 ```rust
@@ -98,6 +104,8 @@ ColorProviderRegistry::register_item(&[Identifier::parse("example:berries").unwr
 ```
 
 ### `ColorProviderRegistry::item_color`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn item_color(context: &ItemColorContext) -> Option<u32>` directly queries the stack item's provider. `Some(0xRRGGBB)` supplies its colour; `None` means no registration or an explicit decline. This lookup is functional independently of the native renderer stub.
 
@@ -110,6 +118,8 @@ assert_eq!(ColorProviderRegistry::item_color(&face), None);
 
 ### `ColorProviderRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The registry of colour providers (Fabric: `ColorProviderRegistry`).
 
 ```rust
@@ -119,6 +129,8 @@ let _ = ColorProviderRegistry::block_color;
 ```
 
 ### `ColorProviderRegistry::register_block`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register_block(blocks: &[Identifier], provider: impl Fn(&BlockColorContext) -> Option<u32> + Send + Sync + 'static)`. Gives `blocks` a provider (Fabric: `ColorProviderRegistry.BLOCK.register`). It answers the colour as `0xRRGGBB`, or `None` to leave the face to the game's tint. A block registered again takes the newer provider.
 
@@ -132,6 +144,8 @@ ColorProviderRegistry::register_block(
 ```
 
 ### `ColorProviderRegistry::block_color`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn block_color(context: &BlockColorContext) -> Option<u32>`. Call the registered provider for `context.state`'s block. Returns its `0xRRGGBB` answer, or `None` when no provider is registered or the provider declines. This direct lookup works independently of renderer wiring and accepts a manually supplied context, including `pos: None`; it does not establish that a game rendering path is connected. The world-chunk base-face adapter retains the native tint on `None`.
 

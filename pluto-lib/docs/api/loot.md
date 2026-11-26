@@ -59,6 +59,8 @@ LivingEntityDropsCallback::register(Identifier::parse("example:heads").unwrap(),
 
 ### `LootTableEvents::MODIFY_DROPS`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Fabric: `LootTableEvents.MODIFY_DROPS` (NeoForge: global loot modifiers). Runs on a server for the items about to drop from a block a player, an explosion or a mob broke, a mob that died, or a player's use; other breaks (leaves decaying, a piston) are not heard. It runs even when `drops` is empty. Edit `context.drops`; a stack left with a count of 0 does not drop.
 
 ```rust
@@ -70,6 +72,8 @@ LootTableEvents::MODIFY_DROPS.register(|context| {
 ```
 
 ### `LootDrops`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 What is about to drop. `table` is the loot table rolled (empty when none), `dimension` the level, `origin` where they drop, `block` the block's position when a block broke, `entity` the mob's entity id and type (the mob that died, or the entity a player's use dropped them from), `entity_facts` the entity's own state (a `LootEntityFacts`), when the game reported it, `player` the uuid of the player who broke the block or killed the mob when the game knows them, `tool` what broke the block or what the player used (`None` when the game reports none), `explosion` the radius of the explosion that broke the block, `used` whether a player's use dropped them, `drops` the stacks, as item slots a callback edits, and `actions` the `EntityAction`s for the player (the main hand's stack is edited as it is when they land; dropped when `player` is `None`).
 
@@ -87,6 +91,8 @@ LootTableEvents::MODIFY_DROPS.register(|context| {
 
 ### `LootEntityFacts`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The dropping entity's own state, for drops whose output depends on the entity itself. `baby` is a baby animal, `sheared` a sheep whose wool is gone (a snow golem's pumpkin is gone with it; the game keeps one flag for both), `wool_color` a sheep's wool colour as a dye id (0 white to 15 black), `mooshroom` a mooshroom's kind (`red` or `brown`), and `player` the profile of the player the entity is, when it is one. A fact the game did not report reads as its plain value (an adult, an unsheared sheep); the whole `entity_facts` is `None` when there is no entity or its state was not reported, and state-dependent drops then do not happen. The conversion is source-wired and not yet compiled against the pinned host.
 
 ```rust
@@ -100,6 +106,8 @@ assert_eq!(facts.wool_color, None);
 
 ### `PlayerProfile`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A player's profile, as a player head keeps it: `name` is their name as the server's player list writes it and `uuid` their id. A head dropped for the player carries it in its `minecraft:profile` component (see `ItemSlot` on the block-entity page); the game reports no texture properties for the player, so the client resolves the skin from the name and id, as it does for a profile without properties.
 
 ```rust
@@ -111,6 +119,8 @@ assert_eq!(profile.uuid, 42);
 ```
 
 ### `LootFunctionContext`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A loot function of a mod's own kind being applied to one stack: a loot table entry named a `modifier` whose `type` is not one of the game's (such as `mantle:fill_retextured_block`). `kind` is that type, `data` the function's own JSON beside `type`, `origin` and `dimension` where the table rolled, `seed` a seed from the roll's random for a mod's own draws, `block_entity` the block entity the broken block had (its saved data, id and position included; a mod's block entity carries its own data in it), and `stack` the stack to change in place. Away from a broken block the place fields are `None`.
 
@@ -132,6 +142,8 @@ assert_eq!(context.stack.borrow().custom_data.get("marker"), Some(&Nbt::String("
 
 ### `LootTableEvents::FUNCTION`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Runs for every loot function of a mod's own kind as its table rolls, once per stack the function applies to. Every callback hears every kind; answer only the kinds you own and leave the others' stacks alone. The game's own function kinds never arrive here.
 
 ```rust
@@ -146,6 +158,8 @@ LootTableEvents::FUNCTION.register(|context| {
 
 ### `LivingDropInfo`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `LivingDropInfo { entity: EntityInfo, position: [f64; 3], damage_type: Option<String>, killer_type: Option<String> }` owns the victim identity/dimension, actual position, optional damage type and damage owner's type. `killer_type` is not the direct projectile and does not establish a class capability: a derived creeper may have a custom type ID.
 
 ```rust
@@ -159,6 +173,8 @@ assert_eq!(death.killer_type.as_deref(), Some("minecraft:creeper"));
 ```
 
 ### `LivingEntityDrops`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A borrowed host interface. `info(&self) -> &LivingDropInfo` returns metadata; `can_drop_head(&self) -> Result<bool, String>` queries authoritative class/power/counter eligibility; `claim_head_drop(&mut self) -> Result<bool, String>` consumes it once; `append_stack(&mut self, StackData) -> Result<(), String>` appends without rewriting untouched native stacks. Unsupported capabilities and failed writes return errors rather than fabricated values. This memory host demonstrates the methods, not native attachment:
 
@@ -183,6 +199,8 @@ assert_eq!(host.items.len(), 1);
 
 ### `LivingEntityDropsCallback`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Holds the ordered borrowed-context callbacks. Registration is functional; native dispatch remains a documented stub.
 
 ```rust
@@ -191,6 +209,8 @@ LivingEntityDropsCallback::register(Identifier::parse("example:observe_death").u
 ```
 
 ### `LivingEntityDropsCallback::register`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn register(id: Identifier, callback: impl Fn(&mut dyn LivingEntityDrops) -> Result<(), String> + Send + Sync + 'static) -> Result<(), String>`. IDs define lexical dispatch order; duplicate IDs and a poisoned registry reject registration. Callbacks run outside its mutex from a retained callback snapshot; errors stop later callbacks without undoing earlier operations.
 
@@ -202,6 +222,8 @@ assert!(LivingEntityDropsCallback::register(id, |_| Ok(())).is_err());
 ```
 
 ### `LootTableContext`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A loot table being loaded. `id` is the table id such as `minecraft:blocks/stone`; `table` holds the table's JSON in a `RefCell`, so a callback edits it in place with `borrow_mut`.
 
@@ -223,6 +245,8 @@ assert_eq!(context.table.into_inner(), json!({"pools": []}));
 
 ### `LootTableEvents`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Holder of the loot table event.
 
 ```rust
@@ -232,6 +256,8 @@ LootTableEvents::MODIFY.register(|_| {});
 ```
 
 ### `LootTableEvents::MODIFY`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Runs for every loot table as it loads. Callbacks edit `context.table`; several callbacks apply in registration order.
 

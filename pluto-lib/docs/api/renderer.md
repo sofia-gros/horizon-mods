@@ -189,6 +189,8 @@ A layer texture is `namespace:path` for `assets/<namespace>/textures/entity/equi
 
 ### `BlockEntityCanvas`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The surface a renderer draws on; PlutoLib passes one to the renderer, and a test can implement it to check what a renderer draws.
 
 - Pose: `push()` saves the pose and `pop()` comes back to it; `translate(by)`, `rotate_about(axis, degrees, pivot)` and `scale(by)` change it. Positions are in blocks.
@@ -247,6 +249,8 @@ fn local_animation(canvas: &dyn BlockEntityCanvas) -> Option<i64> {
 
 ### `CubeDefinition`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 An unbaked box with public `origin`, `dimensions`, `texture_offset`, `deformation` and `mirror` fields. Geometry/deformation uses texels; the texture offset is pixels. `CubeDefinition::new` starts undeformed and unmirrored. Negative dimensions and non-finite geometry reject at startup collection; zero-sized planes are permitted.
 
 ```rust
@@ -259,6 +263,8 @@ assert_eq!(hat.texture_offset, [0, 16]);
 
 ### `CubeDefinition::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `new(origin: [f32; 3], dimensions: [f32; 3], texture_offset: [i32; 2]) -> CubeDefinition` constructs a box with zero deformation and `mirror=false`.
 
 ```rust
@@ -270,6 +276,8 @@ assert!(!cube.mirror);
 
 ### `PartDefinition`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 An unbaked part with public `pose: PartPose`, `cubes: Vec<CubeDefinition>` and ordered `children: Vec<(String, PartDefinition)>`. `Default` has the identity pose and no geometry/children. Names must be unique within each sibling list at collection.
 
 ```rust
@@ -279,6 +287,8 @@ assert!(part.children.is_empty());
 ```
 
 ### `PartDefinition::add_or_replace_child`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `add_or_replace_child(&mut self, name: &str, cubes: Vec<CubeDefinition>, pose: PartPose) -> &mut PartDefinition` appends a new child or replaces an existing child's boxes/pose, preserving its children and its position in draw order.
 
@@ -294,6 +304,8 @@ assert_eq!(root.children.len(), 1);
 
 ### `LayerDefinition`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `LayerDefinition { parts: Vec<(String, PartDefinition)>, texture_size: [u32; 2] }` defines a layer with an implicit identity root and its ordered named parts. Both texture dimensions must be positive. Baking normalizes box UVs using these dimensions, not the canvas quad helper's UV units.
 
 ```rust
@@ -303,6 +315,8 @@ assert_eq!(definition.texture_size, [64, 32]);
 ```
 
 ### `LayerDefinition::create`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `create(parts: Vec<(String, PartDefinition)>, width: u32, height: u32) -> LayerDefinition` owns the parts and dimensions; validation occurs when providers are collected at startup.
 
@@ -314,6 +328,8 @@ assert_eq!(definition.texture_size, [32, 16]);
 
 ### `SkullModelAnimation`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 `None`, `Piglin` and `Dragon` select the inherited rigid-head, piglin-ear or vanilla-dragon-jaw pose algorithm. Animation comes from the requesting special model or worn-head caller, not a global clock. A custom armor wrapper is not implied.
 
 ```rust
@@ -323,6 +339,8 @@ assert_ne!(families[0], families[1]);
 ```
 
 ### `SkullModelRegistry`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Associates custom item IDs with skull model metadata before client startup. It is independent of BlockEntityRendererRegistry and does not declare an item or a model layer.
 
@@ -334,6 +352,8 @@ SkullModelRegistry::register(Identifier::parse("example:bone_head").unwrap(),
 ```
 
 ### `SkullModelRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(item: Identifier, layer: &str, texture: Identifier, animation: SkullModelAnimation) -> Result<(), String>`. The custom item ID doubles as the special-model kind; `layer` has `namespace:path#layer` form and names a native layer or a registered mod layer. `texture` is the full sprite ID, not a `textures/` path or `.png` filename. Native item membership, model attachment and pixels are not validated by registration. Duplicate/late/vanilla-item IDs and invalid layer/texture forms reject without replacing an entry. For a registered custom special model, an optional JSON `texture` follows the native entity-relative convention, preserving custom namespaces.
 
@@ -347,6 +367,8 @@ assert!(SkullModelRegistry::register(item, "example:other#main", texture, SkullM
 
 ### `EntityModelLayerRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The Fabric-style registry for native model layers. Register providers during mod initialization, before the one-time native collection. It does not replace vanilla layers or other mods' layers.
 
 ```rust
@@ -355,6 +377,8 @@ EntityModelLayerRegistry::register_model_layer("example:empty#main", || LayerDef
 ```
 
 ### `EntityModelLayerRegistry::register_model_layer`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `register_model_layer(id: &str, provider: impl Fn() -> LayerDefinition + Send + Sync + 'static) -> Result<(), String>` registers a provider. `id` is `namespace:path#layer`, with a non-vanilla identifier and a nonempty layer containing neither `#` nor `:`. Duplicate, invalid, poisoned-registry and post-collection registrations return an error without mutation. Providers are snapshotted in ID order and invoked without holding the registry lock; invalid provider output rejects the whole PlutoLib batch before native output is extended.
 
@@ -367,6 +391,8 @@ assert!(EntityModelLayerRegistry::register_model_layer("example:layer#main", || 
 
 ### `PartPose`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `PartPose { translation: [f32; 3], rotation: [f32; 3], scale: [f32; 3] }` describes a part relative to its parent. Translation is in texels; X/Y/Z rotation components are radians, applied Z then Y then X, before scaling. `ZERO` and `Default` have zero translation/rotation and unit scale.
 
 ```rust
@@ -378,6 +404,8 @@ assert_eq!(pose.translation[1], 4.0);
 
 ### `ModelVertex`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `ModelVertex { pos: [f32; 3], uv: [f32; 2] }` is a model-space vertex in texels with normalized texture coordinates. UVs are not the canvas quad helper's 0–16 texture coordinates.
 
 ```rust
@@ -387,6 +415,8 @@ assert_eq!(vertex.uv, [0.25, 0.5]);
 ```
 
 ### `ModelPolygon`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `ModelPolygon { vertices: [ModelVertex; 4], normal: [f32; 3] }` is one ordered face. The adapter preserves vertex order, UVs and model-space normal.
 
@@ -403,6 +433,8 @@ assert_eq!(face.vertices[2].pos, [16.0, 16.0, 0.0]);
 ```
 
 ### `ModelPart`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `ModelPart::new(polygons: Vec<ModelPolygon>, children: Vec<(String, ModelPart)>, pose: PartPose)` takes ownership of its faces and ordered named children and remembers the initial pose. Public fields `pose`, `visible`, `skip_draw`, `polygons` and `children` are editable. `visible=false` hides a whole subtree; `skip_draw=true` hides only that part's faces. Cloning makes an independent tree.
 
@@ -425,6 +457,8 @@ assert!(head.get_child("missing").is_none());
 
 ### `PartPose::ZERO`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `ZERO: PartPose` is zero translation/rotation and unit scale, also returned by `Default`.
 
 ```rust
@@ -433,6 +467,8 @@ assert_eq!(PartPose::ZERO.scale, [1.0; 3]);
 ```
 
 ### `ModelPart::new`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `new(polygons: Vec<ModelPolygon>, children: Vec<(String, ModelPart)>, pose: PartPose) -> ModelPart` owns its ordered geometry/children and remembers `pose` for reset. It starts visible and does not skip its own drawing.
 
@@ -444,6 +480,8 @@ assert!(part.visible && !part.skip_draw);
 
 ### `ModelPart::get_child`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `get_child(&self, name: &str) -> Option<&ModelPart>` finds the first immediate child of that name, not a recursive descendant; missing names return `None`.
 
 ```rust
@@ -453,6 +491,8 @@ assert!(part.get_child("jaw").is_none());
 ```
 
 ### `ModelPart::get_child_mut`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `get_child_mut(&mut self, name: &str) -> Option<&mut ModelPart>` mutably borrows the first matching immediate child for animation or editing.
 
@@ -465,6 +505,8 @@ assert_eq!(root.get_child("jaw").unwrap().pose.rotation[0], 0.2);
 ```
 
 ### `ModelPart::reset_pose`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `reset_pose(&mut self)` restores this part's constructor/baked pose, not its children's poses or its visibility/geometry.
 
@@ -479,6 +521,8 @@ assert!(!part.visible);
 ```
 
 ### `ModelPart::reset_all_poses`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `reset_all_poses(&mut self)` restores this part and every descendant to their own initial poses, retaining all visibility flags, geometry and names.
 
@@ -506,6 +550,8 @@ fn draw_skull(canvas: &mut dyn BlockEntityCanvas) -> bool {
 ```
 
 ### `ItemDisplayContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A copyable enum selecting the resource-model transform. Its ten forms are `None`, `ThirdPersonLeftHand`, `ThirdPersonRightHand`, `FirstPersonLeftHand`, `FirstPersonRightHand`, `Head`, `Gui`, `Ground`, `Fixed` and `OnShelf`. `None` selects the model's no-display-context form; it does not suppress drawing. This type does not position an item on an entity or open a screen.
 
@@ -539,6 +585,8 @@ fn draw_on_head(canvas: &mut dyn BlockEntityCanvas, stack: &ItemSlot) -> bool {
 
 ### `BlockEntityRender`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a renderer receives for one block entity. `pos` is its position, `block` the block's id, `data` what the server sent of it, `items` its item slots (as many as its type declared, an empty slot `None`; the slots live outside the sent data, so a renderer that draws the contents reads them here), `canvas` where to draw.
 
 ```rust
@@ -571,6 +619,8 @@ draw_level(&mut BlockEntityRender { pos: [0, 64, 0], block: "example:tank", data
 
 ### `BlockEntityRendererRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers renderers (Fabric: `BlockEntityRendererFactories.register`).
 
 ```rust
@@ -583,6 +633,8 @@ BlockEntityRendererRegistry::register(Identifier::new("example", "lamp").unwrap(
 ```
 
 ### `BlockEntityRendererRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(block: Identifier, renderer: impl Fn(&mut BlockEntityRender<'_>) + Send + Sync + 'static)`. Draws every block entity of `block` with `renderer`. Registering the same block again replaces the earlier renderer. Keep the renderer short: it runs for every block entity in view, every frame, unless a static `keep()` request is accepted. Client-ticker renderers never forward that hint; hint eligibility is checked after the callback.
 
@@ -601,6 +653,8 @@ BlockEntityRendererRegistry::register(Identifier::new("example", "gauge").unwrap
 
 ### `BlockEntityRendererRegistry::has`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn has(block: &str) -> bool`. Whether `block` (an id such as `example:lamp`) has a renderer.
 
 ```rust
@@ -613,6 +667,8 @@ assert!(BlockEntityRendererRegistry::has("example:undrawn"));
 
 ### `ArmorLayerKind`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The layer set a renderer is asked for: `Humanoid` (helmet, chestplate, boots) or `HumanoidLeggings`. The texture folder under `textures/entity/equipment` has the same name.
 
 ```rust
@@ -621,6 +677,8 @@ assert_ne!(ArmorLayerKind::Humanoid, ArmorLayerKind::HumanoidLeggings);
 ```
 
 ### `ArmorRenderContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a renderer is asked: `stack` is the worn stack as the item renderer sees it (custom data, model data, damage) and `kind` the layer set being drawn.
 
@@ -633,6 +691,8 @@ assert_eq!(context.kind, ArmorLayerKind::Humanoid);
 
 ### `ArmorLayer`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One drawn layer: `texture` names the equipment texture as an equipment asset does (`namespace:path`, no `textures/` and no `.png`; such a name makes the game keep the equipment asset's own layers) and `tint` is `Some(0xRRGGBB)` to multiply into it or `None`.
 
 ```rust
@@ -644,6 +704,8 @@ assert_eq!(layer.tint, Some(0x336699));
 
 ### `ArmorRenderer`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The Fabric-style registry of worn armor renderers (`ArmorRenderer.register`). It does not declare an item, an equipment asset or a texture.
 
 ```rust
@@ -652,6 +714,8 @@ ArmorRenderer::register(&[Identifier::parse("example:plain_suit").unwrap()], |_|
 ```
 
 ### `ArmorRenderer::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(items: &[Identifier], renderer: impl Fn(&ArmorRenderContext) -> Option<Vec<ArmorLayer>> + Send + Sync + 'static)` gives each item the renderer. A later registration replaces an earlier one. The renderer returns the layers in draw order or `None` to leave the equipment asset; it may register renderers itself.
 
@@ -662,6 +726,8 @@ ArmorRenderer::register(&[item], |_| Some(vec![ArmorLayer { texture: Identifier:
 ```
 
 ### `ArmorRenderer::layers`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn layers(context: &ArmorRenderContext) -> Option<Vec<ArmorLayer>>` asks the stack item's renderer outside the registry lock: `None` for no registration or a decline. The game's adapter calls the same lookup.
 

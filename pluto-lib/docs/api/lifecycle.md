@@ -55,6 +55,8 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk| {
 
 ### `ServerInfo`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 What the server callbacks learn about the server. `dedicated` is true for a dedicated server and false for the integrated one (single player or LAN host).
 
 ```rust
@@ -70,6 +72,8 @@ ServerLifecycleEvents::SERVER_STARTING.invoke(&ServerInfo { dedicated: true });
 
 ### `WorldTick`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 A world (dimension) tick. `dimension` is the dimension id, such as `minecraft:overworld`.
 
 ```rust
@@ -82,6 +86,8 @@ ServerTickEvents::END_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:the_n
 ```
 
 ### `ServerChunk`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 A chunk of a world. `dimension` is the dimension id, `x` and `z` are the chunk coordinates, and `newly_generated` is true on `CHUNK_LOAD` when the chunk was generated just now rather than read from disk.
 
@@ -100,6 +106,8 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk: &ServerChunk| {
 
 ### `ServerLifecycleEvents`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` run before startup and teardown; `SERVER_STARTED` is invoked at the first server tick after startup. `SERVER_STOPPED` runs once after a successful final save and teardown of an integrated or dedicated server. It is not emitted when the stop routine returns a save/teardown error.
 
 ```rust
@@ -110,6 +118,8 @@ ServerLifecycleEvents::SERVER_STOPPING.register(|_| {});
 ```
 
 ### `ServerLifecycleEvents::SERVER_STARTING`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 The server is about to start (before the world loads). Use it to read configuration or register data.
 
@@ -122,6 +132,8 @@ ServerLifecycleEvents::SERVER_STARTING.invoke(&ServerInfo { dedicated: false });
 
 ### `ServerLifecycleEvents::SERVER_STARTED`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 The server has finished starting: called at the first server tick after it started.
 
 ```rust
@@ -131,6 +143,8 @@ ServerLifecycleEvents::SERVER_STARTED.register(|server| println!("started, dedic
 ```
 
 ### `ServerLifecycleEvents::SERVER_STOPPING`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 The server is about to stop. Use it to save your own data.
 
@@ -142,6 +156,8 @@ ServerLifecycleEvents::SERVER_STOPPING.invoke(&ServerInfo { dedicated: true });
 ```
 
 ### `ServerLifecycleEvents::SERVER_STOPPED`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 The server has finished its successful final save and teardown. The callback receives `ServerInfo { dedicated }`; use it to release mod-owned resources, not to operate on departed players. A crash or failed final save is not reported as successful shutdown.
 
@@ -155,6 +171,8 @@ ServerLifecycleEvents::SERVER_STOPPED.register(|_| {});
 
 ### `ServerTickEvents`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Tick events, each running every game tick. Keep callbacks short.
 
 ```rust
@@ -165,6 +183,8 @@ ServerTickEvents::END_SERVER_TICK.register(|_| {});
 ```
 
 ### `ServerTickEvents::START_SERVER_TICK`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 Before the server runs a tick.
 
@@ -182,6 +202,8 @@ assert_eq!(TICKS.load(Ordering::Relaxed), 1);
 
 ### `ServerTickEvents::END_SERVER_TICK`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 After the server has run a tick.
 
 ```rust
@@ -193,6 +215,8 @@ ServerTickEvents::END_SERVER_TICK.invoke(&());
 
 ### `ServerTickEvents::START_WORLD_TICK`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Before a world (dimension) ticks.
 
 ```rust
@@ -203,6 +227,8 @@ ServerTickEvents::START_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:ove
 ```
 
 ### `ServerTickEvents::END_WORLD_TICK`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 After a world (dimension) ticked.
 
@@ -219,7 +245,13 @@ ServerTickEvents::END_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:overw
 
 ### `ServerChunkEvents`
 
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+
 Chunk load and unload events.
+
+> The holder of the chunk load and unload events. Callbacks registered on its fields hear when a
+> chunk loads into a world and when it unloads, which is where per-chunk setup and teardown
+> belong.
 
 ```rust
 use pluto_lib::ServerChunkEvents;
@@ -229,6 +261,8 @@ ServerChunkEvents::CHUNK_UNLOAD.register(|_| {});
 ```
 
 ### `ServerChunkEvents::CHUNK_LOAD`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 A chunk loaded. Check `newly_generated` to tell fresh terrain from a chunk read from disk.
 
@@ -240,6 +274,8 @@ ServerChunkEvents::CHUNK_LOAD.invoke(&ServerChunk { dimension: "minecraft:overwo
 ```
 
 ### `ServerChunkEvents::CHUNK_UNLOAD`
+
+![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
 
 A chunk unloaded. `newly_generated` is false.
 

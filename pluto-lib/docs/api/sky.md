@@ -51,6 +51,8 @@ equatorial, as the catalogs give them (J2000 right ascension in hours, declinati
 
 ### `Twinkle`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How one star's light flickers: `amplitude` is how far the light dips (0 is a steady star, 1 goes
 out at the trough), `rate` is roughly cycles per second, and `phase` is where in its cycle the
 star starts, in turns. The flicker is the air's, not the star's — scintillation — and it
@@ -65,6 +67,8 @@ assert!(lively.amplitude > steady.amplitude);
 ```
 
 ### `SkyStar`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One bright star of a layer: `ra_hours` and `dec_deg` are its equatorial position, `magnitude` its
 visual magnitude (the brightness and size curves are keyed to it), `rgb` its linear colour (a
@@ -83,6 +87,8 @@ assert!(sirius.magnitude < 0.0);
 
 ### `SkyDarkening`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A patch of sky darker than its surroundings: the centre is `ra_hours` / `dec_deg`, `radius_deg`
 is its radius in degrees, and `depth` is how dark the centre gets (0 is nothing, 1 is black). It
 is drawn as concentric quads of rising alpha, so the edge is soft: a black hole at the galactic
@@ -97,6 +103,8 @@ assert!(sagittarius_a.depth > 0.5);
 
 ### `VanillaStars`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Whether the host's vanilla procedural stars show in a world that has a registered layer. The
 vanilla field is a fixed buffer with one scalar brightness — no per-star colour, no twinkle — and
 every custom-sky layer draws before it, so no texture can cover it; a mod that brings its own
@@ -110,6 +118,8 @@ assert_ne!(VanillaStars::Hide, VanillaStars::Keep);
 ```
 
 ### `SkyLayer`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One mod's dynamic sky for one world: `meridian_ra_hours` is the right ascension standing on the
 meridian when the host's star angle is 0 (noon) — the phase the layer's positions are read
@@ -127,6 +137,8 @@ assert!(layer.stars.is_empty());
 
 ### `SkyRegistry`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The registered dynamic sky layers, by world number (the host's custom-sky numbering: 0 the
 Overworld, 1 the End). Registration is process-lifetime and re-registering a world replaces its
 layer.
@@ -141,6 +153,8 @@ assert_eq!(SkyRegistry::layer(71).map(|layer| layer.meridian_ra_hours), Some(0.0
 ```
 
 ### `SkyRegistry::register`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Registers a layer for a world, replacing any layer that world had. The layer is validated whole
 first — positions in range, colours finite and non-negative, a twinkle's amplitude at most 1 and
@@ -161,6 +175,8 @@ assert_eq!(SkyRegistry::layer(72).map(|layer| layer.darkenings.len()), Some(0));
 
 ### `SkyRegistry::layer`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The layer registered for a world, or None when no mod registered one.
 
 ```rust
@@ -170,6 +186,8 @@ assert_eq!(SkyRegistry::layer(73), None);
 ```
 
 ### `SkyRegistry::registered_worlds`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Every world that has a layer, sorted: the registry's own census, for tests and tools.
 
@@ -184,6 +202,8 @@ assert!(SkyRegistry::registered_worlds().contains(&74));
 
 ### `SkyFrame`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What one frame asks a layer for: `star_angle_deg` is the host's star angle for the frame in
 degrees (0 at noon, 180 at midnight), `star_brightness` is the host's own star brightness (its
 twilight and weather fade, 0 to 1), and `seconds` is the time the twinkles are read at — seconds
@@ -197,6 +217,8 @@ assert_eq!(midnight.star_angle_deg, 180.0);
 ```
 
 ### `SkyQuad`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One quad of a frame's layer, ready to draw: `corners` are its four corners on the celestial
 sphere, at the celestial bodies' own distance (100), in the sun quad's corner order, and `rgba`
@@ -222,6 +244,8 @@ assert!(quads[0].corners.iter().all(|corner| (corner[1] - 87.46).abs() < 2.0));
 
 ### `celestial_direction`
 
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The world direction of an equatorial position at a star angle, on the game's celestial sphere
 (an equatorial observer's: the poles stand at the north and south horizon points). The result is
 a unit vector, x east, y up, z south. At midnight with a meridian right ascension of 5.75 h, the
@@ -237,6 +261,8 @@ assert!(d[0].abs() < 0.001);
 ```
 
 ### `twinkle_factor`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One star's twinkle factor at a time: 1 at the crest, down to `1 - amplitude` at the trough. Two
 detuned sine waves are summed so the flicker does not read as a mechanism; a star with no
@@ -254,6 +280,8 @@ assert_eq!(twinkle_factor(&Twinkle { amplitude: 0.0, rate: 1.0, phase: 0.0 }, 3.
 ```
 
 ### `frame_quads`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The quads of a layer for one frame: its stars first — each a billboard on the celestial sphere,
 sized and lit by its magnitude, dimmed by the frame's star brightness, by the air near the
@@ -283,6 +311,8 @@ assert!(frame_quads(&layer, &day).is_empty());
 ```
 
 ### `sky_darken`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `sky_darken(rain, thunder, day_time)` is `Level.getSkyDarken`: how much sky light the weather and time take off, from 0 (clear noon) to 11 (midnight in a thunderstorm). `rain` and `thunder` are the levels, 0.0 to 1.0, and `day_time` the world's time of day in ticks (it may run past 24000).
 

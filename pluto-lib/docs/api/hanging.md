@@ -44,6 +44,8 @@ assert!(HangingRegistry::stand_for_variant(0).is_some());
 
 ### `FrameVariant`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One item frame variant's behaviour row. The fields are the original's `FrameType` properties: `item` is the item that places the variant; `entity_type` is the entity type the variant belongs to (the original's entity id, used where a type name is reported); `variant` is the saved index; `rotation_step` is the rotation change the 20-tick timer applies (gold +1, reversed gold -1, 0 for variants whose timer does not step); `winds_down` is diamond's behaviour (the timer loses one step every 300 ticks, clicks, and the rotation caps at 16 instead of wrapping); `more_rotations` gives 16 rotation steps and a 0-16 comparator output instead of 8; `fullbright` renders the frame and its item full bright (a rendering note — the game side does not draw variant models); `hidden_when_filled` hides the frame's own model while it holds an item (clear); `click_through` uses the block behind the filled frame when it is clicked (clear); `fire_immune` makes the frame immune to fire and explosions (netherite).
 
 ```rust
@@ -65,6 +67,8 @@ assert!(diamond.winds_down && diamond.more_rotations);
 ```
 
 ### `FrameVariant::rotates`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Whether the variant has a rotation timer (it steps or winds down), so `setItem` resets its rotation: the original's `doesRotate`.
 
@@ -90,6 +94,8 @@ assert!(!gold.rotates());
 
 ### `FrameVariant::set_rotation`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The original's `setRotation` arithmetic: a 16-step variant caps at 16 when it winds down and wraps modulo 16 otherwise; every other variant wraps modulo 8. Java's `%` is the remainder, so a negative input stays negative, as the original leaves it.
 
 ```rust
@@ -114,6 +120,8 @@ assert_eq!(frame.set_rotation(9), 1);
 
 ### `FrameVariant::analog_output`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The original's `getAnalogOutput`: an empty frame reads 0; a 16-step variant reads its rotation (0-16, so all sixteen steps are distinct signals); every other variant reads `rotation % 8 + 1`.
 
 ```rust
@@ -136,6 +144,8 @@ assert_eq!(frame.analog_output(true, 12), 12);
 ```
 
 ### `FrameVariant::tick_rotation`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One tick of the rotation timer: returns the new timer, the rotation to set when the timer fires (applied through the same path as a player's rotation, which also resets the timer and updates the comparators), and whether the change plays the variant's click sound (the winding-down variant's `setRotation` clicks). A variant that does not rotate returns its timer untouched.
 
@@ -160,6 +170,8 @@ assert_eq!(gold.tick_rotation(3, 7), (4, None, false));
 
 ### `StandVariant`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One armor stand variant's behaviour row. The fields are the original's `StandType` properties: `item` is the item that places the variant; `entity_type` is the entity type the variant belongs to; `variant` is the saved index; `small` places the stand small (bamboo); `arms` places it with arms shown (bone, necrotic bone); `fullbright` renders it full bright (necrotic bone — a rendering note, as with frames); `hidden_when_equipped` hides the stand while any equipment slot is filled (clear). Every variant is fire immune, at the class level, so there is no field for it.
 
 ```rust
@@ -178,6 +190,8 @@ assert!(necrotic.arms && necrotic.fullbright);
 ```
 
 ### `StandVariant::hidden`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The original's `isClearHidden`: a hidden-when-equipped variant is invisible exactly while it wears anything.
 
@@ -199,6 +213,8 @@ assert!(!clear.hidden(false));
 
 ### `HangingRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The hanging variant registry: one variant per item and one per saved variant index within each kind (frame, stand) — the index is written into the entity's saved data, so two registrations may not share one.
 
 ```rust
@@ -209,6 +225,8 @@ assert!(HangingRegistry::stand_for_variant(99).is_none());
 ```
 
 ### `HangingRegistry::register_frame`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Registers one item frame variant. A second registration for the same item or the same variant index rejects.
 
@@ -244,6 +262,8 @@ assert!(HangingRegistry::register_frame(FrameVariant {
 
 ### `HangingRegistry::register_stand`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers one armor stand variant. A second registration for the same item or the same variant index rejects.
 
 ```rust
@@ -272,6 +292,8 @@ assert!(HangingRegistry::register_stand(StandVariant {
 
 ### `HangingRegistry::frame_for_item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The frame variant an item places, if any. The game side asks this when the item is used on a block.
 
 ```rust
@@ -295,6 +317,8 @@ assert_eq!(found.variant, 3);
 
 ### `HangingRegistry::frame_for_variant`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The frame variant a saved variant index names, if any. The game side asks this for a frame already in the world.
 
 ```rust
@@ -317,6 +341,8 @@ assert_eq!(HangingRegistry::frame_for_variant(0).unwrap().rotation_step, -1);
 
 ### `HangingRegistry::stand_for_item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The stand variant an item places, if any. The game side asks this when the item is used on a block or dispensed.
 
 ```rust
@@ -335,6 +361,8 @@ assert!(HangingRegistry::stand_for_item(&Identifier::parse("mymod:bone_armor_sta
 ```
 
 ### `HangingRegistry::stand_for_variant`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The stand variant a saved variant index names, if any. The game side asks this for a stand already in the world.
 

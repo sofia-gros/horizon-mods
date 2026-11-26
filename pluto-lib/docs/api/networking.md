@@ -56,6 +56,8 @@ The host enforces at most 32 mod messages per player per tick. `Ok(())` means **
 
 ### `ClientPlayConnectionEvents`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 Client login/disconnection boundaries, distinct from the server's player membership events. No fabricated player handle is supplied. Use these to discard connection-owned caches or incomplete transfers.
 
 ```rust
@@ -64,6 +66,8 @@ ClientPlayConnectionEvents::DISCONNECT.register(|_| {});
 ```
 
 ### `ClientPlayConnectionEvents::JOIN`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 Fires after the client's login packet, including a new login after reconfiguration without a prior disconnect. The player may not yet be available. It is not a guarantee that a server accepts mod messages.
 
@@ -74,6 +78,8 @@ ClientPlayConnectionEvents::JOIN.register(|_| {});
 
 ### `ClientPlayConnectionEvents::DISCONNECT`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 Fires before an actual connection is discarded, not for a dimension change. This callback has no mutable host scope; clear local state, do not send.
 
 ```rust
@@ -82,6 +88,8 @@ ClientPlayConnectionEvents::DISCONNECT.register(|_| {});
 ```
 
 ### `MAX_PLAY_PAYLOAD`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Maximum data bytes in either direction, before the native transport envelope.
 
@@ -92,6 +100,8 @@ let data = vec![0u8; MAX_PLAY_PAYLOAD];
 
 ### `ServerPlayNetworking`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Server receiver registration and targeted sends; see the transport limitations above.
 
 ```rust
@@ -100,6 +110,8 @@ let _api = ServerPlayNetworking;
 ```
 
 ### `ServerPlayNetworking::register_global_receiver`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Takes a channel `Identifier` and a thread-safe static callback receiving sender UUID and borrowed bytes. Duplicate registration returns an error.
 
@@ -112,6 +124,8 @@ ServerPlayNetworking::register_global_receiver(Identifier::new("example", "reque
 
 ### `ServerPlayNetworking::send`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Queues bytes for the player's UUID; returns native queue errors unchanged. This example is intentionally outside a live callback and therefore fails.
 
 ```rust
@@ -121,6 +135,8 @@ assert!(ServerPlayNetworking::send(7, &Identifier::new("example", "state").unwra
 
 ### `ClientPlayNetworking`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Client receiver registration and sends to the connected server.
 
 ```rust
@@ -129,6 +145,8 @@ let _api = ClientPlayNetworking;
 ```
 
 ### `ClientPlayNetworking::register_global_receiver`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Takes a channel and a thread-safe static callback receiving borrowed server bytes.
 
@@ -141,6 +159,8 @@ ClientPlayNetworking::register_global_receiver(Identifier::new("example", "state
 
 ### `ClientPlayNetworking::send`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Queues bytes to a joined mod-capable server from a host-scoped callback. No connection or scope returns an error.
 
 ```rust
@@ -149,6 +169,8 @@ assert!(ClientPlayNetworking::send(&Identifier::new("example", "request").unwrap
 ```
 
 ### `PlayerConnection`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 What a connection callback receives. `player` is the `ServerPlayer` (its methods work inside the callback), `name` is the player's name (also `player.name`).
 
@@ -167,7 +189,12 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 
 ### `ServerPlayConnectionEvents`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+
 The two connection events.
+
+> The holder of the two connection events, JOIN and DISCONNECT. Callbacks registered on them hear
+> when a player connects to the server and when they leave it.
 
 ```rust
 use pluto_lib::ServerPlayConnectionEvents;
@@ -177,6 +204,8 @@ ServerPlayConnectionEvents::DISCONNECT.register(|_| {});
 ```
 
 ### `ServerPlayConnectionEvents::JOIN`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 A player joined the server. The usual place to greet a player or give a starting item; the player handle works inside this callback.
 
@@ -197,6 +226,8 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 ```
 
 ### `ServerPlayConnectionEvents::DISCONNECT`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
 
 A player left the server. The handle is still valid inside the callback.
 

@@ -33,6 +33,8 @@ assert_eq!(world.containers[&[0, 63, 0]][0].as_ref().unwrap().count, 1);
 
 ### `Neighbours`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The queries on the blocks around a ticking block entity; every method answers "nothing there" (`None`, or the whole stack back) outside a scope.
 
 ```rust
@@ -42,6 +44,8 @@ assert_eq!(Neighbours::item_slots([0, 63, 0], Direction::Up), None, "no scope, n
 
 ### `Neighbours::beside`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn beside(pos: BlockPos, side: Direction) -> (BlockPos, Direction)`. The block next to `pos` on `side` and the face of it that looks back; pass both to the other queries.
 
 ```rust
@@ -50,6 +54,8 @@ assert_eq!(Neighbours::beside([5, 70, 5], Direction::Down), ([5, 69, 5], Directi
 ```
 
 ### `Neighbours::item_slots`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn item_slots(pos: BlockPos, face: Direction) -> Option<Vec<NeighbourSlot>>`. Lists the slots `face` reaches (`slot`, `stack`, `can_take`), `None` where there is no container.
 
@@ -63,6 +69,8 @@ assert!(slots[0].can_take && slots[0].slot == 0 && slots[0].stack.is_some());
 
 ### `Neighbours::extract_item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn extract_item(pos: BlockPos, face: Direction, slot: usize, count: u32) -> Option<ItemSlot>`. Takes up to `count` items out of a slot.
 
 ```rust
@@ -75,6 +83,8 @@ assert_eq!(taken.unwrap().count, 1);
 
 ### `Neighbours::insert_item`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn insert_item(pos: BlockPos, face: Direction, stack: ItemSlot) -> Option<ItemSlot>`. Returns what did not fit (the whole stack when nothing answers).
 
 ```rust
@@ -85,6 +95,8 @@ assert_eq!(Neighbours::insert_item([0, 0, 0], Direction::Up, stack.clone()), Som
 
 ### `Neighbours::fluid_tanks`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_tanks(pos: BlockPos, face: Direction) -> Option<Vec<NeighbourTank>>`. Reads the tanks `face` reaches (`fluid`, `capacity`).
 
 ```rust
@@ -94,6 +106,8 @@ assert!(Neighbours::fluid_tanks([0, 0, 0], Direction::Up).is_none());
 
 ### `Neighbours::drain_fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn drain_fluid(pos: BlockPos, face: Direction, amount: u32) -> Option<FluidStack>`. Takes up to `amount` millibuckets of the first fluid there.
 
 ```rust
@@ -102,6 +116,8 @@ assert_eq!(Neighbours::drain_fluid([0, 0, 0], Direction::Up, 50), None);
 ```
 
 ### `NeighbourSlot`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One slot of a neighbouring container: `slot` (its number, for `extract_item`), `stack` (what it holds) and `can_take` (whether the queried side may take it).
 
@@ -113,6 +129,8 @@ assert!(slot.stack.is_none() && !slot.can_take && slot.slot == 0);
 
 ### `NeighbourTank`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One tank of a neighbouring block: `fluid` (what it holds, `None` when empty) and `capacity` in millibuckets.
 
 ```rust
@@ -122,6 +140,8 @@ assert!(tank.fluid.is_none() && tank.capacity == 4000);
 ```
 
 ### `NeighbourOps`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What the game does for neighbours: the item, tank, fill and block state queries above. The host implements it; `fill_fluid` and `block_state` have defaults that answer nothing, so older implementations keep working.
 
@@ -140,6 +160,8 @@ assert_eq!(Nothing.block_state([0; 3]), None);
 
 ### `with_neighbours`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn with_neighbours<R>(ops: &mut dyn NeighbourOps, f: impl FnOnce() -> R) -> R`. Opens the scope on this thread: every `Neighbours` query made during `f` is answered by `ops`.
 
 ```rust
@@ -149,6 +171,8 @@ assert!(with_neighbours(&mut world, || Neighbours::item_slots([0; 3], Direction:
 ```
 
 ### `MemoryNeighbourOps`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A world of containers (`containers`), tanks with their capacity (`tanks`) and block states as text (`states`) by position, for tests; every face reaches everything.
 
@@ -164,6 +188,8 @@ assert_eq!(drained.unwrap().amount, 30);
 
 ### `Neighbours::fill_fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fill_fluid(pos: BlockPos, face: Direction, stack: &FluidStack, execute: bool) -> u32`. How many millibuckets of `stack` the block at `pos` takes through `face` (0 outside a scope or where nothing answers); with `execute` false it only asks. A faucet drains the tank behind it and fills the one below this way. A block with its own fluid rule (`BlockEntityType::fluid_filler`) decides how much itself; the host adapter that installs this is the same one the caution above names.
 
 ```rust
@@ -177,6 +203,8 @@ assert_eq!(taken, 90, "the tank holds 90");
 ```
 
 ### `Neighbours::block_state`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn block_state(pos: BlockPos) -> Option<BlockState>`. The state of the block at `pos` (a ticking block entity reads its own block's properties here, such as a faucet's `facing`); `None` outside a scope or where it is not loaded.
 

@@ -81,6 +81,8 @@ The native half is source-wired (the game's ingredient dispatch and the crafting
 
 ### `StackView`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The borrowed stack facts a handler sees: `id` is the item id, `count` how many, `damage` the stack's damage, and `custom_data` the stack's `minecraft:custom_data` compound when the adapter could supply it (`None` means unavailable, not empty).
 
 ```rust
@@ -93,6 +95,8 @@ assert!(stack.custom_data.is_none());
 ```
 
 ### `RegistrationError`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Why a registration was refused: `EmptyId` for an empty kind or provider id, and `DuplicateId` when that id is already registered; a refused registration never replaces the earlier one.
 
@@ -107,6 +111,8 @@ assert_eq!(register_ingredient_kind(kind), Err(RegistrationError::DuplicateId));
 ```
 
 ### `IngredientKind`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 One mod-defined ingredient kind: `kind` is its name, `items` runs at recipe load and names every item id the kind can match, and `test` runs at craft time against one concrete stack.
 
@@ -127,6 +133,8 @@ assert!((kind.test)(&json!({}), &stack));
 
 ### `register_ingredient_kind`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn register_ingredient_kind(entry: IngredientKind) -> Result<(), RegistrationError>`. Registers one ingredient kind once during startup; there is no unregister path.
 
 ```rust
@@ -143,6 +151,8 @@ assert_eq!(ingredient_items("example:registered", &json!({})), Some(vec!["minecr
 
 ### `has_ingredient_kinds`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn has_ingredient_kinds() -> bool`. Whether any ingredient kind has been registered.
 
 ```rust
@@ -158,6 +168,8 @@ assert!(has_ingredient_kinds());
 ```
 
 ### `ingredient_items`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn ingredient_items(kind: &str, data: &Value) -> Option<Vec<String>>`. The load-time item list of a claimed kind; `None` when no handler claims the kind.
 
@@ -177,6 +189,8 @@ assert_eq!(ingredient_items("example:unknown", &data), None);
 ```
 
 ### `ingredient_test`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn ingredient_test(kind: &str, data: &Value, stack: &StackView<'_>) -> Option<bool>`. The craft-time answer of a claimed kind; `None` when no handler claims the kind.
 
@@ -198,6 +212,8 @@ assert_eq!(ingredient_test("example:unknown", &data, &stack), None);
 
 ### `RecipeForm`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The form of the recipe being assembled, as the engine parsed it: `Shaped` with a `width` and `height`, `Shapeless`, or `Special` (a special recipe: no fixed ingredient list or result template).
 
 ```rust
@@ -210,6 +226,8 @@ assert_ne!(RecipeForm::Special, RecipeForm::Shapeless);
 ```
 
 ### `RecipeFacts`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Cheap borrowed facts about one recipe, for assembly interest checks: `form` is its `RecipeForm`, `result_item` the fixed result template's item (none for special recipes), `result_count` how many the template produces, and `id` the recipe's loaded id (`<namespace>:<path>` for a content mod's recipe, the bare name for one of vanilla's) when the adapter could name it, or none when it could not.
 
@@ -224,6 +242,8 @@ assert_eq!(facts.id, Some("minecraft:golden_apple"));
 ```
 
 ### `GridFacts`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 The crafting grid as the engine cropped it to the recipe's bounds: `width` and `height` are the cropped size, `left` and `top` the crop's offset in the full grid, and `cells` the row-major cells including empty positions.
 
@@ -240,6 +260,8 @@ assert!(grid.cells[1].is_none());
 ```
 
 ### `AssemblyRequest`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 What an assembly callback answers: `recipe` is the recipe's `RecipeFacts`, `grid` the cropped grid's `GridFacts`, and `result` the result template's native created stack, if any (not a proposed output).
 
@@ -259,6 +281,8 @@ assert!(request.result.is_none());
 
 ### `AssemblyDecision`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What one assembly provider decides for one grid: `Pass` (the native result stands), `Deny` (the recipe does not match this grid after all), or `Assemble` with a `custom_data` compound that replaces the result's `minecraft:custom_data` component.
 
 ```rust
@@ -275,6 +299,8 @@ assert!(matches!(decision, AssemblyDecision::Assemble { .. }));
 
 ### `AssemblyInterest`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `type AssemblyInterest = for<'a> fn(&RecipeFacts<'a>) -> bool`. The cheap interest check of an assembly provider, decided on recipe facts before any grid or stack is captured.
 
 ```rust
@@ -287,6 +313,8 @@ assert!(interest(&facts));
 ```
 
 ### `AssemblyCallback`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `type AssemblyCallback = for<'a> fn(&AssemblyRequest<'a>) -> AssemblyDecision`. The callback an interested assembly provider runs for one grid request.
 
@@ -301,6 +329,8 @@ assert_eq!(callback(&request), AssemblyDecision::Pass);
 ```
 
 ### `AssemblyRegistration`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 One assembly provider to register: `id` is its registration id, `interest` its `AssemblyInterest` check, and `callback` its `AssemblyCallback`.
 
@@ -319,6 +349,8 @@ assert!((registration.interest)(&facts));
 
 ### `AssemblyOutcome`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The result of evaluating the interested providers for one request: `Native` (no provider assembled or denied), `Denied` naming the `first` denying provider, or `Assembled` naming the `owner` provider and its `custom_data`.
 
 ```rust
@@ -334,6 +366,8 @@ assert!(matches!(assembled, AssemblyOutcome::Assembled { owner: "example:maker",
 ```
 
 ### `AssemblyEvaluation`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 An ephemeral snapshot of the interested providers' callbacks, returned by `prepare_assembly`; the adapter evaluates it synchronously with the same recipe facts. It is not a recipe or world identity or authority token.
 
@@ -353,6 +387,8 @@ assert_eq!(evaluation.evaluate(&request), AssemblyOutcome::Native);
 ```
 
 ### `AssemblyEvaluation::evaluate`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn evaluate(&self, request: &AssemblyRequest<'_>) -> AssemblyOutcome`. Runs every snapshotted callback: any denial wins, otherwise the first assembling provider in lexical registration order supplies the result's custom data, and if none does the outcome is `Native`.
 
@@ -380,6 +416,8 @@ assert_eq!(custom_data.get("blessed"), Some(&Nbt::Byte(1)));
 
 ### `register_assembly`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn register_assembly(entry: AssemblyRegistration) -> Result<(), RegistrationError>`. Registers one assembly provider once during startup; there is no unregister path.
 
 ```rust
@@ -397,6 +435,8 @@ assert!(prepare_assembly(&facts).is_some());
 
 ### `has_assembly_providers`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn has_assembly_providers() -> bool`. Whether any assembly provider has been registered.
 
 ```rust
@@ -412,6 +452,8 @@ assert!(has_assembly_providers());
 ```
 
 ### `prepare_assembly`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn prepare_assembly(recipe: &RecipeFacts<'_>) -> Option<AssemblyEvaluation>`. Interest runs on cheap borrowed recipe facts; `None` — when no provider is interested — avoids all grid and result capture in the adapter, even with unrelated registrations.
 
@@ -437,6 +479,8 @@ assert!(prepare_assembly(&other).is_none());
 
 ### `AdmissionRequest`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What an admission callback answers: `recipe` is the recipe's `RecipeFacts`, `grid` the cropped grid's `GridFacts`, and `result` the result template's native created stack, if any (not a proposed output).
 
 ```rust
@@ -455,6 +499,8 @@ assert!(request.result.is_none());
 
 ### `AdmissionDecision`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 What one admission policy decides for one grid: `Pass` (the native result stands) or `Deny` (the recipe does not match this grid after all).
 
 ```rust
@@ -465,6 +511,8 @@ assert_ne!(AdmissionDecision::Deny, AdmissionDecision::Pass);
 ```
 
 ### `AdmissionInterest`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `type AdmissionInterest = for<'a> fn(&RecipeFacts<'a>) -> bool`. The cheap interest check of an admission policy, decided on recipe facts before any grid or stack is captured.
 
@@ -479,6 +527,8 @@ assert!(interest(&facts));
 
 ### `AdmissionCallback`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `type AdmissionCallback = for<'a> fn(&AdmissionRequest<'a>) -> AdmissionDecision`. The callback an interested admission policy runs for one grid request.
 
 ```rust
@@ -492,6 +542,8 @@ assert_eq!(callback(&request), AdmissionDecision::Pass);
 ```
 
 ### `AdmissionRegistration`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 One admission policy to register: `id` is its registration id, `interest` its `AdmissionInterest` check, and `callback` its `AdmissionCallback`.
 
@@ -510,6 +562,8 @@ assert!((registration.interest)(&facts));
 
 ### `AdmissionOutcome`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The result of evaluating the interested policies for one request: `Native` (no policy denied) or `Denied` naming the `first` denying policy.
 
 ```rust
@@ -521,6 +575,8 @@ assert_ne!(AdmissionOutcome::Native, AdmissionOutcome::Denied { first: "example:
 ```
 
 ### `AdmissionEvaluation`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 An ephemeral snapshot of the interested policies' callbacks, returned by `prepare_admission`; the adapter evaluates it synchronously with the same recipe facts. It is not a recipe or world identity or authority token.
 
@@ -541,6 +597,8 @@ assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Native);
 
 ### `AdmissionEvaluation::evaluate`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn evaluate(&self, request: &AdmissionRequest<'_>) -> AdmissionOutcome`. Runs every snapshotted callback: any denial wins, pass cannot grant matching or provide an output, and the first denying policy in lexical registration order is the one reported.
 
 ```rust
@@ -560,6 +618,8 @@ assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Denied { first: "exa
 
 ### `register_admission`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn register_admission(entry: AdmissionRegistration) -> Result<(), RegistrationError>`. Registers one admission policy once during startup; both of its functions must be read-only and deterministic for their arguments, and there is no unregister path.
 
 ```rust
@@ -577,6 +637,8 @@ assert!(prepare_admission(&facts).is_some());
 
 ### `has_admission_providers`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn has_admission_providers() -> bool`. Whether any admission policy has been registered.
 
 ```rust
@@ -592,6 +654,8 @@ assert!(has_admission_providers());
 ```
 
 ### `prepare_admission`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn prepare_admission(recipe: &RecipeFacts<'_>) -> Option<AdmissionEvaluation>`. Interest runs on cheap borrowed recipe facts; `None` — when no policy is interested — avoids all grid and result capture in the adapter, even with unrelated registrations.
 
@@ -634,6 +698,8 @@ assert_eq!(result.item, "example:pie");
 
 ### `SpecialResult`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 The complete result stack a special recipe produces for one grid: `item` is the result's item id, `count` how many, `damage` its damage, and `custom_data` its `minecraft:custom_data` compound when the result carries one (a repaired tool's saved tool data, for instance).
 
 ```rust
@@ -646,6 +712,8 @@ assert!(result.custom_data.is_none());
 ```
 
 ### `SpecialCallback`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `type SpecialCallback = for<'a> fn(&GridFacts<'a>) -> Option<SpecialResult>`. Answers one cropped grid: a result when the recipe matches it, or None to pass.
 
@@ -660,6 +728,8 @@ assert!(callback(&grid).is_none());
 
 ### `SpecialRecipeRegistration`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 One special recipe: `id` is the recipe identity reported for a match, in `<namespace>:<path>` form (the id the recipe file would declare), and `callback` answers grids for it.
 
 ```rust
@@ -673,6 +743,8 @@ register_special_recipe(SpecialRecipeRegistration {
 
 ### `register_special_recipe`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn register_special_recipe(entry: SpecialRecipeRegistration) -> Result<(), RegistrationError>`. Registers one special recipe once during startup; there is no unregister path.
 
 ```rust
@@ -685,6 +757,8 @@ assert!(has_special_recipes());
 
 ### `has_special_recipes`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn has_special_recipes() -> bool`. Whether any special recipe is registered, so the lookup can skip the provider evaluation entirely otherwise.
 
 ```rust
@@ -695,6 +769,8 @@ assert!(has_special_recipes());
 ```
 
 ### `evaluate_special_recipe`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn evaluate_special_recipe(grid: &GridFacts<'_>) -> Option<(&'static str, SpecialResult)>`. The first answering provider's recipe identity and result, in lexical registration order, or None when no provider answers the grid.
 
@@ -713,6 +789,8 @@ assert_eq!(result.count, 1);
 
 ### `special_recipe_ids`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn special_recipe_ids() -> Vec<&'static str>`. The ids of every registered special recipe, in lexical order. The game glue mirrors each id into the native inventory registry so a provider can be resolved under its own recipe name.
 
 ```rust
@@ -723,6 +801,8 @@ assert_eq!(special_recipe_ids(), vec!["example:apple_pie"]);
 ```
 
 ### `SpecialRecipeSink`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `type SpecialRecipeSink = fn(&'static str)`. The sink notified with the id of each special recipe as it registers: the game glue's mirror into the native inventory registry.
 
@@ -735,6 +815,8 @@ sink("example:apple_pie");
 ```
 
 ### `set_special_recipe_sink`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn set_special_recipe_sink(sink: SpecialRecipeSink)`. Install the special-recipe registration sink, once during startup; there is no uninstall. Registrations from before the sink was installed are covered by `special_recipe_ids`.
 
@@ -750,6 +832,8 @@ register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", cal
 
 ### `CookingRecipe`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One cooking recipe of the game's own book (the furnace family), as a lookup answers it: `result` the result's item id, `result_count` the result's count for one input item, `experience` the experience the recipe grants per item cooked and `time` the cooking time in ticks.
 
 ```rust
@@ -761,6 +845,8 @@ assert_eq!((recipe.result_count, recipe.time), (1, 200));
 ```
 
 ### `CookingLookup`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `type CookingLookup = fn(&str, &str) -> Option<CookingRecipe>`. The adapter's cooking lookup: the first recipe of a kind (a recipe type id such as `minecraft:smelting`) that takes an item, or None when the book has none for it.
 
@@ -780,6 +866,8 @@ assert!(lookup("minecraft:smelting", "minecraft:stone").is_none());
 
 ### `set_cooking_lookup`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn set_cooking_lookup(lookup: CookingLookup)`. Installs the adapter's cooking lookup, once during startup. There is no uninstall.
 
 ```rust
@@ -796,6 +884,8 @@ assert_eq!(cooking_recipe("minecraft:smelting", "minecraft:beef").map(|recipe| r
 ```
 
 ### `cooking_recipe`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn cooking_recipe(kind: &str, item: &str) -> Option<CookingRecipe>`. The first cooking recipe of `kind` that takes `item`, as the game's recipe book answers it (its ingredient naming the item; a stack-sensitive ingredient test is the engine's and is not replayed). None when the book has none, or when no adapter is installed.
 

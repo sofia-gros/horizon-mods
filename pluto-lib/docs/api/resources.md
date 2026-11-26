@@ -116,6 +116,8 @@ ResourceManagerHelper::get(ResourceType::ServerData)
 
 ### `ResourceType`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Which kind of resources a listener follows. `ClientResources` are client assets (models, textures, language files): listeners run once the initial client backend is installed and after successful client-resource reloads install their fresh handle. `ServerData` covers the server's data-table load/rebuild notification (recipes, loot tables, tags): initial world opening and subsequent `/reload`, through the pinned native server-data-loaded hook. Reloading one resource type does not invoke the other's listeners.
 
 ```rust
@@ -125,6 +127,8 @@ assert_ne!(ResourceType::ClientResources, ResourceType::ServerData);
 ```
 
 ### `ResourceManagerHelper`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Registers reload listeners for one kind of resources and provides static read methods for the active client assets. Client resource ids are `namespace:path`, not paths into the working directory.
 
@@ -137,7 +141,12 @@ helper.register_reload_listener(pluto_lib::Identifier::new("example", "rebuild")
 
 ### `ResourceManagerHelper::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn get(resource_type: ResourceType) -> ResourceManagerHelper`.
+
+> The helper for one kind of resource: the value a mod holds to register reload listeners for that
+> kind and to read the active resources of that kind. Each resource type has its own helper.
 
 ```rust
 use pluto_lib::{ResourceManagerHelper, ResourceType};
@@ -148,6 +157,8 @@ let _ = (assets, data);
 ```
 
 ### `ResourceManagerHelper::register_reload_listener`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn register_reload_listener(&self, id: Identifier, listener: impl Fn() + Send + Sync + 'static)`. The listener runs after every reload of this kind of resources. The identifier names its phase, so listeners can be ordered with `Event::add_phase_ordering` on `reload_event`.
 
@@ -166,6 +177,8 @@ assert_eq!(RELOADS.load(Ordering::Relaxed), 1);
 
 ### `ResourceManagerHelper::register_json_reload_listener`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn register_json_reload_listener(&self, id: Identifier, directory: &str, apply: impl Fn(&[(Identifier, serde_json::Value)]) -> Result<(), String> + Send + Sync + 'static) -> Result<(), String>`. Registers a complete JSON-folder batch callback for this resource type. Duplicate listener IDs within the same type are rejected without replacement. Directories are nonempty slash-separated relative segments, without empty, `.` or `..` segments, backslashes or colons. Listener/resource IDs must also be plain namespaced paths. Callbacks may retain cloned JSON and register other listeners without a held registry lock. No client-native JSON discovery exists yet; server-native transport is source-wired but unverified.
 
 ```rust
@@ -179,6 +192,8 @@ assert!(data.register_json_reload_listener(Identifier::new("example", "unsafe").
 
 ### `ResourceManagerHelper::reload_json_stacks`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn reload_json_stacks(directory: &str) -> Option<Vec<JsonResourceStack>>`. Returns owned complete stacks for an exact directory captured in the current server reload pass, in backend resource-ID order, with layers bottom pack first. All registered folders are captured before callbacks; another captured folder is readable regardless of listener order. Unsafe, uncaptured or unavailable directories and out-of-scope/client backends return `None`. A captured folder with no resources returns `Some(vec![])`. This reads the captured snapshot, not the filesystem again.
 
 ```rust
@@ -188,6 +203,8 @@ assert!(ResourceManagerHelper::reload_json_stacks("../escape").is_none());
 ```
 
 ### `JsonResourceStack`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Owned JSON layers: `id: Identifier` is the resource ID with the directory and `.json` suffix removed; `layers: Vec<Result<serde_json::Value, String>>` retains each pack's JSON or read/parse error, bottom-to-top. Error strings identify their resource/layer where available. Cloning or editing this value does not change the callback's retained snapshot. Manual construction does not install packs or publish a reload.
 
@@ -204,6 +221,8 @@ assert!(stack.layers[1].is_err()); // not replaced by the lower layer
 
 ### `ResourceManagerHelper::reload_registry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type`, `minecraft:item`, `minecraft:fluid` (membership with mod fluids and tags) and `minecraft:block` (the world's blocks and their tags); native integration remains unverified.
 
 ```rust
@@ -216,6 +235,8 @@ for registry in ["entity_type", "item"] {
 
 ### `RegistryLookup`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A cloneable, owned registry/tag membership snapshot. Keep it to pair derived data with the same reload generation. Values cannot be edited through this view; retaining or cloning one does not refresh it.
 
 ```rust
@@ -227,6 +248,8 @@ assert_eq!(snapshot, retained);
 
 ### `RegistryLookup::contains`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn contains(&self, id: &Identifier) -> bool`. Tests actual captured registry membership, independent of renderer/model availability.
 
 ```rust
@@ -237,6 +260,8 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 ```
 
 ### `RegistryLookup::get_tag`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn get_tag(&self, tag: &Identifier) -> Option<&std::collections::BTreeSet<Identifier>>`. Returns the captured tag's members; `None` means absent, `Some(empty)` means present but empty. This is membership, not an ordered tag RNG API.
 
@@ -251,6 +276,8 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 
 ### `RegistryLookup::tags`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn tags(&self) -> &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>`. Every captured tag with its members, for consumers that republish the resolved snapshot (the advancement tag overlay). A tag the reload did not capture is not in this map.
 
 ```rust
@@ -263,6 +290,8 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 ```
 
 ### `RegistryLookup::with_extra_tags`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`. A copy whose tags also hold the given members (a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the game defines). Members that are not registry entries are dropped, and a tag with no remaining member is not created. The original snapshot is unchanged; redo it for every reload.
 
@@ -279,6 +308,8 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 
 ### `RegistryLookup::from_parts`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn from_parts(entries: &[String], tags: &[(String, Vec<String>)]) -> Result<Self, String>`. A registry snapshot built from its entries and tags: every tag member must be an entry, and a tag may not repeat. A malformed id, an unknown tag member or a duplicate tag rejects the whole snapshot.
 
 ```rust
@@ -293,6 +324,8 @@ assert_eq!(lookup.get_tag(&Identifier::parse("minecraft:logs").unwrap()).unwrap(
 ```
 ### `ResourceManagerHelper::read_client_resource`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.
 
 ```rust
@@ -306,6 +339,8 @@ if let Some(bytes) = ResourceManagerHelper::read_client_resource(&id) {
 ```
 
 ### `ResourceManagerHelper::read_client_image`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn read_client_image(id: &Identifier) -> Option<ResourceImage>`. Read and decode a PNG from the active client resources. The path must start with `textures/` and end in `.png`, for example `tconstruct:textures/colormap/earth_grass_color.png`. Pixels are top-row-first, gamma-encoded, non-premultiplied RGBA bytes; each pixel occupies four consecutive bytes. `None` covers an unsupported/non-plain id, missing client backend, missing/unreadable resource, decode failure, zero dimensions or an inconsistent pixel-buffer length.
 
@@ -324,6 +359,8 @@ if let Some(image) = ResourceManagerHelper::read_client_image(&id) {
 > **Use with Caution.** `read_client_image` explicitly returns `None` for the `horizon_cit` namespace: Horizon's texture decoder treats it as an OptiFine-specific path, not the ordinary `assets/horizon_cit/` namespace. The facade does not silently redirect an image read or install a separate decoder. `read_client_resource` can still read raw bytes from the normal `assets/horizon_cit/<path>` location when that resource exists.
 
 ### `ResourceImage`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 An owned decoded image: `width: u32` and `height: u32` count pixels; `rgba: Vec<u8>` stores top-row-first, gamma-encoded, non-premultiplied red/green/blue/alpha bytes. For a valid image the vector contains `width * height` pixels, four bytes each. A copied image is a snapshot, not a live view of future pack reloads. When constructing one manually, keep its dimensions and buffer consistent.
 
@@ -372,6 +409,8 @@ assert_eq!(image.rgba[3], 128);
 ```
 
 ### `reload_event`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn reload_event(resource_type: ResourceType) -> &'static Event<(), ()>`. The event behind the listeners of a kind of resources; use it to order listeners or, in tests, to trigger a reload.
 

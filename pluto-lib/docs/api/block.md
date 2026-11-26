@@ -146,6 +146,8 @@ BlockBehaviors::register(BlockBehavior::new(Identifier::parse("example:wall_head
 
 ### `Direction`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One of the six block faces: `Down`, `Up`, `North`, `South`, `West`, `East`.
 
 ```rust
@@ -156,6 +158,8 @@ assert_ne!(Direction::Up, Direction::Down);
 ```
 
 ### `Direction::ALL`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 All six directions, in the game's order: down, up, north, south, west, east.
 
@@ -168,6 +172,8 @@ assert_eq!(Direction::ALL[0], Direction::Down);
 
 ### `Direction::name`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn name(self) -> &'static str`. The name a block state spells it with: `down`, `up`, `north`, `south`, `west`, `east`.
 
 ```rust
@@ -177,6 +183,8 @@ assert_eq!(Direction::East.name(), "east");
 ```
 
 ### `Direction::parse`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn parse(name: &str) -> Option<Direction>`. Reads a name written by `name`; None for anything else.
 
@@ -189,6 +197,8 @@ assert_eq!(Direction::parse("sideways"), None);
 
 ### `Direction::offset`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn offset(self) -> [i32; 3]`. The step one block in this direction takes: `[0, 1, 0]` for up, `[0, 0, -1]` for north.
 
 ```rust
@@ -199,6 +209,8 @@ assert_eq!(Direction::North.offset(), [0, 0, -1]);
 ```
 
 ### `Direction::from_offset`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn from_offset(offset: [i32; 3]) -> Option<Direction>`. Reads a step written by `offset`; None for a step that is not one block along an axis.
 
@@ -211,6 +223,8 @@ assert_eq!(Direction::from_offset([1, 1, 0]), None);
 
 ### `Direction::opposite`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn opposite(self) -> Direction`. The other way: down for up, north for south.
 
 ```rust
@@ -220,6 +234,8 @@ assert_eq!(Direction::South.opposite(), Direction::North);
 ```
 
 ### `Direction::clockwise`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn clockwise(self) -> Direction`. A quarter turn clockwise seen from above (north, east, south, west); up and down stay as they are.
 
@@ -231,6 +247,8 @@ assert_eq!(Direction::Down.clockwise(), Direction::Down);
 ```
 
 ### `Direction::nearest_looking`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn nearest_looking(yaw: f32, pitch: f32) -> [Direction; 6]`. The six directions ordered by how closely a player turned `yaw` degrees and looking `pitch` degrees (negative looks up) faces them, nearest first.
 
@@ -244,6 +262,8 @@ assert_eq!(Direction::nearest_looking(0.0, -90.0)[0], Direction::Up);
 ```
 
 ### `Direction::relative`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn relative(self, pos: BlockPos) -> BlockPos`. The position one block from `pos` in this direction.
 
@@ -272,6 +292,8 @@ assert_eq!(world.has_neighbor_signal([1, 64, 2]), None);
 > **Use with Caution.** Skip work requiring power information when the query is unavailable; a fabricated false can stop an animation or change machine behavior incorrectly.
 
 ### `BlockView`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a behaviour can see of the blocks around, with the game's own answers: `block_state(pos) -> Option<BlockState>` is the state with its properties (None where nothing is loaded), `is_air(pos) -> bool`, `is_face_sturdy(pos, face) -> bool` whether the whole face is solid, `is_in_tag(pos, tag) -> bool` whether the block is in a block tag such as `tconstruct:slimy_leaves`, `brightness(pos) -> u8` the light at the position (0 to 15), `light_passes_up(pos) -> bool` whether light passes from that block into the one above it, `is_water(pos) -> bool` whether it holds water, `is_fluid_full(pos) -> bool` whether its fluid is a full source, `is_area_loaded(pos, radius) -> bool` whether the chunks around are loaded (check it in a tick callback before touching blocks near the edge), `is_full_block(pos) -> bool` whether its collision shape is a whole block and `build_height() -> [i32; 2]` the lowest buildable y and the first y above the build limit. Three more answers ride on the same view: `face_sturdy(pos, face) -> Option<bool>` whether the face is sturdy when the game's table has an answer for the block, `raw_brightness(pos) -> Option<u8>` the light before the sky darkens it, and `placement_facts(state) -> Option<PlacementFacts>` the published shape and class facts for the state.
 
@@ -328,6 +350,8 @@ assert_eq!(view.build_height(), [-64, 320]); // build range is a different query
 
 ### `MemoryBlockView`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A `BlockView` for tests. `replaceable` lists explicitly replaceable non-air positions; `generator_depth` supplies an optional depth independently of build bounds. `neighbor_signals: BTreeMap<BlockPos, bool>` supplies explicit neighbor-signal answers (`None` when absent or unloaded), without redstone simulation. `blocks` holds the states set (each position in it is solid and not air), `weak` the positions that hold a block but not a sturdy one (a slab's top, glass), `tags` the tags the block at each position is in, `state_tags` explicit registry tags by block id, `light` the light of each position (15 where not listed), `water` the positions that hold a full source of water, `unloaded` the positions that are not loaded, `rolls` the numbers `random_int` hands out (each modulo its bound, 0 once used up), `floats` those of `random_float` (0.0 once used up) and `scheduled` the ticks asked for and `features` the features placed. `placement_facts` holds the placement facts a test supplies by block name, for `can_survive` and `is_unobstructed`. `break_requests` records destruction requests while removing their blocks without native loot/fluid effects. `writes` records each successful write as `(position, state, flags)`, including ordinary flags=3 writes; it records requests, not simulated neighbour/client effects.
 
 ```rust
@@ -342,6 +366,8 @@ assert_eq!(view.block_state([0, 0, 0]).unwrap().to_string(), "minecraft:glass");
 ```
 
 ### `BlockEditor`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 **Breaking blocks.**
 
@@ -456,6 +482,8 @@ assert!(world.writes.is_empty());
 
 ### `TickContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A tick or a bone meal reached the block. `state` is the block's state, `pos` its position and `world` the world around, which can be changed.
 
 ```rust
@@ -470,6 +498,8 @@ assert!(context.world.set_block_state(context.pos, &context.state.clone()));
 
 ### `BonemealContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Where a bone meal is about to be used. `state` is the block's state, `pos` its position and `view` the blocks around.
 
 ```rust
@@ -482,6 +512,8 @@ assert_eq!(context.state.block.path(), "sapling");
 ```
 
 ### `PlaceOnContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Where a plant is asked what it may stand on. `state` is the plant's state, `ground` the block below and `ground_pos` its position, `view` the blocks around.
 
@@ -503,6 +535,8 @@ assert!(context.view.is_air([0, 64, 0]));
 
 ### `SurviveContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Where a block is asked whether it may stay. `state` is the block's state (it may not be in the world yet), `pos` the position and `view` the blocks around.
 
 ```rust
@@ -516,6 +550,8 @@ assert!(context.view.is_air([0, 65, 0]));
 ```
 
 ### `PlacementContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a placement is told. `state` is the block's default state, `pos` where it would go, `face` the face that was clicked, `yaw` and `pitch` the placer's turn and look in degrees, `sneaking` whether the placer sneaks, `in_water` whether the position holds water now, `item` the item in hand, `replace_clicked` whether the clicked block is replaced (grass, a snow layer) so the block goes into the clicked position itself, and `view` the blocks around.
 
@@ -546,6 +582,8 @@ assert!(context.view.is_air([1, 63, 1]));
 
 ### `PlacementContext::nearest_looking_directions`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn nearest_looking_directions(&self) -> [Direction; 6]`. The directions in the order the placer looks at them, nearest first, with the side opposite the clicked face moved to the front unless the clicked block is replaced. A vine tries them in this order to find a side it can hold on.
 
 ```rust
@@ -569,6 +607,8 @@ assert_eq!(context.nearest_looking_directions()[0], Direction::West); // the sid
 
 ### `Placement`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a placement becomes: `Placement::Default` lets the game's own placement run, `Placement::Refuse` places nothing and keeps the item, `Placement::State(state)` places the block in `state` (it has to be a state of the same block, with the properties declared).
 
 ```rust
@@ -580,6 +620,8 @@ assert_eq!(Placement::State(state.clone()), Placement::State(state));
 ```
 
 ### `ShapeUpdateContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 A neighbour changed. `state` is the block's state, `pos` its position, `direction` the side the change came from, `neighbour_pos` the neighbour's position, `neighbour` the neighbour's state if it is a block with a behaviour, and `view` the blocks around.
 
@@ -599,6 +641,8 @@ assert!(context.view.is_air(context.neighbour_pos));
 
 ### `ShapeUpdateContext::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(state: BlockState, pos: BlockPos, direction: Direction, neighbour_pos: BlockPos, neighbour: Option<BlockState>, view: &dyn BlockView) -> ShapeUpdateContext`. Creates a borrowed update with no tick request. The supplied neighbour may differ from the state currently in the world.
 
 ```rust
@@ -610,6 +654,8 @@ assert_eq!(update.scheduled_tick_delay(), None);
 ```
 
 ### `ShapeUpdateContext::schedule_tick`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn schedule_tick(&self, delay: i32) -> bool`. Requests this block's scheduled tick at `pos` without changing its state. Positive delays are accepted; repeated requests keep the earliest. The native queue still checks loaded chunks and deduplicates; accepting a request is not proof it executed. Source forwarding uses the existing update hook's tick queue; native validation is pending the native attachment gate.
 
@@ -626,6 +672,8 @@ assert_eq!(update.scheduled_tick_delay(), Some(1));
 ```
 
 ### `ShapeUpdateContext::scheduled_tick_delay`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn scheduled_tick_delay(&self) -> Option<i32>`. Reads the request for an adapter/custom host; it does not enqueue or execute a tick by itself.
 
@@ -655,6 +703,8 @@ assert_eq!(view.is_state_in_tag(&log, "example:leaves"), Some(false));
 
 ### `EntityInsideContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 An entity is inside the block. `dimension` is the dimension id, `state` the block's state, `pos` its position, `entity` the entity's id and `kind` its type. `bounds` is the entity's bounding box as `[min x, min y, min z, max x, max y, max z]` and `fall_distance` how far it has fallen, in blocks: the two numbers the original's contact tests and fall bonuses are computed from (a punji hurts only a living entity whose box crosses the block's mid-plane, and deals the fall distance + 1 more after a fall).
 
 ```rust
@@ -680,6 +730,8 @@ assert_eq!(context.state.block.path(), "post");
 
 ### `PistonBehavior`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A static block piston property: `Normal` permits ordinary push/pull checks; `Destroy` permits destruction when the resolver allows it; `Block` refuses movement; `Ignore` is Minecraft's ignore reaction; `PushOnly` permits pushing but not pulling. The native resolver retains its bounds, hardness, extended-piston and block-entity checks.
 
 ```rust
@@ -693,6 +745,8 @@ for reaction in [PistonBehavior::Normal, PistonBehavior::Destroy, PistonBehavior
 
 ### `BlockBehavior::piston_behavior`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn piston_behavior(self, behavior: PistonBehavior) -> BlockBehavior`. Assigns the static reaction for all states of an already declared mod block. Call before the content snapshot is collected; the native adapter is source-declared, not runtime-verified.
 
 ```rust
@@ -703,6 +757,8 @@ assert_eq!(block.piston_behavior_override(), Some(PistonBehavior::Destroy));
 ```
 
 ### `BlockBehavior::piston_behavior_override`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn piston_behavior_override(&self) -> Option<PistonBehavior>`. Reads only the explicitly registered setting; `None` retains the native content template rather than assuming Normal.
 
@@ -716,6 +772,8 @@ assert_eq!(block.piston_behavior_override(), Some(PistonBehavior::Block));
 
 ### `PathNodeType`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A host-independent Minecraft path-node category. Variants are `Blocked`, `Open`, `Walkable`, `WalkableDoor`, `Trapdoor`, `PowderSnow`, `OnTopOfPowderSnow`, `Fence`, `Lava`, `Water`, `WaterBorder`, `Rail`, `UnpassableRail`, `FireInNeighbor`, `Fire`, `DamagingInNeighbor`, `Damaging`, `DoorOpen`, `DoorWoodClosed`, `DoorIronClosed`, `Breach`, `Leaves`, `StickyHoney`, `Cocoa`, `DamageCautious`, `OnTopOfTrapdoor`, and `BigMobsCloseToDanger`. `name(self) -> &'static str` returns the uppercase Minecraft name; `parse(name: &str) -> Option<Self>` rejects unknown names rather than silently blocking a route.
 
 ```rust
@@ -727,6 +785,8 @@ assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
 
 ### `PathNodeType::name`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `fn name(self) -> &'static str`. Return this category's uppercase Minecraft name.
 
 ```rust
@@ -735,6 +795,8 @@ assert_eq!(PathNodeType::StickyHoney.name(), "STICKY_HONEY");
 ```
 
 ### `PathNodeType::parse`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn parse(name: &str) -> Option<PathNodeType>`. Read an uppercase category name, returning `None` for an unknown category rather than a guessed blocked node.
 
@@ -745,6 +807,8 @@ assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
 ```
 
 ### `PathNodeTypeContext`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 A borrowed path query: `state: BlockState`, `pos: [i32; 3]`, `view: &dyn BlockView`, `entity: Option<i32>`, and `kind: Option<String>`. Static queries have no entity identity. The callback must not retain the borrowed view.
 
@@ -759,6 +823,8 @@ assert!(query.entity.is_none());
 
 ### `BlockBehavior::path_node_type`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn path_node_type(self, f: impl Fn(&PathNodeTypeContext<'_>) -> Option<PathNodeType> + Send + Sync + 'static) -> BlockBehavior`. Classify this block's path node using its state and surroundings. `Some(Blocked)` explicitly blocks the node; `None` keeps the native answer. Consumer code runs outside the registration lock.
 
 ```rust
@@ -770,6 +836,8 @@ BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "slow_flo
 > **Use with Caution.** Native support is not yet verified. The borrowed-world adapter and static query hook are implemented and pass planning, but guarded compilation and game verification are pending. This entry point is static, so native queries have no entity identity. A registered category alone does not prove a mob will choose a different route.
 
 ### `EntityInsideMotionContext`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Current clean-port source review (2026-11-14): mob contacts retain the native sweep captured before `stepOn`, including when native damage immediately teleports the mob. The adapter delegates contact damage to the pinned host's teleport-aware `hurt` function. A production-helper trace regression passes; the corrected bundle still requires combined-contract approval, native compilation and game verification. Historical gates below do not certify this changed input.
 
@@ -785,6 +853,8 @@ assert_eq!(c.previous_position[0], -0.2);
 
 ### `AfterFallContext`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 A registered block's post-landing motion request: `state: BlockState`, `pos: [i32; 3]`, `entity: i32`, `kind: String`, `living: bool`, `item: bool`, `suppressing_bounce: bool`, `velocity: [f64; 3]`, `fall_distance: f64`, and `on_ground: bool`. Only the last three motion fields are applied back. Native horizontal restitution has already run; native vertical restitution does not run after this callback. A non-finite velocity/distance or negative distance restores all three original motion fields together. The handler is captured before native effects, so later registry replacement does not swap it mid-request. Native coverage includes resident players and concrete mobs. The pinned build, ordinary/suppressed player bounce and four-kind cow bounce/immunity with a stone damage control pass; exact per-tick parity, other species and LAN remain unverified. The item post-fall expression adapter passes the guarded native build and a real dropped-item gate: all four production kinds bounce, stone/unregistered-inset controls do not, and stack count stays one. The combined player/cow/side/sound regression and ordinary crafting/Part Builder pass on the same binary; all 35 images inspected. This is observed bounce, not an exact per-tick restitution proof. It retains native restitution for unregistered blocks, replaces only the scalar vertical result for registered handlers, and leaves the caller's later effects/drag/tracking intact. Items have no accumulated native landing-damage distance: `fall_distance` is zero and its output is not stored; velocity and `on_ground` outputs are applied. Moving-piston support is not covered.
 
 ```rust
@@ -796,6 +866,8 @@ assert_eq!(c.velocity[1], -0.7);
 ```
 
 ### `FallOnContext`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 Calculated server landing data: `state: BlockState`, `pos: [i32; 3]`, `entity: i32`, `kind: String`, `distance: f64`, and editable `damage: f32`. `distance` is the accumulated fall, not a velocity. Only `damage` is copied back to the native adapter; other fields describe the request. Verified coverage is resident players and the four-kind cow immunity/bounce fixture with a stone damage control. The concrete mob adapter is general, but other species are unverified; items are not connected.
 
@@ -809,6 +881,8 @@ assert_eq!(c.damage, 7.0);
 
 ### `BlockBehavior`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What one block of the mod does. Build it with the methods below, then give it to `BlockBehaviors::register`.
 
 ```rust
@@ -820,6 +894,8 @@ assert_eq!(behavior.block().path(), "post");
 
 ### `BlockBehavior::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(block: Identifier) -> BlockBehavior`. A behaviour for `block` that changes nothing yet.
 
 ```rust
@@ -830,6 +906,8 @@ assert_eq!(behavior.block().to_string(), "example:post");
 ```
 
 ### `BlockBehavior::can_survive`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn can_survive(self, f: impl Fn(&SurviveContext) -> bool) -> BlockBehavior`. Where the block may stay. Answer `false` and it is refused when placed, and breaks (with its drops) when a neighbour changes. The game asks often, so keep it short. Registered structure plant markers also ask this callback against their borrowed generation-region view; a registered `false` is final, while a missing callback retains native plant survival. The view has no lighting yet during FEATURES. The full native build and natural End-island fixture pass: 34 tall grass and 3 ferns survive alongside trees and vines. Registered allow/deny, unregistered fallback and unlocked callback dispatch have a pure regression. This does not validate every plant type or make lighting available during generation.
 
@@ -843,6 +921,8 @@ assert!(behavior.block().path() == "sign");
 ```
 
 ### `can_survive`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn can_survive(state: &BlockState, pos: [i32; 3], view: &dyn BlockView) -> Option<bool>`. Whether `state` may stay at `pos`, as the game's `BlockState.canSurvive` answers it — the same class-chain dispatch the game runs, over the view: a torch needs a sturdy face below, a wall torch the face it leans on, a crop the farmland below, and frosted ice survives anywhere. A mod-registered `BlockBehavior::can_survive` answers first, as the game's mod seam does. `None` where a needed fact is not published (the solid flag, the centre and rigid support bits, fire odds, the multiface attach table, fluid tags): a placement check must treat `None` as "cannot say", not as a refusal.
 
@@ -861,6 +941,8 @@ assert_eq!(can_survive(&BlockState::parse("minecraft:torch").unwrap(), [0, 64, 0
 
 ### `BlockBehavior::state_for_placement`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn state_for_placement(self, f: impl Fn(&PlacementContext) -> Placement) -> BlockBehavior`. The state the block takes when placed (see [Choosing the State When Placed](#choosing-the-state-when-placed)).
 
 ```rust
@@ -874,6 +956,8 @@ assert!(behavior.block().path() == "post");
 
 ### `BlockBehavior::update_shape`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn update_shape(self, f: impl Fn(&ShapeUpdateContext) -> Option<BlockState>) -> BlockBehavior`. How a neighbour's change turns the block's state: `Some(state)` becomes the block's state (the same state too, which stops the game's own handling of that update), `None` leaves the update to the game. Asked at least six times for every block set, so keep it short.
 
 ```rust
@@ -886,6 +970,8 @@ assert!(behavior.block().path() == "post");
 
 ### `BlockBehavior::is_slime_block`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn is_slime_block(self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers the source slime-block identity predicate, separately from sticky connectivity. **Stub:** the pinned native piston/entity-push paths do not invoke it. Registration is not proof of slime push or bounce gameplay.
 
 ```rust
@@ -895,6 +981,8 @@ assert_eq!(b.block().path(), "gel");
 ```
 
 ### `BlockBehavior::is_sticky_block`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn is_sticky_block(self, f: impl Fn(&BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers whether a block participates in sticky branching. **Stub:** accepted but not invoked by the pinned native piston resolver. It is not a replacement for the complete resolver's movement limits or pair rules.
 
@@ -906,6 +994,8 @@ assert_eq!(b.block().path(), "adhesive");
 
 ### `BlockBehavior::can_stick_to`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn can_stick_to(self, f: impl Fn(&BlockState, &BlockState) -> bool + Send + Sync + 'static) -> BlockBehavior`. Registers this block's directional predicate for its state and the neighbouring state. A false result must not be changed to native fallback; the reverse block's predicate and complete resolver still need separate handling. **Stub:** the pinned native resolver does not invoke this registration; the generic `Sim` method injection experiment is rejected. Pure callback tests are not native piston verification.
 
 ```rust
@@ -916,6 +1006,8 @@ assert_eq!(b.block().path(), "selective");
 ```
 
 ### `BlockBehavior::entity_inside_motion`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn entity_inside_motion(self, f: impl Fn(&mut EntityInsideMotionContext) + Send + Sync + 'static) -> BlockBehavior`. Edits velocity at a block's swept contact. This is separate from the existing read-only `entity_inside` notification and from landing restitution. The handler is captured without holding the registry lock during invocation. The native player velocity/packet adapter passes the four-kind falling-side/suppression game gate on all four horizontal faces, with an identical-shape unregistered control on each face. Held-forward flat contact remains unresolved. `step_sound` forwards explicit volume/pitch through the native authoritative sound queue; the pinned build and four-kind native request gate pass, but audible playback and broader LAN delivery remain unverified.
 
@@ -929,6 +1021,8 @@ assert_eq!(behavior.block().path(), "pad");
 ```
 
 ### `BlockBehavior::update_entity_after_fall_on`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn update_entity_after_fall_on(self, f: impl Fn(&mut AfterFallContext) + Send + Sync + 'static) -> BlockBehavior`. Owns the vertical collision response after a landing, separately from fall damage and side contacts. A block without this callback keeps the complete native response. The player adapter retains native horizontal response before invoking the captured callback; no native gravity/drag vertical correction follows. The item adapter is source-wired to the native resolved support position (including bounding-box edge landings), rather than recomputing the center block; absent contacts/callbacks retain native restitution. Its production-helper routing regression passes, but the changed item binding is not native-build or game-verified. Item fall-distance edits are not copied back. Historical resident-player bounce evidence does not certify the current combined bundle; exact per-tick velocity parity and LAN remain unverified.
 
@@ -944,6 +1038,8 @@ assert_eq!(behavior.block().path(), "cushion");
 
 ### `BlockBehavior::fall_on`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fall_on(self, f: impl Fn(&mut FallOnContext) + Send + Sync + 'static) -> BlockBehavior`. Changes calculated landing damage through `context.damage`. The game-verified native adapter handles players and preserves native listeners before this callback; the concrete mob adapter also passes the native build and four-kind cow immunity/bounce plus stone damage control (other species unverified). Invalid values are ignored; negative damage becomes zero. The pinned build and player zero-damage/stone-control gate pass; other entities and LAN remain unverified. This is not an after-fall bounce callback.
 
 ```rust
@@ -954,6 +1050,8 @@ assert_eq!(behavior.block().path(), "cushion");
 ```
 
 ### `BlockBehavior::entity_inside`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn entity_inside(self, f: impl Fn(&EntityInsideContext)) -> BlockBehavior`. An entity is inside the block's space. The player, mob and item movement seams invoke the callbacks on the server side, with the level's dimension, the block's full state, the entity's id and kind, its bounding box and its fall distance (see the support matrix for what is not covered).
 
@@ -966,6 +1064,8 @@ assert!(behavior.block().path() == "thorns");
 ```
 
 ### `BlockBehavior::random_tick`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn random_tick(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. A random tick reached the block. Having this callback stops the game's own random tick of the block.
 
@@ -983,6 +1083,8 @@ assert_eq!(behavior.block().path(), "moss");
 
 ### `BlockBehavior::scheduled_tick`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn scheduled_tick(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. A tick the block scheduled with `schedule_tick` came due. Having this callback stops the game's own tick of the block.
 
 ```rust
@@ -996,6 +1098,8 @@ assert_eq!(behavior.block().path(), "fuse");
 
 ### `BlockBehavior::can_bonemeal`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn can_bonemeal(self, f: impl Fn(&BonemealContext) -> bool) -> BlockBehavior`. Whether a bone meal can be used on the block; a used meal is spent only on yes.
 
 ```rust
@@ -1008,6 +1112,8 @@ assert_eq!(behavior.block().path(), "sapling");
 
 ### `BlockBehavior::bonemeal_success`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn bonemeal_success(self, f: impl Fn(&mut TickContext) -> bool) -> BlockBehavior`. Whether a bone meal that was used makes the block grow this time. Without it the game's own chance applies.
 
 ```rust
@@ -1018,6 +1124,8 @@ assert_eq!(behavior.block().path(), "sapling");
 ```
 
 ### `BlockBehavior::on_bonemeal`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn on_bonemeal(self, f: impl Fn(&mut TickContext)) -> BlockBehavior`. The block grows from a bone meal.
 
@@ -1032,6 +1140,8 @@ assert_eq!(behavior.block().path(), "sapling");
 
 ### `BlockBehavior::may_place_on`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn may_place_on(self, f: impl Fn(&PlaceOnContext) -> bool) -> BlockBehavior`. What a plant may stand on. The block's template has to be a plant that asks, such as a crop or a sapling.
 
 ```rust
@@ -1042,6 +1152,8 @@ assert_eq!(behavior.block().path(), "fern");
 ```
 
 ### `vegetation_may_place_on`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn vegetation_may_place_on(state: &BlockState, ground: &BlockState, ground_pos: [i32; 3], view: &dyn BlockView) -> Option<bool>`. Whether a plant of `state` may stand on `ground`, as the game's support tags answer it — the `minecraft:supports_*` tags on the ground block, such as `supports_crops` for farmland under a crop. A mod-registered `BlockBehavior::may_place_on` answers first. `None` where the ground block carries none of the support tags the plant asks for, or where the plant's support tag is one the view cannot answer (fluid tags such as `supports_frogspawn`).
 
@@ -1062,6 +1174,8 @@ assert_eq!(vegetation_may_place_on(&wheat, &farmland, [0, 63, 0], &view), Some(t
 
 ### `PickContext`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A player picks the block. `state` is the block's state and `pos` its position.
 
 ```rust
@@ -1073,6 +1187,8 @@ assert_eq!(pick.state.property("lit"), Some("true"));
 ```
 
 ### `BlockBehavior::pick_stack`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn pick_stack(self, f: impl Fn(&PickContext) -> Option<ItemStack> + Send + Sync + 'static) -> BlockBehavior`. The stack a player gets when picking the block (middle click in creative; Fabric: `Block.getPickStack`). Answer `Some(stack)`, with data components if you like, or `None` for the game's own choice.
 
@@ -1086,6 +1202,8 @@ assert_eq!(behavior.block().path(), "lamp");
 
 ### `BlockBehavior::flammable`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn flammable(self, ignite: i32, burn: i32) -> BlockBehavior`. The block's fire odds (Minecraft: `FireBlock.setFlammable`): how readily fire spreads onto the block (ignite) and how strongly it feeds the fire (burn). Vanilla's planks are 5/20, wool 30/60, leaves 30/60; `(0, 0)` never burns. A block without odds keeps the ones its declaration's template carries. The game asks hundreds of times per fire tick, so the answer is a plain registry lookup.
 
 ```rust
@@ -1096,6 +1214,8 @@ assert_eq!(behavior.flammable_odds(), Some((30, 60)));
 ```
 
 ### `BlockBehavior::flammable_odds`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn flammable_odds(&self) -> Option<(i32, i32)>`. The fire odds given with `flammable`, if any.
 
@@ -1108,6 +1228,8 @@ assert_eq!(behavior.flammable_odds(), None);
 
 ### `BlockBehavior::block`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn block(&self) -> &Identifier`. The block this behaviour belongs to.
 
 ```rust
@@ -1119,6 +1241,8 @@ assert_eq!(behavior.block().namespace(), "example");
 
 ### `BlockBehaviors`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The registry of block behaviours.
 
 ```rust
@@ -1129,6 +1253,8 @@ assert!(BlockBehaviors::get("example:registry_page").is_some());
 ```
 
 ### `BlockBehaviors::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(behavior: BlockBehavior)`. Gives `behavior.block()` its behaviour. Registering the same block again replaces the earlier behaviour.
 
@@ -1143,6 +1269,8 @@ assert_eq!(BlockBehaviors::registered().iter().filter(|b| b.block().to_string() 
 
 ### `BlockBehaviors::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn get(block: &str) -> Option<BlockBehavior>`. The behaviour registered for `block` (an id such as `tconstruct:punji`), if any.
 
 ```rust
@@ -1152,6 +1280,8 @@ assert!(BlockBehaviors::get("example:never_registered").is_none());
 ```
 
 ### `BlockBehaviors::registered`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn registered() -> Vec<BlockBehavior>`. Every block that has a behaviour.
 
@@ -1163,6 +1293,8 @@ assert!(BlockBehaviors::registered().iter().any(|b| b.block().to_string() == "ex
 ```
 
 ### `EntityInsideContext::act`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `fn act(&self, action: EntityAction)`. Queues something to do to the entity inside (see `EntityAction`): the action is added to the context's `actions` and lands once the movement seams are done with the entity, since the seams run inside entity movement, where the entity may not be changed.
 
@@ -1187,6 +1319,8 @@ assert_eq!(queued[0], EntityAction::Hurt { target: ActionTarget::Victim, amount:
 
 ### `ServerBlockEvents::BLOCK_PLACE`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `static BLOCK_PLACE: &'static Event<BlockPlace, ()>`. A block is about to be placed by a player or a walk module (NeoForge: `BlockEvent.EntityPlaceEvent`, the Forge `onBlockPlace`): set `cancel` to stop the placement. Heard before the block lands, so a later callback may still cancel it. `block_place_heard()` says whether any callback hears it, so a placer can skip firing when nobody listens. The walk hook fires it before a frost walker replacement lands. There are no listeners in the tree yet: protection and claim mods are the callers this surface is for.
 
 ```rust
@@ -1205,6 +1339,8 @@ assert!(block_place(&place));
 
 ### `BlockPlace`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A block about to be placed, heard through `ServerBlockEvents::BLOCK_PLACE` before the block lands: `placer` is the placer's uuid when a player places it (None for a placement no player owns), `dimension` the dimension, `pos` where the block would go, `state` the state that would be placed, `replaced` the state it replaces, and `cancel`, set to true to stop the placement.
 
 ```rust
@@ -1219,6 +1355,8 @@ assert!(place.cancel.get());
 ```
 
 ### `BlockPlace::new`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn new(placer: Option<u128>, dimension: &str, pos: BlockPos, state: BlockState, replaced: BlockState) -> BlockPlace`. A placement of `state` at `pos` in `dimension`, replacing `replaced`, by `placer`; `cancel` starts false.
 
@@ -1235,6 +1373,8 @@ assert!(place.placer.is_none());
 
 ### `ServerBlockEvents`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The block events a server hears. Its one event today is `BLOCK_PLACE`, a block about to be placed by a player or a walk module.
 
 ```rust
@@ -1249,6 +1389,8 @@ ServerBlockEvents::BLOCK_PLACE.register(|place| {
 
 ### `block_place`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn block_place(place: &BlockPlace) -> bool`. Fires `ServerBlockEvents::BLOCK_PLACE` for `place`: whether any callback cancelled it.
 
 ```rust
@@ -1261,6 +1403,8 @@ assert!(!block_place(&place));
 ```
 
 ### `block_place_heard`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn block_place_heard() -> bool`. Whether any callback hears `ServerBlockEvents::BLOCK_PLACE`, so a placer can skip building a `BlockPlace` when nobody listens.
 

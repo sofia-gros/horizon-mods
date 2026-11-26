@@ -4,6 +4,8 @@ Attributes of a mod's own, for the ones the host does not have. The host's attri
 
 ### `AttributeOperation`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 How one contribution bends an attribute's value, in the data's own names — the game's three modifier operations. `Addition` adds the amount; `MultiplyBase` adds the amount times the value after additions; `MultiplyTotal` multiplies the value by one plus the amount, one such contribution at a time. The order the operations apply in is fixed by [`attribute_value`](#attribute_value): every addition first, then every multiply-base against the added value, then each multiply-total in turn.
 
 ```rust
@@ -14,6 +16,8 @@ assert_eq!(AttributeOperation::MultiplyBase.name(), "multiply_base");
 ```
 
 ### `AttributeOperation::from_name`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn from_name(name: &str) -> Option<AttributeOperation>`. The operation the data names, or None for a name that is not one of the three.
 
@@ -26,6 +30,8 @@ assert_eq!(AttributeOperation::from_name("add_value"), None, "the stack entry na
 
 ### `AttributeOperation::name`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn name(self) -> &'static str`. The name the data uses for this operation.
 
 ```rust
@@ -36,6 +42,8 @@ assert_eq!(AttributeOperation::MultiplyTotal.name(), "multiply_total");
 ```
 
 ### `AttributeDef`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One attribute a mod declares: `id` is the attribute's id, such as `tconstruct:generic.bouncy`; `default` the value an entity has with no contributions; `min` and `max` the range the worked-out value is clamped into.
 
@@ -48,6 +56,8 @@ assert_eq!((def.default, def.min, def.max), (0.0, 0.0, 100.0));
 
 ### `AttributeContribution`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One amount contributed to an attribute: by an equipment or tool module on a worn or held stack, by a max-armor claim, or by an effect active on the entity. `operation` says how the amount bends the value, and `amount` is the amount, already scaled by whatever level produced it (a module's formula result, an effect's per-level amount times its level).
 
 ```rust
@@ -59,6 +69,8 @@ assert_eq!(contribution.amount, 0.25);
 
 ### `AttributeContribution::scaled`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn scaled(self, count: i32) -> AttributeContribution`. This contribution scaled by a count, as an effect's modifier is scaled by its level (the game's effect attribute modifiers grow by the per-level amount times amplifier + 1).
 
 ```rust
@@ -69,6 +81,8 @@ assert_eq!(per_level.scaled(3).amount, 0.75);
 ```
 
 ### `attribute_value`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn attribute_value(def: &AttributeDef, contributions: &[AttributeContribution]) -> f64`. An attribute's value under `contributions`, worked out as the game works out an attribute instance: the default, plus every addition; that sum grown by each multiply-base amount's share of it; the result then multiplied by one plus each multiply-total amount in turn; and the whole clamped into the declared range. A contribution whose amount is not finite is ignored, and a result that is not finite falls back to the default.
 
@@ -87,6 +101,8 @@ assert_eq!(attribute_value(&def, &[]), 1.0, "no contributions, the default");
 
 ### `AttributeRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The attributes mods have declared, by id. Registration is process-lifetime: declaring an id again with the same declaration stands as it was, and a different declaration for an id already declared is refused, so the first declaration for an id is the one that stands.
 
 ```rust
@@ -97,6 +113,8 @@ assert!(AttributeRegistry::is_registered("example:registry_bouncy"));
 ```
 
 ### `AttributeRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(def: AttributeDef) -> Result<(), String>`. Declares an attribute. The declaration is validated whole first — the numbers finite and the default inside the range — so a refused declaration leaves any previous one intact. A declaration for an id already declared is refused the same way when it differs from the one standing (a different default or range); declaring the same declaration again is accepted and changes nothing.
 
@@ -110,6 +128,8 @@ assert!(AttributeRegistry::register(AttributeDef { default: 5.0, ..def }).is_err
 
 ### `AttributeRegistry::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn get(id: &str) -> Option<AttributeDef>`. The declaration of the attribute `id`, or None when no mod declared one.
 
 ```rust
@@ -122,6 +142,8 @@ assert!(AttributeRegistry::get("example:missing").is_none());
 
 ### `AttributeRegistry::is_registered`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn is_registered(id: &str) -> bool`. Whether a mod declared the attribute `id`.
 
 ```rust
@@ -131,6 +153,8 @@ assert!(!AttributeRegistry::is_registered("example:never_declared"));
 ```
 
 ### `AttributeRegistry::registered`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn registered() -> Vec<AttributeDef>`. Every declared attribute, sorted by id (the registry's own census, for tests and tools).
 
@@ -142,6 +166,8 @@ assert!(AttributeRegistry::registered().iter().any(|def| def.id.to_string() == "
 ```
 
 ### `AttributeRegistry::value`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn value(id: &str, contributions: &[AttributeContribution]) -> Option<f64>`. The value of the declared attribute `id` under `contributions`, or None when no mod declared it.
 
@@ -190,6 +216,8 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
 
 ### `AttributeBaseValue`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `AttributeBaseValue { attribute: Identifier, value: f64 }` is an owned explicit base write. Zero is a value, not a fallback.
 
 ```rust
@@ -199,6 +227,8 @@ assert_eq!(base.value, 0.0);
 ```
 
 ### `LivingEntityLoadContext`
+
+![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `LivingEntityLoadContext { entity: EntityInfo, slime_size: Option<i32> }` carries callback-local entity identity/dimension and a native cube/slime size, absent for other implementations. The entity's typed attachment methods use the current host scope.
 
@@ -210,6 +240,8 @@ assert_eq!(context.slime_size, Some(4));
 
 ### `LivingEntityBehavior::attribute_bases_on_load`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `attribute_bases_on_load(self, callback: impl Fn(&LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String> + Send + Sync + 'static) -> Self` installs the class's load-time base callback. Empty output leaves bases unchanged. The callback executes outside registration locks and may read existing attachments.
 
 ```rust
@@ -220,6 +252,8 @@ let behavior = LivingEntityBehavior::new(Identifier::parse("example:load_policy"
 
 ### `LivingEntityBehaviors::attribute_bases_on_load`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 `attribute_bases_on_load(context: &LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String>` dispatches and validates duplicate attribute IDs. An unregistered class returns an empty vector.
 
 ```rust
@@ -229,6 +263,8 @@ assert!(LivingEntityBehaviors::attribute_bases_on_load(&context).unwrap().is_emp
 ```
 
 ### `AttributeModifierOperation`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 The three Minecraft operations: `AddValue` adds to the base; `AddMultipliedBase` adds a proportion of that additive-phase base; `AddMultipliedTotal` multiplies the accumulated result by `1 + amount`, before effective-value sanitization. This enum describes operations, not a standalone calculator.
 
@@ -241,6 +277,8 @@ assert_ne!(operation, AttributeModifierOperation::AddValue);
 
 ### `TransientAttributeModifier`
 
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+
 Declaration fields: `attribute: Identifier`, modifier `id: Identifier`, `amount: f64` and `operation: AttributeModifierOperation`. IDs are native identifier keys (not the source era's display-name/random-UUID representation); declarations contain no live entity handles.
 
 ```rust
@@ -252,6 +290,8 @@ assert_eq!(modifier.clone(), modifier);
 ```
 
 ### `LivingEntityBehavior::transient_attribute_modifier`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `transient_attribute_modifier(self, modifier: TransientAttributeModifier) -> Self` adds a class declaration. Registration rejects duplicate attribute/ID pairs; the same modifier ID on different attributes is permitted. Register one complete behavior per type.
 
@@ -266,6 +306,8 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:resistant")
 ```
 
 ### `LivingEntityBehaviors::transient_attribute_modifiers`
+
+![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 `transient_attribute_modifiers(entity_type: &Identifier) -> Result<Vec<TransientAttributeModifier>, String>` returns an owned declaration snapshot, empty for an unregistered type. Poisoned registration returns an error, not an empty policy; mutating the returned vector does not alter registrations or a live mob.
 

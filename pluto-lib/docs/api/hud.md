@@ -30,6 +30,8 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `HudRegistry::register(draw)` gives the HUD a draw callback, called each frame the HUD shows. Registering again adds another callback; each runs in registration order.
 
 ```rust
@@ -41,6 +43,8 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 ```
 
 ### `HudRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(draw: impl Fn(&mut HudDraw<'_>) + Send + Sync + 'static)`. Registers one HUD draw callback. Registration is the whole setup: there is no unregister, and a callback that has nothing to draw (no player, a spectator, the wrong equipment) simply returns.
 
@@ -57,6 +61,8 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudDraw`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a HUD draw callback receives: `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left), `size`, `inventory`, `equipment`, `spectator` and `effects`, as described above.
 
 ```rust
@@ -70,6 +76,8 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudEquipment`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The local player's worn and held stacks, one `Option<ItemSlot>` per slot (`head`, `chest`, `legs`, `feet`, `offhand`, `main_hand`), plus `right_handed: bool`.
 
 ```rust
@@ -80,6 +88,8 @@ assert!(equipment.right_handed && equipment.legs.is_none() && equipment.main_han
 ```
 
 ### `HudEffect`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
 
 One of the local player's active effects, as the HUD needs it for the original's effect shift: `beneficial` is whether the effect's category is beneficial (a harmful or neutral effect is not), and `visible` whether the effect shows in the GUI (its icon flag as the host reports it; an effect the snapshot does not name counts as shown, as vanilla defaults the flag).
 

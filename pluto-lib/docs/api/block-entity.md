@@ -105,6 +105,8 @@ NBT is the tagged data the game saves and sends. PlutoLib has its own copy of th
 
 ### `Nbt`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 One NBT value: `Byte`, `Short`, `Int`, `Long`, `Float`, `Double`, `ByteArray`, `String`, `List`, `Compound`, `IntArray` or `LongArray`.
 
 ```rust
@@ -117,6 +119,8 @@ assert_eq!(values.len(), 9);
 
 ### `NbtCompound`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A named set of NBT values (`BTreeMap<String, Nbt>`), the shape of a block entity's saved data.
 
 ```rust
@@ -128,6 +132,8 @@ assert_eq!(data.len(), 1);
 ```
 
 ### `Nbt::from_binary`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn from_binary(bytes: &[u8]) -> Result<NbtCompound, String>`. Reads a binary NBT document (a named root compound) into the model, inflating it first when it is gzip-wrapped, as structure templates are stored. The root's own name is dropped; trailing bytes after the root are refused, so a corrupt file fails instead of reading as a shorter one. Java's byte arrays are signed there and bit patterns here, so a byte array round-trips exactly.
 
@@ -147,6 +153,8 @@ assert!(Nbt::from_binary(&[3, 0, 0]).is_err(), "an int root is not a compound");
 
 ### `gunzip`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn gunzip(bytes: &[u8]) -> Result<Vec<u8>, String>`. Inflates a gzip stream to the bytes it wraps (stored and Huffman deflate blocks alike; the pure crate takes no compression dependency, so the inflater is PlutoLib's own). The stream's CRC32 and size trailer are not verified: the deflate stream's own final block marks the data's end.
 
 ```rust
@@ -161,6 +169,8 @@ assert!(gunzip(&[0x1f, 0x8b, 7]).is_err(), "a non-deflate gzip is refused");
 
 ### `Nbt::as_i64`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn as_i64(&self) -> Option<i64>`. Any integer tag (`Byte`, `Short`, `Int`, `Long`) as an `i64`; `None` for other tags.
 
 ```rust
@@ -172,6 +182,8 @@ assert_eq!(Nbt::String("7".into()).as_i64(), None);
 ```
 
 ### `Nbt::as_f64`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn as_f64(&self) -> Option<f64>`. Any number tag as an `f64`; `None` for other tags.
 
@@ -185,7 +197,13 @@ assert_eq!(Nbt::List(vec![]).as_f64(), None);
 
 ### `Nbt::as_str`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn as_str(&self) -> Option<&str>`. The text of a `String` tag.
+
+> The text when this value is a String tag, and None for every other kind. Reading saved data
+> through the as_* accessors keeps a wrong-shaped tag from becoming a panic: the None case is the
+> caller's to handle.
 
 ```rust
 use pluto_lib::Nbt;
@@ -195,6 +213,8 @@ assert_eq!(Nbt::Int(1).as_str(), None);
 ```
 
 ### `Nbt::as_compound`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn as_compound(&self) -> Option<&NbtCompound>`. The compound inside a `Compound` tag.
 
@@ -208,7 +228,13 @@ assert!(Nbt::Int(1).as_compound().is_none());
 
 ### `Nbt::as_list`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn as_list(&self) -> Option<&[Nbt]>`. The elements of a `List` tag.
+
+> The elements when this value is a List tag, and None for every other kind. The elements are
+> themselves Nbt values, so a list of compounds is walked one level at a time with the same
+> accessors.
 
 ```rust
 use pluto_lib::Nbt;
@@ -219,6 +245,8 @@ assert!(Nbt::Int(1).as_list().is_none());
 ```
 
 ### `NbtCompoundExt`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Typed reads from a compound with a default, like Minecraft's `CompoundTag.getInt`: `get_int(key, default) -> i64`, `get_double(key, default) -> f64`, `get_string(key) -> Option<&str>`, `get_compound(key) -> Option<&NbtCompound>`. A missing key, or a key of another tag kind, gives the default.
 
@@ -241,7 +269,12 @@ assert!(data.get_compound("inner").is_some());
 
 ### `BlockPos`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 A block position `[x, y, z]`.
+
+> A block's integer coordinates in a world, written [x, y, z]. Block entities, block lookups and
+> forwarding targets are all addressed by BlockPos throughout the API.
 
 ```rust
 use pluto_lib::BlockPos;
@@ -251,6 +284,8 @@ assert_eq!(pos[1], 64);
 ```
 
 ### `BlockEntityTick`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a ticker receives. `pos` is the block entity's position, `data` its saved data and `items` its item slots, which the ticker may change; changes are saved with the chunk.
 
@@ -270,6 +305,8 @@ assert_eq!(data.get_int("ticks", 0), 1);
 
 ### `BlockEntityType`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 The kind of block entity a block has. `block` is the block it belongs to, `id` the type's own id (saved with the block entity; the block's id unless changed), `initial_data` the data a new block entity starts with. Build one with `BlockEntityType::new` and the builder methods, then register it.
 
 ```rust
@@ -283,6 +320,8 @@ assert!(kind.initial_data.is_empty());
 
 ### `BlockEntityType::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(block: Identifier) -> BlockEntityType`. A type for `block` with no data, no ticker and nothing sent to clients.
 
 ```rust
@@ -294,6 +333,8 @@ assert_eq!(kind.block.path(), "oven");
 
 ### `BlockEntityType::with_id`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn with_id(self, id: Identifier) -> BlockEntityType`. The same type under another id.
 
 ```rust
@@ -304,6 +345,8 @@ assert_eq!(kind.id.path(), "oven_entity");
 ```
 
 ### `BlockEntityType::initial_data`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn initial_data(self, data: NbtCompound) -> BlockEntityType`. New block entities start with `data`.
 
@@ -317,6 +360,8 @@ assert_eq!(kind.initial_data.len(), 1);
 ```
 
 ### `BlockEntityType::ticker`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn ticker(self, ticker: impl Fn(&mut BlockEntityTick<'_>) + Send + Sync + 'static) -> BlockEntityType`. The block entity is ticked on the server every game tick by `ticker` (Fabric: `BlockEntityTicker`). Keep it short.
 
@@ -333,6 +378,8 @@ let _ = kind;
 ```
 
 ### `BlockEntityClientTick`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 Client callback context with `pos: BlockPos`, `data: &NbtCompound` (read-only server data), `client_data: &mut NbtCompound` (unsaved instance data) and `world: &dyn BlockView`. The callback never gets mutable access to server data. Native dispatch and lifecycle ownership remain unimplemented.
 
@@ -351,6 +398,8 @@ assert!(tick.data.is_empty());
 
 ### `BlockEntityType::client_ticker`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn client_ticker(self, ticker: impl Fn(&mut BlockEntityClientTick<'_>) + Send + Sync + 'static) -> BlockEntityType`. Replaces this type's client callback without adding or changing its server callback. Registration currently records the callback only; the native adapter is a documented stub.
 
 ```rust
@@ -361,6 +410,8 @@ assert_eq!(kind.id.to_string(), "example:display");
 ```
 
 ### `BlockEntityType::update_tag`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn update_tag(self, update_tag: impl Fn(&NbtCompound) -> NbtCompound + Send + Sync + 'static) -> BlockEntityType`. Clients are sent what `update_tag` makes of the saved data whenever a chunk holding the block entity is sent or its block changes (Minecraft: `getUpdateTag`). Without it nothing is sent.
 
@@ -380,6 +431,8 @@ let _ = kind;
 
 ### `BlockEntityType::sync_data`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn sync_data(self) -> BlockEntityType`. Clients are sent all of the saved data.
 
 ```rust
@@ -391,6 +444,8 @@ let _ = kind;
 
 ### `BlockEntityTypeRegistry`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Registers block entity types (Fabric: `Registry.register(Registries.BLOCK_ENTITY_TYPE, ...)`).
 
 ```rust
@@ -400,6 +455,8 @@ BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::new("example"
 ```
 
 ### `BlockEntityTypeRegistry::register`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn register(entity_type: BlockEntityType)`. Gives the type's block its block entity. Registering the same block again replaces the earlier type. Register in your mod's `hooks()`.
 
@@ -414,6 +471,8 @@ assert_eq!(BlockEntityTypeRegistry::get("example:replaced").unwrap().id.path(), 
 
 ### `BlockEntityTypeRegistry::get`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn get(block: &str) -> Option<BlockEntityType>`. The type registered for a block id such as `example:oven`, or `None`.
 
 ```rust
@@ -427,6 +486,8 @@ assert!(BlockEntityTypeRegistry::get("example:found").is_some());
 ## Item slots and fluid tanks
 
 ### `ItemSlot`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 One stack in an item slot. `item` is the item, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage the stack takes before it breaks when that differs from the item's (the `minecraft:max_damage` component, None for the item's own) and `custom_data` the stack's `minecraft:custom_data` (empty for none). Clone an existing slot when moving it: an opaque host-owned snapshot carries its other components (including native wire data) across slot/cursor changes, and the adapter applies edits to the public fields afterward. Use `ItemSlot::new`, not a struct literal, for a plain new stack; it must not inherit the destination's components. Changing `item` discards the captured source components. To empty a container slot, assign `None`; a committed slot with `count == 0` is also written back as `None`, matching the host's empty-slot representation. Production conversion fixtures pass; the changed native adapter has not yet been compiled or exercised in game. A tool a mod made keeps its materials and stats in `custom_data`, so a block that takes tools or tool parts can read them. `tool` is the stack's own `minecraft:tool` component: write the mining rules and speeds there and only this stack mines that way (`None` keeps the item's own). `attribute_modifiers` is the stack's own `minecraft:attribute_modifiers` component, one compound per modifier with `type`, `id`, `amount`, `operation` and `slot`: write the list there and only this stack carries those attribute modifiers (an empty list gives it none, `None` keeps the item's); the host applies the list to a player holding or wearing the stack. `enchantments` is the stack's own `minecraft:enchantments` component as enchantment id to level: write it there and only this stack carries those enchantments (an empty map removes them, `None` keeps the stack's), and the host applies them to a player holding or wearing the stack. The native mining-speed and drop rules read it, and the native item encoder/decoder already carries it between players; the conversion is source-wired and not yet compiled against the pinned host. `custom_model_data` is the stack's own `minecraft:custom_model_data` component (see `CustomModelData` on the player page): write it there and only this stack selects that item-model entry (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host. `profile` is the stack's own `minecraft:profile` component (a player head's owner: `name`, `id` as the uuid's four ints, and `properties`): write it there and only this stack carries that owner, so a head a beheading drops keeps the player's skin (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host. `map_id` is the stack's own `minecraft:map_id` component (a filled map's id): write it there and only this stack carries that map id, so a map a minimap inventory stores keeps its explored data (`None` keeps the stack's); the conversion is source-wired and not yet compiled against the pinned host.
 
@@ -443,6 +504,8 @@ assert_eq!(part.custom_data["material"], Nbt::String("example:flint".into()));
 
 ### `ItemSlot::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(item: Identifier, count: u32) -> ItemSlot`. A plain stack of `count` of `item`, with no damage, no max damage and no data.
 
 ```rust
@@ -456,6 +519,8 @@ assert!(slot.custom_data.is_empty() && slot.max_damage.is_none());
 
 ### `FluidStack`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Fluid in a tank. `fluid` is the fluid (`minecraft:water`, `minecraft:lava` or a mod's own), `amount` the millibuckets (a bucket is a thousand).
 
 ```rust
@@ -467,6 +532,8 @@ assert_eq!(bucket.fluid.to_string(), "minecraft:water");
 ```
 
 ### `BlockEntityType::item_slots`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn item_slots(self, count: u32) -> BlockEntityType`. The block entity has `count` item slots (at most 256) that hoppers and the block's menu can reach. A ticker reads and changes them through `BlockEntityTick::items`.
 
@@ -494,6 +561,8 @@ let _ = kind;
 
 ### `BlockEntityType::fluid_tanks`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_tanks(self, capacities: impl IntoIterator<Item = u32>) -> BlockEntityType`. One fluid tank for each capacity given, in millibuckets (at most 16 tanks, each 1 to 1 000 000). The contents are saved with the block entity; a ticker reads and changes them with `BlockEntityTick::fluid` and `set_fluid`, and other blocks can fill and drain them (Fabric: `FluidStorage`).
 
 ```rust
@@ -518,6 +587,8 @@ let _ = kind;
 
 ### `BlockEntityTick::set_menu_data`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn set_menu_data(&mut self, index: usize, value: i32)`. Sets a synchronized integer of the block's menu; declare the data slot in the content menu JSON. Indices 0..256 are supported (256 excluded); larger indices do nothing. Values are clamped to the signed 16-bit wire range and saved with the block entity.
 
 ```rust
@@ -529,6 +600,8 @@ tick.set_menu_data(0, 120);
 ```
 
 ### `BlockEntityTick::fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, or `None` if the tank is empty or does not exist.
 
@@ -544,6 +617,8 @@ assert_eq!(tick.fluid(0).unwrap().amount, 500);
 ```
 
 ### `BlockEntityTick::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`. The tanks before `index` are kept (empty if there were none yet).
 
@@ -569,6 +644,8 @@ A block whose tank capacity depends on what it is offered (a casting table that 
 
 ### `BlockEntityType::fluid_filler`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_filler(self, filler: impl Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync + 'static) -> BlockEntityType`. The hook is asked how much of an offered fluid the block takes, and may change its saved data and item slots. Without one the declared tanks are filled to their capacity (Fabric: a custom `Storage<FluidVariant>.insert`; NeoForge: a custom `IFluidHandler.fill`).
 
 ```rust
@@ -591,6 +668,8 @@ assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:basin", [0, 64, 0], &mut
 
 ### `BlockEntityFill`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a fluid filler receives: `pos`, the saved `data`, the item `items`, the `fluid` offered, the `face` it comes through (`None` when not said) and `execute`. With `execute` false the caller only asks how much would be taken and the changes are thrown away, so the hook can run the same code either way. `fluid_in(index)` and `set_fluid(index, stack)` read and write a tank.
 
 ```rust
@@ -610,6 +689,8 @@ assert_eq!(fill.fluid_in(0).unwrap().amount, 250);
 
 ### `BlockEntityTypeRegistry::fill_fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fill_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, fluid: FluidStack, face: Option<Direction>, execute: bool) -> Option<u32>`. Offers `fluid`, coming through `face`, to the block's filler over the given data and slots: the amount taken, or `None` when the block has no filler (the host then fills the declared tanks). With `execute` false the data and slots are left unchanged.
 
 ```rust
@@ -623,6 +704,8 @@ assert_eq!(BlockEntityTypeRegistry::fill_fluid("example:plain", [0; 3], &mut dat
 ```
 
 ### `BlockEntityType::on_use`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn on_use(self, user: impl Fn(&mut BlockEntityUse<'_>) -> ActionResult + Send + Sync + 'static) -> BlockEntityType`. Run when a player uses the block; it may exchange items with the hand and the slots, and its answer is the use's answer (`Pass` leaves it to the game).
 
@@ -646,6 +729,8 @@ assert!(items[0].is_some() && out.held.is_none());
 
 ### `BlockEntityUse`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a use hook receives: `pos`, `data`, `items`, `held` (the stack in the used hand, `None` when empty; the hook may change it), `sneaking`, and `give`, the stacks the player is handed (into the inventory, dropped when it is full). `fluid(index)` reads a tank.
 
 ```rust
@@ -659,6 +744,8 @@ assert!(used.fluid(0).is_none() && used.give.len() == 1 && !used.sneaking && use
 
 ### `BlockEntityTypeRegistry::use_block`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn use_block(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, held: Option<ItemSlot>, sneaking: bool) -> Option<BlockUseOutcome>`. Runs the block's use hook for a player holding `held`; `None` when the block has none.
 
 ```rust
@@ -668,6 +755,8 @@ assert!(BlockEntityTypeRegistry::use_block("example:no_hook", [0; 3], &mut NbtCo
 ```
 
 ### `BlockUseOutcome`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a use did: `result` (the answer), `held` (the used hand afterwards) and `give` (stacks for the player).
 
@@ -681,6 +770,8 @@ assert!(outcome.held.is_none() && outcome.give.is_empty());
 
 ### `BlockEntityFill::fluid_in`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_in(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index` of the data being filled.
 
 ```rust
@@ -693,6 +784,8 @@ assert_eq!(fill.fluid_in(0), None);
 ```
 
 ### `BlockEntityFill::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts a fluid in tank `index`, or empties it with `None`.
 
@@ -708,6 +801,8 @@ assert_eq!(fill.fluid_in(0).unwrap().amount, 10);
 
 ### `BlockEntityUse::fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, for a use hook that depends on it (a casting table does nothing with an item while it holds fluid).
 
 ```rust
@@ -719,6 +814,8 @@ assert!(used.fluid(0).is_none());
 ```
 
 ### `BlockEntityUse::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties it with `None`: a use hook that trades fluid with the held container (see [fluid-items](fluid-items.md)) writes the tank back with it.
 
@@ -741,6 +838,8 @@ A block that is only a door to another block's tanks (a drain in a smeltery wall
 
 ### `FluidFilter`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What passes through a forwarding block: `Any`, `Only(fluid)` (fills and drains of other fluids are refused; only tanks that are empty or hold the fluid are listed) or `Closed` (nothing moves; only the last tank is listed, and only while it is empty).
 
 ```rust
@@ -753,6 +852,8 @@ assert_ne!(FluidFilter::Closed, FluidFilter::Any);
 
 ### `FluidForward`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Where a forwarding block's storage really is: `target`, the position of the block entity that answers, and `filter`, a [`FluidFilter`](#fluidfilter).
 
 ```rust
@@ -763,6 +864,8 @@ assert_eq!((forward.target, forward.filter), ([0, 64, 0], FluidFilter::Any));
 ```
 
 ### `BlockEntityType::fluid_forward`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn fluid_forward(self, forward: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<FluidForward> + Send + Sync + 'static) -> BlockEntityType`. The block's fluid storage is another block entity's: the hook reads the saved data and item slots and names the target and a filter, or `None` when it points nowhere (then the block has no storage). Fabric: a `FluidStorage.SIDED` lookup that returns the storage of another position.
 
@@ -779,6 +882,8 @@ let _ = drain;
 
 ### `BlockEntityType::fluid_reader`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_reader(self, reader: impl Fn(&NbtCompound) -> Vec<NeighbourTank> + Send + Sync + 'static) -> BlockEntityType`. How the block lists its tanks, from its saved data (Fabric: `Storage.iterator`; NeoForge: `IFluidHandler.getFluidInTank`). Without one the declared tanks are listed.
 
 ```rust
@@ -789,6 +894,8 @@ let _ = vat;
 ```
 
 ### `BlockEntityDrain`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a drainer receives: `pos`, the saved `data` and `items` (changes are kept only when `execute` is true), `wanted` (the fluid asked for, `None` for whatever comes first), `amount` (the most millibuckets) and `execute`. `fluid_in(index)` and `set_fluid(index, stack)` read and write a declared tank.
 
@@ -803,6 +910,8 @@ assert_eq!((drain.fluid_in(0).unwrap().amount, drain.amount, drain.wanted.is_non
 
 ### `BlockEntityDrain::fluid_in`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_in(&self, index: usize) -> Option<FluidStack>`. The fluid in declared tank `index` of the data being drained.
 
 ```rust
@@ -814,6 +923,8 @@ assert_eq!(drain.fluid_in(0), None);
 ```
 
 ### `BlockEntityDrain::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts a fluid in declared tank `index`, or empties it with `None`.
 
@@ -829,6 +940,8 @@ assert_eq!(drain.fluid_in(0), None);
 
 ### `BlockEntityType::fluid_drainer`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid_drainer(self, drainer: impl Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Send + Sync + 'static) -> BlockEntityType`. The block's own rule for fluid taken out (Fabric: `Storage.extract`; NeoForge: `IFluidHandler.drain`). Without one the first declared tank that holds fluid, or the one named, is drained.
 
 ```rust
@@ -843,6 +956,8 @@ let _ = vat;
 
 ### `BlockEntityTypeRegistry::forward_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn forward_of(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<FluidForward>`. Where the block's fluid storage really is, from its `fluid_forward` hook; `None` without a hook or when it points nowhere.
 
 ```rust
@@ -853,6 +968,8 @@ assert!(BlockEntityTypeRegistry::forward_of("example:no_such_block", &NbtCompoun
 
 ### `BlockEntityTypeRegistry::forwards`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn forwards(block: &str) -> bool`. Whether the block has a `fluid_forward` hook, so that a `None` from `forward_of` means "no storage" and not "the block's own storage".
 
 ```rust
@@ -862,6 +979,8 @@ assert!(!BlockEntityTypeRegistry::forwards("example:no_such_block"));
 ```
 
 ### `BlockEntityTypeRegistry::read_tanks`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn read_tanks(block: &str, data: &NbtCompound) -> Option<Vec<NeighbourTank>>`. The tanks as the block's `fluid_reader` lists them, or the declared tanks with what the saved data holds; `None` when the block has neither.
 
@@ -874,6 +993,8 @@ assert_eq!((tanks.len(), tanks[0].capacity, tanks[0].fluid.is_none()), (1, 4000,
 ```
 
 ### `BlockEntityTypeRegistry::drain_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn drain_fluid(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, wanted: Option<Identifier>, amount: u32, execute: bool) -> Option<Option<FluidStack>>`. Takes up to `amount` millibuckets out over the given data and slots: through the block's `fluid_drainer`, or from the first declared tank that holds fluid (or `wanted`). `None` when the block has no tanks, `Some(None)` when nothing came out; with `execute` false the data and slots are left unchanged.
 
@@ -892,6 +1013,8 @@ assert_eq!(taken.unwrap().unwrap().amount, 200);
 
 ### `FluidStack::new`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn new(fluid: Identifier, amount: u32) -> FluidStack`. A plain stack of `amount` millibuckets of `fluid`, with no tag (`tag` is `None`).
 
 ```rust
@@ -904,6 +1027,8 @@ assert!(stack.tag.is_none());
 ```
 
 ### `FluidStack::same_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn same_fluid(&self, other: &FluidStack) -> bool`. Whether both stacks hold the same fluid with the same tag; the amounts may differ, so a tagged stack and a plain stack of one fluid are not the same fluid.
 
@@ -918,6 +1043,8 @@ assert!(!plain.same_fluid(&tagged));
 ```
 
 ### `BlockEntityPlace`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 What a placement hook receives, once, right after the block entity exists. `pos` is its position, `stack` the stack that was placed (its count is the hand's, not yet shrunk), `player` the player who placed it (`None` when the game names none), `data` the saved data it starts with and `items` its item slots; changes to `data` and `items` are saved with the chunk. A block placed by the game itself is not heard.
 
@@ -942,6 +1069,8 @@ assert_eq!(placed.items.len(), 1);
 
 ### `BlockEntityPlace::fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index` of the data the new block entity starts with, or `None` if that tank is empty.
 
 ```rust
@@ -961,6 +1090,8 @@ assert_eq!(placed.fluid(0).unwrap().amount, 125);
 ```
 
 ### `BlockEntityPlace::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`: a placed tank item's fluid seeding the tank is the usual use.
 
@@ -983,6 +1114,8 @@ assert_eq!(placed.fluid(0), None);
 
 ### `BlockEntitySignal`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 What a signal hook receives when the redstone signal reaching the block entity changes. `pos` is its position, `data` its saved data, `items` its item slots, `strength` the signal strength now (0 to 15, the strongest reaching the block from its six neighbours) and `powered` whether any signal reaches it (`strength` above 0). Changes to `data` and `items` are saved with the chunk.
 
 ```rust
@@ -1000,6 +1133,8 @@ assert!(signal.items.is_empty());
 
 ### `BlockEntitySignal::fluid`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn fluid(&self, index: usize) -> Option<FluidStack>`. The fluid in tank `index`, or `None` if that tank is empty.
 
 ```rust
@@ -1013,6 +1148,8 @@ assert_eq!(signal.fluid(0).unwrap().amount, 75);
 ```
 
 ### `BlockEntitySignal::set_fluid`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Puts `stack` in tank `index`, or empties the tank with `None`.
 
@@ -1029,6 +1166,8 @@ assert_eq!(signal.fluid(0), None);
 
 ### `ItemFilter`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which items a block that forwards its item storage lets through: `Any` lets every item the target holds or takes through, `Only(item)` refuses inserts of another item and extractions of another item (only slots holding it, or empty ones for listing, are listed), and `Closed` lets nothing move and lists no slots.
 
 ```rust
@@ -1041,6 +1180,8 @@ assert_ne!(ItemFilter::Closed, ItemFilter::Any);
 
 ### `ItemForward`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Where a forwarding block's item storage really is, and what passes through it: `target` is the position of the block entity whose item slots answer for this block, and `filter` is the `ItemFilter` that narrows what passes.
 
 ```rust
@@ -1051,6 +1192,8 @@ assert_eq!((forward.target, forward.filter), ([0, 64, 0], ItemFilter::Any));
 ```
 
 ### `SidedAccess`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 The slots one face of a block opens to automation: `insert` lists the slots that take items through the face and `take` lists the slots that give items through it. The default is two empty lists.
 
@@ -1065,6 +1208,8 @@ assert_eq!(SidedAccess::default(), SidedAccess { insert: Vec::new(), take: Vec::
 
 ### `TransferMode`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 Which way an item transfer moves, for `BlockEntityTransfer`: `Insert` moves into the block entity (a hopper above, another block pushing) and `Take` moves out of it (a hopper below, another block pulling).
 
 ```rust
@@ -1076,6 +1221,8 @@ assert_eq!(mode, TransferMode::Insert);
 ```
 
 ### `BlockEntityTransfer`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 An item transfer automation wants to make, as a transfer rule is asked about it. `pos` is the block entity's position, `data` its saved data (read-only; the rule decides with it), `items` its item slots (read-only), `slot` the slot the stack would move through, `face` the face the transfer comes through (`None` when the caller names none), `mode` which way the stack moves and `stack` the stack that would move: the incoming one for an insert, the stored one for a take.
 
@@ -1104,6 +1251,8 @@ assert!(transfer.data.is_empty() && transfer.items.len() == 1);
 
 ### `BlockEntityType::on_place`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn on_place(self, placer: impl Fn(&mut BlockEntityPlace<'_>) + Send + Sync + 'static) -> BlockEntityType`. The same type, with `placer` run once when a player places the block: it seeds the new block entity from the placed stack (a tank item's fluid, a custom name, a retexture). Without one a placed block entity starts with the type's initial data alone, and what the stack carried is lost.
 
 ```rust
@@ -1124,6 +1273,8 @@ let _ = kind;
 
 ### `BlockEntityType::on_signal`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn on_signal(self, signaller: impl Fn(&mut BlockEntitySignal<'_>) + Send + Sync + 'static) -> BlockEntityType`. The same type, with `signaller` run when the redstone signal reaching the block changes (see `BlockEntitySignal`). The type must also have a ticker: the change is noticed on the block entity's own tick.
 
 ```rust
@@ -1143,6 +1294,8 @@ let _ = kind;
 
 ### `BlockEntityType::item_forward`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn item_forward(self, forward: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<ItemForward> + Send + Sync + 'static) -> BlockEntityType`. The same type, whose item storage is another block entity's (a chute in a smeltery wall answers with the controller's inventory): `forward` is asked with the saved data and item slots, and `None` means this block has no storage of its own either. The `ItemFilter` narrows what passes.
 
 ```rust
@@ -1157,6 +1310,8 @@ let _ = chute;
 ```
 
 ### `BlockEntityType::sided_access`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn sided_access(self, access: impl Fn(Direction) -> SidedAccess + Send + Sync + 'static) -> BlockEntityType`. The same type, with the slots each face of the block opens to automation (see `SidedAccess`): `access` answers for a face which slots take items and which give them through it. Without one every slot takes and gives through every face.
 
@@ -1174,6 +1329,8 @@ let _ = kind;
 ```
 
 ### `BlockEntityType::item_transfer_rule`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn item_transfer_rule(self, rule: impl Fn(&BlockEntityTransfer<'_>) -> bool + Send + Sync + 'static) -> BlockEntityType`. The same type, with its own rule for the item transfers automation makes with it (see `BlockEntityTransfer`): `rule` is asked for each stack a hopper or another block would move in or out, with the saved data and slots at hand, and a stack it refuses does not move. Without one every transfer the faces open is allowed.
 
@@ -1194,6 +1351,8 @@ let _ = kind;
 
 ### `BlockEntityTypeRegistry::item_forward_of`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn item_forward_of(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<ItemForward>`. Where the item storage of the block entity of `block` really is, from its `item_forward` hook; `None` when the block has no hook or the hook says it forwards nowhere.
 
 ```rust
@@ -1209,6 +1368,8 @@ assert!(BlockEntityTypeRegistry::item_forward_of("example:no_such_block", &NbtCo
 
 ### `BlockEntityTypeRegistry::item_forwards`
 
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+
 `fn item_forwards(block: &str) -> bool`. Whether the block has an item forwarding hook, so that a `None` from `item_forward_of` means "no storage" and not "the block's own storage".
 
 ```rust
@@ -1221,6 +1382,8 @@ assert!(!BlockEntityTypeRegistry::item_forwards("example:no_such_block"));
 ```
 
 ### `BlockEntityTypeRegistry::sided_access`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn sided_access(block: &str, face: Direction) -> Option<SidedAccess>`. The slots `face` of the block entity of `block` opens to automation, from its `sided_access` hook; `None` when the block has no hook (every slot then opens both ways).
 
@@ -1240,6 +1403,8 @@ assert!(BlockEntityTypeRegistry::sided_access("example:no_such_block", Direction
 ```
 
 ### `BlockEntityTypeRegistry::item_transfer_allowed`
+
+![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
 
 `fn item_transfer_allowed(block: &str, pos: BlockPos, data: &NbtCompound, items: &[Option<ItemSlot>], slot: usize, face: Option<Direction>, mode: TransferMode, stack: ItemSlot) -> bool`. Whether the `item_transfer_rule` of `block` allows the transfer described by the arguments; true when the block has no rule.
 
