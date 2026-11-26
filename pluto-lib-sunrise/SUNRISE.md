@@ -723,6 +723,26 @@ Reclassified (a) -> (c), rows stay in the manifest:
   `ClientHost::add_particle(options, at, velocity)`,
   `ParticlesRegistrar::register_particle_type`.
 
+## L3 merge (2026-11-26, branch `sunrise/l3-merged`)
+
+- L3a (`64023f7b5`) and L3b (`062fc7759`) are merged onto the L2 tip
+  `142291ae3` (merge commits `1955d2499` and `97fab99da`); this branch
+  is the base for the L5 lanes. The only conflicts were this file
+  (both lanes' sections kept, above) and the `Hooks::register` body in
+  `hooks.rs`, which now calls both `crate::parts::register_parts`
+  (menu / block-entity / skull Parts) and
+  `crate::block_part::register_parts` (BlockParts) — distinct Part
+  sets, no duplicate registrations. The manifest holds the disjoint
+  union of both lanes' deletions: 422 -> 384 entry ids, and none of
+  the 38 removed ids is present.
+- Merged verification (scoped): MSVC `cargo check` exit 0; pure lib
+  425/425 (the L2 checkpoint's 427 minus the 2 tests of the deleted
+  woven-skull harness; L3b added no pure tests — the merged test list
+  is name-for-name L3a's), doctests 1307 pass / 1 ignored
+  (checkpoint-identical, list-verified); plan failing-id set = 93,
+  exactly the L2 baseline set (129) minus the union of both lanes'
+  removed rows (17 + 19, disjoint), zero new errors; lints 5x0.
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is
