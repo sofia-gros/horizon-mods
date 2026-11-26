@@ -113,7 +113,7 @@ impl LevelView<'_> {
         let Some(key) = mod_api::__private::block_key(block) else { return false };
         let Some(tag_id) = mod_api::Identifier::parse_namespaced(tag) else { return false };
         let Some(tag_key) = mod_api::__private::tag_key(&tag_id) else { return false };
-        self.level.tags().block_in_tag(key, tag_key).unwrap_or(false)
+        self.level.tags().block_in_tag(key, tag_key.typed::<mod_api::BlockKey>()).unwrap_or(false)
     }
 }
 
@@ -152,7 +152,7 @@ impl BlockView for LevelView<'_> {
         let key = mod_api::__private::block_key(&state.block.to_string())?;
         let tag_id = mod_api::Identifier::parse_namespaced(tag)?;
         let tag_key = mod_api::__private::tag_key(&tag_id)?;
-        self.level.tags().block_in_tag(key, tag_key)
+        self.level.tags().block_in_tag(key, tag_key.typed::<mod_api::BlockKey>())
     }
 
     // The class-chain facts the pure survival walk reads are a host-table

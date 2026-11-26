@@ -158,6 +158,8 @@ fn pluto_explosion_equipment(
                 damage_type,
                 causing: attacker.map_or(0, |(id, _)| *id as i32),
                 direct: 0,
+                direct_type: None,
+                position: None,
             };
             crate::game::pluto_block_feedback::dispatch(
                 game,

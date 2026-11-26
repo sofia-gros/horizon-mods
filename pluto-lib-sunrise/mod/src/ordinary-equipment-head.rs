@@ -139,6 +139,8 @@ fn pluto_equipment_ordinary(
                     damage_type,
                     causing,
                     direct: 0,
+                    direct_type: None,
+                    position: None,
                 };
                 default_push = Some(([xd, zd], source));
             }
@@ -186,6 +188,8 @@ fn pluto_equipment_ordinary(
                 damage_type,
                 causing,
                 direct: 0,
+                direct_type: None,
+                position: None,
             };
             crate::game::pluto_block_feedback::dispatch(
                 game,

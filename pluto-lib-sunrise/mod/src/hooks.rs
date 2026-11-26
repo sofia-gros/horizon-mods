@@ -443,7 +443,7 @@ impl WorldOps for HostWorld {
         let Some(block) = mod_api::__private::block_key(block) else { return false };
         let Some(tag_id) = mod_api::Identifier::parse_namespaced(tag) else { return false };
         let Some(tag) = mod_api::__private::tag_key(&tag_id) else { return false };
-        host.tags().block_in_tag(block, tag).unwrap_or(false)
+        host.tags().block_in_tag(block, tag.typed::<mod_api::BlockKey>()).unwrap_or(false)
     }
 }
 

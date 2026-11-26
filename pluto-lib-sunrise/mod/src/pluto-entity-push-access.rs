@@ -121,7 +121,7 @@ fn apply(game: &mut Game<'_>, request: PushRequest) {
             let Some(mut host) = game.lan.take() else { return };
             game.guest_hit_by(&mut host, conn, |guest| match request {
                 PushRequest::Knockback { strength, x, z, .. } => {
-                    guest.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0 });
+                    guest.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
                 }
                 PushRequest::Push { delta, .. } => {
                     if let Some(player) = guest.player.as_mut() {
@@ -162,7 +162,7 @@ fn apply_to_player(game: &mut Game<'_>, request: PushRequest) {
     match request {
         PushRequest::Knockback { strength, x, z, .. } => {
             let before = game.player.as_ref().map(|player| player.velocity);
-            game.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0 });
+            game.knock_back_player(strength, x, z, crate::health::HurtSource { damage_type: "minecraft:generic", causing: 0, direct: 0, direct_type: None, position: None });
             // A server player's client is told the new motion, as the game's
             // own player knockback tells it; only when the motion changed.
             if let Some(player) = game.player.as_mut() {

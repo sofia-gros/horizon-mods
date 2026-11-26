@@ -14,8 +14,8 @@ use sunrise_client_render::pluto_client_block_entity_state::{ClientCandidate, cl
 
 /// The entity's module-owned client state, keyed by its native identity.
 fn client_state(entity: &sunrise_client_render::chunk::block_entity::ModBlockEntity)
-    -> std::sync::Arc<sunrise_client_render::pluto_client_block_entity_state::ClientState<sunrise_world::nbt::Compound>> {
-    sunrise_client_render::pluto_client_block_entity_state::client_state::<sunrise_world::nbt::Compound>(entity.revision().identity())
+    -> std::sync::Arc<sunrise_client_render::pluto_client_block_entity_state::ClientState<sunrise_core::nbt::Compound>> {
+    sunrise_client_render::pluto_client_block_entity_state::client_state::<sunrise_core::nbt::Compound>(entity.revision().identity())
 }
 
 /// The current world's real Mod entities include untemplated custom blocks,
@@ -68,7 +68,7 @@ fn refresh_retextures(game: &Game<'_>) {
                 return None;
             }
             match tag {
-                sunrise_world::nbt::Tag::String(value) => Some(value.to_string_lossy()),
+                sunrise_core::nbt::Tag::String(value) => Some(value.to_string_lossy()),
                 _ => None,
             }
         });
