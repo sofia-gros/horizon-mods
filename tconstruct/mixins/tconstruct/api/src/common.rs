@@ -80,9 +80,16 @@ static FLUID_SNAPSHOT: RwLock<Option<Arc<pluto_lib::RegistryLookup>>> = RwLock::
 #[allow(dead_code)]
 pub(crate) fn fluid_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { FLUID_SNAPSHOT.read().expect("fluid snapshot lock poisoned").clone() }
 pub(crate) fn entity_type_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ENTITY_TYPES.read().expect("entity type snapshot lock poisoned").clone() }
-pub(crate) fn item_tags_loaded() -> bool { ITEMS.read().expect("item snapshot lock poisoned").is_some() }
+pub(crate) fn item_tags_loaded() -> bool { item_snapshot().is_some() }
 /// The captured item registry and tags (an owned, immutable snapshot), for tool predicates.
-pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> { ITEMS.read().expect("item snapshot lock poisoned").clone() }
+/// On a remote client the local capture never happens (the native reload driver hands
+/// non-authoritative games an empty registry snapshot), so the snapshot the server published
+/// over `tag_sync` stands in; the local capture always wins where it exists.
+pub(crate) fn item_snapshot() -> Option<Arc<pluto_lib::RegistryLookup>> {
+    if let Some(items) = ITEMS.read().expect("item snapshot lock poisoned").clone() { return Some(items); }
+    if crate::material_sync::remote_connection() { return crate::tag_sync::client_snapshot(); }
+    None
+}
 /// The captured item prototypes of the last reload (each item's default stack), for facts a stack
 /// does not carry itself, such as a vanilla item's own max damage. Captured where the item snapshot
 /// is, in the same reload callbacks; absent outside them and after a server stop.
@@ -99,6 +106,7 @@ pub(crate) fn with_convention_tags(items: pluto_lib::RegistryLookup) -> pluto_li
 fn capture_items() -> Option<pluto_lib::RegistryLookup> {
     let items = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "item").unwrap()).map(with_convention_tags);
     if let Some(items) = &items { *ITEMS.write().expect("item snapshot lock poisoned") = Some(Arc::new(items.clone())); }
+    if let Some(items) = &items { crate::tag_sync::publish(items); }
     if let Some(items) = &items { crate::advancements::publish_tags(items); }
     if let Some(prototypes) = pluto_lib::ItemRegistry::snapshot() { *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = Some(Arc::new(prototypes)); }
     if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::new("minecraft", "entity_type").unwrap()) {
@@ -299,10 +307,12 @@ pub(crate) fn register() -> &'static Arc<RwLock<Definitions>> {
             Ok(Context { items, config })
         }).expect("Tinkers material listener registration failed");
         crate::material_sync::register(materials.clone());
+        crate::tag_sync::register();
         crate::tool_definitions::register();
         let stopped = materials.clone();
         pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.register(move |_| {
             crate::advancements::release_tags();
+            crate::tag_sync::clear_published();
             *ITEMS.write().expect("item snapshot lock poisoned") = None;
             *ITEM_PROTOTYPES.write().expect("item prototypes lock poisoned") = None;
             *ENTITY_TYPES.write().expect("entity type snapshot lock poisoned") = None;
