@@ -7,7 +7,10 @@
 
 mod exports;
 mod hooks;
+mod parts;
 pub mod pure;
+
+pub use parts::register_parts;
 
 pub use crate::exports::*;
 
@@ -26,6 +29,18 @@ use mod_api::RegistrationContext;
 impl mod_api::Hooks for Mod {
     fn register(&self, registrar: &mut dyn mod_api::Registrar, cx: &RegistrationContext) {
         hooks::register(registrar, cx);
+    }
+
+    fn create_skull_models(&self, _context: &RegistrationContext, event: &mut mod_api::CreateSkullModelsEvent<'_>) {
+        parts::create_skull_models(event);
+    }
+
+    fn register_block_tint_sources(&self, _context: &RegistrationContext, event: &mut mod_api::RegisterBlockTintSourcesEvent<'_>) {
+        parts::register_block_tint_sources(event);
+    }
+
+    fn player_container_open(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::PlayerContainerOpenEvent<'_>) {
+        parts::player_container_open(host, event);
     }
 
     fn player_logged_in(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::PlayerLoggedInEvent<'_>) {

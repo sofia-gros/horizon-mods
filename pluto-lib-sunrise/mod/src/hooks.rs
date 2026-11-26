@@ -163,7 +163,7 @@ fn intern_sound(id:&str)->&'static str {
     leaked
 }
 
-fn native_slot(slot: Option<ItemSlot>) -> Option<ItemStack> {
+pub(crate) fn native_slot(slot: Option<ItemSlot>) -> Option<ItemStack> {
     slot.filter(|slot| slot.count > 0).and_then(|slot| {
         let key = mod_api::__private::item_key(&slot.item.to_string())?;
         let mut stack = ItemStack::new(key, slot.count)?;
@@ -257,6 +257,23 @@ impl PlayerOps for HostOps {
             Ok(None) => None,
             Err(_) => Some(stack),
         }
+    }
+
+    fn open_item_menu(&mut self, player: u128, menu: &str, title: &str, items: Vec<Option<crate::pure::block_entity_api_v1::ItemSlot>>, extra: Vec<u8>) -> Option<i32> {
+        let host = self.host();
+        let target = host.player(player)?;
+        let key = {
+            let host_ref: &dyn mod_api::Host = host;
+            mod_api::__private::menu_keys().into_iter()
+                .find(|key| key.id(host_ref).is_some_and(|name| name.as_str() == menu))?
+        };
+        let mut open = mod_api::ModMenuOpen::new(key, Text::literal(title.to_owned()));
+        open.extra = extra;
+        // The open call itself carries no contents; the seed moves into the
+        // live menu from the player_container_open hook (parts::player_container_open).
+        crate::parts::note_item_menu_seed(player, items);
+        let reference = target.open_mod_menu(host, open).ok()??;
+        reference.container_id(host)
     }
 
     fn attachment_get(&mut self, player: u128, id: &str) -> Option<String> {
@@ -476,7 +493,7 @@ fn host_face(face: block_api_v1::Direction) -> mod_api::Direction {
 }
 
 /// A PlutoLib face for the host's one (the same six, in the same order).
-fn pure_face(face: mod_api::Direction) -> block_api_v1::Direction {
+pub(crate) fn pure_face(face: mod_api::Direction) -> block_api_v1::Direction {
     block_api_v1::Direction::ALL[face as usize]
 }
 
@@ -675,7 +692,7 @@ fn nbt_from_tag(tag: &Tag) -> Option<Nbt> {
     })
 }
 
-fn tag_from_nbt(nbt: &Nbt) -> Tag {
+pub(crate) fn tag_from_nbt(nbt: &Nbt) -> Tag {
     match nbt {
         Nbt::Byte(v) => Tag::Byte(*v),
         Nbt::Short(v) => Tag::Short(*v),
@@ -695,11 +712,11 @@ fn tag_from_nbt(nbt: &Nbt) -> Tag {
 /// Edits the custom data of the stack the acting player carries in `slot` (`Host::carried_stack` by the inventory's slot numbers: the selected
 /// hotbar slot, 100 to 103 for armor, -106 for the off hand), when it is still of `item`; the whole stack goes back through the same
 /// `slot_of` / `write_slot` pair the item-wear adapter uses, so every other component stays as the game had it.
-fn compound_from_tag(compound: &Compound) -> NbtCompound {
+pub(crate) fn compound_from_tag(compound: &Compound) -> NbtCompound {
     compound.iter().filter_map(|(key, tag)| Some((key.to_string_lossy(), nbt_from_tag(tag)?))).collect()
 }
 
-fn compound_to_tag(compound: &NbtCompound) -> Compound {
+pub(crate) fn compound_to_tag(compound: &NbtCompound) -> Compound {
     compound.iter().map(|(key, nbt)| (key.as_str().into(), tag_from_nbt(nbt))).collect()
 }
 
@@ -735,7 +752,7 @@ fn nbt_value_from_json(value: &serde_json::Value) -> Nbt {
 /// point lies on that face's plane, so it is the face whose plane is nearest the
 /// point. A point tied between faces (an edge or a corner) reads as the first of
 /// them in west, east, down, up, north, south order.
-fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
+pub(crate) fn slot_of(stack: &ItemStack) -> Option<ItemSlot> {
     let data = read_stack(stack);
     let mut slot = ItemSlot::new(crate::pure::base::Identifier::parse(&data.item).ok()?, data.count);
     slot.damage = data.damage;
@@ -987,6 +1004,11 @@ pub(crate) fn register(registrar: &mut dyn Registrar, _cx: &RegistrationContext)
     if let (Ok(plain), Ok(synced)) = (registrar.register_attachment_type(plain), registrar.register_attachment_type(synced)) {
         let _ = JSON_KEYS.set((plain, synced));
     }
+    // The menu / block-entity / skull Parts and declarations of whatever the
+    // pure registries already hold (consumers re-run it with their own
+    // registrar after registering their types; duplicates are refused
+    // harmlessly by the game).
+    crate::parts::register_parts(registrar);
 }
 
 /// The issued key for the JSON attachment of the given sync class, once registered.

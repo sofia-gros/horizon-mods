@@ -48,6 +48,12 @@ pub(crate) fn has_block_provider(block: &str) -> bool {
     BLOCKS.read().ok().is_some_and(|all| all.contains_key(block))
 }
 
+/// The blocks that have a colour provider: the native registration pass
+/// registers a tint source for each of these.
+pub(crate) fn provided_blocks() -> Vec<String> {
+    BLOCKS.read().map(|all| all.keys().cloned().collect()).unwrap_or_default()
+}
+
 /// Translate host-owned state data only after finding a provider. Call mod code without holding the registry lock.
 pub(crate) fn block_color_from_host(
     block: &str,
