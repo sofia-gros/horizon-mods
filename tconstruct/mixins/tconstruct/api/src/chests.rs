@@ -151,6 +151,15 @@ fn deposit(kind: Kind, items: &mut [Option<ItemSlot>], held: ItemSlot) -> ItemSl
     rest
 }
 
+/// The grid's positions under the menu data the ticker publishes (word 0 the display size,
+/// word 1 the scroll row): exactly one answer per menu slot, as the screen contract requires.
+/// A display size of 0 — no data has reached the client yet — hides every slot.
+fn chest_positions(slots: usize, data: &[i32]) -> Vec<Option<[f32; 2]>> {
+    let visual = data.first().copied().unwrap_or(0).max(0) as usize;
+    let row = data.get(1).copied().unwrap_or(0).max(0) as usize;
+    (0..slots).map(|slot| slot_position(slot, visual, row)).collect()
+}
+
 /// Registers one chest's block entity type and window. Called once from the product's hooks.
 fn register_chest(name: &'static str, kind: Kind) {
     let id = Identifier::new("tconstruct", name).expect("valid chest id");
@@ -171,11 +180,7 @@ fn register_chest(name: &'static str, kind: Kind) {
         .on_accepts(move |accept| kind.tag().is_none_or(|_| {
             Identifier::parse(accept.item).is_ok_and(|item| kind.accepts(&item))
         }))
-        .on_dynamic_slots(move |state| {
-            let visual = state.data.first().copied().unwrap_or(0).max(0) as usize;
-            let row = state.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            Some((0..slots).map(|slot| slot_position(slot, visual, row)).collect())
-        })
+        .on_dynamic_slots(move |state| Some(chest_positions(slots, state.data)))
         .on_draw(|draw| {
             let (ox, oy) = (draw.origin[0], draw.origin[1]);
             // The window's own background, the original's blank sheet with its extra row.
@@ -324,5 +329,23 @@ mod tests {
         let rest = deposit(Kind::Parts, &mut items, stack("tconstruct:tool_handle", 12));
         assert_eq!(items[0].as_ref().map(|stack| stack.count), Some(8));
         assert_eq!(rest.count, 4);
+    }
+
+    #[test]
+    fn the_grid_positions_answer_every_slot_and_follow_the_published_display_size() {
+        // No menu data yet: the display size reads 0 and every slot hides. (The blank grid
+        // step 2 photographed for the scaling chests is exactly this state, so the published
+        // words are the contract the resolution stands on.)
+        let blank = chest_positions(SCALING_SLOTS, &[]);
+        assert_eq!(blank.len(), SCALING_SLOTS, "one answer per menu slot");
+        assert!(blank.iter().all(Option::is_none), "a display size of 0 hides the whole grid");
+        // An empty scaling chest's ticker publishes a display size of 1: its first slot shows.
+        let empty = chest_positions(SCALING_SLOTS, &[1, 0]);
+        assert_eq!(empty[0], Some([8.0, 18.0]));
+        assert!(empty[1..].iter().all(Option::is_none));
+        // The tinkers chest publishes its full 64: one page shows, the rest wait below it.
+        let full = chest_positions(TINKERS_SLOTS, &[TINKERS_SLOTS as i32, 0]);
+        assert_eq!(full.len(), TINKERS_SLOTS);
+        assert_eq!(full.iter().filter(|slot| slot.is_some()).count(), PAGE);
     }
 }
