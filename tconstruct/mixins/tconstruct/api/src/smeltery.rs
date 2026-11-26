@@ -669,6 +669,30 @@ mod tests {
     }
 
     #[test]
+    fn a_controller_in_the_south_wall_forms_facing_its_placer_and_not_facing_the_inside() {
+        // the in-game verification rig's geometry: the controller in the z-max wall, the inside toward
+        // smaller z. Facing south faces the placer outside, so the inside behind it forms; facing north
+        // (the content default a setblock leaves) the scan runs out of the front and the controller
+        // stays unformed, exactly as the original behaves
+        let mut world = World::new();
+        let mut outward = Controller::new(Kind::Smeltery, [2, 2, 4], Direction::South);
+        let mut items = vec![None; 256];
+        run(&mut outward, &mut items, &mut world, 20);
+        assert!(outward.structure.is_some(), "{:?}", outward.last_result());
+        assert_eq!(world.state, (true, false));
+        assert_eq!(world.marked.len(), 45);
+        assert!(world.marked.values().all(|joined| *joined));
+        assert_eq!(outward.structure.as_ref().unwrap().tanks, vec![[4, 2, 2]]);
+
+        let mut world = World::new();
+        let mut inward = Controller::new(Kind::Smeltery, [2, 2, 4], Direction::North);
+        let mut items = vec![None; 256];
+        run(&mut inward, &mut items, &mut world, 20);
+        assert!(inward.structure.is_none(), "{:?}", inward.last_result());
+        assert_eq!(world.state, (false, false));
+    }
+
+    #[test]
     fn an_ingot_melts_on_lava_from_a_tank_and_the_smeltery_drains_it() {
         let (mut controller, mut items, mut world) = started();
         items[0] = Some(ItemSlot::new(id("minecraft:iron_ingot"), 1));
