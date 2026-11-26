@@ -320,3 +320,18 @@ procedure applies. Batch reasons:
 | pluto-reload-before-tables-open | gate | Gate round 9 | woven compile at SDK ba1f24e4 |
 
 Total quarantined during gate iteration: 191 entries. Shipped manifest: 116 entries (21 mixins + 95 modules).
+
+## Addendum 2026-11-27 - package file-count relocation
+
+The Sunrise native package format admits at most 511 source files
+(smod crate manifest check: source_count > 511 is refused on both
+archive and folder intake). The reduced package carried 530 source
+files, so the launcher refused pluto_lib.smod at install/switch.
+On 2026-11-27, 46 quarantined entries' source files were moved from
+mod/src/ to mod/quarantine-src/ (the package walk only packs src/**,
+so they are no longer counted); the paths in sunrise-quarantine.toml
+were updated to match. No file contents changed and the shipped
+manifest is untouched. Return procedure addition: when restoring a
+relocated entry, move its file back from mod/quarantine-src/ to
+mod/src/ together with the manifest entry. Shipped-package source
+count after the move: 484.

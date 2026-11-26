@@ -429,7 +429,7 @@ kind = "MODIFY_VARIABLE"
 variable = { name = "own", ordinal = 0, at = "STORE" }
 require = 1
 ordinal = 0
-helper = "src/pluto-retexture-layer.rs"
+helper = "quarantine-src/pluto-retexture-layer.rs"
 bindings = [
     { name = "value", ty = "TileLayer", value = "$value" },
     { name = "mesher", ty = "&Mesher<'_>", value = "&*self" },
@@ -495,14 +495,14 @@ bindings = [
 id = "pluto-living-preview-flush"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_screen_draw"
 kind = "RETURN"
-helper = "src/pluto-living-preview-flush.rs"
+helper = "quarantine-src/pluto-living-preview-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut sunrise_client::hud::HudBatch", value = "batch" }]
 
 [[native.mixin]]
 id = "pluto-map-face-flush"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_hud"
 kind = "RETURN"
-helper = "src/pluto-map-face-flush.rs"
+helper = "quarantine-src/pluto-map-face-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "batch", ty = "&mut sunrise_client::hud::HudBatch", value = "batch" }]
 
 [[native.mixin]]
@@ -554,7 +554,7 @@ bindings = [{ name = "ctx", ty = "&Context<'_>", value = "ctx" }, { name = "inpu
 id = "pluto-advancement-tags-clear"
 target = "sunrise_client_render::chunk_map::ChunkMap::clear"
 kind = "HEAD"
-helper = "src/pluto-advancement-tags-clear-head.rs"
+helper = "quarantine-src/pluto-advancement-tags-clear-head.rs"
 bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
 
 [[native.mixin]]
@@ -585,7 +585,7 @@ bindings = [
 id = "pluto-effect-icon-head"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_hud"
 kind = "HEAD"
-helper = "src/pluto-effect-icon-head.rs"
+helper = "quarantine-src/pluto-effect-icon-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[native.mixin]]
@@ -634,7 +634,7 @@ target = "sunrise_client_lib::health::PlayerMotion::hurt_caused_by"
 kind = "HEAD"
 priority = 2147483647
 cancellable = true
-helper = "src/protection-player-wrap.rs"
+helper = "quarantine-src/protection-player-wrap.rs"
 bindings = [
   { name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" },
   { name = "resources", ty = "&crate::health::HealthResources", value = "resources" },
@@ -650,7 +650,7 @@ bindings = [
 id = "protection-arm"
 target = "sunrise_client_lib::health::<Environment<'_> as ArmorWorld>::server_level"
 kind = "HEAD"
-helper = "src/protection-arm.rs"
+helper = "quarantine-src/protection-arm.rs"
 bindings = [{ name = "environment", ty = "&crate::health::Environment<'_>", value = "&*self" }]
 
 [[native.mixin]]
@@ -658,7 +658,7 @@ id = "protection-project"
 target = "sunrise_client_render::effects::StatusFlags::protection"
 kind = "RETURN"
 priority = -10000
-helper = "src/protection-project.rs"
+helper = "quarantine-src/protection-project.rs"
 bindings = [{ name = "value", ty = "f32", value = "$value" }, { name = "status", ty = "&crate::effects::StatusFlags", value = "self" }]
 
 [[native.mixin]]
@@ -666,7 +666,7 @@ id = "protection-kernel"
 target = "sunrise_world::combat_rules::after_magic"
 kind = "HEAD"
 cancellable = true
-helper = "src/protection-kernel.rs"
+helper = "quarantine-src/protection-kernel.rs"
 bindings = [{ name = "damage", ty = "f32", value = "damage" }, { name = "protection", ty = "f32", value = "protection" }]
 
 # One shared callback boundary; consuming mods register policy without host types.
@@ -887,7 +887,7 @@ bindings = [
 id = "dynamic-screen-slots"
 file = "crates/sunrise-client/src/crafting/native_hooks.rs"
 name = "pluto_dynamic_screen_slots"
-source = "src/dynamic-screen-slots.rs"
+source = "quarantine-src/dynamic-screen-slots.rs"
 visibility = "pub(crate)"
 
 [[native.module]]
@@ -915,7 +915,7 @@ visibility = "pub"
 id = "advancement-events"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_advancement_events"
-source = "src/advancement-events.rs"
+source = "quarantine-src/advancement-events.rs"
 
 [[native.module]]
 id = "advancement-event-source"
@@ -1216,7 +1216,7 @@ visibility = "pub"
 id = "dynamic-screen-slots-api"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_dynamic_screen_slots"
-source = "src/dynamic-screen-slots-api.rs"
+source = "quarantine-src/dynamic-screen-slots-api.rs"
 visibility = "pub"
 
 [[native.module]]
@@ -1301,7 +1301,7 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }, { name = "i
 id = "dynamic-screen-slots-update"
 target = "sunrise_client::game::remote::inventory::Game<'_>::set_menu_slot"
 kind = "RETURN"
-helper = "src/dynamic-screen-slots-update.rs"
+helper = "quarantine-src/dynamic-screen-slots-update.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[native.mixin]]
@@ -1519,7 +1519,7 @@ source = "src/pluto-block-level.rs"
 id = "pluto-sleeves-takeover-entity"
 file = "crates/sunrise-client/src/game/items/item_actions.rs"
 name = "pluto_sleeves_takeover_entity"
-source = "src/pluto-sleeves-takeover-entity.rs"
+source = "quarantine-src/pluto-sleeves-takeover-entity.rs"
 visibility = "pub(crate)"
 
 [[native.module]]
@@ -1549,7 +1549,7 @@ visibility = "pub"
 id = "pluto-retexture-module"
 file = "crates/sunrise-client-render/src/mesher.rs"
 name = "pluto_retexture"
-source = "src/pluto-retexture.rs"
+source = "quarantine-src/pluto-retexture.rs"
 visibility = "pub"
 
 # Common terrain-particle tint; preserve sprites and native grass dirt crumbs.
@@ -1610,14 +1610,14 @@ visibility = "pub"
 id = "pluto-living-preview-api"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_living_preview"
-source = "src/pluto-living-preview-api.rs"
+source = "quarantine-src/pluto-living-preview-api.rs"
 visibility = "pub"
 
 [[native.module]]
 id = "pluto-living-preview"
 file = "crates/sunrise-client/src/crafting/native_hooks.rs"
 name = "pluto_living_preview"
-source = "src/pluto-living-preview.rs"
+source = "quarantine-src/pluto-living-preview.rs"
 visibility = "pub(crate)"
 
 # Menu switches a mod's menu button asked for (a tabbed table's tab): the press queues them
@@ -1627,28 +1627,28 @@ visibility = "pub(crate)"
 id = "pluto-menu-switch-api"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_menu_switch"
-source = "src/pluto-menu-switch-api.rs"
+source = "quarantine-src/pluto-menu-switch-api.rs"
 visibility = "pub"
 
 [[native.module]]
 id = "pluto-menu-switch"
 file = "crates/sunrise-client/src/crafting/native_hooks.rs"
 name = "pluto_menu_switch"
-source = "src/pluto-menu-switch.rs"
+source = "quarantine-src/pluto-menu-switch.rs"
 visibility = "pub(crate)"
 
 [[native.module]]
 id = "pluto-map-face-api"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_map_face"
-source = "src/pluto-map-face-api.rs"
+source = "quarantine-src/pluto-map-face-api.rs"
 visibility = "pub"
 
 [[native.module]]
 id = "pluto-map-face"
 file = "crates/sunrise-client/src/crafting/native_hooks.rs"
 name = "pluto_map_face"
-source = "src/pluto-map-face.rs"
+source = "quarantine-src/pluto-map-face.rs"
 visibility = "pub(crate)"
 
 # Pinned Persistent::worker installs saved structure starts in every dimension.
@@ -1716,7 +1716,7 @@ source = "src/pluto-advancement-events.rs"
 id = "pluto-advancement-tag-source"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_advancement_tag_source"
-source = "src/pluto-advancement-tag-source.rs"
+source = "quarantine-src/pluto-advancement-tag-source.rs"
 visibility = "pub"
 
 # Reviewed boundary attachments (owner decision, 2026-11-22). The bundle is
@@ -1734,7 +1734,7 @@ visibility = "pub"
 id = "pluto-advancement-tags-sink"
 file = "crates/sunrise-client/src/game.rs"
 name = "pluto_advancement_tags"
-source = "src/pluto-advancement-tags.rs"
+source = "quarantine-src/pluto-advancement-tags.rs"
 
 [[native.module]]
 id = "pluto-hanging-game"
@@ -1761,14 +1761,14 @@ visibility = "pub(crate)"
 id = "pluto-map-tick"
 file = "crates/sunrise-client/src/game/blocks/maps/mod.rs"
 name = "pluto_map_tick"
-source = "src/pluto-map-tick.rs"
+source = "quarantine-src/pluto-map-tick.rs"
 visibility = "pub(crate)"
 
 [[native.module]]
 id = "pluto-effect-icon"
 file = "crates/sunrise-client/src/crafting/native_hooks.rs"
 name = "pluto_effect_icon"
-source = "src/pluto-effect-icon.rs"
+source = "quarantine-src/pluto-effect-icon.rs"
 visibility = "pub(crate)"
 
 # The throw sound: the game plays the vanilla snowball throw for every thrown type (Game::throw_item), where
@@ -1819,7 +1819,7 @@ source = "src/cloud-insertion.rs"
 id = "protection-player-api"
 file = "crates/sunrise-client/src/health.rs"
 name = "pluto_protection"
-source = "src/protection-player-api.rs"
+source = "quarantine-src/protection-player-api.rs"
 visibility = "pub"
 
 [[native.module]]
@@ -1838,7 +1838,7 @@ source = "src/world-fluid.rs"
 id = "protection-native-tests"
 file = "crates/sunrise-world/src/combat_rules.rs"
 name = "pluto_protection_native_tests"
-source = "src/protection-native-tests.rs"
+source = "quarantine-src/protection-native-tests.rs"
 
 [[native.module]]
 id = "equipment-game-dispatch"
@@ -2015,7 +2015,7 @@ id = "pluto-sleeves-takeover-entity-return"
 target = "sunrise_client::game::item_actions::Game<'_>::interact_entity"
 kind = "HEAD"
 cancellable = true
-helper = "src/pluto-sleeves-takeover-entity-return.rs"
+helper = "quarantine-src/pluto-sleeves-takeover-entity-return.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "target", ty = "Option<InteractTarget>", value = "target" }]
 
 [[native.mixin]]
@@ -2235,14 +2235,14 @@ bindings = [
 id = "pluto-map-tick-head"
 target = "sunrise_client::game::maps::Game<'_>::tick_maps"
 kind = "HEAD"
-helper = "src/pluto-map-tick-head.rs"
+helper = "quarantine-src/pluto-map-tick-head.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
 [[native.mixin]]
 id = "pluto-map-tick-return"
 target = "sunrise_client::game::maps::Game<'_>::tick_lodestone_compasses"
 kind = "HEAD"
-helper = "src/pluto-map-tick-return.rs"
+helper = "quarantine-src/pluto-map-tick-return.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 # A piercing projectile's ignore list: the game's own list lives on the arrow (`pierced`), and a cancelled impact
 # re-flies the arrow as it was before the tick, without the victim — so a callback that re-deals a piercing hit
@@ -2312,7 +2312,7 @@ bindings = [
 id = "advancement-event-drain"
 target = "sunrise_client::game::advancements::Game<'_>::tick_advancements"
 kind = "HEAD"
-helper = "src/advancement-event-drain.rs"
+helper = "quarantine-src/advancement-event-drain.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "self" }]
 
 # Lossless equipment input and version-locked exact native caller adapters.
@@ -2359,7 +2359,7 @@ bindings = [{ name = "prepared", ty = "&crate::game::world_loading::PreparedWorl
 id = "pluto-sleeves-takeover"
 file = "crates/sunrise-client/src/game/items/use_hand.rs"
 name = "pluto_sleeves_takeover"
-source = "src/pluto-sleeves-takeover.rs"
+source = "quarantine-src/pluto-sleeves-takeover.rs"
 visibility = "pub(crate)"
 
 # A use's release asked for a drawtime cooldown: the release's dispatch holds no game
@@ -2373,7 +2373,7 @@ visibility = "pub(crate)"
 id = "pluto-advancement-tag-state"
 file = "crates/sunrise-client-render/src/chunk_map.rs"
 name = "pluto_advancement_tag_state"
-source = "src/pluto-advancement-tag-state.rs"
+source = "quarantine-src/pluto-advancement-tag-state.rs"
 visibility = "pub"
 
 [[native.module]]
@@ -2388,7 +2388,7 @@ id = "pluto-sleeves-takeover-return"
 target = "sunrise_client::game::use_hand::Game<'_>::use_hand"
 kind = "HEAD"
 cancellable = true
-helper = "src/pluto-sleeves-takeover-return.rs"
+helper = "quarantine-src/pluto-sleeves-takeover-return.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "block_hit", ty = "Option<&Hit>", value = "block_hit" }]
 
 # The entity interaction finished: the same chestplate takeover runs when a click on an
@@ -2519,7 +2519,7 @@ bindings = [
 id = "dynamic-screen-slots-data-update"
 target = "sunrise_client::game::native_hooks::Game<'_>::native_screen_data"
 kind = "RETURN"
-helper = "src/dynamic-screen-slots-data-update.rs"
+helper = "quarantine-src/dynamic-screen-slots-data-update.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 # Living-entity previews in mod screens: a screen's draw queues them (it holds only the
@@ -2528,7 +2528,7 @@ bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", 
 id = "pluto-menu-switch-flush"
 target = "sunrise_client::game::native_hooks::Game<'_>::mod_menu_button"
 kind = "RETURN"
-helper = "src/pluto-menu-switch-flush.rs"
+helper = "quarantine-src/pluto-menu-switch-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" }]
 
 # A LAN guest's menu switch: the local flush has no hold of the guest's menu (it lives in the
@@ -2539,7 +2539,7 @@ bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty
 id = "pluto-menu-switch-guest-flush"
 target = "sunrise_client::game::lan_stations::Game<'_>::lan_station_button"
 kind = "RETURN"
-helper = "src/pluto-menu-switch-guest-flush.rs"
+helper = "quarantine-src/pluto-menu-switch-guest-flush.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "host" }, { name = "conn", ty = "u32", value = "conn" }]
 
 # Map faces a mod's HUD drawing asked for (a minimap's map): the draw queues them through
