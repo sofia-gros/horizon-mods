@@ -245,7 +245,7 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-projectile-impact-game | MD | (c) | 同上 |
 | pluto-reload-registry-access | MD | (b) | 再アンカー: クライアント側レジストリ面の消費者位置へ |
 | pluto-reload-registry-source | MD | (b) | 再アンカー: game/interface/chat.rs（census で特定） |
-| pluto-skull-model-access | MD | (b) | 畳み込み: skull ヘルパー側へ |
+| pluto-skull-model-access | MD | (a) | **L3a done**: module deleted; `Hooks::create_skull_models` registration supersedes it (and L4's fold-in of this helper) |
 | pluto-structure-command | MD | (b) | 再アンカー: game/administration/commands/place.rs |
 | pluto-throw-sound-game | MD | (c) | 同上 |
 | recipe-book-invalidation | MD | (b) | 再アンカー: recipe_book 移転先（census 候補あり） |
@@ -253,14 +253,14 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | recipe-placement-attempt | MD | (b) | 同上 |
 | wire-read | MD | (b) | 畳み込み: 同上（item_data access） |
 | advancement-item-predicate | NR | (c) | 進捗述語の公開面の粒度を確認 |
-| block-color-world-tint | NR | (b) | RETARGET: Mesher::face → Mesher::mesh（mesh は replaceable、census 確認） |
+| block-color-world-tint | NR | (a) | **L3a done**: `register_block_tint_sources` / `BlockTintSource` registration (PlutoTintSource, 8 layers) |
 | crafting-match-veto | NR | (c) | Recipes 内部の置換は crafting hook の粒度確認から |
 | crafting-special | NR | (c) | 同上 |
 | drops | NR | (c) | ItemPart の drops 面の網羅を確認（GAPS B3-1） |
 | max-damage | NR | (c) | スタック同期（LAN guest 変換）の形を再導出 |
 | movement-table | NR | (b) | RETARGET: game::api_values::block_state::bind（索引に実在） |
 | pluto-block-after-fall | NR | (c) | G12/G4（既存 issue）合流＋呼び出し側付け替え検討 |
-| pluto-block-entity-factory | NR | (a) | Registrar/BlockEntityPart の登録へ（工場の織り込みは廃止） |
+| pluto-block-entity-factory | NR | (a) | **L3a done**: Registrar type declaration + `BlockEntityPart::block_entity` (factory weave deleted) |
 | pluto-block-entity-revision | NR | (c) | BE 同期リビジョンの公開面を確認 |
 | pluto-block-fall-damage | NR | (c) | 同上 |
 | pluto-block-inside-motion | NR | (c) | 同上 |
@@ -291,11 +291,11 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-living-entity-attack | NR | (c) | 同上 |
 | pluto-living-entity-fall | NR | (c) | 同上 |
 | pluto-living-entity-jump | NR | (c) | 同上 |
-| pluto-menu-actions | NR | (a) | MenuPart::menu_clicked 系（book 確認） |
-| pluto-menu-actions-local | NR | (a) | MenuScreen へ（OVERWRITE は廃止） |
-| pluto-menu-equipment-set-slot | NR | (a) | MenuPart のスロット面 |
-| pluto-menu-equipment-slot-count | NR | (a) | MenuPart のスロット面 |
-| pluto-menu-pick-all | NR | (a) | MenuPart のスロット面 |
+| pluto-menu-actions | NR | (a) | **L3a done**: `MenuPart::menu_clicked` forwards the NativeMenuEvents feed (the staged slot-click handler itself is a (c) residual — see the L3a section) |
+| pluto-menu-actions-local | NR | (a) | **L3a done**: `register_menu_screen` factory (MenuScreen); the OVERWRITE is deleted |
+| pluto-menu-equipment-set-slot | NR | (a) | **L3a done**: deleted — equipment slots are declared in the menu type's content (`data/<ns>/sunrise/menu/<name>.json`: `slots`/`results`), the native rule; no weave joins them |
+| pluto-menu-equipment-slot-count | NR | (a) | **L3a done**: deleted — same content-declaration premise as set-slot |
+| pluto-menu-pick-all | NR | (c) | **L3a reclassified**: no native surface (no pick-all exclusion query on MenuPart) — deleted; decomposition ask joins the L5 issue list |
 | pluto-mob-after-fall | NR | (c) | 同上 |
 | pluto-mob-effect-apply-tick | NR | (c) | プレイヤー属性更新の面を確認 |
 | pluto-mob-fall-damage | NR | (c) | 同上 |
@@ -304,11 +304,11 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-path-node-type | NR | (c) | パス探索の型面を確認 |
 | pluto-player-visibility | NR | (c) | 視認率の公開面を確認 |
 | pluto-retexture-layer | NR | (b) | 同上 |
-| pluto-skull-document-parts-return | NR | (a) | SpecialModelFactory |
-| pluto-skull-extents | NR | (a) | SpecialModelFactory（selector_bounds への RETARGET は意味が違うため不採用） |
-| pluto-skull-parts-return | NR | (a) | SpecialModelFactory |
-| pluto-skull-special-decode | NR | (a) | SpecialModelFactory（book 確認） |
-| pluto-skull-submit | NR | (a) | SpecialModelFactory |
+| pluto-skull-document-parts-return | NR | (a) | **L3a done**: `Hooks::create_skull_models` registration (not SpecialModelFactory — the game's own decode/render covers registered kinds) |
+| pluto-skull-extents | NR | (a) | **L3a done**: `Hooks::create_skull_models` registration (not SpecialModelFactory — the game's own decode/render covers registered kinds) |
+| pluto-skull-parts-return | NR | (a) | **L3a done**: `Hooks::create_skull_models` registration (not SpecialModelFactory — the game's own decode/render covers registered kinds) |
+| pluto-skull-special-decode | NR | (a) | **L3a done**: `Hooks::create_skull_models` registration (not SpecialModelFactory — the game's own decode/render covers registered kinds) |
+| pluto-skull-submit | NR | (a) | **L3a done**: `Hooks::create_skull_models` registration (not SpecialModelFactory — the game's own decode/render covers registered kinds) |
 | pluto-structure-generation-start | NR | (c) | worldgen フックが最弱。プリミティブ分解（GAPS B3-1） |
 | pluto-structure-natural-start | NR | (c) | 同上 |
 | pluto-structure-saved-piece | NR | (c) | 同上 |
@@ -326,8 +326,8 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-block-bonemeal-perform | TM | (a) | BlockPart の bonemeal 面（native_hooks::base の trait が内部形） |
 | pluto-block-bonemeal-success | TM | (a) | 同上 |
 | pluto-block-bonemeal-valid | TM | (a) | 同上 |
-| pluto-block-entity-client-tick | TM | (a) | BlockEntityTick 面＋公開ループ block_entities.tick |
-| pluto-block-entity-container-reach | TM | (a) | MenuPart／コンテナ capability（book 確認） |
+| pluto-block-entity-client-tick | TM | (a) | **L3a done**: `BlockEntityPart::block_entity_client_tick` (transient data keyed by BlockEntityRef) |
+| pluto-block-entity-container-reach | TM | (a) | **L3a done**: `block_container` / `block_fluids` declarations; the game's default capability providers answer neighbours |
 | pluto-block-facts-head | TM | (c) | break-speed 面の新名を確認（G7 隣接） |
 | pluto-block-facts-publish | TM | (c) | 本体が他クレートを名指しし複写不可。呼び出し側か reload 面へ付け替え |
 | pluto-block-fire-odds | TM | (a) | LevelHost 駆動の fire-odds hook 面（mod_api_host 実装が索引に実在） |
@@ -347,12 +347,12 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-hanging-frame-from-nbt | TM | (c) | 額縁 NBT 構築の移転先を再導出（同名関数は索引に無い） |
 | pluto-hanging-frame-hit | TM | (c) | 額縁の対話面を再導出 |
 | pluto-item-indestructible | TM | (c) | アイテムエンティティの環境 tick。G15 と隣接 |
-| pluto-item-menu-open | TM | (a) | register_menu_screen / open_mod_menu（book 確認） |
+| pluto-item-menu-open | TM | (a) | **L3a done**: `HostOps::open_item_menu` via `open_mod_menu`; seed items move in `player_container_open` (`MenuRef::set_items`) |
 | pluto-item-particle-factory | TM | (a) | register_particle_type / ParticleBatch（book 確認） |
 | pluto-living-preview-flush | TM | (c) | ScreenRenderPostEvent で足りるか検証 |
 | pluto-map-face-flush | TM | (c) | 同上 |
 | pluto-mob-effect-apply | TM | (c) | 同上（V2/V3 確認） |
-| pluto-open-item-screen | TM | (a) | MenuScreen / open_mod_menu（book 確認） |
+| pluto-open-item-screen | TM | (a) | **L3a done**: `register_menu_screen` factory builds the MenuScreen (layout/draw/click/tooltip) |
 | pluto-player-animate-tick | TM | (c) | PlayerTickEvent の実在確認で (a) 見込み |
 | pluto-player-hurt | TM | (c) | ノックバック面。G1（既存 issue）へ合流 |
 | pluto-reload-before-tables-reload | TM | (c) | GAPS A6（リロード実体型）と対 |
@@ -538,6 +538,64 @@ are folded into the release procedure (DESIGN §5).
   Part-scoped family (L3 + A1). `Registrar` has no PlutoLib-side impl;
   `register` compiles against the new supertrait
   (EnchantingTableOffsetsRegistrar) unchanged.
+
+## L3a native-API clusters (2026-11-26, branch `sunrise/l3a-native-api`)
+
+- Menu / block-entity / skull clusters are native now. New
+  `mod/src/parts.rs`: `register_parts(registrar)` (public; consumers call
+  it with their own registrar after their pure registrations, PlutoLib's
+  own `register` calls it too — duplicate declarations/Parts are refused
+  harmlessly by the game). Block entity types are declared per pure type
+  id with one `PlutoBlockEntityPart` whose subscription list is computed
+  from the pure types' shapes (manual `block_entity_subscribed`, per-type
+  — the `#[sunrise_part]` macro cannot express per-instance slices).
+  Forwards: factory, server tick (snapshot + write-back diff, menu-data
+  mirror into the view's data slots), client tick (transient map keyed
+  by `BlockEntityRef`), submit (a `BlockEntityCanvas` over the native
+  draw context), update tag, menu quick move, can-place / can-take
+  through face. Containers and fluid tanks are `block_container` /
+  `block_fluids` declarations answered by the game's default capability
+  providers.
+- Menus: one `PlutoMenuPart` per menu (clicked feed, button press with
+  menu switching through `PlayerRef::open_menu`, slot rules, close
+  bookkeeping with owned-slot return) and one `MenuScreen` factory per
+  pure screen handler (layout/draw/click/tooltip through a `ScreenCanvas`
+  over the native draw context). Item menus open through
+  `HostOps::open_item_menu` (`open_mod_menu`); their seed items are
+  transferred by the `player_container_open` hook (`MenuRef::set_items`),
+  the surface's documented pattern.
+- Skulls: the whole woven machinery (8 manifest entries, incl. the
+  passing-but-inert worn-kind HEAD) is deleted. `Hooks::create_skull_models`
+  registers each pure definition; the game's own head decode accepts
+  registered kinds, so no decode/parts/submit reach is needed. L4's
+  fold-in of `pluto-skull-model-access` is superseded by this deletion at
+  integration (land L3a after L4, or take L3a's deletion over the fold).
+- Tints: `register_block_tint_sources` registers one `BlockTintSource`
+  per (block, layer index 0..8) forwarding to the pure colour providers.
+- Verification: MSVC `cargo check` exit 0; plan errors 117 → 102 with
+  all 17 cluster rows gone and zero new errors; pure lib 425/425
+  (checkpoint 427 minus the 2 tests of the deleted woven-skull test
+  harness, removed with its subject), doctests 1307/1307 + 1 ignored
+  (checkpoint-identical); lints 5×0.
+- Residuals handed to L5/L7: (1) pick-all exclusion — no native query
+  (upstream ask: a MenuPart pick-all exclusion); (2) pure slot-click
+  handlers need a staged `MenuAccess` — `MenuClickedEvent` carries only
+  scalars (upstream ask: extend it with a subject like
+  `MenuButtonEvent`'s); (3) `armor_stands::skull_kind` does not consult
+  registered skull kinds (upstream gap; the deleted worn-kind weave was
+  inert — its provider had no reachable installer); (4) custom fluid
+  capability providers (types with their own filler/drainer/reader) —
+  L3a declares tanks only, neighbour access uses the declared-tanks
+  default; (5) canvas `model(name)` — a native `ModelRef` is issued at
+  resource load, never resolved from a name at draw time (needs a
+  name→ref cache filled at client resource load); (6) tint providers are
+  asked with an empty property set — `BlockMetadata` cannot enumerate a
+  state's properties (upstream ask); (7) skull animation is not forwarded
+  (the native surface animates only the vanilla dragon/piglin kinds) and
+  a skull definition's model layer is registered by the consumer's own
+  `register_layer_definitions`; (8) `GuiCanvas` serves GUI-atlas sprites
+  only — the block/item atlas sprite call and the 3D scene calls stay
+  the pure defaults.
 
 ## Remaining (precise; in dependency order)
 

@@ -730,6 +730,22 @@ impl ScreenHandlerRegistry {
         HANDLERS.lock().ok()?.as_ref()?.get(block).cloned()
     }
 
+    /// The keys windows are registered under: the native registration pass
+    /// attaches menu Parts and screen factories for these.
+    pub(crate) fn registered_blocks() -> Vec<String> {
+        HANDLERS.lock().ok().and_then(|all| all.as_ref().map(|m| m.keys().cloned().collect())).unwrap_or_default()
+    }
+
+    /// Whether the window registered for `block` has a shift-click callback.
+    pub(crate) fn has_quick_move(block: &str) -> bool {
+        Self::get(block).is_some_and(|h| h.quick_move.is_some())
+    }
+
+    /// Whether the window registered for `block` has a container acceptance opinion.
+    pub(crate) fn has_accepts(block: &str) -> bool {
+        Self::get(block).is_some_and(|h| h.accepts.is_some())
+    }
+
     /// Registers `menu`'s equipment: the player's armor and offhand slots the window carries
     /// beside the block's own, in layout order (the original station windows' armor and offhand
     /// slots). `first` is the layout index the equipment starts at, `kinds` the pieces' names

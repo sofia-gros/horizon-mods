@@ -639,6 +639,32 @@ impl BlockEntityType {
 static TYPES: Mutex<Vec<BlockEntityType>> = Mutex::new(Vec::new());
 pub(crate) fn registry_available() -> bool { !TYPES.is_poisoned() }
 
+/// Every registered type, in registration order: the native registration pass
+/// declares each type with the game and attaches its Parts from this list.
+pub(crate) fn registered_types() -> Vec<BlockEntityType> {
+    TYPES.lock().map(|all| all.clone()).unwrap_or_default()
+}
+
+/// Whether the type registered for `block` makes an update tag for clients.
+pub(crate) fn has_update_tag(block: &str) -> bool {
+    TYPES.lock().ok().and_then(|all| all.iter().find(|t| t.block.to_string() == block).map(|t| t.update_tag.is_some())).unwrap_or(false)
+}
+
+/// Whether the type registered for `block` has a custom fluid drainer.
+pub(crate) fn has_fluid_drainer(block: &str) -> bool {
+    TYPES.lock().ok().and_then(|all| all.iter().find(|t| t.block.to_string() == block).map(|t| t.drainer.is_some())).unwrap_or(false)
+}
+
+/// Whether the type registered for `block` has a custom fluid reader.
+pub(crate) fn has_fluid_reader(block: &str) -> bool {
+    TYPES.lock().ok().and_then(|all| all.iter().find(|t| t.block.to_string() == block).map(|t| t.reader.is_some())).unwrap_or(false)
+}
+
+/// Whether the type registered for `block` has an item transfer rule.
+pub(crate) fn has_transfer_rule(block: &str) -> bool {
+    TYPES.lock().ok().and_then(|all| all.iter().find(|t| t.block.to_string() == block).map(|t| t.transfer_rule.is_some())).unwrap_or(false)
+}
+
 /// Registers block entity types (Fabric: `Registry.register(Registries.BLOCK_ENTITY_TYPE, ...)`).
 pub struct BlockEntityTypeRegistry;
 
