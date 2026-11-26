@@ -2414,6 +2414,40 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
 kind = "HEAD"
 helper = "pluto-break-context-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+
+# The block removal seam (#1196): the head of the game's own block entity removal
+# (Game::remove_entity, the funnel every removal with side effects runs through —
+# a player's break, an explosion, another block taking the place) reports the
+# removal to the bridge while the block entity is still in the world, so a block
+# entity type's on_remove hook hears it and the stacks it keeps outside its slots
+# (a pipe's stacks in transit) are dropped at the position instead of vanishing
+# with the block entity. What the hook leaves in the slots the game spills
+# itself, as it already does for a mod container, so nothing drops twice.
+[[module]]
+id = "pluto-block-remove-access"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_block_remove_access"
+source = "pluto-block-remove-access.rs"
+visibility = "pub"
+
+[[module]]
+id = "pluto-block-remove"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_block_remove"
+source = "pluto-block-remove.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "pluto-block-remove-head"
+target = "horizon_client::game::spill::Game<'_>::remove_entity"
+kind = "HEAD"
+helper = "pluto-block-remove-head.rs"
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+    { name = "old", ty = "horizon_world::registry::BlockStateId", value = "old" },
+    { name = "side_effects", ty = "bool", value = "side_effects" }
+]
 # The highlight's game-mode facts: the game's mode setter runs on every path that sets the local
 # mode (a world opening, /gamemode, a LAN mode), and no host read states it on the render path,
 # so this records the mode the setter leaves for the highlight transport to read as the frame's

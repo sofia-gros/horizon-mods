@@ -1276,3 +1276,63 @@ data.insert("casting".to_owned(), Nbt::Byte(1));
 assert!(!BlockEntityTypeRegistry::item_transfer_allowed("example:guarded_table", [0; 3], &data, &items, 0, Some(Direction::Up), TransferMode::Insert, bucket));
 assert!(BlockEntityTypeRegistry::item_transfer_allowed("example:unregistered", [0; 3], &data, &items, 0, None, TransferMode::Insert, ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 1)));
 ```
+
+## Removal
+
+### `BlockEntityRemove`
+
+What a removal hook receives, once, while the block entity is still in the world. `pos` is its position, `data` its saved data as it was (the block entity is going away, so it is read-only), `items` its item slots and `drops` the extra stacks the hook asks to drop at the position. What is left in `items` is spilled by the game itself, as for any container; `drops` is for what a type keeps outside its slots, such as the stacks a pipe carries in transit in its data.
+
+```rust
+use pluto_lib::{BlockEntityRemove, Identifier, ItemSlot, NbtCompound};
+
+let data = NbtCompound::new();
+let mut items: Vec<Option<ItemSlot>> = vec![Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 5)), None];
+let mut removal = BlockEntityRemove { pos: [1, 64, 2], data: &data, items: &mut items, drops: Vec::new() };
+assert_eq!(removal.pos, [1, 64, 2]);
+removal.drops.push(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3));
+assert_eq!(removal.drops.len(), 1);
+assert_eq!(removal.items[0], Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 5)), "the slot is left for the game to spill");
+```
+
+### `BlockEntityType::on_remove`
+
+`fn on_remove(self, remover: impl Fn(&mut BlockEntityRemove<'_>) + Send + Sync + 'static) -> BlockEntityType`. The same type, with `remover` run when its block entity is removed from the world with its side effects: a player's break, an explosion, another block taking its place. A removal without side effects is not heard. What the type keeps outside its item slots goes in the removal's drops; the slots themselves are spilled by the game, as they are for any container.
+
+```rust
+use pluto_lib::{BlockEntityType, Identifier, ItemSlot, NbtCompoundExt};
+
+let kind = BlockEntityType::new(Identifier::parse("example:carrier").unwrap())
+    .item_slots(2)
+    .on_remove(|removal| {
+        let riding = removal.data.get_int("riding", 0);
+        if riding > 0 {
+            removal.drops.push(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), riding as u32));
+        }
+    });
+let _ = kind;
+```
+
+### `BlockEntityTypeRegistry::remove_block`
+
+`fn remove_block(block: &str, pos: BlockPos, data: &NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> Vec<ItemSlot>`. Runs the `on_remove` hook of `block` over the saved data and slots of the block entity being removed: the extra stacks it asks to drop (what it keeps outside its slots). Empty when the block has no hook; what the hook leaves in the slots is the game's to spill.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
+
+BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:carrier").unwrap())
+    .item_slots(1)
+    .on_remove(|removal| {
+        let riding = removal.data.get_int("riding", 0);
+        if riding > 0 {
+            removal.drops.push(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), riding as u32));
+        }
+    }));
+let mut data = NbtCompound::new();
+data.insert("riding".to_owned(), Nbt::Int(3));
+let mut items: Vec<Option<ItemSlot>> = vec![Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 5))];
+let drops = BlockEntityTypeRegistry::remove_block("example:carrier", [1, 2, 3], &data, &mut items);
+assert_eq!(drops, vec![ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)]);
+assert_eq!(items[0], Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 5)), "slots are left for the game to spill");
+assert!(BlockEntityTypeRegistry::remove_block("example:unregistered", [1, 2, 3], &data, &mut items).is_empty());
+```
