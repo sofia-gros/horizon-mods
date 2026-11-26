@@ -69,14 +69,14 @@ visibility = "pub"
 # Owned reload registry context. Source-only; the native attachment guard stays closed.
 [[native.module]]
 id = "pluto-reload-registry-access"
-file = "crates/sunrise-client-core/src/registries.rs"
+file = "crates/sunrise-client/src/client_lib.rs"
 name = "pluto_reload_registry"
 source = "src/pluto-reload-registry-access.rs"
 visibility = "pub"
 
 [[native.module]]
 id = "pluto-reload-registry-source"
-file = "crates/sunrise-client/src/game/chat.rs"
+file = "crates/sunrise-client/src/game/interface/chat.rs"
 name = "pluto_reload_registry_source"
 source = "src/pluto-reload-registry-source.rs"
 visibility = "pub(crate)"
@@ -1153,7 +1153,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "pluto-structure-command"
-file = "crates/sunrise-client/src/game/commands/place.rs"
+file = "crates/sunrise-client/src/game/administration/commands/place.rs"
 name = "pluto_structure_command"
 source = "src/pluto-structure-command.rs"
 visibility = "pub"
@@ -1282,7 +1282,7 @@ bindings = [
 # literal in mob_death_message. Constructor/type review remains native attachment gated.
 [[native.module]]
 id = "pluto-living-drop-state-module"
-file = "crates/sunrise-client/src/game/combat.rs"
+file = "crates/sunrise-client/src/game/items/combat.rs"
 name = "pluto_living_drop_state"
 source = "src/pluto-living-drop-state.rs"
 visibility = "pub(crate)"
@@ -3192,7 +3192,7 @@ source = "src/advancement-projection-world.rs"
 # Explicit cache capability, with no recipe policy or automatic lifecycle hook.
 [[native.module]]
 id = "recipe-book-invalidation"
-file = "crates/sunrise-client/src/game/recipe_book.rs"
+file = "crates/sunrise-client/src/game/items/recipe_book.rs"
 name = "pluto_invalidation"
 source = "src/recipe-book-invalidation.rs"
 visibility = "pub(crate)"
@@ -3207,7 +3207,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "recipe-book-preview"
-file = "crates/sunrise-client/src/game/recipe_book.rs"
+file = "crates/sunrise-client/src/game/items/recipe_book.rs"
 name = "pluto_preview"
 source = "src/recipe-book-preview.rs"
 visibility = "pub(crate)"
@@ -3287,7 +3287,7 @@ visibility = "pub"
 
 [[native.module]]
 id = "recipe-placement-attempt"
-file = "crates/sunrise-client/src/game/recipe_book.rs"
+file = "crates/sunrise-client/src/game/items/recipe_book.rs"
 name = "pluto_placement"
 source = "src/recipe-placement-attempt.rs"
 
@@ -3393,7 +3393,7 @@ bindings = [{ name = "value", ty = "&serde_json::Value", value = "v" }, { name =
 # ==== merged from mixins/pluto_tool_rules/sunrise-mod.toml ====
 [[native.module]]
 id = "api"
-file = "crates/sunrise-items/src/items.rs"
+file = "crates/sunrise-world/src/lib.rs"
 name = "pluto_tool_rules"
 source = "src/rules.rs"
 visibility = "pub"
