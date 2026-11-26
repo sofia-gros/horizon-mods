@@ -349,6 +349,12 @@ pub fn hooks() -> Box<dyn Hooks> {
     horizon_client::entry::pluto_sky_access::set_sink(horizon_client::entry::pluto_sky_access::Sink {
         frame: sky_frame,
     }).expect("PlutoLib sky sink installs once");
+    horizon_client::custom_sky::pluto_sky_texture_access::set_sink(horizon_client::custom_sky::pluto_sky_texture_access::Sink {
+        any: sky_texture_any,
+        images: sky_texture_images,
+        has: sky_texture_has,
+        draws: sky_texture_draws,
+    }).expect("PlutoLib sky texture sink installs once");
     horizon_client::mobs::pluto_player_visibility_access::set_sink(horizon_client::mobs::pluto_player_visibility_access::Sink {
         factor: entity_events_v1::modify_visibility,
     }).expect("PlutoLib player visibility sink installs once");
@@ -1267,6 +1273,118 @@ fn sky_frame(star_angle: f32, star_brightness: f32, out: &mut Vec<horizon_client
         out.push(horizon_client::entry::pluto_sky_access::SkyQuad { corners: quad.corners, rgba: quad.rgba });
     }
     layer.vanilla_stars == VanillaStars::Hide
+}
+
+// The textured sky layers' prepared form: every registered layer whose PNG the host's own
+// decoder reads, grouped by world in census order, layers in registration order. A layer the
+// decoder refuses is dropped here — from the images and the draws alike — as the host drops
+// a pack layer it cannot decode at load. Keyed by the registry's generation, so a new
+// registration rebuilds it once and frames just read it.
+static SKY_TEXTURE_CACHE: std::sync::RwLock<Option<(u64, Vec<(i32, Vec<crate::pure::sky_api_v1::SkyTextureLayer>)>)>> = std::sync::RwLock::new(None);
+
+fn sky_textures_fresh() {
+    let generation = crate::pure::sky_api_v1::texture_generation();
+    let stale = SKY_TEXTURE_CACHE
+        .read()
+        .map(|cache| cache.as_ref().is_none_or(|(held, _)| *held != generation))
+        .unwrap_or(true);
+    if !stale {
+        return;
+    }
+    let mut prepared = Vec::new();
+    for world in crate::pure::sky_api_v1::SkyTextureRegistry::registered_worlds() {
+        let mut kept = Vec::new();
+        for layer in crate::pure::sky_api_v1::SkyTextureRegistry::layers(world) {
+            if horizon_client::hud::decode_image_bytes(&layer.png).is_ok() {
+                kept.push(layer);
+            }
+        }
+        if !kept.is_empty() {
+            prepared.push((world, kept));
+        }
+    }
+    if let Ok(mut cache) = SKY_TEXTURE_CACHE.write() {
+        *cache = Some((generation, prepared));
+    }
+}
+
+fn sky_texture_any() -> bool {
+    sky_textures_fresh();
+    SKY_TEXTURE_CACHE
+        .read()
+        .map(|cache| cache.as_ref().is_some_and(|(_, prepared)| !prepared.is_empty()))
+        .unwrap_or(false)
+}
+
+fn sky_texture_has(world: i32) -> bool {
+    sky_textures_fresh();
+    SKY_TEXTURE_CACHE
+        .read()
+        .map(|cache| cache.as_ref().is_some_and(|(_, prepared)| prepared.iter().any(|(held, _)| *held == world)))
+        .unwrap_or(false)
+}
+
+fn sky_texture_images() -> Vec<horizon_client::custom_sky::pluto_sky_texture_access::TexImage> {
+    sky_textures_fresh();
+    let cache = SKY_TEXTURE_CACHE.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some((_, prepared)) = &*cache else { return Vec::new() };
+    let mut out = Vec::new();
+    for (_, layers) in prepared {
+        for layer in layers {
+            // The decode was proven when the cache was built; the transparent texel on an
+            // impossible second failure keeps the texture indices aligned with the draws.
+            match horizon_client::hud::decode_image_bytes(&layer.png) {
+                Ok((width, height, rgba)) => {
+                    out.push(horizon_client::custom_sky::pluto_sky_texture_access::TexImage { width, height, rgba })
+                }
+                Err(_) => out.push(horizon_client::custom_sky::pluto_sky_texture_access::TexImage {
+                    width: 1,
+                    height: 1,
+                    rgba: vec![0, 0, 0, 0],
+                }),
+            }
+        }
+    }
+    out
+}
+
+fn sky_texture_draws(
+    world: i32,
+    day_time: i64,
+    weather: u8,
+    sun_turns: f32,
+    seconds: f32,
+    snap: bool,
+    eased: &mut Vec<f32>,
+    out: &mut Vec<horizon_client::custom_sky::pluto_sky_texture_access::TexDraw>,
+) {
+    use crate::pure::sky_api_v1::{SkyNow, SkyTextureConditions};
+    sky_textures_fresh();
+    let cache = SKY_TEXTURE_CACHE.read().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let Some((_, prepared)) = &*cache else { return };
+    let mut first_image = 0usize;
+    for (held_world, layers) in prepared {
+        if *held_world != world {
+            first_image += layers.len();
+            continue;
+        }
+        let now = match weather {
+            1 => SkyNow::Rain,
+            2 => SkyNow::Thunder,
+            _ => SkyNow::Clear,
+        };
+        let conditions = SkyTextureConditions { day_time, weather: now };
+        for draw in crate::pure::sky_api_v1::texture_draws(layers, first_image, &conditions, sun_turns, seconds, snap, eased) {
+            out.push(horizon_client::custom_sky::pluto_sky_texture_access::TexDraw {
+                image: draw.image as u16,
+                blend: draw.blend as u8,
+                brightness: draw.brightness,
+                axis: draw.axis,
+                turns: draw.turns,
+            });
+        }
+        return;
+    }
 }
 
 fn read_stack(stack: &ItemStack) -> player_api::StackData {
