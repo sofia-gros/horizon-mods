@@ -1,0 +1,28 @@
+# Classic Pipes — Sunrise package manifest. M1 prep draft (scratch).
+# Field set mirrors pluto-lib-sunrise/mod/sunrise-mod.toml (id / name / version /
+# api / side / authors / license, then [native], then [dependencies]).
+# The [native] sunrise pin below names the current published SDK
+# (ba1f24e4, 2026-11-26) as a PROVISIONAL value: the pin is owned by
+# `cargo sunrise-mod pin` (the book: never write the commit by hand) and the
+# release pin becomes the next SDK under the owner's gate. Do not treat the
+# value here as final.
+id = "pipes"
+name = "Classic Pipes"
+version = "1.0.0"
+api = "0.2"
+side = "both"
+authors = ["sofia-gros"]
+license = "MIT"
+description = "Item and fluid transport pipes in the classic extraction-pipe style, built on PlutoLib."
+
+[native]
+game = "26.3"
+sunrise = "ba1f24e4ad41246b558230aa665539dc768b1287"
+# No `mixins` key: Pipes declares no mixins of its own (injection is PlutoLib's
+# job), so the pin stays at the SDK default, per the plan.
+
+# Dependency declaration lives here, never in Cargo.toml (book, "Dependencies
+# between mods"): a Cargo semver floor with no ceiling — the mechanical form of
+# "PlutoLib v1.0.0 or newer is required".
+[dependencies]
+pluto_lib = ">=1.0.0"

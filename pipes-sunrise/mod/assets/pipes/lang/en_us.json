@@ -1,0 +1,7 @@
+{
+  "itemGroup.pipes.pipes": "Pipes",
+  "block.pipes.item_pipe": "Item Pipe",
+  "block.pipes.extraction_pipe": "Extraction Pipe",
+  "block.pipes.fluid_pipe": "Fluid Pipe",
+  "block.pipes.fluid_extraction_pipe": "Fluid Extraction Pipe"
+}

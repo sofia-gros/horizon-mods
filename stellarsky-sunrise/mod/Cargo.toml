@@ -1,0 +1,30 @@
+[package]
+name = "mod-stellarsky"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+# The pinned SDK's API crate. The path form is the mod tool template's own
+# (`cargo sunrise-mod` fetches the SDK into .sunrise/sdk/); it stays as written.
+sunrise-mod-api = { path = ".sunrise/sdk/api/crates/sunrise-mod-api" }
+serde_json = "=1.0.154"
+toml = "=0.8.23"
+# pluto_lib is NOT declared here: sunrise-mod.toml's [dependencies] names it, and
+# the build adds a path dependency on PlutoLib's root crate itself, aliased
+# `pluto_lib` ("Do not define these dependencies or features yourself in
+# Cargo.toml" — book, "Dependencies between mods"). The code's `pluto_lib::…`
+# paths resolve through that alias.
+#
+# Cargo surgery vs the Horizon edition's crate (plan §1.4): the `horizon-client`
+# git dependency is DROPPED. It was loader metadata for the Horizon launcher
+# only ("this mod uses PlutoLib, never Horizon APIs"); on Sunrise it is
+# meaningless, and a non-crates.io dependency is what the registry scanner
+# flags. The crates.io pins above are kept exactly.
+#
+# Cargo.lock is intentionally absent in this prep: it is generated/pinned by
+# `cargo sunrise-mod pin` / build against the release SDK, post-SDK (plan §6).

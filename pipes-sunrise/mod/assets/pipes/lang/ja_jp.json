@@ -1,0 +1,7 @@
+{
+  "itemGroup.pipes.pipes": "\u30d1\u30a4\u30d7",
+  "block.pipes.item_pipe": "\u30a2\u30a4\u30c6\u30e0\u30d1\u30a4\u30d7",
+  "block.pipes.extraction_pipe": "\u62bd\u51fa\u30d1\u30a4\u30d7",
+  "block.pipes.fluid_pipe": "\u6db2\u4f53\u30d1\u30a4\u30d7",
+  "block.pipes.fluid_extraction_pipe": "\u6db2\u4f53\u62bd\u51fa\u30d1\u30a4\u30d7"
+}
