@@ -2337,15 +2337,6 @@ bindings = [
 ]
 
 [[native.mixin]]
-id = "pluto-hanging-stand-tick-after"
-target = "sunrise_client::game::cushions::Game<'_>::tick_cushions"
-kind = "HEAD"
-helper = "src/pluto-hanging-stand-tick-after.rs"
-bindings = [
- { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }
-]
-
-[[native.mixin]]
 id = "pluto-hanging-stand-dispense"
 target = "sunrise_client::game::dispenser::Game<'_>::dispense_item"
 kind = "HEAD"

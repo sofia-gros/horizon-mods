@@ -1184,6 +1184,104 @@ rows above, zero new; lints 5x0. Issue drafts live in the L5c lane
 record (`~/workspace/sunrise-l5c/issues/`), to be shown to the owner
 before any filing; nothing was filed.
 
+## L7 integration (2026-11-26, branch `sunrise/l7-integration`)
+
+Round 2, on the re-pin 2 foundation (`deaa8d262`, SDK
+`ba1f24e4ad41246b558230aa665539dc768b1287`). The opening latest-check
+re-confirmed ba1f24e4 as the newest SDK release (GitHub Releases API,
+2026-11-26 ~12:50 JST), so no further re-pin preceded the merges.
+Merges, in order: the L3-merged lineage (L2 + L3a + L3b + the L3
+merge), then L5a, L5b, L5c, then L4, then L6, then S1 reconciled.
+Conflicts were confined to this ledger, the manifest pin field, and
+the skull files (below). No push, no publication actions.
+
+- **Repairs from the re-pin.** R1 applied at all three landed sites
+  (hooks.rs WorldOps override, block_part.rs x2): the untyped key is
+  bound with `.typed::<mod_api::BlockKey>()`, per ba1f24e4's
+  `Tags::block_in_tag(BlockKey, TagKey<BlockKey>)` surface signature.
+  R2 confirmed and completed: the game-side `health::HurtSource` is
+  mod_api's type itself (sunrise-client/src/health.rs re-exports it),
+  and at ba1f24e4 it has five fields — the five woven literals were
+  missing `position` (present since ffb8601b's vocab definition) as
+  well as the new `direct_type`; both are now supplied as `None`
+  (explosion-equipment-head, ordinary-equipment-head x2,
+  pluto-entity-push-access x2). The literals are woven helpers, so
+  their final type-check is the release build's, not the mod crate's.
+- **Skull.** L3a's deletion taken over L4's fold-in throughout: the
+  eight woven entries and helper files, the pure-side test harness,
+  and the pluto-block.rs re-export are all gone; the rows are served
+  by `Hooks::create_skull_models` (L3a section). L4's outcome note
+  above carries an integration note marking its fold-in superseded.
+- **nbt spelling.** Unified on `sunrise_core::nbt::Compound` in the
+  one place two spellings met: pluto-client-block-entity-tick.rs now
+  names `sunrise_core` for the client-state store's Compound (and for
+  the Tag it matches out of the same entity nbt), matching
+  pluto-block-entity-revision.rs and the game runtime's own
+  ModBlockEntity nbt type (sunrise-mod-runtime block_entities.rs).
+  `sunrise_world` has no nbt module.
+- **client_state consumer.** The pre-L2 hooks.rs consumer of the
+  quarantined accessor no longer exists: L2's rewrite plus L3a's
+  Parts moved submit to parts.rs, which renders from
+  `event.entity.nbt()` directly. Nothing needed repointing; the L6
+  store's consumers are the revision and tick helpers above, and no
+  reference to the quarantined accessor remains in mod/src.
+- **pluto-living-drops-game.** Not re-anchored (L5a's verdict); its
+  manifest row is unchanged. S1's sync touched only its body (the
+  #1163 looting double-count correction).
+- **pluto-hanging-stand-tick-after — DROPPED at L7.** L3b's native
+  post pass (`entity_tick_post` -> `fancy_stand_tick(after = true)`)
+  performs the same two writes as the woven after-pass (fire ticks
+  cleared; the clear stand's invisibility follows its equipment)
+  under the same registered-variant gate, over the same set of stands
+  the woven pass walked (per L3b's implementation note). The woven
+  row was an idempotent duplicate riding an unrelated anchor
+  (`tick_cushions` HEAD); its manifest entry and helper are removed.
+- **pluto-item-particle-factory.** Stays (c) in the manifest. The
+  filing side is covered by item #6 of the consolidated upstream
+  list (particle-add interception / item-particle factory registry);
+  ba1f24e4's new `client_particle_add` hook partially answers it and
+  is recorded in the re-pin 2 section. Nothing was filed by this lane.
+- **S1 reconciliation.** Of S1's delta, the master syncs landed as
+  merged (fluid bucket trade + vanilla buckets, `is_bucket`, the
+  #1163 drops correction, item-break broadcast, structure logging,
+  fishing via `hurt_any`, prose). Two hooks.rs hunks did not survive
+  reconciliation: the menu-open file stays deleted (superseded by
+  L3a's native `open_item_menu`), and the HostOps `light` override
+  was dropped — ba1f24e4's surface has no ServerHost/LevelHost/
+  ClientHost light read to bind it to. S1's HostOps `block_in_tag`
+  override was first re-expressed in the typed API and then removed
+  again: `PlayerOps` has no such member at ba1f24e4 (E0407), and in
+  the L2 architecture every callback scope installs HostWorld, whose
+  WorldOps `block_in_tag` override (R1-repaired above) is the one
+  that answers — the failure mode S1 documented cannot occur.
+  S1's DEFERRED items stay deferred.
+- **Docs budget.** This ledger passed 80,000 bytes with the L5/L6
+  sections, so `tools/check_docs_budget.py` now exempts
+  `pluto-lib-sunrise/SUNRISE.md` from the single-document size cap
+  (the same treatment hook-map.md already had; the file stays on the
+  allow list). Recorded here so the exemption is a decision, not a
+  drift.
+- **Verification (integrated tree, scoped).** MSVC `cargo check`
+  exit 0. Pure --lib **431 passed / 0 failed** (425 L3 baseline + 1
+  L5c fluid-passage + 3 L6 store + 2 S1 bucket-trade tests).
+  Doctests **1307 passed / 0 failed / 1 ignored**
+  (checkpoint-identical). Plan failing-id set, measured with L5c's
+  consistent extraction (unique `pluto_lib:<id>` from error lines):
+  **55 ids, zero new** against both the L3-merged baseline (69) and
+  the ba1f24e4 foundation (102); the 14 resolved ids are exactly the
+  union of the lane claims (L5c 3 + L5a 7 + L4 4). Lints 5/5 exit 0.
+  Every pin field names ba1f24e4 (manifest `[native] sunrise =`,
+  this ledger's header and release name
+  `pluto-lib-sunrise-v0.1.0-sunrise.ba1f24e4-mixins.e59da909`).
+- **Publication readiness.** The tree is publication-ready pending
+  the approval flow: registry v2 is live (round-1 L7 check: 57
+  repositories / 124 projects, signed index regenerating), and the
+  release follows DESIGN section 5 (registration PR ->
+  `cargo sunrise-mod release 1.0.0` -> attestation check -> the
+  registry bot's release PR -> in-game check). The woven helpers'
+  leaf type-check (including the R2 literals) happens in that
+  release build, as with L4's and L5a's re-anchors.
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is
