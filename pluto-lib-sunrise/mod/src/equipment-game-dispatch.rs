@@ -1,7 +1,7 @@
 // Capture only the current authoritative Game actor. No persistent identity,
 // global map, pointer key, serialization, or inventory write is involved.
 use super::Game;
-use crate::pluto_equipment::Snapshot;
+use sunrise_client::pluto_equipment::Snapshot;
 
 /// Called immediately before the matching native player borrow. The owned
 /// snapshot is a local value, so actor/world swaps and nested calls cannot
@@ -11,7 +11,7 @@ pub(super) fn capture(game: &Game<'_>) -> Option<Snapshot> {
         return None;
     }
     let player = game.player.as_ref()?;
-    if !crate::pluto_protection::equipment_allowed(player) {
+    if !sunrise_client::health::pluto_protection::equipment_allowed(player) {
         return None;
     }
     Some(Snapshot::capture(

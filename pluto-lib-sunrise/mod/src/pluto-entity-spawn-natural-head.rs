@@ -3,7 +3,7 @@
 // pending Mob while its numeric ID is still zero.
 fn pluto_entity_spawn_natural(game:&Game<'_>,request:&SpawnRequest,pending:&mut Vec<Mob>)
     ->std::ops::ControlFlow<Option<Spawned>> {
-    use sunrise_client_lib::pluto_entity_spawn_access as access;
+    use crate::pluto_entity_spawn_access as access;
     match access::enabled() {
         Ok(false)=>return std::ops::ControlFlow::Continue(()),
         Err(error)=>{ log::error!("PlutoLib spawn registry: {error}"); return std::ops::ControlFlow::Break(None); },
@@ -21,8 +21,8 @@ fn pluto_entity_spawn_natural(game:&Game<'_>,request:&SpawnRequest,pending:&mut 
     }
     let facts=game.biome_facts(x.floor() as i32,y.floor() as i32,z.floor() as i32);
     let difficulty=game.local_difficulty(request.position);
-    sunrise_client_lib::mobs::spawning::finalize(&mut mob,&facts,&difficulty);
-    sunrise_client_lib::mobs::raider::finalize(&mut mob,sunrise_client_lib::mobs::raider::Reason::Natural);
+    sunrise_client::mobs::spawning::finalize(&mut mob,&facts,&difficulty);
+    sunrise_client::mobs::raider::finalize(&mut mob,sunrise_client::mobs::raider::Reason::Natural);
     let bounds=mob.bounds();
     pending.push(mob);
     std::ops::ControlFlow::Break(Some(Spawned { bounds,school:true }))

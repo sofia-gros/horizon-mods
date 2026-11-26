@@ -3,7 +3,7 @@
 // frame's batch, while rendering a living entity needs the game.
 use std::sync::Mutex;
 
-use sunrise_items::items::ItemStack;
+use crate::items::ItemStack;
 
 /// One queued preview: the rect (corner coordinates, GUI pixels) to draw into, the entity
 /// type's id, the item the figure wears or holds, and how the figure stands.

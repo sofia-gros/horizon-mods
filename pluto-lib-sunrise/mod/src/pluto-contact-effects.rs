@@ -1,9 +1,8 @@
 // Transient, world-owned contact effects. No globals, saved data or queue
 // synchronization. The native sound path remains responsible for delivery.
-use sunrise_mod_runtime::attachments::{AttachmentType, Attachments};
-use crate::pluto_attachment_transient;
-use sunrise_world::registry::BlockStateId;
-use crate::pluto_contact_pending::{Clock, Pending};
+use crate::attachments::{AttachmentType, Attachments, pluto_attachment_transient};
+use crate::registry::BlockStateId;
+use super::pluto_contact_pending::{Clock, Pending};
 
 #[derive(Clone)]
 pub struct ContactSound {

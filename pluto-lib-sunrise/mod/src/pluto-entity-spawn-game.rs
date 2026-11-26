@@ -3,7 +3,7 @@
 use super::Game;
 use sunrise_client::{entry::pluto_entity_spawn_access as access,items::{Items,ItemStack},mobs::{Mob,gear}};
 use sunrise_core::random::{LegacyRandom,RandomSource};
-use sunrise_core::equipment_slot::EquipmentSlot;
+use sunrise_world::player_inventory::EquipmentSlot;
 
 struct Random<'a>(&'a mut LegacyRandom);
 impl access::Random for Random<'_> {
@@ -11,7 +11,7 @@ impl access::Random for Random<'_> {
     fn next_double(&mut self)->f64 { self.0.next_double() }
     fn next_int(&mut self,bound:i32)->Result<i32,String> { self.0.next_int_bound(bound).map_err(|_| "mob RNG bound must be positive".into()) }
 }
-struct Equipment<'a> { mob:&'a mut Mob,items:&'a Items,enchantments:&'a sunrise_items::enchant::Enchantments,attachments:Vec<(String,String,bool)> }
+struct Equipment<'a> { mob:&'a mut Mob,items:&'a Items,enchantments:&'a sunrise_client::enchant::Enchantments,attachments:Vec<(String,String,bool)> }
 fn slot(name:&str)->Result<usize,String> { gear::KEYS.iter().position(|slot|*slot==name).ok_or_else(||format!("unsupported mob equipment slot {name}")) }
 impl access::Equipment for Equipment<'_> {
     fn get(&self,name:&str)->Result<Option<ItemStack>,String> {
@@ -63,7 +63,7 @@ impl access::Equipment for Equipment<'_> {
         let index=slots.iter().position(|slot|*slot==name).ok_or_else(||format!("unsupported drop chance slot {name}"))?;
         let mut chances=match &self.mob.extra.drop_chances {
             Some(chances)=>chances.clone(),
-            None=>Box::new(std::array::from_fn(|i|sunrise_client_lib::mobs::drops::drop_chance(self.mob,slots[i]))),
+            None=>Box::new(std::array::from_fn(|i|sunrise_client::mobs::drops::drop_chance(self.mob,slots[i]))),
         };
         chances[index]=chance;
         self.mob.extra.drop_chances=Some(chances);
@@ -87,7 +87,7 @@ impl access::Equipment for Equipment<'_> {
     }
 }
 pub(super) fn prepare(game:&Game<'_>,mob:&mut Mob,reason:&str)->Result<bool,String> {
-    let info=access::Info { entity_type:sunrise_command::args::normalize(&mob.kind.id),
+    let info=access::Info { entity_type:sunrise_client::command::args::normalize(&mob.kind.id),
         dimension:game.dim.id().into(),position:[mob.position.x,mob.position.y,mob.position.z],reason:reason.into(),
         special_multiplier:game.local_difficulty([mob.position.x,mob.position.y,mob.position.z]).special() };
     // The borrowed equipment view and the RNG must not alias a mutable Mob.
@@ -101,7 +101,7 @@ pub(super) fn prepare(game:&Game<'_>,mob:&mut Mob,reason:&str)->Result<bool,Stri
 }
 pub(super) struct Prepared {
     pending:access::Pending,
-    token:crate::pluto_entity_spawn_state::SpawnToken,
+    token:sunrise_client::mobs::nav::pluto_entity_spawn_state::SpawnToken,
 }
 pub(super) fn take(mob:&Mob)->Result<Option<Prepared>,String> {
     mob.ai.nav.__horizon_mixins_pluto_lib_pluto_entity_spawn_state().take_with_token::<access::Pending>()

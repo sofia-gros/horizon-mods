@@ -8,3 +8,6 @@ __pycache__/
 
 # cargo output of the domain test crate
 tests/tconstruct-domain/target/
+
+# cargo-sunrise-mod fetched SDK caches (tool state, regenerated per mod)
+*-sunrise/mod/.sunrise/

@@ -3,11 +3,11 @@
 // capture carried-item drops and XP before the living-drop callback, and keep
 // Creeper head claims independent of its powered state.
 use super::*;
-use sunrise_client_lib::mobs::drops;
+use sunrise_client::mobs::drops;
 use crate::game::pluto_living_drops as access;
 
-fn head_deaths(game:&Game<'_>)->std::sync::Arc<crate::game::combat::pluto_living_drop_state::HeadDeaths> {
-    crate::game::combat::pluto_living_drop_state::state(std::ptr::from_ref(&game.combat) as usize)
+fn head_deaths(game:&Game<'_>)->std::sync::Arc<sunrise_client::game::combat::pluto_living_drop_state::HeadDeaths> {
+    sunrise_client::game::combat::pluto_living_drop_state::state(std::ptr::from_ref(&game.combat) as usize)
 }
 fn killer_id(m:&Mob)->Option<u32> {
     match m.last_damage.and_then(|(damage,_)|damage.attacker) {Some(Who::Mob(id))=>Some(id),_=>None}
@@ -31,7 +31,7 @@ fn killer_looting(game:&Game<'_>,killer:&sunrise_world::loot::LootEntity,m:&Mob)
 /// behaviour overrides any slot's chance for this kind. Built from the
 /// effective chances the death roll itself reads.
 fn pluto_drop_chance_override(m:&Mob,looting:i32)->Option<Box<[f32;8]>> {
-    let sink=crate::pluto_living_entity_access::sink()?;
+    let sink=sunrise_client::mobs::pluto_living_entity_access::sink()?;
     if !(sink.has_drop_chance)(&m.kind.id) {return None;}
     let slots=sunrise_world::loot::EQUIPMENT_SLOTS;
     let size=match m.species() {
@@ -103,7 +103,7 @@ impl Game<'_> {
     pub(super) fn pluto_drop_death_loot(&mut self,m:&mut Mob,player_uuid:Option<u128>,by_player:bool,
         killer:sunrise_world::loot::LootEntity,consumed:bool,pos:[f64;3]) {
         use sunrise_world::loot::{LootDamage,LootEntity};
-        let Some(loot)=sunrise_client_lib::structure_blocks::loot_data(&self.options.resources,&self.pack_files()) else {return};
+        let Some(loot)=sunrise_client::structure_blocks::loot_data(&self.options.resources,&self.pack_files()) else {return};
         let source_id=killer_id(m);
         let eligible=match can_claim(self,source_id) {
             Ok(eligible)=>eligible,
@@ -147,18 +147,18 @@ impl Game<'_> {
             saved
         });
         let (items,skulls)=sunrise_world::loot::with_native_loot_place(place,|| {
-            crate::pluto_entity_spawn_state::with_head_drop_eligibility(eligible,|| {
+            sunrise_client::mobs::nav::pluto_entity_spawn_state::with_head_drop_eligibility(eligible,|| {
                 drops::die(m,&death,&mut self.rand_sequences,&mut self.world.random)
             })
         });
         if let Some(saved)=saved_chances {m.extra.drop_chances=saved;}
         if skulls && let Err(error)=claim(self,source_id) {eprintln!("PlutoLib: native head claim failed: {error}");}
-        let raider=sunrise_client_lib::mobs::raider::is_raider(m.species());
+        let raider=sunrise_client::mobs::raider::is_raider(m.species());
         let mut stacks=Vec::new();let mut rest=Vec::new();
         for drop in items {
             match drop {
-                drops::Drop::Item(stack)=>stacks.push(if raider && stack.item==sunrise_client_lib::mobs::raider::BANNER {
-                    sunrise_client_lib::mobs::raider::ominous_banner()
+                drops::Drop::Item(stack)=>stacks.push(if raider && stack.item==sunrise_client::mobs::raider::BANNER {
+                    sunrise_client::mobs::raider::ominous_banner()
                 } else {from_loot(&stack)}),
                 drops::Drop::Stack(stack)=>stacks.push(stack),
                 other=>rest.push(other),
@@ -192,7 +192,7 @@ impl Game<'_> {
         // items. They are still captured before the living-death callback.
         for drop in rest {
             match drop {
-                drops::Drop::CarriedBlock(state)=>stacks.extend(sunrise_client_lib::mobs::enderman::carried_block_drops(
+                drops::Drop::CarriedBlock(state)=>stacks.extend(sunrise_client::mobs::enderman::carried_block_drops(
                     world_items!(self),self.pack.assets.registry,state,&mut self.world.random,Some((&mut self.rand_sequences,self.level.seed)))),
                 // Forge's capture ends after dropExperience. Appended heads can
                 // publish during the callback, before captured ordinary drops.

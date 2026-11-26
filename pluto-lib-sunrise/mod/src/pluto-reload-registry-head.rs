@@ -3,7 +3,7 @@
 // ordered complete resource stacks. Prepare owned bytes before callbacks, so a
 // nested reload cannot replace the outer callback's registry/resource snapshot.
 fn pluto_reload_registry(game:&mut Game<'_>)->std::ops::ControlFlow<()> {
-    use sunrise_client_lib::registries::pluto_reload_registry as access;
+    use sunrise_client::registries::pluto_reload_registry as access;
     let mut listeners=Vec::new();
     game.native_add_server_reload_listeners(&mut listeners);
     if listeners.is_empty() { return std::ops::ControlFlow::Break(()); }

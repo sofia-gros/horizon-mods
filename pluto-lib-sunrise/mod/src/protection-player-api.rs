@@ -1,15 +1,10 @@
 // Player-victim protection service. No equipment-specific policy lives here.
-use sunrise_client_render::world::HealthRules;
-use sunrise_client::motion::PlayerMotion;
-use sunrise_client::health::BlockOutcome;
-use sunrise_client::health::Blocking;
-use sunrise_client::health::HealthResources;
-use crate::pluto_inventory::equipment::EquipmentSlots;
-
-use crate::pluto_inventory::protection as api;
-use crate::pluto_protection::{Context, Policy};
-
-use sunrise_world::damage_source::DamageTypeId;
+use super::{BlockOutcome, Blocking, HealthResources, HealthRules, PlayerMotion};
+use crate::pluto_inventory::{equipment::EquipmentSlots, protection as api};
+use sunrise_world::{
+    combat_rules::pluto_protection::{Context, Policy},
+    damage_source::DamageTypeId,
+};
 /// Activation reads the single host-independent provider registry.
 pub fn enabled() -> bool {
     api::enabled()
@@ -26,8 +21,8 @@ pub(super) fn run(
     equipment: Option<&crate::pluto_equipment::Snapshot>,
 ) -> crate::Result<BlockOutcome> {
     let guard = Context::enter(Policy::default());
-    let source_view = crate::pluto_protection_facts::Source::new(&resources.damage, source);
-    let equipment_view = equipment.map(crate::pluto_protection_facts::Equipment::capture);
+    let source_view = super::pluto_protection_facts::Source::new(&resources.damage, source);
+    let equipment_view = equipment.map(super::pluto_protection_facts::Equipment::capture);
     let request = api::Request {
         victim_entity: player.entity_id,
         captured_dimension: equipment.map(|snapshot| snapshot.dimension()),
@@ -45,10 +40,10 @@ pub(super) fn run(
     };
     let mut policy = Policy::default();
     api::visit(|id, provider| {
-        let mut contribution = crate::pluto_protection_contribution::Scoped::new(id, &mut policy);
+        let mut contribution = super::pluto_protection_contribution::Scoped::new(id, &mut policy);
         provider(&request, &mut contribution);
     });
-    crate::pluto_protection_kernel::set_current(policy);
+    sunrise_world::combat_rules::pluto_protection::set_current(policy);
     guard.allow_reentry();
     // This call consumes the one-shot token before other HEAD hooks and the
     // unchanged body run. Native errors and nested calls retain normal drops.

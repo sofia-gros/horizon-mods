@@ -10,12 +10,12 @@
 // not assume a direct Mixins injection there is supported. The concrete
 // animation-pass HEAD is declared below that caller, pending native attachment validation.
 use super::*;
-use crate::pluto_client_block_entity_state::{ClientCandidate, client_targets};
+use sunrise_client_render::pluto_client_block_entity_state::{ClientCandidate, client_targets};
 
 /// The entity's module-owned client state, keyed by its native identity.
 fn client_state(entity: &sunrise_client_render::chunk::block_entity::ModBlockEntity)
-    -> std::sync::Arc<crate::pluto_client_block_entity_state::ClientState<sunrise_core::nbt::Compound>> {
-    crate::pluto_client_block_entity_state::client_state::<sunrise_core::nbt::Compound>(entity.revision().identity())
+    -> std::sync::Arc<sunrise_client_render::pluto_client_block_entity_state::ClientState<sunrise_core::nbt::Compound>> {
+    sunrise_client_render::pluto_client_block_entity_state::client_state::<sunrise_core::nbt::Compound>(entity.revision().identity())
 }
 
 /// The current world's real Mod entities include untemplated custom blocks,
@@ -24,7 +24,7 @@ pub(super) fn targets(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32
     let Some(renderer) = game.renderer.as_ref() else { return Vec::new() };
     let facts = game.res.facts();
     let candidates = (&game.world.block_entities).into_iter().filter_map(|(pos, entity)| {
-        if !matches!(entity, sunrise_client_render::containers::BlockEntity::Mod(_)) { return None; }
+        if !matches!(entity, sunrise_client::containers::BlockEntity::Mod(_)) { return None; }
         let state = game.world.block(pos.0, pos.1, pos.2);
         Some(ClientCandidate { pos: [pos.0, pos.1, pos.2],
             block: facts.get(state).name.as_ref(), is_mod_entity: true })
@@ -43,7 +43,7 @@ pub(super) fn observe(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32
     // Mutable container access wakes server tickers; touch only the injected
     // interior state through shared references, never the saved-data revision.
     for (pos, entity) in &game.world.block_entities {
-        if let sunrise_client_render::containers::BlockEntity::Mod(entity) = entity {
+        if let sunrise_client::containers::BlockEntity::Mod(entity) = entity {
             let _ = client_state(entity)
                 .set_client_active(active.contains(&[pos.0, pos.1, pos.2]));
         }
@@ -62,7 +62,7 @@ pub(super) fn observe(game: &Game<'_>, registered: fn(&str) -> bool) -> Vec<[i32
 /// written by the retextured placement hook and loot function.
 fn refresh_retextures(game: &Game<'_>) {
     for (pos, entity) in &game.world.block_entities {
-        let sunrise_client_render::containers::BlockEntity::Mod(entity) = entity else { continue };
+        let sunrise_client::containers::BlockEntity::Mod(entity) = entity else { continue };
         let texture = entity.nbt.iter().find_map(|(key, tag)| {
             if key.to_string_lossy() != "texture" {
                 return None;
@@ -72,7 +72,7 @@ fn refresh_retextures(game: &Game<'_>) {
                 _ => None,
             }
         });
-        crate::pluto_retexture::refresh(
+        sunrise_client::mesher::pluto_retexture::refresh(
             [pos.0, pos.1, pos.2],
             texture.as_deref(),
         );
@@ -84,8 +84,8 @@ fn refresh_retextures(game: &Game<'_>) {
 /// The callback only receives read-only saved data and its own transient copy.
 /// No get_mut/iter_mut/take/put wakes the server's block-entity scheduler.
 pub(super) fn tick(game: &mut Game<'_>) {
-    use crate::pluto_block_entity_access::client_tick_sink;
-    use crate::pluto_client_block_entity_state::client_tick_enabled;
+    use sunrise_client_lib::pluto_block_entity_access::client_tick_sink;
+    use sunrise_client_render::pluto_client_block_entity_state::client_tick_enabled;
     let client = game.remote.is_some();
     let has_level = game.remote.as_ref().is_some_and(|remote| remote.has_level());
     if !client_tick_enabled(client, has_level, game.pause, game.title.is_some(), game.clock.world_runs()) { return; }
@@ -94,7 +94,7 @@ pub(super) fn tick(game: &mut Game<'_>) {
     for pos in observe(game, sink.has) {
         let prepared = (|| {
             let entity = game.world.block_entities.get(&(pos[0], pos[1], pos[2]))?;
-            let sunrise_client_render::containers::BlockEntity::Mod(entity) = entity else { return None };
+            let sunrise_client::containers::BlockEntity::Mod(entity) = entity else { return None };
             let state = game.world.block(pos[0], pos[1], pos[2]);
             let block = game.res.facts().get(state).name.to_string();
             if !(sink.has)(&block) { return None; }
@@ -102,16 +102,16 @@ pub(super) fn tick(game: &mut Game<'_>) {
             Some((block, entity.nbt.clone(), update))
         })();
         let Some((block, saved, mut update)) = prepared else { continue };
-        let ran = game.with_level(|_, level, ticks| crate::game::pluto_block_level::with_client_view(level, ticks,
+        let ran = game.with_level(|_, level, ticks| super::pluto_block_level::with_client_view(level, ticks,
             |view| (sink.tick)(&block, pos, &saved, update.data_mut(), view)));
         if ran { let _ = update.commit(); }
         // A false callback or unwind drops the lease without publishing its copy.
     }
 }
 
-fn reset_world(world: &sunrise_client_render::world::World) {
+fn reset_world(world: &sunrise_client::world::World) {
     for (_, entity) in &world.block_entities {
-        if let sunrise_client_render::containers::BlockEntity::Mod(entity) = entity {
+        if let sunrise_client::containers::BlockEntity::Mod(entity) = entity {
             let _ = client_state(entity).reset();
         }
     }
@@ -122,7 +122,7 @@ fn reset_world(world: &sunrise_client_render::world::World) {
 /// Source helpers distinguish retained same-level respawns from actual level
 /// replacement/disconnect/reconfiguration. Native validation remains pending.
 pub(super) fn reset_client_level(game: &Game<'_>) {
-    crate::pluto_retexture::clear();
+    sunrise_client::mesher::pluto_retexture::clear();
     reset_world(&game.world);
     for world in game.levels.parked_worlds() { reset_world(world); }
 }

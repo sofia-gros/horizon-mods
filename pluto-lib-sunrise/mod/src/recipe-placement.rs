@@ -1,9 +1,8 @@
 // Read-only native recipe facts and veto-only definition boundary.
-use sunrise_client::crafting::ingredient::Ingredient as NativeIngredient;
-use sunrise_client::crafting::Shape;
-use sunrise_client::crafting::Recipe;
-use sunrise_client::crafting::Recipes;
-use pluto_lib::pluto_inventory_api::recipe_book::placement::{self, Form, Ingredient, IngredientShape, Outcome, Phase, Request};
+use super::{Ingredient as NativeIngredient, Recipe, Recipes, Shape};
+use pluto_inventory_api::recipe_book::placement::{
+    self, Form, Ingredient, IngredientShape, Outcome, Phase, Request,
+};
 impl Ingredient for NativeIngredient {
     fn accepted_ids(&self) -> &std::collections::HashSet<String> {
         &self.items

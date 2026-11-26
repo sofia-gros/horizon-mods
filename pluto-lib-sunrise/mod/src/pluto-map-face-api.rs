@@ -4,7 +4,7 @@
 // texture by the game.
 use std::sync::Mutex;
 
-use sunrise_items::items::ItemStack;
+use crate::items::ItemStack;
 
 /// One queued map face: the filled map stack whose face is to be drawn into `rect`
 /// (`[x, y, width, height]` in GUI pixels).

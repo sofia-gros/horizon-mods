@@ -53,7 +53,7 @@ impl ItemStack {
 }
 struct Game<'a> {
     held: Option<ItemStack>,
-    sheared: Vec<(usize, String)>,
+    sheared: Vec<(usize, bool)>,
     saddled: Vec<(usize, String)>,
     marker: std::marker::PhantomData<&'a ()>,
 }
@@ -62,8 +62,8 @@ impl Game<'_> {
         Self { held, sheared: Vec::new(), saddled: Vec::new(), marker: std::marker::PhantomData }
     }
     fn held(&self) -> Option<&ItemStack> { self.held.as_ref() }
-    fn interact_shear_mob(&mut self, index: usize, item: &str) -> bool {
-        self.sheared.push((index, item.to_owned()));
+    fn interact_shear_mob(&mut self, index: usize, shears: bool) -> bool {
+        self.sheared.push((index, shears));
         true
     }
     fn shear_saddle(&mut self, index: usize, item: &str) -> Option<bool> {
@@ -96,7 +96,7 @@ fn enchantability_and_tool_action_adapters_delegate_and_answer() {
     );
     assert_eq!(pluto_item_enchantability(&tool), Continue(()));
     let mut game = Game::new(Some(ItemStack::plain("test:kama")));
-    assert_eq!(pluto_shear_mob(&mut game, 3, "test:kama"), Continue(()));
+    assert_eq!(pluto_shear_mob(&mut game, 3, false), Continue(()));
     assert_eq!(pluto_shear_saddle(&mut game, 4, "test:kama"), Continue(()));
     assert!(game.sheared.is_empty() && game.saddled.is_empty());
 
@@ -125,12 +125,12 @@ fn enchantability_and_tool_action_adapters_delegate_and_answer() {
 
     // The vanilla shears never re-ask the question.
     let mut game = Game::new(Some(ItemStack::plain("minecraft:shears")));
-    assert_eq!(pluto_shear_mob(&mut game, 3, "minecraft:shears"), Continue(()));
+    assert_eq!(pluto_shear_mob(&mut game, 3, true), Continue(()));
     assert_eq!(pluto_shear_saddle(&mut game, 4, "minecraft:shears"), Continue(()));
     assert!(game.sheared.is_empty() && game.saddled.is_empty());
     // An unanswered stack runs the original gate and fails it as before.
     let mut game = Game::new(Some(ItemStack::plain("test:stick")));
-    assert_eq!(pluto_shear_mob(&mut game, 3, "test:stick"), Continue(()));
+    assert_eq!(pluto_shear_mob(&mut game, 3, false), Continue(()));
     assert_eq!(pluto_shear_saddle(&mut game, 4, "test:stick"), Continue(()));
     assert!(game.sheared.is_empty() && game.saddled.is_empty());
     // A granted stack runs the original body under the vanilla name, result and all.
@@ -138,8 +138,8 @@ fn enchantability_and_tool_action_adapters_delegate_and_answer() {
         "test:kama",
         Tag::Compound(vec![("tic_materials".into(), Tag::Int(3))]),
     )));
-    assert_eq!(pluto_shear_mob(&mut game, 3, "test:kama"), Break(true));
-    assert_eq!(game.sheared, vec![(3, "minecraft:shears".to_string())]);
+    assert_eq!(pluto_shear_mob(&mut game, 3, false), Break(true));
+    assert_eq!(game.sheared, vec![(3, true)]);
     assert_eq!(pluto_shear_saddle(&mut game, 4, "test:kama"), Break(Some(false)));
     assert_eq!(game.saddled, vec![(4, "minecraft:shears".to_string())]);
 }

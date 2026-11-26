@@ -7,9 +7,9 @@
 // flag the creeper's own tick reads), then mob off-hand stack edits
 // (the game's own whole-stack read and write for that slot).
 fn pluto_entity_drain(game: &mut Game<'_>) {
-    crate::game::pluto_entity_ride_access::drain(game);
-    crate::game::pluto_entity_push_access::drain(game);
-    crate::game::pluto_entity_teleport_access::drain(game);
-    crate::game::pluto_entity_ignite_access::drain(game);
-    crate::game::pluto_mob_offhand_access::drain(game);
+    super::pluto_entity_ride_access::drain(game);
+    super::pluto_entity_push_access::drain(game);
+    super::pluto_entity_teleport_access::drain(game);
+    super::pluto_entity_ignite_access::drain(game);
+    super::pluto_mob_offhand_access::drain(game);
 }

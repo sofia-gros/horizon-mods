@@ -1,8 +1,7 @@
 // Shared native capture of read-only semantic equipment facts.
 // This is not the full native stack snapshot used for transaction revalidation.
 use super::Game;
-use crate::pluto_component_view::ItemFacts;
-use crate::pluto_inventory::equipment as api;
+use sunrise_client::{pluto_component_view::ItemFacts, pluto_inventory::equipment as api};
 
 enum Captured {
     Unavailable,
@@ -10,7 +9,7 @@ enum Captured {
     Item(ItemFacts),
 }
 impl Captured {
-    fn slot(slot: Option<&Option<sunrise_items::items::ItemStack>>) -> Self {
+    fn slot(slot: Option<&Option<sunrise_client::items::ItemStack>>) -> Self {
         match slot {
             None => Self::Unavailable,
             Some(None) => Self::Empty,

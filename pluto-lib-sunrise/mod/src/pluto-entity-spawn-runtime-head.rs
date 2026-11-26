@@ -5,7 +5,7 @@ fn pluto_entity_spawn_runtime(game:&mut Game<'_>,kind:&str,at:[f64;3],persistent
     ->std::ops::ControlFlow<Option<u32>> {
     // Construction without finalization belongs to the native conversion path.
     if !finalize { return std::ops::ControlFlow::Continue(()); }
-    use sunrise_client_lib::pluto_entity_spawn_access as access;
+    use crate::pluto_entity_spawn_access as access;
     use crate::game::pluto_entity_spawn_game as bridge;
     match access::enabled() {
         Ok(false)=>return std::ops::ControlFlow::Continue(()),
@@ -17,10 +17,10 @@ fn pluto_entity_spawn_runtime(game:&mut Game<'_>,kind:&str,at:[f64;3],persistent
     game.next_entity+=1;
     let yaw=match yaw {
         SpawnYaw::Level=>game.world.random.next_float()*360.0,
-        SpawnYaw::Created=>sunrise_client_render::camera::wrap_degrees(game.world.random.next_float()*360.0),
+        SpawnYaw::Created=>sunrise_client::camera::wrap_degrees(game.world.random.next_float()*360.0),
         SpawnYaw::Fixed(yaw)=>yaw,
     };
-    let (own,uuid)=sunrise_client_lib::mobs::living_random();
+    let (own,uuid)=sunrise_client::mobs::living_random();
     game.persist.uuids.insert(game.next_entity,uuid);
     let mut mob=Mob::with_random(game.next_entity,t,Vec3::new(at[0],at[1],at[2]),yaw,own);
     mob.persistent=persistent;
@@ -30,8 +30,8 @@ fn pluto_entity_spawn_runtime(game:&mut Game<'_>,kind:&str,at:[f64;3],persistent
         let difficulty=game.local_difficulty(at);
         spawning::finalize(&mut mob,&facts,&difficulty);
         if !scripted {
-            let reason=if persistent {sunrise_client_lib::mobs::raider::Reason::Other}else{sunrise_client_lib::mobs::raider::Reason::Natural};
-            sunrise_client_lib::mobs::raider::finalize(&mut mob,reason);
+            let reason=if persistent {sunrise_client::mobs::raider::Reason::Other}else{sunrise_client::mobs::raider::Reason::Natural};
+            sunrise_client::mobs::raider::finalize(&mut mob,reason);
         }
         let pending=bridge::take(&mob)?;
         let deferred=pending.is_some();

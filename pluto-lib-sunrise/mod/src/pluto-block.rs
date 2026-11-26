@@ -7,33 +7,33 @@ use std::sync::Mutex;
 // Shared in the lower-level world crate so a native tree callback can use the
 // same editor contract without introducing a world -> client dependency.
 #[cfg(not(test))]
-pub use crate::pluto_worldgen_level::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
+pub use sunrise_world::level::pluto_worldgen_level::{StateInfo, LevelView, LevelEdit, RootBindings, RootEdit, RootCallback, TreeStep, PlannedTreeCallback, MAX_FEATURE_DEPTH};
 #[cfg(not(test))]
-pub use crate::pluto_structure_access as structures;
+pub use sunrise_world::level::pluto_structure_access as structures;
 
 #[cfg(not(test))]
-pub use crate::pluto_block_access::set_survival_dispatcher;
+pub use sunrise_world::level::pluto_block_access::set_survival_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_item_placement_access::{set_provider as set_item_placement_provider, BindingDeclaration as ItemPlacementBinding};
+pub use sunrise_world::level::pluto_item_placement_access::{set_provider as set_item_placement_provider, BindingDeclaration as ItemPlacementBinding};
 #[cfg(not(test))]
-pub use crate::pluto_block_settings_access::{set_provider as set_block_settings_provider, Declaration as BlockSettingsDeclaration};
+pub use crate::mod_content::pluto_block_settings_access::{set_provider as set_block_settings_provider, Declaration as BlockSettingsDeclaration};
 #[cfg(not(test))]
-pub use crate::pluto_entity_type_access::{set_provider as set_entity_type_provider, Definition as DerivedEntityDefinition};
+pub use sunrise_world::level::pluto_entity_type_access::{set_provider as set_entity_type_provider, Definition as DerivedEntityDefinition};
 #[cfg(test)]
 pub use crate::block_access_tests::set_survival_dispatcher;
 
 #[cfg(not(test))]
-pub use crate::pluto_item_behavior_access::set_mask_dispatcher;
+pub use sunrise_world::level::pluto_item_behavior_access::set_mask_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_item_behavior_access::set_max_stack_dispatcher;
+pub use sunrise_world::level::pluto_item_behavior_access::set_max_stack_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_item_behavior_access::set_enchantability_dispatcher;
+pub use sunrise_world::level::pluto_item_behavior_access::set_enchantability_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_item_behavior_access::set_tool_action_dispatcher;
+pub use sunrise_world::level::pluto_item_behavior_access::set_tool_action_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_item_behavior_access::set_indestructible_dispatcher;
+pub use sunrise_world::level::pluto_item_behavior_access::set_indestructible_dispatcher;
 #[cfg(not(test))]
-pub use crate::pluto_block_access::{set_schedule_drain, drain_schedules};
+pub use sunrise_world::level::pluto_block_access::{set_schedule_drain, drain_schedules};
 
 // Pure tests compile the same shared source, not a copied contract.
 #[cfg(test)]
@@ -150,7 +150,7 @@ mod feature_depth_tests {
 }
 
 #[cfg(not(test))]
-use crate::pluto_block_access as feature_transport;
+use sunrise_world::level::pluto_block_access as feature_transport;
 #[cfg(test)]
 use crate::block_access_tests as feature_transport;
 

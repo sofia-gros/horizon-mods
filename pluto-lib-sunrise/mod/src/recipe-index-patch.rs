@@ -1,7 +1,6 @@
 // Explicit current-index compare-and-apply; no owner registry or world hook.
-use sunrise_client_lib::{Known};
-use sunrise_client::recipe_book::RecipeIndex;
-use pluto_lib::pluto_inventory_api::recipe_book::index::{self, Error, Index, Patch, Record, Snapshot};
+use super::{Known, RecipeIndex};
+use pluto_inventory_api::recipe_book::index::{self, Error, Index, Patch, Record, Snapshot};
 
 fn snapshot(index: &RecipeIndex) -> Result<Snapshot, Error> {
     if index.recipes.len() > index::MAX_RECORDS {

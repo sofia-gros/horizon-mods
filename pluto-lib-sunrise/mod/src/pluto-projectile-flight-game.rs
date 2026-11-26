@@ -3,8 +3,8 @@
 // projectile itself, and what the API side settles is done to the projectile and the level as the tick settles. A
 // telling nobody listens to costs one flag check.
 use crate::pluto_projectile_flight_access as access;
-use sunrise_client_lib::mobs::Who;
-use sunrise_client_lib::projectiles::{Projectile, ProjectileKind};
+use crate::mobs::Who;
+use crate::projectiles::{Projectile, ProjectileKind};
 use sunrise_core::geometry::Vec3;
 
 fn arrow_facts(p: &Projectile) -> Option<access::ArrowFacts> {
@@ -17,12 +17,12 @@ fn arrow_facts(p: &Projectile) -> Option<access::ArrowFacts> {
 }
 
 /// The projectile's own stack: an arrow's pickup stack, a thrown type's item.
-fn stack_of(p: &Projectile) -> Option<sunrise_items::items::ItemStack> {
+fn stack_of(p: &Projectile) -> Option<crate::items::ItemStack> {
     if let Some(a) = &p.arrow {
         return Some(a.pickup_item.clone());
     }
     match &p.kind {
-        ProjectileKind::Thrown(t) => Some(sunrise_items::items::ItemStack::new(t.item, 1)),
+        ProjectileKind::Thrown(t) => Some(crate::items::ItemStack::new(t.item, 1)),
         _ => None,
     }
 }
@@ -94,7 +94,7 @@ pub(crate) fn on_spawn(game: &mut crate::game::Game<'_>, p: &mut Projectile) {
         // The pickup status the spawn pass settled (`AbstractArrow.Pickup`, read back from the
         // byte the API side sent; out of range is disallowed, as the host reads it).
         if let Some(pickup) = outcome.pickup {
-            a.pickup = sunrise_client_lib::arrows::Pickup::from_byte(i64::from(pickup));
+            a.pickup = crate::arrows::Pickup::from_byte(i64::from(pickup));
         }
         if let Some(stack) = outcome.pickup_stack {
             a.pickup_item = stack;
@@ -173,7 +173,7 @@ pub(crate) fn after_tick(game: &mut crate::game::Game<'_>) {
         }
         if let Some(pickup) = outcome.pickup {
             if let Some(a) = &mut p.arrow {
-                a.pickup = sunrise_client_lib::arrows::Pickup::from_byte(i64::from(pickup));
+                a.pickup = crate::arrows::Pickup::from_byte(i64::from(pickup));
             }
         }
         if outcome.release_from_ground {
@@ -190,15 +190,15 @@ pub(crate) fn after_tick(game: &mut crate::game::Game<'_>) {
             match action {
                 access::FlightAction::Explode { center, radius, fire, blast } => {
                     let blast = match blast {
-                        1 => crate::pluto_explosion_access::Blast::Block,
-                        2 => crate::pluto_explosion_access::Blast::Tnt,
-                        _ => crate::pluto_explosion_access::Blast::Keep,
+                        1 => crate::game::native_explosions::NativeBlast::Block,
+                        2 => crate::game::native_explosions::NativeBlast::Tnt,
+                        _ => crate::game::native_explosions::NativeBlast::Keep,
                     };
-                    crate::pluto_explosion_access::push(&dimension, center, radius, fire, blast);
+                    game.native_explode(&dimension, center, radius, fire, blast);
                 }
                 access::FlightAction::Particle { name, position, count, spread, speed } => {
-                    if let Some(ty) = sunrise_client_render::particles::ParticleType::from_name(&name) {
-                        let options = sunrise_client_render::particles::ParticleOptions::simple(ty);
+                    if let Some(ty) = sunrise_client::particles::ParticleType::from_name(&name) {
+                        let options = sunrise_client::particles::ParticleOptions::simple(ty);
                         game.particles.send_particles(&options, position, spread, speed, count);
                         game.lan_level_particles(None, &options, position, spread, speed, count, None);
                     }

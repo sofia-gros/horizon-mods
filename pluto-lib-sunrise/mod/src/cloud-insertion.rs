@@ -1,11 +1,7 @@
 // Native publication boundary. A requested owner is never selected implicitly.
-use super::Game;
-use super::commands::Target;
-use crate::game::native_lifecycle::pluto_lifecycle_readiness;
-use crate::game::potions::pluto_cloud_factory;
-use mod_api::{EntityRef, LevelRef};
-
-use crate::pluto_cloud::{Attribution, Validated};
+use super::{Game, commands::Target, native_lifecycle::pluto_lifecycle_readiness,
+    potions::pluto_cloud_factory};
+use sunrise_client::{mod_api::{EntityRef, LevelRef}, pluto_cloud::{Attribution, Validated}};
 
 /// The source chosen by the caller. Entity lookup proves presence, not causation
 /// or permission to impersonate it. Consumers must prove their action context.

@@ -1,7 +1,7 @@
 // Adapted from pinned Horizon mobs/living.rs (MIT; LICENSE.horizon).
 // Keep native collision/fall ordering; only registered post-fall callbacks own Y.
-use sunrise_client_lib::mobs::*;
-use crate::pluto_block_access::{self as transport, AfterFall, FallOn, StateInfo};
+use super::*;
+use sunrise_world::level::pluto_block_access::{self as transport, AfterFall, FallOn, StateInfo};
 
 fn state_info(w: &MobWorld<'_>, state: BlockStateId) -> Option<StateInfo> {
     let definition = w.registry.state(state)?;
@@ -17,7 +17,7 @@ pub(super) fn fall(mob: &Mob, contact: Option<(&MobWorld<'_>, [i32; 3])>, distan
     let state = w.world.block(pos[0], pos[1], pos[2]);
     let info = state_info(w, state)?;
     if !(sink.has)(&info.block) { return None; }
-    let damage = sunrise_client::block_contact::fall(sunrise_client::block_contact::Contact {
+    let damage = crate::block_contact::fall(crate::block_contact::Contact {
         entity: mob.id as i32, kind: &mob.kind.id, block: &info.block, state,
         position: BlockPos::new(pos[0], pos[1], pos[2]),
     }, distance, damage);

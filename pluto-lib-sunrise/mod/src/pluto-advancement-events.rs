@@ -1,10 +1,10 @@
 // Private native boundary. Public event contracts live in the shared API crate.
-use crate::pluto_inventory::advancements::events::{Event, EventSink, Submission};
+use sunrise_client::pluto_inventory::advancements::events::{Event, EventSink, Submission};
 
 struct GameEvents<'a, 'g>(&'a mut super::Game<'g>);
 impl EventSink for GameEvents<'_, '_> {
     fn submit(&mut self, event: Event<'_>) -> Submission {
-        use sunrise_client_lib::advancements as adv;
+        use sunrise_client::advancements as adv;
         let game = &mut *self.0;
         if game.remote.is_some() {
             return Submission::RemoteClient;

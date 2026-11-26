@@ -56,7 +56,7 @@ impl Settings {
 }
 #[cfg(test)]
 mod tests {
-    use sunrise_client_lib::*;
+    use super::*;
     fn declaration(block:&str,piston:u8)->Declaration {Declaration {block:block.into(),piston}}
     #[test]
     fn actual_settings_keep_reactions_owner_names_and_cache_identity_without_touching_fallback() {

@@ -18,11 +18,13 @@ ALLOWED = [
     # the Sunrise variant tree mirrors pluto-lib's documents; SUNRISE.md is its ledger (R6 tooling adaptation);
     # as a ledger it grows by one section per lane, so it is exempt from the single-document size cap (L7)
     'pluto-lib-sunrise/README.md', 'pluto-lib-sunrise/SUNRISE.md',
+    # REDUCED-LEDGER.md is the reduced v1.0.0 release's quarantine ledger (one row per held entry)
+    'pluto-lib-sunrise/REDUCED-LEDGER.md',
     'pluto-lib-sunrise/docs/design-principles.md', 'pluto-lib-sunrise/docs/fabric-api-design.md',
     'pluto-lib-sunrise/docs/fabric-api-hook-map.md', 'pluto-lib-sunrise/docs/api/*.md',
     'tconstruct/README.md',
     # licence and attribution notices are legal text, not documentation
-    '*NOTICE.md', '*NOTICES.md', '*LICENSE.md',
+    '*NOTICE.md', '*NOTICES.md', '*LICENSE.md', '*CREDITS.md',
 ]
 MAX_ALLOWED_BYTES = 80_000  # a single document this large is no longer readable by a person
 

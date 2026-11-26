@@ -10,7 +10,7 @@ fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Opt
         Some(Tag::Byte(value)) => i32::from(*value),
         _ => return std::ops::ControlFlow::Continue(()),
     };
-    let Some(facts) = sunrise_client_lib::pluto_hanging_access::frame_for_variant(variant) else {
+    let Some(facts) = crate::pluto_hanging_access::frame_for_variant(variant) else {
         return std::ops::ControlFlow::Continue(());
     };
     let Some(pos) = attached_block_pos(tag) else {
@@ -25,14 +25,14 @@ fn pluto_hanging_frame_from_nbt(tag: &Tag, id: u32) -> std::ops::ControlFlow<Opt
         item: tag
             .get("Item")
             .and_then(item_from_nbt)
-            .map(|s| sunrise_items::items::ItemStack { count: 1, ..s }),
-        rotation: sunrise_client_lib::pluto_hanging_access::frame_rotation(&facts, saved) as i8,
+            .map(|s| crate::items::ItemStack { count: 1, ..s }),
+        rotation: crate::pluto_hanging_access::frame_rotation(&facts, saved) as i8,
         drop_chance: float(tag.get("ItemDropChance")).map_or(1.0, |v| v as f32),
         fixed: flag(tag, "Fixed"),
         invisible: flag(tag, "Invisible"),
         check_interval: 0,
         custom_name: tag.get("CustomName").cloned(),
-        random: sunrise_client_render::random_source::entity(),
+        random: crate::random_source::entity(),
     };
     std::ops::ControlFlow::Break(Some(frame))
 }

@@ -17,9 +17,9 @@ fn place(game:&mut Game<'_>,context:&Context)->R<i32> {
     let start=terrain.structure_start(&structure,pos[0]>>4,pos[2]>>4).ok_or_else(||err("commands.place.structure.failed",&[]))?;
     let (min,max)=(start.bounding_box.min,start.bounding_box.max);
     game.place_check_loaded([min[0]>>4,min[2]>>4],[max[0]>>4,max[2]>>4])?;
-    let registered=crate::pluto_structure_level::has_registered(&start);
+    let registered=sunrise_world::level::pluto_structure_level::has_registered(&start);
     let (placed,entities)=game.with_level(|behaviours,level,ticks| {
-        if registered {crate::pluto_structure_level::place(behaviours,level,ticks,&start)}
+        if registered {sunrise_world::level::pluto_structure_level::place(behaviours,level,ticks,&start)}
         else {behaviours.place_structure(level,ticks,&start)}
     });
     for entity in entities {game.spawn_entity_from_nbt(Tag::Compound(entity));}

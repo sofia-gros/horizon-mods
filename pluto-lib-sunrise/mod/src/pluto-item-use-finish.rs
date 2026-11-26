@@ -1,4 +1,4 @@
-fn pluto_item_use_finish(game: &mut crate::game::Game<'_>, stack: &sunrise_items::items::ItemStack, entity: Option<i32>, result: &mut Option<sunrise_items::items::ItemStack>) {
+fn pluto_item_use_finish(game: &mut crate::game::Game<'_>, stack: &sunrise_client::items::ItemStack, entity: Option<i32>, result: &mut Option<sunrise_client::items::ItemStack>) {
     use crate::game::pluto_item_use_plan::{plan, Remainder};
     if entity.is_some() || game.remote.is_some() { return; }
     let Some(spec) = crate::pluto_item_use::get(&stack.item) else { return; };
@@ -10,7 +10,7 @@ fn pluto_item_use_finish(game: &mut crate::game::Game<'_>, stack: &sunrise_items
         Some((item, count)) => {
             let Some(max) = game.items().get(item.as_str()).map(|i| i.max_stack) else { return; };
             if max < *count { return; }
-            Some((sunrise_items::items::ItemStack::new(item.as_str(), *count), max))
+            Some((sunrise_client::items::ItemStack::new(item.as_str(), *count), max))
         }
         None => None,
     };
@@ -37,11 +37,11 @@ fn pluto_item_use_finish(game: &mut crate::game::Game<'_>, stack: &sunrise_items
         }
     }
     if let Some((nutrition, saturation)) = spec.food {
-        game.apply_effect_action(sunrise_client_render::effects::EffectAction::Eat(nutrition, saturation));
+        game.apply_effect_action(sunrise_client::effects::EffectAction::Eat(nutrition, saturation));
     }
     game.award_stat("used", &stack.item, 1);
     game.trigger_item("minecraft:consume_item", stack);
-    game.post_entity_event("minecraft:eat", sunrise_client_lib::mobs::Who::Player);
+    game.post_entity_event("minecraft:eat", sunrise_client::mobs::Who::Player);
     // Synchronous callbacks may move the hand; never restore a stale snapshot.
     *result = game.held().cloned();
 }

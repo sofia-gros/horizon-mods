@@ -24,8 +24,8 @@
 
 fn pluto_advancement_tag_index(
     game: &mut Game<'_>,
-) -> core::ops::ControlFlow<Arc<adv::InventoryIndex>> {
-    use crate::pluto_inventory::advancements::tags::{self, Lookup, OwnedSnapshots};
+) -> std::ops::ControlFlow<Arc<adv::InventoryIndex>> {
+    use sunrise_client::pluto_inventory::advancements::tags::{self, Lookup, OwnedSnapshots};
     use std::ops::ControlFlow::{Break, Continue};
     type Cached = (
         Arc<OwnedSnapshots>,

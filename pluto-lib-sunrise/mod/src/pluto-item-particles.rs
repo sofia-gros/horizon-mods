@@ -1,14 +1,9 @@
 // Registered item factories are resolved from this Game's current Ground item
 // renderer. Re-enter the native API with ordinary Item options, so its validity,
 // client/world, distance/settings/population and RNG policies remain native.
-use std::ops::ControlFlow;
-use std::sync::OnceLock;
+use std::{ops::ControlFlow,sync::OnceLock};
 use super::Game;
-use sunrise_client::items::ItemStack;
-
-use sunrise_client::particles::ParticleOptions;
-
-use sunrise_client::mobs::MobEvent;
+use sunrise_client::{items::ItemStack,particles::ParticleOptions,mobs::MobEvent};
 type Query=fn(&str)->Option<ItemStack>;
 static QUERY:OnceLock<Query>=OnceLock::new();
 pub fn set_provider(query:Query)->Result<(), &'static str> {

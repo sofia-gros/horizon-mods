@@ -5,11 +5,11 @@
 use std::ops::ControlFlow;
 use std::sync::OnceLock;
 #[cfg(not(test))]
-pub use crate::pluto_client_block_entity_state::set_cache_generation_provider;
+pub use sunrise_client_render::pluto_client_block_entity_state::set_cache_generation_provider;
 
 #[cfg(not(test))]
 mod client_ticks {
-    use sunrise_core::nbt::Compound;
+    use sunrise_world::nbt::Compound;
     use crate::pluto_block::LevelView;
     #[derive(Clone, Copy)]
     pub struct ClientTickSink {

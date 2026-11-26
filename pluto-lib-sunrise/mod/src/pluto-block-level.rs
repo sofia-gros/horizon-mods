@@ -121,7 +121,7 @@ impl LevelView for ClientView<'_, '_> {
     fn is_air(&self, pos: [i32; 3]) -> bool { self.read(|v| v.is_air(pos)) }
     fn replaceable(&self, pos: [i32; 3]) -> bool { self.read(|v| v.replaceable(pos)) }
     fn has_neighbor_signal(&self, pos: [i32; 3]) -> Option<bool> {
-        crate::pluto_block_access::query_neighbor_signal(pos, self.build_height(),
+        sunrise_world::level::pluto_block_access::query_neighbor_signal(pos, self.build_height(),
             |x, z| self.level.borrow().world.loaded(x, z), || {
                 let mut level = self.level.borrow_mut();
                 let mut ticks = self.ticks.borrow_mut();
@@ -329,7 +329,7 @@ impl LevelEdit for Edit<'_, '_> {
     fn place_feature(&mut self, feature: &str, pos: [i32; 3]) -> bool {
         if self.ticks.is_none() || self.feature_depth >= pluto_block::MAX_FEATURE_DEPTH { return false; }
         let behaviours = self.level.behaviours;
-        if let Some(definition) = crate::pluto_worldgen_level::configured_json(behaviours, feature) {
+        if let Some(definition) = sunrise_world::level::pluto_worldgen_level::configured_json(behaviours, feature) {
             if let Some(kind) = definition.get("type").and_then(serde_json::Value::as_str) {
                 let handled = pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
                     pluto_block::custom_feature(edit, kind, definition.get("config").unwrap_or(&definition), pos)
@@ -338,32 +338,38 @@ impl LevelEdit for Edit<'_, '_> {
             }
         }
         let Some(ticks) = self.ticks.as_deref_mut() else { return false };
-        crate::pluto_worldgen_level::place_native(
+        sunrise_world::level::pluto_worldgen_level::place_native(
             behaviours, &mut *self.level, ticks, feature, at(pos),
         ).unwrap_or(false)
     }
 
-    fn place_tree_with_roots(&mut self, configuration: &serde_json::Value, pos: [i32; 3], bindings: &crate::pluto_block_access::RootBindings,
-        root: &mut crate::pluto_block_access::RootCallback<'_>, decorate: &mut crate::pluto_block_access::TreeCallback<'_>) -> bool {
+    fn place_tree_with_roots(&mut self, configuration: &serde_json::Value, pos: [i32; 3], bindings: &sunrise_world::level::pluto_block_access::RootBindings,
+        root: &mut sunrise_world::level::pluto_block_access::RootCallback<'_>, decorate: &mut sunrise_world::level::pluto_block_access::TreeCallback<'_>) -> bool {
         pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
             let Some(ticks) = edit.ticks.as_deref_mut() else { return Some(false) };
             let behaviours = edit.level.behaviours;
-            Some(false)
+            Some(sunrise_world::level::pluto_tree_level::place_with_roots(
+                behaviours, &mut *edit.level, ticks, configuration, pos, edit.feature_depth, bindings, root, decorate,
+            ))
         }).unwrap_or(false)
     }
 
-    fn place_tree_with_plan(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: Option<(&crate::pluto_block_access::RootBindings, &mut crate::pluto_block_access::RootCallback<'_>)>, plan: &[crate::pluto_block_access::TreeStep], decorate: &mut crate::pluto_block_access::PlannedTreeCallback<'_>) -> bool {
+    fn place_tree_with_plan(&mut self, configuration: &serde_json::Value, pos: [i32; 3], roots: Option<(&sunrise_world::level::pluto_block_access::RootBindings, &mut sunrise_world::level::pluto_block_access::RootCallback<'_>)>, plan: &[sunrise_world::level::pluto_block_access::TreeStep], decorate: &mut sunrise_world::level::pluto_block_access::PlannedTreeCallback<'_>) -> bool {
         pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
             let Some(ticks) = edit.ticks.as_deref_mut() else { return Some(false) };
-            Some(false)
+            Some(sunrise_world::level::pluto_tree_level::place_with_plan(
+                edit.level.behaviours, &mut *edit.level, ticks, configuration, pos, edit.feature_depth, roots, plan, decorate,
+            ))
         }).unwrap_or(false)
     }
 
-    fn place_tree(&mut self, configuration: &serde_json::Value, pos: [i32; 3], decorate: &mut crate::pluto_block_access::TreeCallback<'_>) -> bool {
+    fn place_tree(&mut self, configuration: &serde_json::Value, pos: [i32; 3], decorate: &mut sunrise_world::level::pluto_block_access::TreeCallback<'_>) -> bool {
         pluto_block::with_feature_depth(self, |edit| &mut edit.feature_depth, |edit| {
             let Some(ticks) = edit.ticks.as_deref_mut() else { return Some(false) };
             let behaviours = edit.level.behaviours;
-            Some(false)
+            Some(sunrise_world::level::pluto_tree_level::place(
+                behaviours, &mut *edit.level, ticks, configuration, pos, edit.feature_depth, decorate,
+            ))
         }).unwrap_or(false)
     }
 

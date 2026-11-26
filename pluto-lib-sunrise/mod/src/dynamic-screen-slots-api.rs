@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use sunrise_items::items::ItemStack;
+use crate::items::ItemStack;
 
 pub type Resolver = fn(&str, &[i32], &[Option<ItemStack>]) -> Option<Vec<Option<[f32; 2]>>>;
 

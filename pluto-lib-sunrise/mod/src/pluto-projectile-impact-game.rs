@@ -3,12 +3,12 @@
 // the hit from it. The write-back runs the other way, in the flight pass (pluto-projectile-flight-game): the
 // entities a callback recorded are added to the live arrow's list as the tick settles, before it flies again.
 use crate::pluto_projectile_impact_access as access;
-use sunrise_client_lib::mobs::Who;
+use crate::mobs::Who;
 
 /// The ignore list the game reports for a projectile, as the impact telling names it: a mob's id, the host player's
 /// entity id for the player the game names `Who::Player` (a guest player's entity is one of the game's mobs, so it
 /// rides as a mob's id, as the game itself reports it).
-fn pierced_ids(game: &crate::game::Game<'_>, p: &sunrise_client_lib::projectiles::Projectile) -> Vec<u32> {
+fn pierced_ids(game: &crate::game::Game<'_>, p: &crate::projectiles::Projectile) -> Vec<u32> {
     let Some(a) = &p.arrow else { return Vec::new() };
     let player = game.player.as_ref().and_then(|player| u32::try_from(player.entity_id).ok());
     a.pierced

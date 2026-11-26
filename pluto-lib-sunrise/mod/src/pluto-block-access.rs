@@ -173,7 +173,7 @@ pub fn with_random<S, R: Clone, T>(state: &mut S, random: for<'a> fn(&'a mut S) 
 mod tests {
     #[test]
     fn neighbor_signal_gate_preserves_false_and_true_without_querying_unavailable_origins() {
-        use sunrise_world::query_neighbor_signal;
+        use super::query_neighbor_signal;
         use std::cell::Cell;
         let calls = Cell::new(0);
         for answer in [false, true] {
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn borrowed_block_queries_preserve_explicit_answers_native_fallback_and_unlocked_dispatch() {
-        use sunrise_world::*;
+        use super::*;
         struct View;
         impl LevelView for View {
             fn state(&self, pos: [i32; 3]) -> Option<StateInfo> {
@@ -240,8 +240,7 @@ mod tests {
 
     #[test]
     fn tree_plans_require_each_native_once_and_preserve_interleaving() {
-        use sunrise_world::TreeStep::{Native, Custom};
-        use sunrise_world::valid_tree_plan;
+        use super::{TreeStep::{Native, Custom}, valid_tree_plan};
         assert!(valid_tree_plan(&[Custom(0), Native(1), Custom(1), Native(0), Custom(2)], 2));
         assert!(valid_tree_plan(&[], 0));
         assert!(!valid_tree_plan(&[Native(0), Native(0)], 2));
@@ -255,10 +254,10 @@ mod tests {
     fn rng_copy_is_written_back_on_success_and_caught_panic_without_world_rollback() {
         struct State { random: u64, writes: usize }
         let mut state = State { random: 5, writes: 0 };
-        let value = sunrise_world::with_random(&mut state, |s| &mut s.random, |s, r| { *r += 3; s.writes += 1; 17 });
+        let value = super::with_random(&mut state, |s| &mut s.random, |s, r| { *r += 3; s.writes += 1; 17 });
         assert_eq!((value, state.random, state.writes), (17, 8, 1));
         let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            sunrise_world::with_random(&mut state, |s| &mut s.random, |s, r| {
+            super::with_random(&mut state, |s| &mut s.random, |s, r| {
                 *r += 7;
                 s.writes += 1;
                 std::panic::panic_any("original tree panic");

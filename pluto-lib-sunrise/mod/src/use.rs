@@ -1,10 +1,10 @@
-fn pluto_use(game: &mut crate::game::Game<'_>, stack: &sunrise_items::items::ItemStack) -> core::ops::ControlFlow<Result<sunrise_client::first_person::UseResult>> {
+fn pluto_use(game: &mut crate::game::Game<'_>, stack: &sunrise_client::items::ItemStack) -> std::ops::ControlFlow<Result<sunrise_client::first_person::UseResult>> {
     use std::ops::ControlFlow::{Break, Continue};
-    use sunrise_client_lib::first_person::UseResult;
-    use pluto_lib::pluto_item_api::UseOutcome;
-    if matches!(game.guest_use, Some(crate::game::GuestUse::OnBlock(_))) || !pluto_lib::pluto_item_api::contains(&stack.item) { return Continue(()); }
+    use sunrise_client::first_person::UseResult;
+    use pluto_item_api::UseOutcome;
+    if matches!(game.guest_use, Some(crate::game::GuestUse::OnBlock(_))) || !pluto_item_api::contains(&stack.item) { return Continue(()); }
     let Ok(mut data) = crate::game::pluto_item_adapter::read(stack) else { return Break(Ok(UseResult::Fail)); };
-    match pluto_lib::pluto_item_api::dispatch(&stack.item, &mut data) {
+    match pluto_item_api::dispatch(&stack.item, &mut data) {
         UseOutcome::Pass => Continue(()),
         UseOutcome::Cancel => Break(Ok(UseResult::Fail)),
         UseOutcome::Handled => {

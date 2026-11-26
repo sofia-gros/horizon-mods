@@ -140,7 +140,7 @@ pub fn command_table(bytes: &[u8], types: &[Definition]) -> Result<Vec<u8>, Stri
 
 #[cfg(test)]
 mod tests {
-    use sunrise_world::*;
+    use super::*;
     fn definition(id:&str)->Definition { Definition { id:id.into(), factory:"minecraft:slime".into(),
         width:2.04_f32*0.255_f32, height:2.04_f32*0.255_f32, tracking_chunks:20, velocity_updates:true } }
     #[test]

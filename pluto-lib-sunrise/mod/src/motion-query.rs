@@ -1,6 +1,6 @@
 // Private host construction for reusable queries on the game's selected actor.
 use super::Game;
-use sunrise_client_lib::motion::MotionWorld;
+use sunrise_client::motion::MotionWorld;
 
 /// Query native climbability without advancing a movement tick. The native
 /// query may remember the climbable block on the actor; this is not a pure read.

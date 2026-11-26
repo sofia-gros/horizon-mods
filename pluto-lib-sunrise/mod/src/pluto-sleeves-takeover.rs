@@ -13,7 +13,7 @@ use std::cell::Cell;
 
 use super::*;
 
-use mod_api::Host;
+use sunrise_client::mod_api::Host;
 
 thread_local! {
     /// Whether the seam's own call is running: its nested HEAD passes through to the
@@ -101,7 +101,7 @@ pub(crate) fn after_use(game: &mut Game<'_>, value: Result<bool>) {
         return;
     };
     let post = crate::pluto_sleeves_takeover_access::PostUse {
-        uuid: sunrise_client_lib::lan::playerdata::ints_uuid(game.acting_player_uuid()),
+        uuid: sunrise_client::lan::playerdata::ints_uuid(game.acting_player_uuid()),
         name: game.acting_player_name().to_owned(),
         dimension: game.dim.id().to_owned(),
         eye,

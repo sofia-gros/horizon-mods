@@ -143,7 +143,7 @@ impl<T> SourceCatalogs<T> {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_world::*;
+    use super::*;
     struct World;
     impl PlanningWorld for World {
         fn top_of_chunk_center(&mut self,_:[i32;2])->Result<Option<[i32;3]>,String>{panic!("no context query expected")}

@@ -1,12 +1,12 @@
 // Generation-world orchestration adapted from the pinned MIT Horizon source.
 // Keep native terrain swaps, feature ordering, RNG seeds, entities and clipping.
 // Only registered piece dispatch differs; the official input is hash-guarded.
-use sunrise_world::worldgen::*;
+use super::*;
 
-use crate::pluto_structure_generation_placement as placement;
+use super::pluto_structure_generation_placement as placement;
 
 pub(super) fn has_registered(region:&[ProtoChunk;9])->bool {
-    region[4].structure_starts.iter().any(|start|crate::pluto_structure_level::has_registered(start))
+    region[4].structure_starts.iter().any(|start|crate::level::pluto_structure_level::has_registered(start))
 }
 
 impl Decoration {
@@ -17,8 +17,8 @@ impl Decoration {
         generation: WorldGenerationContext,
         worker: &mut WorkerState,
         region: &mut [ProtoChunk; 9],
-        level_random: &mut dyn sunrise_world::worldgen::structure::legacy::PieceRandom,
-        structures: Option<&sunrise_world::worldgen::generator_structures::StructureState>,
+        level_random: &mut dyn crate::worldgen::structure::legacy::PieceRandom,
+        structures: Option<&crate::worldgen::generator_structures::StructureState>,
     ) -> Result<DecorateStats, GeneratorError> {
         let center = region[4].position();
         for (i, chunk) in region.iter().enumerate() {
@@ -46,7 +46,7 @@ impl Decoration {
             // A one-section stand-in while the region holds the terrain: it
             // is swapped back below, and allocating the full height for nine
             // stand-ins per region cost more than some features.
-            let empty = sunrise_world::worldgen::terrain::TerrainChunk::new(
+            let empty = crate::worldgen::terrain::TerrainChunk::new(
                 chunk.position(),
                 min_y,
                 16,
@@ -93,7 +93,7 @@ impl Decoration {
             behaviours: data.behaviours.as_deref(),
             // WorldGenRegion.isOutsideBuildHeight: the level's range, not the noise's.
             build: (min_y, min_y + height),
-            shape_ticks: std::cell::RefCell::new(sunrise_world::level::Ticks::new(0)),
+            shape_ticks: std::cell::RefCell::new(crate::level::Ticks::new(0)),
             last_tag: None,
             floor_bounds: [None; 9],
             shape_capture: std::cell::RefCell::new(Vec::new()),

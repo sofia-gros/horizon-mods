@@ -10,10 +10,10 @@ pub(crate) fn flush(game: &mut Game<'_>) {
     let dimension = game.dim.id();
     for queued in crate::pluto_explosion_access::take_for(dimension) {
         let blast = match queued.blast {
-            crate::pluto_explosion_access::Blast::Keep => mod_api::ExplosionInteraction::None,
-            crate::pluto_explosion_access::Blast::Block => mod_api::ExplosionInteraction::Block,
-            crate::pluto_explosion_access::Blast::Tnt => mod_api::ExplosionInteraction::Tnt,
+            crate::pluto_explosion_access::Blast::Keep => crate::game::native_explosions::NativeBlast::Keep,
+            crate::pluto_explosion_access::Blast::Block => crate::game::native_explosions::NativeBlast::Block,
+            crate::pluto_explosion_access::Blast::Tnt => crate::game::native_explosions::NativeBlast::Tnt,
         };
-        let _ = game.native_explode(None, queued.center, queued.radius, queued.fire, blast, mod_api::ExplosionSettings::default());
+        game.native_explode(dimension, queued.center, queued.radius, queued.fire, blast);
     }
 }

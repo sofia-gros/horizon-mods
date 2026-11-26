@@ -1,7 +1,7 @@
 // Adapted from pinned Horizon entities.rs::ItemEntity::tick_settle (MIT).
 // The owner retains fluid refresh, contact consumption and tracker order.
-use sunrise_client_lib::*;
-use crate::pluto_block_access::{self as transport, InsideMotion, StateInfo};
+use super::*;
+use sunrise_world::level::pluto_block_access::{self as transport, InsideMotion, StateInfo};
 
 fn dispatch(item: &mut ItemEntity, world: &World, registry: &sunrise_world::registry::BlockRegistry,
     pos: sunrise_core::position::BlockPos, state: sunrise_world::registry::BlockStateId, server: bool) {
@@ -10,7 +10,7 @@ fn dispatch(item: &mut ItemEntity, world: &World, registry: &sunrise_world::regi
     let Some(definition) = registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter()
         .map(|(key, value)| (key.to_string(), value.to_string())).collect() };
-    if let Some(dimension) = sunrise_client::block_contact::current_level() {
+    if let Some(dimension) = crate::block_contact::current_level() {
         let bounds = item.bounds();
         (sink.entity_inside)(&transport::EntityInside {
             dimension: dimension.to_string(), state: info.clone(), pos: [pos.x, pos.y, pos.z], entity: item.id as i32, kind: "minecraft:item".into(),
@@ -35,9 +35,9 @@ fn dispatch(item: &mut ItemEntity, world: &World, registry: &sunrise_world::regi
     item.velocity = Vec3::new(request.velocity[0], request.velocity[1], request.velocity[2]);
     if request.sync_velocity { item.needs_sync = true; }
     if let Some([volume, pitch]) = request.step_sound {
-        let _ = crate::pluto_contact_effects::queue_world(&world.attachments,
+        let _ = sunrise_world::level::pluto_contact_effects::queue_world(&world.attachments,
             item.id as i32, world.game_time,
-            crate::pluto_contact_effects::ContactSound { state, pos: request.pos, volume, pitch });
+            sunrise_world::level::pluto_contact_effects::ContactSound { state, pos: request.pos, volume, pitch });
     }
 }
 
@@ -60,10 +60,14 @@ pub fn settle(item: &mut ItemEntity, world: &World, facts: &BlockFacts, no_physi
         if item.on_ground {
             let pos = BlockPos::containing(item.position.add_vector(Vec3::new(0.0, -f64::from(0.2_f32), 0.0)));
             let state = world.block(pos.x, pos.y, pos.z);
-            sunrise_client::block_contact::emit(sunrise_client::block_contact::Event::StepOn(sunrise_client::block_contact::Contact {
+            crate::block_contact::emit(crate::block_contact::Event::StepOn(crate::block_contact::Contact {
                 entity: item.id as i32, kind: "minecraft:item", block: &facts.get(state).name, state, position: pos,
             }));
         }
+        crate::block_contact::pluto_contact_sweep::swept_inside(item.id as i32, "minecraft:item",
+            item.previous, item.position, item.bounds(),
+            |pos| { let state = world.block(pos.x, pos.y, pos.z); (state, &facts.get(state).name) },
+            |pos, state| dispatch(item, world, registry, pos, state, server));
     }
     if item.velocity.subtract(step.old_velocity).length_squared() > 0.01 { item.needs_sync = true; }
     if item.age != i16::MIN as i32 { item.age += 1; }

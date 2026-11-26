@@ -1,9 +1,10 @@
 // Private native bridge. Consumer callbacks live only in the host-independent
 // blocking API and never receive Game, native ItemStack or a mutation capability.
 use super::Game;
-use sunrise_client::health::{BlockOutcome, HurtSource};
-
-use crate::pluto_inventory::blocking as api;
+use sunrise_client::{
+    health::{BlockOutcome, HurtSource},
+    pluto_inventory::blocking as api,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Event<'a> {
@@ -26,11 +27,11 @@ pub(crate) fn dispatch(game: &Game<'_>, event: Event<'_>) {
     let Some(player) = game
         .player
         .as_ref()
-        .filter(|player| crate::pluto_protection::equipment_allowed(player))
+        .filter(|player| sunrise_client::health::pluto_protection::equipment_allowed(player))
     else {
         return;
     };
-    let equipment = crate::game::pluto_equipment_view::Snapshot::capture(game);
+    let equipment = super::pluto_equipment_view::Snapshot::capture(game);
     let outcome = event.outcome;
     api::dispatch(&api::Request {
         event: api::Event {

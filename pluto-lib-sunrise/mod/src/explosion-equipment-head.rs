@@ -31,9 +31,9 @@ fn pluto_explosion_equipment(
     damage_type: &str,
     exploding: Option<u32>,
     attacker: Option<&(u32, Text)>,
-    cause: Option<&sunrise_client_lib::advancements::EntityView>,
-) -> core::ops::ControlFlow<Option<[f64; 3]>> {
-    if !crate::pluto_protection::enabled()
+    cause: Option<&sunrise_client::advancements::EntityView>,
+) -> std::ops::ControlFlow<Option<[f64; 3]>> {
+    if !sunrise_client::health::pluto_protection::enabled()
         && !crate::game::pluto_block_feedback::enabled()
     {
         return std::ops::ControlFlow::Continue(());
@@ -45,7 +45,7 @@ fn pluto_explosion_equipment(
         damage_type: &str,
         exploding: Option<u32>,
         attacker: Option<&(u32, Text)>,
-        cause: Option<&sunrise_client_lib::advancements::EntityView>,
+        cause: Option<&sunrise_client::advancements::EntityView>,
     ) -> Option<[f64; 3]> {
         let ExplosionHookContext { center, blocks } = *context;
         let diameter = f64::from(radius * 2.0);
@@ -92,13 +92,13 @@ fn pluto_explosion_equipment(
         let power = pow * (1.0 - resistance);
         // `source.doTeamsAllowDamage(entity)`.
         let hurtable = exploding.is_none_or(|id| {
-            sunrise_client_core::scoreboard::teams_allow_damage(game.mob_team(id), game.player_team())
+            sunrise_client::scoreboard::teams_allow_damage(game.mob_team(id), game.player_team())
         });
         let blocking = game.player_blocking(Some(center), damage_type, false);
         let raised = blocking.is_some();
         let (creative, spectator) = (game.creative, game.spectator());
         let flying = game.player.as_ref().is_some_and(|p| p.flying);
-        let mut outcome = sunrise_client_lib::health::BlockOutcome::default();
+        let mut outcome = sunrise_client::health::BlockOutcome::default();
         let mut pushed = None;
         // The death message names the blast's causing entity. It goes to this
         // player's tracker, the host's or a guest's.
@@ -114,7 +114,7 @@ fn pluto_explosion_equipment(
                 && !spectator
                 && hurtable
                 && let Ok(o) =
-                    crate::pluto_protection::hurt_with_optional_equipment(
+                    sunrise_client::health::pluto_protection::hurt_with_optional_equipment(
                         p,
                         &game.health_resources,
                         game.world.health_rules,
@@ -154,7 +154,7 @@ fn pluto_explosion_equipment(
         }
         game.combat.forget_noted(outcome.canceled);
         if raised {
-            let source = sunrise_client_lib::health::HurtSource {
+            let source = sunrise_client::health::HurtSource {
                 damage_type,
                 causing: attacker.map_or(0, |(id, _)| *id as i32),
                 direct: 0,

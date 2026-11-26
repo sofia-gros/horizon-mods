@@ -1,6 +1,6 @@
 // Capture a successfully prepared world at open entry, before native filtering.
 // This does not claim that finish_open_world has completed successfully yet.
-use crate::pluto_inventory::recipe_book::handoff;
+use sunrise_client::pluto_inventory::recipe_book::handoff;
 
 pub(crate) fn capture(prepared: &super::world_loading::PreparedWorld) {
     if !handoff::enabled() {

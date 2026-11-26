@@ -1,7 +1,7 @@
 // Transport for queued custom advancement events: the submitting library
 // installs a source, and the advancement tick takes the queued events from
 // it (see advancement-event-drain). No actor or progress state lives here.
-use sunrise_client_lib::pluto_inventory::advancements::events::EventMatcher;
+use sunrise_client::pluto_inventory::advancements::events::EventMatcher;
 use std::sync::OnceLock;
 
 /// One queued custom advancement event, owned for transport from the

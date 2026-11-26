@@ -2,8 +2,7 @@
 // spent live creepers carried into that wave. Dead-source lookups additionally
 // require membership in native charged_exploders. No global/spawn-ID registry.
 // Reset at the native wave-clear seam, before the next tick's entity events.
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex};
+use std::{collections::{BTreeMap,BTreeSet},sync::{Arc,Mutex}};
 #[derive(Default,Debug)]
 pub struct HeadDeaths {claimed:Mutex<BTreeSet<u32>>}
 impl HeadDeaths {

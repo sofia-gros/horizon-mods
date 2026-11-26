@@ -28,8 +28,8 @@ fn pluto_equipment_ordinary(
     from: Option<[f64; 3]>,
     damage_type: &str,
     known: Option<Option<u32>>,
-) -> core::ops::ControlFlow<bool> {
-    if !crate::pluto_protection::enabled()
+) -> std::ops::ControlFlow<bool> {
+    if !sunrise_client::health::pluto_protection::enabled()
         && !crate::game::pluto_block_feedback::enabled()
     {
         return std::ops::ControlFlow::Continue(());
@@ -68,7 +68,7 @@ fn pluto_equipment_ordinary(
                         .iter()
                         .filter(|m| m.alive())
                         .min_by(|a, b| {
-                            let d = |m: &sunrise_client_lib::mobs::Mob| {
+                            let d = |m: &sunrise_client::mobs::Mob| {
                                 (m.position.x - from[0]).powi(2) + (m.position.z - from[2]).powi(2)
                             };
                             d(a).total_cmp(&d(b))
@@ -81,7 +81,7 @@ fn pluto_equipment_ordinary(
         let _attacker = game.knockback_scope(
             attacker
                 .or(owner)
-                .map_or_else(|| -1, |id| id as i32),
+                .map_or_else(sunrise_client::health::knockback_attacker, |id| id as i32),
         );
         if let Some(a) = attacker.or(owner) {
             game.note_attacker(damage_type, a);
@@ -101,14 +101,14 @@ fn pluto_equipment_ordinary(
         // projectile's other hits), not the guessed melee attacker.
         let owner = owner.filter(|_| projectile);
         let causing = known.flatten().or(owner).map_or(0, |id| id as i32);
-        let mut outcome = sunrise_client_lib::health::BlockOutcome::default();
+        let mut outcome = sunrise_client::health::BlockOutcome::default();
         // The hit's own push, held back until after the shield's (`hurtServer`
         // runs `applyItemBlocking` before `dealDefaultKnockback`).
         let mut default_push: Option<([f64; 2], HurtSource<'_>)> = None;
         let equipment = crate::game::pluto_damage_equipment::capture(game);
         if let Some(player) = game.player.as_mut()
             && let Some(id) = game.health_resources.damage.id(damage_type)
-            && let Ok(o) = crate::pluto_protection::hurt_with_optional_equipment(
+            && let Ok(o) = sunrise_client::health::pluto_protection::hurt_with_optional_equipment(
                 player,
                 &game.health_resources,
                 game.world.health_rules,
@@ -163,12 +163,12 @@ fn pluto_equipment_ordinary(
                 .or(owner)
                 .and_then(|id| game.mobs.iter().find(|m| m.id == id))
                 .map(|m| game.mob_entity(m));
-            game.trigger_entity_hurt_player(&sunrise_client_lib::advancements::DamageView {
+            game.trigger_entity_hurt_player(&sunrise_client::advancements::DamageView {
                 kind: damage_type.to_owned(),
                 // Arrows and the like name no direct entity here; a
                 // rocket's burst names the rocket.
                 direct: if rocket {
-                    Some(sunrise_client_lib::advancements::EntityView {
+                    Some(sunrise_client::advancements::EntityView {
                         kind: "minecraft:firework_rocket".to_owned(),
                         position: from.unwrap_or_default(),
                         ..Default::default()

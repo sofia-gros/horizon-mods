@@ -3,7 +3,7 @@
 // own effect read does not. The HUD shift counts exactly the effects that show their icon
 // (ModifierClientEvents.getEffectOffset); the snapshot is the local player's own list, read
 // where the draw is about to run, so it names the effects the draw is about to be given.
-use crate::game::Game;
+use super::Game;
 
 impl Game<'_> {
     /// Publishes the local player's active effects' icon flags, by namespaced effect id, for

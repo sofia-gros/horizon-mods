@@ -21,7 +21,7 @@ pub fn roll<T: Clone, O, R>(mut potential: Vec<T>, amount: i32, duplicates: bool
 
 #[cfg(test)]
 mod tests {
-    use sunrise_client_lib::*;
+    use super::*;
     use std::collections::VecDeque;
     #[test]
     fn mixed_pool_preserves_weights_declines_duplicate_policy_and_single_rng() {

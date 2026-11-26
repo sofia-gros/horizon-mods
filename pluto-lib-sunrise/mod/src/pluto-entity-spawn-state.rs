@@ -94,7 +94,7 @@ pub fn with_head_drop_eligibility<R>(allowed:bool,run:impl FnOnce()->R)->R {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_client_lib::mobs::*;
+    use super::*;
     use std::sync::{Arc, Weak};
 
     use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};

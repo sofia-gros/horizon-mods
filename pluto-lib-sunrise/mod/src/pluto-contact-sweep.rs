@@ -1,6 +1,6 @@
 //Pinned item/projectile sweep with an after-contact visitor. Native listeners
 //run exactly once before the mutable visitor at each deduplicated block.
-use sunrise_client_lib::*;
+use super::*;
 
 pub fn swept_inside<'a>(
     entity: i32, kind: &str,

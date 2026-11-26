@@ -3,7 +3,7 @@
 // by the rider synchronisation and never seated. Answer with the player's
 // own seat — the position and dimensions the game itself seats a passenger
 // on the player with — and let every other id run the original.
-fn pluto_entity_seat_player(game: &Game<'_>, id: u32) -> core::ops::ControlFlow<Option<Seat>> {
+fn pluto_entity_seat_player(game: &Game<'_>, id: u32) -> std::ops::ControlFlow<Option<Seat>> {
     let is_local_player = game.remote.as_ref().is_some_and(|remote| remote.entity_id as u32 == id);
     if is_local_player {
         if let Some(player) = &game.player {

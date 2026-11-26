@@ -1,10 +1,10 @@
 // The game's own item-wear hook is heard only for a LAN player, and the local player's wear skips it. This reports every wear of a
 // player's item to the mods (player id 0 for the local player when the game names none, which the API adapter resolves), lets a
 // callback rebuild a worn armor piece through `pluto_item_wear_access`, and replaces the game's own wear step.
-fn pluto_item_wear(game:&mut crate::game::Game<'_>,stack:&sunrise_items::items::ItemStack,amount:u32)->core::ops::ControlFlow<u32> {
+fn pluto_item_wear(game:&mut crate::game::Game<'_>,stack:&sunrise_client::items::ItemStack,amount:u32)->std::ops::ControlFlow<u32> {
     let component=|id:&str| stack.data().and_then(|data| data.other(id));
     if component("minecraft:unbreakable").is_some() || component("!minecraft:max_damage").is_some() || component("!minecraft:damage").is_some() {
-        return core::ops::ControlFlow::Continue(());
+        return std::ops::ControlFlow::Continue(());
     }
     let mut loss=game.durability_loss(stack,amount);
     if loss>0 {
@@ -23,5 +23,5 @@ fn pluto_item_wear(game:&mut crate::game::Game<'_>,stack:&sunrise_items::items::
         }
     }
     if loss>0 {game.trigger_item_durability(stack,stack.damage+loss);}
-    core::ops::ControlFlow::Break(loss)
+    std::ops::ControlFlow::Break(loss)
 }

@@ -29,7 +29,7 @@ impl Contribution for Scoped<'_> {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_client_lib::*;
+    use super::*;
     #[test]
     fn pluto_provider_capability_cannot_overwrite_another_registration() {
         let mut policy = Policy::default();

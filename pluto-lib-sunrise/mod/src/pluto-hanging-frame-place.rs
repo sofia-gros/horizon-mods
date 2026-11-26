@@ -5,7 +5,7 @@ fn pluto_hanging_frame_place(
     game: &mut Game<'_>,
     hit: &Hit,
     stack: &ItemStack,
-) -> core::ops::ControlFlow<bool> {
+) -> std::ops::ControlFlow<bool> {
     let Some(facts) = crate::pluto_hanging_access::frame_for_item(&stack.item) else {
         return std::ops::ControlFlow::Continue(());
     };

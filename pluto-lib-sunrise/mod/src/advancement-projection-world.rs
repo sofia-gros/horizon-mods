@@ -1,6 +1,6 @@
 // Synchronous current-tree projection; never loads or queues a pending tree.
-use sunrise_client_lib::advancements::pluto_advancement_projection as native;
-use crate::pluto_inventory::advancements::projection::{
+use sunrise_client::advancements::pluto_advancement_projection as native;
+use sunrise_client::pluto_inventory::advancements::projection::{
     Change, Definition, Error, Replacement, TreeSink,
 };
 use std::sync::Arc;

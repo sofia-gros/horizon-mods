@@ -1,10 +1,13 @@
 // The public provider reads the original borrowed catalog and original captured
 // stacks. This adapter never rereads a live Game or manufactures active-use data.
-use crate::pluto_component_view::ItemFacts;
-use crate::pluto_inventory::{equipment as equipment_api, protection as api};
-use sunrise_world::damage_source::{Catalog, DamageTypeId};
-use crate::pluto_context;
-use sunrise_core::equipment_slot::EquipmentSlot;
+use crate::{
+    pluto_component_view::ItemFacts,
+    pluto_inventory::{equipment as equipment_api, protection as api},
+};
+use sunrise_world::{
+    damage_source::{Catalog, DamageTypeId, pluto_context},
+    player_inventory::EquipmentSlot,
+};
 
 pub(super) struct Source<'a>(pluto_context::SourceView<'a>);
 impl<'a> Source<'a> {
@@ -52,8 +55,7 @@ impl Equipment {
 }
 impl equipment_api::EquipmentSlots for Equipment {
     fn slot(&self, slot: equipment_api::EquipmentSlot) -> equipment_api::Slot<'_> {
-        use equipment_api::EquipmentSlot::*;
-        use equipment_api::Slot;
+        use equipment_api::{EquipmentSlot::*, Slot};
         match &self.slots[match slot {
             Head => 0,
             Chest => 1,
@@ -71,7 +73,7 @@ impl equipment_api::EquipmentSlots for Equipment {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_client_lib::*;
+    use super::*;
     use api::Source as _;
     use equipment_api::EquipmentSlots as _;
     use serde_json::json;

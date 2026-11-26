@@ -1,6 +1,9 @@
 // Generic callback-local native death-drop boundary; no Game/Mob pointers are
 // retained by a provider. Concrete collection/counter ownership stays native.
 use std::sync::OnceLock;
+#[cfg(test)]
+use sunrise_client::items::ItemStack;
+#[cfg(not(test))]
 use sunrise_items::items::ItemStack;
 use sunrise_world::loot::LootEntity;
 // Native built-in MobType IDs may be bare; declared types already carry a

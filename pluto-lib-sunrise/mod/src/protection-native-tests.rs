@@ -1,9 +1,10 @@
 // Executed inside the transformed official horizon-world crate, not a mock kernel.
 #[cfg(test)]
 mod tests {
-    use crate::combat_rules::ArmorWorld;
-    use sunrise_world::damage_reduction::{self, Bypass, DamageReductionWorld};
-    use crate::pluto_protection as api;
+    use crate::{
+        combat_rules::{ArmorWorld, pluto_protection as api},
+        damage_reduction::{self, Bypass, DamageReductionWorld},
+    };
     struct World {
         raw: f32,
         resistance: Option<i32>,

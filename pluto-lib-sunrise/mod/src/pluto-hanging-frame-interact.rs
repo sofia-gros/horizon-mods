@@ -4,7 +4,7 @@
 fn pluto_hanging_frame_interact(
     game: &mut Game<'_>,
     target: Option<InteractTarget>,
-) -> core::ops::ControlFlow<bool> {
+) -> std::ops::ControlFlow<bool> {
     let Some((i, facts, distance)) = crate::game::pluto_hanging_game::fancy_frame_target(game, &target) else {
         return std::ops::ControlFlow::Continue(());
     };

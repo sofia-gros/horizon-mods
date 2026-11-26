@@ -264,7 +264,7 @@ pub fn after_magic(damage: f32, protection: f32) -> Option<f32> {
 }
 #[cfg(test)]
 mod tests {
-    use sunrise_world::*;
+    use super::*;
     fn policy(lower: f32, upper: f32) -> Policy {
         let mut p = Policy::default();
         assert!(p.set("example", Bounds { lower, upper }));

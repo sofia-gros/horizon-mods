@@ -4,7 +4,7 @@
 // gone) records nothing.
 fn pluto_entity_climb_record(value: bool, m: &mut Mob) -> bool {
     if value {
-        sunrise_client_lib::pluto_entity_climb_access::record(m);
+        crate::mobs::pluto_entity_climb_access::record(m);
     }
     value
 }

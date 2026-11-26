@@ -1,17 +1,17 @@
 // Adapted from pinned Horizon mobs/ai.rs (MIT; LICENSE.horizon).
 // Keep native stepOn, swept visitation, species effects and random order.
-use sunrise_client_lib::mobs::*;
-use crate::pluto_block_access::{self as transport, InsideMotion, StateInfo};
+use super::*;
+use sunrise_world::level::pluto_block_access::{self as transport, InsideMotion, StateInfo};
 
 fn dispatch(m: &mut Mob, w: &MobWorld<'_>, pos: [i32; 3]) {
-    let server = crate::pluto_contact_effects::world_active(&w.world.attachments, w.game_time);
+    let server = sunrise_world::level::pluto_contact_effects::world_active(&w.world.attachments, w.game_time);
     if !server { return; }
     let Some(sink) = transport::landing_sink() else { return };
     let state = w.world.block(pos[0], pos[1], pos[2]);
     let Some(definition) = w.registry.state(state) else { return };
     let info = StateInfo { block: definition.name.to_string(), properties: definition.properties.iter()
         .map(|(key, value)| (key.to_string(), value.to_string())).collect() };
-    if let Some(dimension) = sunrise_client::block_contact::current_level() {
+    if let Some(dimension) = crate::block_contact::current_level() {
         let bounds = m.bounds_at(m.position);
         (sink.entity_inside)(&transport::EntityInside {
             dimension: dimension.to_string(), state: info.clone(), pos, entity: m.id as i32, kind: m.kind.id.clone(),
@@ -37,9 +37,9 @@ fn dispatch(m: &mut Mob, w: &MobWorld<'_>, pos: [i32; 3]) {
     m.velocity = Vec3::new(request.velocity[0], request.velocity[1], request.velocity[2]);
     if request.sync_velocity { m.needs_sync = true; }
     if let Some([volume, pitch]) = request.step_sound {
-        let _ = crate::pluto_contact_effects::queue_world(&w.world.attachments,
+        let _ = sunrise_world::level::pluto_contact_effects::queue_world(&w.world.attachments,
             m.id as i32, w.game_time,
-            crate::pluto_contact_effects::ContactSound { state, pos, volume, pitch });
+            sunrise_world::level::pluto_contact_effects::ContactSound { state, pos, volume, pitch });
     }
 }
 
@@ -50,7 +50,7 @@ pub(super) fn effects(m: &mut Mob, w: &MobWorld<'_>, level_random: &mut LegacyRa
     let travel = m.position.subtract(start);
     if m.on_ground && m.alive() {
         let [x, y, z] = m.block_on_legacy(w);
-        sunrise_client::block_contact::emit(sunrise_client::block_contact::Event::StepOn(sunrise_client::block_contact::Contact {
+        crate::block_contact::emit(crate::block_contact::Event::StepOn(crate::block_contact::Contact {
             entity: m.id as i32, kind: &m.kind.id, block: w.block_name(x, y, z),
             state: w.world.block(x, y, z), position: sunrise_core::position::BlockPos::new(x, y, z),
         }));
@@ -75,7 +75,7 @@ pub(super) fn effects(m: &mut Mob, w: &MobWorld<'_>, level_random: &mut LegacyRa
                 for z in b.min_position().z.floor() as i32..=b.max_position().z.floor() as i32 {
                     let p = [x, y, z];
                     if visited.contains(&p) { continue; }
-                    sunrise_client::block_contact::emit(sunrise_client::block_contact::Event::Inside(sunrise_client::block_contact::Contact {
+                    crate::block_contact::emit(crate::block_contact::Event::Inside(crate::block_contact::Contact {
                         entity: m.id as i32, kind: &m.kind.id, block: w.block_name(x, y, z),
                         state: w.world.block(x, y, z), position: sunrise_core::position::BlockPos::new(x, y, z),
                     }));

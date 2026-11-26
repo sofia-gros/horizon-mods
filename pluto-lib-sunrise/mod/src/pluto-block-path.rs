@@ -1,14 +1,14 @@
 // Native path-node query with the same borrowed BlockView contract as other
 // block callbacks. No global state-id table or guessed unloaded state is used.
-use sunrise_client_lib::mobs::*;
-use crate::pluto_block_access::{self as transport, LevelView, StateInfo};
+use super::*;
+use sunrise_world::level::pluto_block_access::{self as transport, LevelView, StateInfo};
 
 struct View<'a, 'w>(&'a MobWorld<'w>);
 impl View<'_, '_> {
     fn faces(&self, pos: [i32; 3]) -> u8 {
         let state = self.0.world.block(pos[0], pos[1], pos[2]);
         self.0.collision.cached_shapes().cached_shape(state).ok().flatten()
-            .and_then(crate::pluto_block_view_shapes::full_faces).unwrap_or(0)
+            .and_then(sunrise_world::level::data::pluto_block_view_shapes::full_faces).unwrap_or(0)
     }
 }
 impl LevelView for View<'_, '_> {

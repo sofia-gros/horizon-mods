@@ -1,4 +1,6 @@
-use crate::pluto_inventory::advancements::tags::{self, Change, ReplaceError, TagSink, TagSnapshot};
+use sunrise_client::pluto_inventory::advancements::tags::{
+    self, Change, ReplaceError, TagSink, TagSnapshot,
+};
 struct GameTags<'a, 'g>(&'a mut super::Game<'g>);
 impl TagSink for GameTags<'_, '_> {
     fn replace_owner(&mut self, owner: &str, tags: TagSnapshot) -> Result<Change, ReplaceError> {
@@ -42,7 +44,7 @@ pub(crate) fn with_game<R>(
 /// empty owner) is reported and skipped: replace_owner is atomic, so the
 /// store keeps the last good snapshot for that owner.
 pub(crate) fn drive(game: &mut super::Game<'_>) {
-    let generation = crate::game::pluto_advancement_tag_source::generation();
+    let generation = super::pluto_advancement_tag_source::generation();
     if generation == 0 {
         return;
     }
@@ -55,7 +57,7 @@ pub(crate) fn drive(game: &mut super::Game<'_>) {
     {
         return;
     }
-    let snapshots = crate::game::pluto_advancement_tag_source::take_snapshots();
+    let snapshots = super::pluto_advancement_tag_source::take_snapshots();
     with_game(game, |sink| {
         for snapshot in snapshots {
             if let Err(error) = sink.replace_owner(&snapshot.owner, snapshot.tags) {

@@ -7,20 +7,20 @@
 // guest state, which this flush has no hold of: the guest flush (pluto-menu-switch-guest-flush,
 // on the LAN station button's return) applies a guest's switch through the host's guest
 // container open, mirroring `lan_open_container`'s tail for a mod menu.
-use crate::game::Game;
+use super::Game;
 use crate::game::lan::LanHost;
-use sunrise_client_lib::lan::menu::Slots;
+use sunrise_client::lan::menu::Slots;
 
 impl Game<'_> {
     pub(crate) fn apply_queued_menu_switch(&mut self, from: (i32, i32, i32)) {
         // The local player's switches only: during a guest's press the acting player is the
         // guest, whose switches the guest flush applies — taking them here would drop them,
         // because the local container is not the guest's menu.
-        let me = sunrise_client_lib::lan::playerdata::ints_uuid(self.acting_player_uuid());
-        if me != sunrise_client_lib::lan::playerdata::ints_uuid(self.level.ensure_player_uuid()) {
+        let me = sunrise_client::lan::playerdata::ints_uuid(self.acting_player_uuid());
+        if me != sunrise_client::lan::playerdata::ints_uuid(self.level.ensure_player_uuid()) {
             return;
         }
-        for switch in crate::game::pluto_menu_switch::take_queued_for(me) {
+        for switch in sunrise_client::game::pluto_menu_switch::take_queued_for(me) {
             if switch.from != [from.0, from.1, from.2] {
                 continue;
             }
@@ -36,7 +36,7 @@ impl Game<'_> {
     /// before the open menu closes, so a refused switch leaves the old menu open.
     pub(crate) fn apply_queued_menu_switch_for_guest(&mut self, host: &mut LanHost, conn: u32) {
         let Some(guest_uuid) = host.hub.guest(conn).map(|g| g.uuid) else { return; };
-        for switch in crate::game::pluto_menu_switch::take_queued_for(guest_uuid) {
+        for switch in sunrise_client::game::pluto_menu_switch::take_queued_for(guest_uuid) {
             let from = (switch.from[0], switch.from[1], switch.from[2]);
             let to = (switch.to[0], switch.to[1], switch.to[2]);
             // The guest's menu must be the one the switch closes.
@@ -53,17 +53,17 @@ impl Game<'_> {
             let block = name.to_string();
             // The menu provider's getDisplayName: a container's custom name or its default name
             // (a mod block's container is named after its block).
-            let key = match sunrise_client_render::containers::default_name_key(name) {
+            let key = match sunrise_client::containers::default_name_key(name) {
                 Some(key) => key.to_owned(),
                 None => format!("block.{}", name.replace(':', ".")),
             };
-            let title = sunrise_client_render::containers::display_name(self.block_name_plain(to).as_deref(), &key);
+            let title = sunrise_client::containers::display_name(self.block_name_plain(to).as_deref(), &key);
             let Some(items) = host.hub.guest(conn).and_then(|g| Slots::Block(to).read(&self.world, g)) else {
                 continue;
             };
             // The block entity's createMenu: a shulker box opens a ShulkerBoxMenu (not a 9x3
             // ChestMenu), whose slots refuse shulker boxes.
-            let menu = sunrise_client_render::containers::block_menu_type(name).unwrap_or(menu);
+            let menu = sunrise_client::containers::block_menu_type(name).unwrap_or(menu);
             // BaseContainerBlockEntity.createMenu refuses a locked container: no menu opens. A
             // Tinkers table never carries a Lock tag, so this cannot trigger for one; the
             // switch is simply left unapplied, with no locked message or sound.
@@ -81,7 +81,7 @@ impl Game<'_> {
             // A mod menu type only for a client that has it: as `ServerPlayer.openMenu` with
             // no menu, nothing opens.
             let brand = host.hub.guest(conn).map_or("", |g| g.brand.as_str());
-            if !sunrise_client_render::containers::menu_reaches(brand, menu) {
+            if !sunrise_client::containers::menu_reaches(brand, menu) {
                 continue;
             }
             // The mods may stop the menu; the click is spent (the old menu stays open).

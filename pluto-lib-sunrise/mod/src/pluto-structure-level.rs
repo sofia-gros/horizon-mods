@@ -1,8 +1,8 @@
 // Registered structure marker operations on the actual live placement world.
 // The typed editor shares its RNG with template placement and native trees.
-use sunrise_world::{Behaviours,LevelAccess,Ticks,feature_world::LevelFeatureWorld,pluto_tree_level};
-use crate::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
-use crate::pluto_structure_access::MarkerWorld;
+use super::{Behaviours,LevelAccess,Ticks,feature_world::LevelFeatureWorld,pluto_tree_level};
+use super::pluto_block_access::{self,LevelView,LevelEdit,StateInfo,RootBindings,RootCallback,TreeCallback,TreeStep,PlannedTreeCallback,MAX_FEATURE_DEPTH};
+use super::pluto_structure_access::MarkerWorld;
 use sunrise_core::{position::BlockPos,random::{LegacyRandom,RandomSource}};
 use serde_json::Value;
 
@@ -88,7 +88,7 @@ impl<L:LevelAccess+?Sized> MarkerWorld for MarkerEditor<'_,'_,'_,L> {
         self.loaded(p)?;
         let state=self.inner.resolve(s).ok_or("unknown structure plant state")?;
         self.inner.with_world(|world,_| {
-            use sunrise_world::classes::Class;
+            use super::classes::Class;
             let chain=&world.sim.b.data(state).chain;
             let plant=chain.contains(&Class::Bush)||chain.contains(&Class::Vegetation);
             Ok(plant&&world.sim.can_survive(state,at(p)))
@@ -102,16 +102,16 @@ impl<L:LevelAccess+?Sized> MarkerWorld for MarkerEditor<'_,'_,'_,L> {
     fn place_feature(&mut self,name:&str,p:[i32;3])->Result<bool,String>{self.feature(name,p)}
 }
 
-pub fn has_registered(start:&sunrise_world::worldgen::structure::start::StructureStart)->bool {
-    start.pieces.iter().any(|p|matches!(p,sunrise_world::worldgen::structure::start::Piece::Legacy(p) if p.type_name()==crate::pluto_registered_piece::KIND))
+pub fn has_registered(start:&crate::worldgen::structure::start::StructureStart)->bool {
+    start.pieces.iter().any(|p|matches!(p,crate::worldgen::structure::start::Piece::Legacy(p) if p.type_name()==crate::worldgen::structure::pluto_registered_piece::KIND))
 }
 
 fn place_chunk<L:LevelAccess+?Sized>(
-    start:&sunrise_world::worldgen::structure::start::StructureStart,world:&mut LevelFeatureWorld<'_,'_,L>,
-    resources:&sunrise_world::worldgen::structure::StructureResources,blocks:&dyn sunrise_world::worldgen::structure::legacy::SolidRender,
-    random:&mut LegacyRandom,chunk_box:sunrise_world::worldgen::structure::BoundingBox,
+    start:&crate::worldgen::structure::start::StructureStart,world:&mut LevelFeatureWorld<'_,'_,L>,
+    resources:&crate::worldgen::structure::StructureResources,blocks:&dyn crate::worldgen::structure::legacy::SolidRender,
+    random:&mut LegacyRandom,chunk_box:crate::worldgen::structure::BoundingBox,
 )->Result<(),String> {
-    use sunrise_world::worldgen::structure::{start::Piece,legacy::PieceContext,pluto_registered_piece,legacy::pluto_structure_markers};
+    use crate::worldgen::structure::{start::Piece,legacy::PieceContext,pluto_registered_piece,legacy::pluto_structure_markers};
     use sunrise_core::position::ChunkPos;
     let Some(first)=start.pieces.first() else {return Ok(())};
     let first_box=first.bounding_box();let center=first_box.center();
@@ -137,7 +137,7 @@ fn place_chunk<L:LevelAccess+?Sized>(
                     let mut editor=MarkerEditor {inner:pluto_tree_level::TreeEditor::for_markers(world,random,&mut written),depth:0};
                     for (name,pos) in markers {
                         record.definition.callbacks.marker(&mut editor,&name,pos,&mut state)?;
-                        crate::pluto_structure_access::validate_value(&state)?;
+                        super::pluto_structure_access::validate_value(&state)?;
                         record.definition.callbacks.validate_state(&state)?;
                     }
                 } else {
@@ -160,15 +160,15 @@ fn place_chunk<L:LevelAccess+?Sized>(
 /// RNG write-back also runs on unwind, without rolling back completed writes.
 pub fn place(
     behaviours:&Behaviours,level:&mut dyn LevelAccess,ticks:&mut Ticks,
-    start:&sunrise_world::worldgen::structure::start::StructureStart,
-)->(bool,Vec<sunrise_core::nbt::Compound>) {
+    start:&crate::worldgen::structure::start::StructureStart,
+)->(bool,Vec<crate::nbt::Compound>) {
     let Some(features)=behaviours.live_features() else {return (false,Vec::new())};
     let (Some(resources),Some(blocks))=(features.structures(),features.tree_blocks()) else {return (false,Vec::new())};
     // A piece owns its template/registry resource snapshot. Reject a different
     // live bundle before *any* piece writes, including mixed plain pieces.
     for piece in &start.pieces {
-        if let sunrise_world::worldgen::structure::start::Piece::Legacy(piece)=piece {
-            match crate::pluto_registered_piece::record(&**piece) {
+        if let crate::worldgen::structure::start::Piece::Legacy(piece)=piece {
+            match crate::worldgen::structure::pluto_registered_piece::record(&**piece) {
                 Ok(Some(record)) if !std::ptr::eq(record.resources.as_ref(),resources)=>{
                     eprintln!("pluto_lib: registered structure resources changed before placement");return (false,Vec::new());
                 },
@@ -185,7 +185,7 @@ pub fn place(
         let mut placed=true;
         for cx in (min[0]>>4)..=(max[0]>>4) {
             for cz in (min[2]>>4)..=(max[2]>>4) {
-                let bounds=sunrise_world::worldgen::structure::BoundingBox::new([cx*16,low_y,cz*16],[cx*16+15,high_y,cz*16+15]);
+                let bounds=crate::worldgen::structure::BoundingBox::new([cx*16,low_y,cz*16],[cx*16+15,high_y,cz*16+15]);
                 if let Err(error)=place_chunk(start,&mut world,resources,&blocks,random,bounds) {
                     eprintln!("pluto_lib: registered structure placement failed: {error}");placed=false;
                 }

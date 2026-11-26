@@ -26,7 +26,7 @@ fn pluto_armor_wear_observe(
     game: &mut crate::game::Game<'_>,
     source: sunrise_world::damage_source::DamageTypeId,
     damage: f32,
-) -> core::ops::ControlFlow<()> {
+) -> std::ops::ControlFlow<()> {
     // Match the native nonpositive gate before taking any observation.
     // NaN is intentionally not rejected here: preserve native comparison.
     if damage <= 0.0 {
@@ -73,7 +73,7 @@ fn pluto_armor_wear_observe(
                     return None;
                 }
                 let max = match component("minecraft:max_damage") {
-                    Some(sunrise_core::nbt::Tag::Int(value)) => u32::try_from(*value).ok()?,
+                    Some(sunrise_world::nbt::Tag::Int(value)) => u32::try_from(*value).ok()?,
                     _ => info.max_damage,
                 };
                 if max == 0 {

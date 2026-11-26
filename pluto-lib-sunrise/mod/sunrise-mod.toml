@@ -324,7 +324,7 @@ target = "sunrise_client::game::native_hooks::mob_kind"
 kind = "HEAD"
 cancellable = true
 helper = "src/pluto-entity-kind.rs"
-bindings = [{ name = "mob", ty = "&sunrise_client_lib::mobs::Mob", value = "mob" }]
+bindings = [{ name = "mob", ty = "&sunrise_client::mobs::Mob", value = "mob" }]
 
 # Passenger (riding) transport for the entity reach: a snapshot of who rides
 # whom plus a queue of mount/dismount requests, applied by the game's own

@@ -1,9 +1,11 @@
 // One native NBT -> shared semantic component conversion for Pluto consumers.
 // This is read/predicate data, never retained-wire identity or a commit token.
-use crate::pluto_inventory::advancements::predicates::{ComponentText, ComponentValue, ItemSnapshot};
+use crate::pluto_inventory::advancements::predicates::{
+    ComponentText, ComponentValue, ItemSnapshot,
+};
 
-pub fn from_nbt(tag: sunrise_core::nbt::Tag) -> ComponentValue {
-    use sunrise_core::nbt::Tag as Native;
+pub fn from_nbt(tag: sunrise_world::nbt::Tag) -> ComponentValue {
+    use sunrise_world::nbt::Tag as Native;
     use ComponentValue as Value;
     match tag {
         Native::End => Value::End,
@@ -28,8 +30,8 @@ pub fn from_nbt(tag: sunrise_core::nbt::Tag) -> ComponentValue {
 
 /// The exact inverse of `from_nbt`, for writing a provider's component tree
 /// back into the game's tag form (component patches, assembled results).
-pub fn to_nbt(value: ComponentValue) -> sunrise_core::nbt::Tag {
-    use sunrise_core::nbt::{JavaString, Tag as Native};
+pub fn to_nbt(value: ComponentValue) -> sunrise_world::nbt::Tag {
+    use sunrise_world::nbt::{JavaString, Tag as Native};
     match value {
         ComponentValue::End => Native::End,
         ComponentValue::Byte(v) => Native::Byte(v),
@@ -128,7 +130,7 @@ mod tests {
     use super::*;
     #[test]
     fn pluto_component_view_preserves_float_bits_and_utf16() {
-        use sunrise_core::nbt::{JavaString, Tag};
+        use sunrise_world::nbt::{JavaString, Tag};
         let value = Tag::List(vec![
             Tag::Float(0x7fc0_0042),
             Tag::Double(0xfff0_0000_0000_0001),

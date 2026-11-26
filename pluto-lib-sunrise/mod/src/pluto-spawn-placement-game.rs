@@ -22,7 +22,7 @@
 // the selection's, which is the part the weaver's limit costs.
 use super::Game;
 use sunrise_client::{entry::pluto_spawn_placement as access,mobs::{Mob,Species}};
-use sunrise_client_lib::mobs::spawn_rules::SpawnLevel;
+use sunrise_client::mobs::spawn_rules::SpawnLevel;
 use sunrise_core::geometry::Vec3;
 use sunrise_core::random::RandomSource;
 
@@ -31,9 +31,9 @@ fn candidate_facts(game:&Game<'_>,level:&impl SpawnLevel,entity:&str,species:Spe
     let facts=level.facts();
     let below=facts.get(level.state(x,y-1,z));
     let at=facts.get(level.state(x,y,z));
-    let fluid_name=|fluid:&sunrise_items::blocks::Fluid| {
-        if matches!(fluid,sunrise_items::blocks::Fluid::Water) { "minecraft:water" }
-        else if matches!(fluid,sunrise_items::blocks::Fluid::Lava) { "minecraft:lava" }
+    let fluid_name=|fluid:&sunrise_client::blocks::Fluid| {
+        if matches!(fluid,sunrise_client::blocks::Fluid::Water) { "minecraft:water" }
+        else if matches!(fluid,sunrise_client::blocks::Fluid::Lava) { "minecraft:lava" }
         else { "minecraft:empty" }
     };
     // The darkness fact draws from a clone of the world stream, like the
@@ -43,8 +43,8 @@ fn candidate_facts(game:&Game<'_>,level:&impl SpawnLevel,entity:&str,species:Spe
         entity_type:entity.to_string(),dimension:game.dim.id().into(),position:[x,y,z],reason:"natural".into(),
         peaceful:level.peaceful(),block_below:below.name.to_string(),
         fluid_at:fluid_name(&at.fluid).into(),fluid_below:fluid_name(&below.fluid).into(),
-        block_below_valid_spawn:sunrise_client_lib::mobs::spawn_rules::is_valid_spawn(species,level,x,y-1,z),
-        dark_enough:sunrise_client_lib::mobs::spawn_rules::is_dark_enough(level,&mut rng,x,y,z),
+        block_below_valid_spawn:sunrise_client::mobs::spawn_rules::is_valid_spawn(species,level,x,y-1,z),
+        dark_enough:sunrise_client::mobs::spawn_rules::is_dark_enough(level,&mut rng,x,y,z),
     }
 }
 
@@ -90,8 +90,8 @@ pub(crate) fn permit_add_spawns(game:&Game<'_>)->Vec<Mob> {
             }
             let biome=game.biome_facts(x,y,z);
             let difficulty=game.local_difficulty(position);
-            sunrise_client_lib::mobs::spawning::finalize(&mut mob,&biome,&difficulty);
-            sunrise_client_lib::mobs::raider::finalize(&mut mob,sunrise_client_lib::mobs::raider::Reason::Natural);
+            sunrise_client::mobs::spawning::finalize(&mut mob,&biome,&difficulty);
+            sunrise_client::mobs::raider::finalize(&mut mob,sunrise_client::mobs::raider::Reason::Natural);
             spawned.push(mob);
         }
     }

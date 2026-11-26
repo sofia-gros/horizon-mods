@@ -27,7 +27,7 @@
 
 use super::{cast_direction, pull_item, Hook, State};
 use crate::pluto_fishing_access as access;
-use sunrise_items::items::ItemStack;
+use sunrise_client::items::ItemStack;
 use sunrise_core::geometry::Vec3;
 use sunrise_core::random::RandomSource;
 
@@ -86,7 +86,7 @@ fn cast(game: &mut super::super::Game<'_>, uuid: u128, profile: access::UseProfi
     let at = [player.position.x, player.position.y, player.position.z];
     let base = Vec3::new(-f64::from(y_sin), f64::from(dir_y), -f64::from(y_cos));
     let length = (base.x * base.x + base.y * base.y + base.z * base.z).sqrt();
-    let mut random = sunrise_client_render::random_source::entity();
+    let mut random = sunrise_client::random_source::entity();
     let spread = 0.03 * f64::from(profile.inaccuracy) * f64::from(profile.inaccuracy);
     let axis = |component: f64, random: &mut sunrise_core::random::LegacyRandom| {
         component * (f64::from(profile.velocity) / length + random.triangle(0.5, spread))

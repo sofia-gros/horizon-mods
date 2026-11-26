@@ -238,7 +238,7 @@ impl<T> Drop for ClientUpdate<T> {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_client::*;
+    use super::*;
     use std::collections::BTreeMap;
     use std::panic::{AssertUnwindSafe, catch_unwind};
 

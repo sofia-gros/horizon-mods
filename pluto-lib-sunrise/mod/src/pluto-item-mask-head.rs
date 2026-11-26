@@ -5,7 +5,7 @@ fn pluto_item_ender_mask(m: &Mob, w: &MobWorld<'_>) -> std::ops::ControlFlow<boo
     let Some(item) = p.head.as_deref() else { return std::ops::ControlFlow::Continue(()) };
     let mut uuid = 0_u128;
     for word in p.uuid { uuid = (uuid << 32) | u128::from(word as u32); }
-    let Some(mask) = sunrise_world::pluto_item_behavior_access::mask(item, uuid, m.id) else {
+    let Some(mask) = sunrise_world::level::pluto_item_behavior_access::mask(item, uuid, m.id) else {
         return std::ops::ControlFlow::Continue(());
     };
     if !p.alive || mask { return std::ops::ControlFlow::Break(false); }

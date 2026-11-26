@@ -58,7 +58,7 @@ impl<'a> SourceView<'a> {
 
 #[cfg(test)]
 mod tests {
-    use sunrise_world::*;
+    use super::*;
     use serde_json::json;
     fn catalog(names: &[&str], fire: bool) -> Catalog {
         let types: Vec<_> = names
