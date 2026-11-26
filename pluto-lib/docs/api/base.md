@@ -52,9 +52,16 @@ E.invoke(&());
 
 ### `Event`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`Event<A, R>` is a list of callbacks. `A` is what each callback receives (by reference), `R` is what it returns. Callbacks run in registration order unless a phase says otherwise, and the combiner turns the list of answers into one `R`.
+A list of callbacks that together answer one occurrence.
+
+`Event<A, R>`
+
+> `A` is what each callback receives by reference and `R` is what it returns. Callbacks
+> run in registration order unless a phase says otherwise, and the combiner turns the list
+> of answers into one `R`. PlutoLib's events are `static`s you register closures on, and a
+> mod can define its own event the same way.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -78,9 +85,15 @@ ON_SCORE.invoke(&5);
 
 ### `Event::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn new(combiner: &'static dyn Combiner<R>) -> Event<A, R>`. Makes an event with the given combiner. Use it in a `static`. The shorthand constructors below cover the usual combiners.
+Makes an event with the given combiner.
+
+`const fn new(combiner: &'static dyn Combiner<R>) -> Event<A, R>`
+
+> Use it in a `static` to build an event whose answers combine in a custom way. The
+> shorthand constructors below cover the usual combiners, so reach for `new` when none of
+> them fits; with no callbacks registered, `invoke` returns the combiner's default.
 
 ```rust
 use pluto_lib::{Event, FirstNotPass, ActionResult};
@@ -91,9 +104,16 @@ assert_eq!(CLICKED.invoke(&1), ActionResult::Pass); // no callback: the combiner
 
 ### `Event::void`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn void() -> Event<A, ()>`. An event whose callbacks return nothing (every callback runs).
+An event whose callbacks return nothing.
+
+`const fn void() -> Event<A, ()>`
+
+> Every registered callback runs on `invoke`; with no return value there is nothing to
+> combine, so no callback can stop or veto the others. Use it for notifications — the
+> common case for a mod-defined event — and reach for the other constructors when
+> callbacks must answer something.
 
 ```rust
 use pluto_lib::Event;
@@ -105,9 +125,16 @@ PING.invoke(&());
 
 ### `Event::first_not_pass`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn first_not_pass() -> Event<A, ActionResult>`. Callbacks answer with an `ActionResult`; the first answer that is not `Pass` wins and stops the rest. With no such answer the result is `Pass`.
+An event whose callbacks answer with an `ActionResult`; the first non-`Pass` answer wins.
+
+`const fn first_not_pass() -> Event<A, ActionResult>`
+
+> Callbacks run in order until one returns something other than `Pass`; that answer is the
+> result and the rest never run. If every callback passes, or none is registered, the
+> result is `Pass`. Use it for interactions, where the first handler to claim the action
+> decides it.
 
 ```rust
 use pluto_lib::{ActionResult, Event};
@@ -121,9 +148,15 @@ assert_eq!(USE.invoke(&()), ActionResult::Fail);
 
 ### `Event::allow_all`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn allow_all() -> Event<A, bool>`. Callbacks answer yes (`true`) or no. Any `false` vetoes and stops the rest; all `true` (or none) allows.
+An event whose callbacks answer yes or no, and any no vetoes.
+
+`const fn allow_all() -> Event<A, bool>`
+
+> Each callback returns `true` or `false`; the first `false` stops the rest and the
+> combined answer is `false`. If every callback allows, or none is registered, the answer
+> is `true`. Use it for permission-style questions where any listener may veto.
 
 ```rust
 use pluto_lib::Event;
@@ -136,9 +169,15 @@ assert!(!ALLOW.invoke(&-1));
 
 ### `Event::first_some`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn first_some() -> Event<A, Option<T>>`. Callbacks answer with `Some` when they know the answer for the request, `None` when they pass. The first `Some` wins and stops the rest; all `None` (or none) is `None`.
+An event whose callbacks answer with an option; the first `Some` wins.
+
+`const fn first_some() -> Event<A, Option<T>>`
+
+> A callback returns `Some` when it knows the answer for the request and `None` when it
+> passes. The first `Some` stops the rest and becomes the result; if all pass, the result
+> is `None`. Use it for lookups that one listener at a time can satisfy.
 
 ```rust
 use pluto_lib::Event;
@@ -152,9 +191,15 @@ assert_eq!(LOOKUP.invoke(&3), None);
 
 ### `Event::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(&self, callback: impl Fn(&A) -> R + Send + Sync + 'static)`. Adds a callback in the default phase. Registering from inside a running callback is allowed.
+Adds a callback to an event, in the default phase.
+
+`fn register(&self, callback: impl Fn(&A) -> R + Send + Sync + 'static)`
+
+> The callback receives the event's argument by reference and returns its answer.
+> Registering from inside a running callback is allowed. For ordering against other mods'
+> callbacks, register in a named phase with `register_with_phase` instead.
 
 ```rust
 use pluto_lib::Event;
@@ -166,9 +211,15 @@ E.invoke(&"hi".to_owned());
 
 ### `Event::register_with_phase`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_with_phase(&self, phase: Identifier, callback: ...)`. Adds a callback in a named phase. Phases run in the order set by `add_phase_ordering`; callbacks inside one phase keep registration order.
+Adds a callback to an event in a named phase.
+
+`fn register_with_phase(&self, phase: Identifier, callback: ...)`
+
+> Phases run in the order set by `add_phase_ordering`, and callbacks inside one phase keep
+> registration order. Use a phase when your callback must run before or after another
+> mod's; plain `register` puts a callback in the default phase.
 
 ```rust
 use pluto_lib::{Event, Identifier};
@@ -181,9 +232,15 @@ E.invoke(&());
 
 ### `Event::add_phase_ordering`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn add_phase_ordering(&self, first: Identifier, second: Identifier) -> Result<(), PhaseOrderingCycle>`. Says `first` runs before `second`. A contradicting ordering is refused and the event keeps working.
+Declares that one phase runs before another on this event.
+
+`fn add_phase_ordering(&self, first: Identifier, second: Identifier) -> Result<(), PhaseOrderingCycle>`
+
+> It says `first` runs before `second`. An ordering that contradicts an earlier one —
+> closing a cycle — is refused with `PhaseOrderingCycle` and the event keeps working, so
+> one mod's wish can never break another mod's event.
 
 ```rust
 use pluto_lib::{Event, Identifier};
@@ -197,9 +254,15 @@ assert!(E.add_phase_ordering(b, a).is_err()); // would make a cycle
 
 ### `Event::is_empty`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_empty(&self) -> bool`. Whether no callback is registered. The game uses it to pay for an expensive hook only when someone listens.
+Whether no callback is registered on the event.
+
+`fn is_empty(&self) -> bool`
+
+> It lets the game pay for an expensive hook only when someone listens. Check it before
+> doing costly work to produce an event's argument when nobody may be registered to hear
+> it.
 
 ```rust
 use pluto_lib::Event;
@@ -212,9 +275,15 @@ assert!(!E.is_empty());
 
 ### `Event::invoke`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn invoke(&self, args: &A) -> R`. Runs the callbacks and returns the combined answer. PlutoLib calls it for its own events; a mod calls it for events it defines (and tests use it to drive a callback).
+Runs the event's callbacks and returns the combined answer.
+
+`fn invoke(&self, args: &A) -> R`
+
+> PlutoLib calls it for its own events; a mod calls it for events it defines, and tests
+> use it to drive a callback. The combiner decides how the individual answers become the
+> one returned value.
 
 ```rust
 use pluto_lib::Event;
@@ -226,9 +295,15 @@ SUM.invoke(&7);
 
 ### `Callback`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`type Callback<A, R> = Arc<dyn Fn(&A) -> R + Send + Sync>`. How an event stores a callback; a `Combiner` receives them.
+The stored form of an event callback.
+
+`type Callback<A, R> = Arc<dyn Fn(&A) -> R + Send + Sync>`
+
+> An event stores each callback as a shared `Arc` closure taking the argument by reference
+> and returning the answer. A `Combiner` receives the callbacks in this form when it
+> combines their answers.
 
 ```rust
 use pluto_lib::Callback;
@@ -240,9 +315,13 @@ assert_eq!(double(&4), 8);
 
 ### `Combiner`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Trait that turns the callbacks into one result. Implement it for a custom event; the four provided ones (`Unit`, `FirstNotPass`, `AllowAll`, `FirstSome`) cover PlutoLib's events.
+The trait that turns an event's callback answers into one result.
+
+> Implement it for a custom event whose answers combine in a way the provided combiners do
+> not cover. The four provided ones — `Unit`, `FirstNotPass`, `AllowAll` and `FirstSome` —
+> cover PlutoLib's own events and most mod events.
 
 ```rust
 use pluto_lib::{Combiner, Event};
@@ -263,9 +342,12 @@ assert_eq!(TOTAL.invoke(&()), 5);
 
 ### `Unit`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Combiner for events whose callbacks return `()`: every callback runs.
+The combiner for events whose callbacks return nothing.
+
+> Every callback runs, and there is no answer to combine. It is the combiner behind
+> `Event::void()`; pass `&Unit` to `Event::new` when you build the event explicitly.
 
 ```rust
 use pluto_lib::{Event, Unit};
@@ -276,9 +358,13 @@ E.invoke(&());
 
 ### `FirstNotPass`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Combiner for `ActionResult` events: the first answer that is not `Pass` wins.
+The combiner for `ActionResult` events.
+
+> Callbacks run in order until one answers with something other than `Pass`; that answer
+> is returned and the rest are skipped. If none does, the result is `Pass`. It is the
+> combiner behind `Event::first_not_pass()`.
 
 ```rust
 use pluto_lib::{ActionResult, Event, FirstNotPass};
@@ -290,9 +376,13 @@ assert_eq!(E.invoke(&()), ActionResult::Consume);
 
 ### `AllowAll`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Combiner for `bool` events: any `false` vetoes.
+The combiner for `bool` events.
+
+> The combined answer is `false` as soon as one callback returns `false`, and `true` when
+> every callback allows or none is registered. It is the combiner behind
+> `Event::allow_all()`.
 
 ```rust
 use pluto_lib::{AllowAll, Event};
@@ -304,9 +394,13 @@ assert!(!E.invoke(&()));
 
 ### `FirstSome`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Combiner for `Option<T>` events: the first `Some` wins.
+The combiner for `Option<T>` events.
+
+> Callbacks answer `Some` when they know the answer and `None` to pass; the first `Some`
+> is returned and the rest are skipped, and all `None` gives `None`. It is the combiner
+> behind `Event::first_some()`.
 
 ```rust
 use pluto_lib::{Event, FirstSome};
@@ -319,9 +413,14 @@ assert_eq!(E.invoke(&2), None);
 
 ### `default_phase`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn default_phase() -> Identifier`. The phase callbacks join when registered with `register`. Order a custom phase before or after it.
+The phase callbacks join when registered with `register`.
+
+`fn default_phase() -> Identifier`
+
+> Order a custom phase before or after it with `add_phase_ordering` to place your
+> callbacks relative to everyone who registered plainly.
 
 ```rust
 use pluto_lib::{default_phase, Event, Identifier};
@@ -334,9 +433,13 @@ E.register_with_phase(early, |_| {});
 
 ### `PhaseOrderingCycle`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The error `add_phase_ordering` returns when two orderings contradict. The fields name the pair that was refused.
+The error returned when two phase orderings contradict.
+
+> Its fields name the pair of phases whose ordering was refused — the `first` and `second`
+> identifiers of the call that would have closed the cycle. The event keeps its earlier
+> orderings and keeps working.
 
 ```rust
 use pluto_lib::{Event, Identifier};
@@ -354,9 +457,14 @@ assert_eq!((refused.first, refused.second), (b, a));
 
 ### `ActionResult`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What an interaction callback decided: `Success` (happened, swing the hand), `Consume` (happened, no swing), `ConsumePartial` (partly happened), `Pass` (not handled here) and `Fail` (cancel).
+What an interaction callback decided.
+
+> `Success` means the interaction happened and swings the hand, `Consume` that it happened
+> without a swing, and `ConsumePartial` that it partly happened. `Pass` hands the
+> interaction to the next handler and `Fail` cancels it outright. The helpers
+> `is_accepted` and `should_swing_hand` read the answer.
 
 ```rust
 use pluto_lib::ActionResult;
@@ -367,9 +475,14 @@ assert_eq!(answers.iter().filter(|a| a.is_accepted()).count(), 3);
 
 ### `ActionResult::is_accepted`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_accepted(self) -> bool`. True for every result except `Pass` and `Fail`.
+Whether the result counts as the interaction happening.
+
+`fn is_accepted(self) -> bool`
+
+> True for every result except `Pass` and `Fail`: `Success`, `Consume` and
+> `ConsumePartial` all mean the interaction was handled here.
 
 ```rust
 use pluto_lib::ActionResult;
@@ -381,13 +494,14 @@ assert!(!ActionResult::Fail.is_accepted());
 
 ### `ActionResult::should_swing_hand`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn should_swing_hand(self) -> bool`. True only for `Success`.
+Whether the game should swing the player's hand for this result.
 
-> Whether the game should swing the player's hand for this result. Only Success swings: Consume
-> reports an action that happened without a swing, and Pass means the interaction did not happen
-> at all.
+`fn should_swing_hand(self) -> bool`
+
+> True only for `Success`. `Consume` reports an action that happened without a swing, and
+> `Pass` means the interaction did not happen at all.
 
 ```rust
 use pluto_lib::ActionResult;
@@ -400,9 +514,13 @@ assert!(!ActionResult::Consume.should_swing_hand());
 
 ### `Identifier`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A namespaced name such as `tconstruct:flint_pickaxe`. The namespace allows `a-z 0-9 _ . -`, the path also `/`. Displays as `namespace:path`.
+A namespaced name, such as `tconstruct:flint_pickaxe`.
+
+> The namespace allows `a-z 0-9 _ . -`, and the path also allows `/`. It displays as
+> `namespace:path`, and every registry in the API is keyed by it. Build one with
+> `Identifier::new`, or parse a single string with `Identifier::parse`.
 
 ```rust
 use pluto_lib::Identifier;
@@ -413,13 +531,15 @@ assert_eq!(id.to_string(), "tconstruct:tools/pickaxe");
 
 ### `Identifier::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(namespace: &str, path: &str) -> Result<Identifier, IdentifierError>`.
+Builds an identifier from a namespace and a path, validating both parts.
 
-> Builds an identifier from a namespace and a path, validating both parts. The Err case carries an
-> IdentifierError naming which part was rejected and why, so bad data fails at construction
-> instead of downstream.
+`fn new(namespace: &str, path: &str) -> Result<Identifier, IdentifierError>`
+
+> The Err case carries an `IdentifierError` naming which part was rejected and why, so bad
+> data fails at construction instead of downstream. Use `Identifier::parse` instead when
+> the name arrives as a single `namespace:path` string.
 
 ```rust
 use pluto_lib::Identifier;
@@ -431,9 +551,14 @@ assert!(Identifier::new("example", "").is_err());      // so is an empty path
 
 ### `Identifier::parse`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn parse(text: &str) -> Result<Identifier, IdentifierError>`. Reads `namespace:path`; without a colon the namespace is `minecraft`.
+Reads an identifier from a `namespace:path` string.
+
+`fn parse(text: &str) -> Result<Identifier, IdentifierError>`
+
+> Without a colon the namespace is `minecraft` (see `DEFAULT_NAMESPACE`). Both parts are
+> validated as in `Identifier::new`, and a bad part fails with an `IdentifierError`.
 
 ```rust
 use pluto_lib::Identifier;
@@ -444,9 +569,11 @@ assert_eq!(Identifier::parse("stone").unwrap().to_string(), "minecraft:stone");
 
 ### `Identifier::namespace`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn namespace(&self) -> &str`.
+The namespace part of the identifier.
+
+`fn namespace(&self) -> &str`
 
 > The part before the colon — for example `tconstruct` in `tconstruct:flint_pickaxe`. The
 > namespace names the mod or pack that owns the thing the identifier refers to.
@@ -459,12 +586,15 @@ assert_eq!(Identifier::new("example", "a").unwrap().namespace(), "example");
 
 ### `Identifier::path`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn path(&self) -> &str`.
+The path part of the identifier.
 
-> The part after the colon — for example `flint_pickaxe` in `tconstruct:flint_pickaxe`. Together
-> with the namespace it forms the full name every registry in the API is keyed by.
+`fn path(&self) -> &str`
+
+> The part after the colon — for example `flint_pickaxe` in `tconstruct:flint_pickaxe`.
+> Together with the namespace it forms the full name every registry in the API is keyed
+> by.
 
 ```rust
 use pluto_lib::Identifier;
@@ -474,9 +604,14 @@ assert_eq!(Identifier::new("example", "a/b").unwrap().path(), "a/b");
 
 ### `DEFAULT_NAMESPACE`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const DEFAULT_NAMESPACE: &str = "minecraft"`. The namespace `Identifier::parse` uses when the text has none.
+The namespace assumed when an identifier string has none.
+
+`const DEFAULT_NAMESPACE: &str = "minecraft"`
+
+> `Identifier::parse` uses it when the text has no colon, so a bare name like `stone`
+> reads as `minecraft:stone`.
 
 ```rust
 use pluto_lib::{Identifier, DEFAULT_NAMESPACE};
@@ -486,9 +621,12 @@ assert_eq!(Identifier::parse("dirt").unwrap().namespace(), DEFAULT_NAMESPACE);
 
 ### `IdentifierError`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Why an identifier was rejected: `InvalidNamespace` or `InvalidPath`, each with the offending text.
+Why an identifier was rejected.
+
+> Either `InvalidNamespace` or `InvalidPath`, each carrying the offending text, so a
+> caller can report exactly which part of the name was bad and show it.
 
 ```rust
 use pluto_lib::{Identifier, IdentifierError};
@@ -505,9 +643,14 @@ PlutoLib always offers the whole API. Where Horizon cannot do what a call means 
 
 ### `Support`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Whether a call works on the pinned Horizon: `Implemented`, `Stub` (callable but inert: no host hook exists) or `BlockedByMixins` (inert: the pinned Horizon Mixins refuses the hook that would implement it).
+How far a call in the support matrix works.
+
+> The classes are `Implemented` (the call does what it means), `Stub` (callable but inert:
+> no host hook exists) and `BlockedByMixins` (inert: the pinned Mixins refuses the hook
+> that would implement it). Each matrix row carries one of these classes, so missing
+> behaviour is never silent.
 
 ```rust
 use pluto_lib::Support;
@@ -518,9 +661,14 @@ assert_ne!(Support::Stub, Support::BlockedByMixins);
 
 ### `SupportEntry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One row of the matrix. `api` names the call, `support` says how far it works, `behaviour` says what it does meanwhile, `unblocked_by` says what host change makes it work.
+One row of the support matrix.
+
+> Its fields are `api`, naming the call; `support`, saying how far it works; `behaviour`,
+> saying what the call does meanwhile; and `unblocked_by`, saying what host change makes
+> it work. Read a row to know exactly what a not-yet-implemented call does instead of
+> guessing.
 
 ```rust
 use pluto_lib::MATRIX;
@@ -532,9 +680,14 @@ let _ = row.support;
 
 ### `MATRIX`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const MATRIX: &[SupportEntry]`. Every call that is not fully implemented.
+Every call that is not fully implemented, as support rows.
+
+`const MATRIX: &[SupportEntry]`
+
+> Each row is a `SupportEntry` for one such call. Filter it with `entries_with` to list
+> the rows of one support class at a time.
 
 ```rust
 use pluto_lib::MATRIX;
@@ -544,12 +697,14 @@ assert!(MATRIX.iter().all(|row| !row.api.is_empty()));
 
 ### `entries_with`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn entries_with(support: Support) -> impl Iterator<Item = &'static SupportEntry>`. The rows in one class.
+The support-matrix rows in one support class.
 
-> The rows of the support matrix whose support class is the given one. Tools and pages use it to
-> list, for one class at a time, which calls are implemented, which are stubs and which are
+`fn entries_with(support: Support) -> impl Iterator<Item = &'static SupportEntry>`
+
+> It yields the rows whose support class is the given one. Tools and pages use it to list,
+> for one class at a time, which calls are implemented, which are stubs and which are
 > unsupported.
 
 ```rust
@@ -562,9 +717,14 @@ for row in entries_with(Support::Stub) {
 
 ### `Nbt::parse_snbt`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn parse_snbt(text: &str) -> Result<Nbt, String>`. Parses SNBT text (the game's stringified NBT) into a value; the error says where the text stopped making sense.
+Parses SNBT text into an NBT value.
+
+`fn parse_snbt(text: &str) -> Result<Nbt, String>`
+
+> SNBT is the game's stringified NBT. On failure the error says where the text stopped
+> making sense, so bad input can be pointed at rather than merely rejected.
 
 ```rust
 use pluto_lib::Nbt;
@@ -575,9 +735,16 @@ assert!(Nbt::parse_snbt("{count: 3").is_err());
 
 ### `compare_nbt`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn compare_nbt(expected: &Nbt, actual: Option<&Nbt>) -> bool`. Whether `actual` carries the pattern `expected` (the game's `NbtUtils.compareNbt` with the third argument true): the kinds must match exactly (a byte is not an int, and no number widens); a compound pattern matches when the data has at least its entries and every one matches; a list pattern matches when the data has at least its elements and every pattern element matches some data element; anything else must be equal. No data at all never matches.
+Whether data carries the pattern in `expected`.
+
+`fn compare_nbt(expected: &Nbt, actual: Option<&Nbt>) -> bool`
+
+> The kinds must match exactly — a byte is not an int, and no number widens. A compound
+> pattern matches when the data has at least its entries and every one matches; a list
+> pattern matches when the data has at least its elements and every pattern element
+> matches some data element; anything else must be equal. No data at all never matches.
 
 ```rust
 use pluto_lib::{Nbt, compare_nbt};

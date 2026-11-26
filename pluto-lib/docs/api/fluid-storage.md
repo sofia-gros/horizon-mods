@@ -38,9 +38,13 @@ assert_eq!(storage.drain([1, 0, 0], None, 30, true).unwrap().amount, 30);
 
 ### `BlockEntityStore`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the storage reads and writes: `block_at(pos)` the block id, `read(pos)` the saved data and item slots of its block entity, `write(pos, data, items)` changed data back. The host implements it over its loaded chunks.
+What the storage reads and writes: `block_at(pos)` the block id, `read(pos)` the saved data and item slots of its block entity, `write(pos, data, items)` changed data back.
+
+> The host implements it over its loaded chunks, so a position outside the loaded world
+> has nothing to read or write. `FluidStorage` builds its position queries on these three
+> operations.
 
 ```rust
 use pluto_lib::{BlockEntityStore, ItemSlot, MemoryBlockEntities, NbtCompound};
@@ -53,9 +57,13 @@ assert!(world.read([0, 64, 0]).is_some());
 
 ### `MemoryBlockEntities`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A world of block entities for tests: `blocks` (block ids by position) and `entities` (saved data and item slots by position).
+A world of block entities for tests.
+
+> `blocks` holds block ids by position and `entities` the saved data and item slots by
+> position. Seed both maps with the world your test needs, then run the storage queries
+> over it.
 
 ```rust
 use pluto_lib::{BlockEntityStore, MemoryBlockEntities, NbtCompound};
@@ -68,9 +76,13 @@ assert_eq!(world.block_at([0, 0, 0]).as_deref(), Some("example:pool"));
 
 ### `FluidStorage`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Fluid queries over a store: [`tanks`](#fluidstoragetanks), [`fill`](#fluidstoragefill) and [`drain`](#fluidstoragedrain) at a position, following forwards.
+Fluid queries over a store.
+
+> The queries work at a position and follow the block's forwards: `tanks` lists what the
+> block there shows, `fill` offers it a fluid, and `drain` takes fluid from it. Each is a
+> method on this type over a `BlockEntityStore`.
 
 ```rust
 use pluto_lib::{FluidStorage, MemoryBlockEntities};
@@ -81,13 +93,15 @@ assert!(FluidStorage::new(&mut world).tanks([0, 0, 0]).is_none(), "nothing there
 
 ### `FluidStorage::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(store: &mut dyn BlockEntityStore) -> FluidStorage`. Queries over `store`.
+Queries over `store`.
 
-> Wraps a block-entity store so the fluid queries — tanks, fill and drain — can run over it. The
-> store is borrowed for the queries' lifetime, so one FluidStorage serves one stretch of work
-> against that store.
+`fn new(store: &mut dyn BlockEntityStore) -> FluidStorage`
+
+> Wraps a block-entity store so the fluid queries — tanks, fill and drain — can run over
+> it. The store is borrowed for the queries' lifetime, so one FluidStorage serves one
+> stretch of work against that store.
 
 ```rust
 use pluto_lib::{FluidStorage, MemoryBlockEntities};
@@ -98,9 +112,15 @@ let _storage = FluidStorage::new(&mut world);
 
 ### `FluidStorage::tanks`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tanks(&mut self, pos: BlockPos) -> Option<Vec<NeighbourTank>>`. The tanks the block at `pos` shows, as its filter lists them: all for `Any`, those empty or holding the fluid for `Only`, the last one while it is empty for `Closed`. `None` where there is no storage.
+The tanks the block at `pos` shows, as its filter lists them: all for `Any`, those empty or holding the fluid for `Only`, the last one while it is empty for `Closed`.
+
+`fn tanks(&mut self, pos: BlockPos) -> Option<Vec<NeighbourTank>>`
+
+> `None` where there is no storage at the position. The tanks come back as
+> `NeighbourTank`s — the same shape the neighbour queries answer — so the same reading
+> code works on either surface.
 
 ```rust
 use pluto_lib::{FluidStorage, MemoryBlockEntities};
@@ -111,9 +131,14 @@ assert_eq!(FluidStorage::new(&mut world).tanks([5, 5, 5]), None);
 
 ### `FluidStorage::fill`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fill(&mut self, pos: BlockPos, stack: &FluidStack, execute: bool) -> u32`. How much of `stack` the block at `pos` takes, through its `fluid_filler` or into its declared tanks; a filter refuses other fluids and `Closed` takes none. With `execute` false it only asks.
+How much of `stack` the block at `pos` takes, through its `fluid_filler` or into its declared tanks.
+
+`fn fill(&mut self, pos: BlockPos, stack: &FluidStack, execute: bool) -> u32`
+
+> A filter refuses other fluids and `Closed` takes none. With `execute` false it only
+> asks.
 
 ```rust
 use pluto_lib::{FluidStack, FluidStorage, Identifier, MemoryBlockEntities};
@@ -125,9 +150,14 @@ assert_eq!(FluidStorage::new(&mut world).fill([0, 0, 0], &water, true), 0, "noth
 
 ### `FluidStorage::drain`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn drain(&mut self, pos: BlockPos, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack>`. Takes up to `amount` millibuckets out of the block at `pos`: of `wanted` when named, otherwise of what the storage gives first; a filter that names a fluid gives that fluid only, and `Closed` none.
+Takes up to `amount` millibuckets out of the block at `pos`.
+
+`fn drain(&mut self, pos: BlockPos, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack>`
+
+> Of `wanted` when named, otherwise of what the storage gives first; a filter that names a
+> fluid gives that fluid only, and `Closed` none.
 
 ```rust
 use pluto_lib::{FluidStorage, MemoryBlockEntities};

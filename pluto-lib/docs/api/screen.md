@@ -115,9 +115,13 @@ let _ = window;
 
 ### `SlotAction`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The owned click kinds; other native operations remain delegated.
+
+> The variants are the clicks a callback can own: `Pickup`, `QuickMove`, `Swap` and `Throw`. Drag,
+> creative clone and pick-all are not among them — those operations stay on the native path, as do
+> all other native operations.
 
 ```rust
 use pluto_lib::SlotAction;
@@ -126,9 +130,12 @@ let action = SlotAction::Pickup;
 
 ### `SlotClick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Callback context: `pos` is the block position; `player` is the acting player; `authoritative` distinguishes server effects; `slot`, `button` and `action` identify the click. Mutable `data` is saved block-entity data and `menu` accesses pending menu state. Neither grants a live player/world mutation scope.
+Callback context: `pos` is the block position; `player` is the acting player; `authoritative` distinguishes server effects; `slot`, `button` and `action` identify the click.
+
+> Mutable `data` is saved block-entity data and `menu` accesses pending menu state. Neither grants
+> a live player/world mutation scope.
 
 ```rust
 use pluto_lib::SlotClick;
@@ -137,9 +144,16 @@ fn is_server_click(click: &SlotClick<'_>) -> bool { click.authoritative }
 
 ### `ScreenHandlerType::on_slot_click`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`on_slot_click(slot, action, handler)` owns one operation on one menu slot. Other slots and operations keep the native path. `SlotAction` is `Pickup`, `QuickMove`, `Swap` or `Throw`; drag, creative clone and pick-all remain native. The callback receives `SlotClick`: `pos`, `player`, `authoritative`, `slot`, `button`, `action`, mutable saved `data`, and a staged `menu`. It does not install a live player/world mutation scope.
+Owns one operation on one menu slot.
+
+`on_slot_click(slot, action, handler)`
+
+> Other slots and operations keep the native path. `SlotAction` is `Pickup`, `QuickMove`, `Swap`
+> or `Throw`; drag, creative clone and pick-all remain native. The callback receives `SlotClick`:
+> `pos`, `player`, `authoritative`, `slot`, `button`, `action`, mutable saved `data`, and a staged
+> `menu`. It does not install a live player/world mutation scope.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout, SlotAction};
@@ -160,9 +174,14 @@ let _ = window;
 
 ### `ScreenHandlerType::exclude_from_pick_all`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Use `exclude_from_pick_all(slot)` for a lazy recipe-result slot. It vetoes that slot when double-click collection scans candidates, including when the click started on another slot, and preserves every native refusal. It also excludes that slot from the native shift-double-click scan. It does not implement crafting, prevent ordinary pickup, or change storage slots unless explicitly declared.
+Use `exclude_from_pick_all(slot)` for a lazy recipe-result slot.
+
+> It vetoes that slot when double-click collection scans candidates, including when the click
+> started on another slot, and preserves every native refusal. It also excludes that slot from the
+> native shift-double-click scan. It does not implement crafting, prevent ordinary pickup, or
+> change storage slots unless explicitly declared.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -175,27 +194,25 @@ let _ = window;
 
 ### `MenuAccess`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`MenuAccess` operates on the native menu's pending state, not directly on the live player inventory:
+Operates on the native menu's pending state, not directly on the live player inventory.
 
-| Method | Meaning |
-|---|---|
-| `slot_count(&self) -> usize` | Number of menu slots, including the player's slots. |
-| `stack(&self, slot: usize) -> Option<ItemSlot>` | Clone the complete slot stack; `None` for empty/out-of-range. |
-| `set_stack(&mut self, slot: usize, stack: Option<ItemSlot>) -> bool` | Replace a staged slot; false out-of-range, zero count becomes empty. The callback is responsible for its recipe/placement rules. |
-| `swap_stack(&self, button: i32) -> Option<ItemSlot>` | Clone hotbar 0..=8 or offhand 40, using swap-button numbering, not menu-slot numbering. Other buttons return `None`. |
-| `set_swap_stack(&mut self, button: i32, stack: Option<ItemSlot>) -> bool` | Replace that staged swap target; other buttons return false, zero count clears it. Offhand works without a visible menu slot. Recipe eligibility and stack limits remain the callback's responsibility. |
-| `carried(&self) -> Option<ItemSlot>` | Clone the cursor stack. |
-| `set_carried(&mut self, stack: Option<ItemSlot>)` | Replace the staged cursor; zero count becomes empty. |
-| `same_item_and_components(&self, left: &ItemSlot, right: &ItemSlot) -> bool` | Native item/component comparison after applying public edits to each captured stack. Ignores count; false if either count is zero. Does not check capacity or slot acceptance. |
-| `max_stack_count(&self, stack: &ItemSlot) -> u32` | Native component-aware item-stack limit, including removed max-stack-size components; zero for an empty stack. A destination slot may impose a lower limit. |
-| `move_stack(&mut self, stack: &mut ItemSlot, start: usize, end: usize, reverse: bool) -> bool` | Delegate to native transfer over `[start, end)`, respecting slot acceptance, components and limits. Returns whether anything moved; leaves the remainder in `stack`. Invalid bounds return false. |
-| `crafting_remainder(&self, stack: &ItemSlot) -> Option<ItemSlot>` | Resolve the native item's crafting remainder from this menu's registry, as a fresh one-item stack. Empty/unknown items or no remainder return `None`. This is not the use/food remainder and does not implement mod-specific fallback rules. |
-| `give_stack(&mut self, stack: ItemSlot)` | Consume an owned stack through native player-inventory insertion (`place_back`), including merge selection and dropping overflow. Inventory writes and overflow drops stay staged until the normal menu commit. Zero count is ignored; this does not remove a source slot. |
-| `drop_stack(&mut self, stack: &ItemSlot)` | Queue a drop through the native menu commit; does not itself remove the source stack. |
+`MenuAccess`
 
-For an extra recipe remainder after consuming its source input, return the owned stack through the native player-inventory path rather than assuming a menu-slot range:
+> `slot_count` gives the number of menu slots, including the player's slots. `stack` clones the
+> complete slot stack (`None` for empty or out-of-range) and `set_stack` replaces a staged slot —
+> false out-of-range, zero count becomes empty — leaving recipe and placement rules to the
+> callback. `swap_stack` clones hotbar 0..=8 or offhand 40 by swap-button numbering, and
+> `set_swap_stack` replaces that staged target; the offhand works without a visible menu slot.
+> `carried` clones the cursor stack and `set_carried` replaces the staged cursor.
+> `same_item_and_components` compares two captured stacks natively after public edits, ignoring
+> count, and `max_stack_count` is the native component-aware stack limit, zero for an empty stack.
+> `move_stack` delegates to native transfer over `[start, end)`, respecting slot acceptance,
+> components and limits, and leaves the remainder in `stack`. `crafting_remainder` resolves an
+> item's crafting remainder as a fresh one-item stack. `give_stack` consumes an owned stack
+> through native player-inventory insertion, dropping overflow, and `drop_stack` queues a drop
+> through the native menu commit; neither removes a source slot itself.
 
 ```rust
 use pluto_lib::{ItemSlot, MenuAccess};
@@ -217,9 +234,6 @@ fn cursor_room(menu: &dyn MenuAccess, result: &ItemSlot) -> u32 {
     }
 }
 ```
-
-**Integration status:** the public adapter and pinned local/guest source connections are implemented; the inspected v10 source composition including pick-all exclusion, stack-limit forwarding, crafting-remainder lookup and native player-inventory return passes all retained attachment guards. The component-comparison/stack-limit API examples compile; the bridge fixture is not evidence of native stack semantics. Native typechecking and gameplay are pending. Remote synthetic menus resolve by declared menu type, but recipe/saved-data synchronization remains incomplete. This is not yet verified support. It is also not a lazy crafting-result implementation: recipes must implement their own preview invalidation, amount tracking, consumption and action ordering. A callback owns its registered action; simply returning does not invoke the native action afterward. Avoid also registering the older `on_quick_move` for the same operation, since that server hook runs earlier.
-
 ## Which Sprites Resolve
 
 A canvas `sprite` draw (and a native block-entity draw) names a sprite in the game's one unified atlas; a name the atlas does not hold draws nothing — the canvas call returns `false` and a block-entity face naming it is left out. The atlas packs the texture folders it walks (`gui`, `item`, `block`, `font`, `environment`, `misc`, `painting`, `entity`, `particle`, `mob_effect`, `map` of the `minecraft` namespace, and the `entity`, `mob_effect`, `particle` and `gui` folders of every content namespace) plus the sprites the atlas definitions name. Model textures are not gated by this: the terrain and item sprite system loads a model's texture file by name directly, so a texture can work on a block in the world and still not resolve on a screen.
@@ -244,9 +258,19 @@ Shipping the same file under the mod's own namespace (`assets/tconstruct/atlases
 
 ### `ScreenLayout`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Where things are in the window, in GUI pixels from its top left. `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots` where each container slot is (`None` hides the slot, and it is not in the menu either, so shift-clicks skip it), `dynamic` which slots the dynamic-slot callback positions instead (parallel to `slots`, one entry per slot; such a slot is in the menu though the static layout has no position for it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8 and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the "Inventory" label itself, `own_background` whether it draws its own background. `sources` says what backs each container slot (parallel to `slots`, one entry per slot) — see [`SlotSource`](#slotsource).
+Where things are in the window, in GUI pixels from its top left.
+
+> `width` and `height` are the window's size (vanilla container windows are 176 wide), `slots`
+> where each container slot is (`None` hides the slot, and it is not in the menu either, so
+> shift-clicks skip it), `dynamic` which slots the dynamic-slot callback positions instead
+> (parallel to `slots`, one entry per slot; such a slot is in the menu though the static layout
+> has no position for it), `inventory_x` and `inventory_y` the player's inventory (vanilla's are 8
+> and 84; the hotbar is 58 below), `own_labels` whether the screen draws the title and the
+> "Inventory" label itself, `own_background` whether it draws its own background. `sources` says
+> what backs each container slot (parallel to `slots`, one entry per slot) — see
+> [`SlotSource`](#slotsource).
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -262,9 +286,14 @@ assert!(!layout.own_labels && !layout.own_background);
 
 ### `ScreenLayout::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(width: f32, height: f32) -> ScreenLayout`. A window with no slots, the inventory at vanilla's place and the game drawing the panel and the labels.
+A window with no slots, the inventory at vanilla's place and the game drawing the panel and the labels.
+
+`fn new(width: f32, height: f32) -> ScreenLayout`
+
+> Add the slots afterwards with `ScreenLayout::slot` and its variants. Until a draw callback is
+> given, nothing is drawn beyond the game's own panel and labels.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -275,9 +304,13 @@ assert_eq!(layout.height, 200.0);
 
 ### `ScreenLayout::slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn slot(self, x: f32, y: f32) -> ScreenLayout`. One more container slot at `(x, y)`. Slots are numbered in the order they are added, the same as the block entity's item slots.
+One more container slot at `(x, y)`.
+
+`fn slot(self, x: f32, y: f32) -> ScreenLayout`
+
+> Slots are numbered in the order they are added, the same as the block entity's item slots.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -288,9 +321,14 @@ assert_eq!(layout.slots, vec![Some([56.0, 17.0]), Some([56.0, 53.0])]);
 
 ### `ScreenLayout::hidden_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn hidden_slot(self) -> ScreenLayout`. One more container slot that is hidden: it keeps its number but is not shown and shift-clicks skip it.
+One more container slot that is hidden: it keeps its number but is not shown and shift-clicks skip it.
+
+`fn hidden_slot(self) -> ScreenLayout`
+
+> The slot keeps its number in the menu's numbering, so the slots after it keep theirs; it simply
+> shows nothing, and shift-clicks skip it as if it were not there.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -301,9 +339,13 @@ assert_eq!(layout.slots[1], None);
 
 ### `ScreenLayout::dynamic_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn dynamic_slot(self) -> ScreenLayout`. One more container slot that the dynamic-slot callback (`ScreenHandlerType::on_dynamic_slots`) positions: the slot is in the menu — the server takes clicks on it and its item syncs like any other's — though the static layout has no position for it. Use it for slots whose place follows the menu's data or items.
+One more container slot that the dynamic-slot callback (`ScreenHandlerType::on_dynamic_slots`) positions: the slot is in the menu — the server takes clicks on it and its item syncs like any other's — though the static layout has no position for it.
+
+`fn dynamic_slot(self) -> ScreenLayout`
+
+> Use it for slots whose place follows the menu's data or items.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -315,9 +357,15 @@ assert_eq!(layout.dynamic, vec![false, true, false]);
 
 ### `ScreenLayout::equipment_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn equipment_slot(self, x: f32, y: f32, kind: EquipmentSlotKind) -> ScreenLayout`. One more slot at `(x, y)` showing a piece of the opening player's own equipment (the original station windows' armor and offhand slots). The slot is drawn from the player's live equipment; it is not one of the block entity's slots, so the menu's item sync and clicks do not reach it (see [`SlotSource::PlayerEquipment`](#slotsource)).
+One more slot at `(x, y)` showing a piece of the opening player's own equipment (the original station windows' armor and offhand slots).
+
+`fn equipment_slot(self, x: f32, y: f32, kind: EquipmentSlotKind) -> ScreenLayout`
+
+> The slot is drawn from the player's live equipment; it is not one of the block entity's slots,
+> so the menu's item sync and clicks do not reach it (see
+> [`SlotSource::PlayerEquipment`](#slotsource)).
 
 ```rust
 use pluto_lib::{EquipmentSlotKind, ScreenLayout, SlotSource};
@@ -328,9 +376,15 @@ assert_eq!(layout.source(0), SlotSource::PlayerEquipment(EquipmentSlotKind::Head
 
 ### `ScreenLayout::neighbour_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn neighbour_slot(self, x: f32, y: f32, offset: [i32; 3]) -> ScreenLayout`. One more slot at `(x, y)` backed by the block entity at `offset` from the opened block (a melter's fuel slot, which is the heater below's own slot). The window's menu type must declare `links` over its neighbour slots in the order they are declared here; the slot then is a real slot of the menu, filled from the neighbour's container (see [`SlotSource::NeighbourBlockEntity`](#slotsource)).
+One more slot at `(x, y)` backed by the block entity at `offset` from the opened block (a melter's fuel slot, which is the heater below's own slot).
+
+`fn neighbour_slot(self, x: f32, y: f32, offset: [i32; 3]) -> ScreenLayout`
+
+> The window's menu type must declare `links` over its neighbour slots in the order they are
+> declared here; the slot then is a real slot of the menu, filled from the neighbour's container
+> (see [`SlotSource::NeighbourBlockEntity`](#slotsource)).
 
 ```rust
 use pluto_lib::{ScreenLayout, SlotSource};
@@ -341,9 +395,15 @@ assert_eq!(layout.source(0), SlotSource::NeighbourBlockEntity([0, -1, 0]));
 
 ### `ScreenLayout::linked_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn linked_slot(self) -> ScreenLayout`. One more slot of the window's linked range: a slot the dynamic-slot callback positions, backed by the containers the window's menu-links callback names (see [`SlotSource::LinkedContainer`](#slotsource)). The window's menu type must declare `links` over the linked slots in the order they are declared here; a linked slot the callback positions nowhere (it answers `None` for it) is hidden, which is how a window shows only as many of them as the named containers hold.
+One more slot of the window's linked range: a slot the dynamic-slot callback positions, backed by the containers the window's menu-links callback names (see [`SlotSource::LinkedContainer`](#slotsource)).
+
+`fn linked_slot(self) -> ScreenLayout`
+
+> The window's menu type must declare `links` over the linked slots in the order they are declared
+> here; a linked slot the callback positions nowhere (it answers `None` for it) is hidden, which
+> is how a window shows only as many of them as the named containers hold.
 
 ```rust
 use pluto_lib::{ScreenLayout, SlotSource};
@@ -356,9 +416,15 @@ assert_eq!(layout.source(0), SlotSource::LinkedContainer);
 
 ### `ScreenLayout::source`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn source(&self, slot: usize) -> SlotSource`. What backs container slot `slot`; the block entity's own slots back any slot the layout does not declare a source for.
+What backs container slot `slot`; the block entity's own slots back any slot the layout does not declare a source for.
+
+`fn source(&self, slot: usize) -> SlotSource`
+
+> Any slot the layout does not declare a source for is backed by the block entity's own slots.
+> Declare a source to back a slot with the player's equipment or a neighbour's container instead
+> (see `SlotSource`).
 
 ```rust
 use pluto_lib::{EquipmentSlotKind, ScreenLayout, SlotSource};
@@ -371,9 +437,14 @@ assert_eq!(layout.source(9), SlotSource::BlockEntity, "undeclared slots are the 
 
 ### `ScreenLayout::inventory_at`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn inventory_at(self, x: f32, y: f32) -> ScreenLayout`. The player's inventory at `(x, y)`, its first row and left column.
+The player's inventory at `(x, y)`, its first row and left column.
+
+`fn inventory_at(self, x: f32, y: f32) -> ScreenLayout`
+
+> The rest of the player's inventory grid follows from that corner. Until you move it, the
+> inventory sits at vanilla's place in the window.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -384,9 +455,14 @@ assert_eq!(layout.inventory_y, 118.0);
 
 ### `ScreenLayout::with_own_labels`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_own_labels(self) -> ScreenLayout`. The screen draws the title and the "Inventory" label itself.
+The screen draws the title and the "Inventory" label itself.
+
+`fn with_own_labels(self) -> ScreenLayout`
+
+> Use it when the draw callback paints the window's text itself; without it, the game draws the
+> title and the "Inventory" label for you.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -396,9 +472,14 @@ assert!(ScreenLayout::new(176.0, 166.0).with_own_labels().own_labels);
 
 ### `ScreenLayout::with_own_background`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_own_background(self) -> ScreenLayout`. The screen draws its own background; the plain panel and the slot frames are left out.
+The screen draws its own background; the plain panel and the slot frames are left out.
+
+`fn with_own_background(self) -> ScreenLayout`
+
+> Use it when the draw callback paints the whole window itself; with it set, the game leaves out
+> both the plain panel and the slot frames.
 
 ```rust
 use pluto_lib::ScreenLayout;
@@ -408,9 +489,13 @@ assert!(ScreenLayout::new(176.0, 166.0).with_own_background().own_background);
 
 ### `EquipmentSlotKind`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A piece of the opening player's own equipment, as a slot of a window can show it: `Head`, `Chest`, `Legs`, `Feet` or `OffHand`. The station windows of the original carry the player's armor and offhand slots beside the block's own slots (`TinkerStationContainerMenu`: "add armor and offhand slots, for convenience").
+A piece of the opening player's own equipment, as a slot of a window can show it: `Head`, `Chest`, `Legs`, `Feet` or `OffHand`.
+
+> The station windows of the original carry the player's armor and offhand slots beside the
+> block's own slots (`TinkerStationContainerMenu`: "add armor and offhand slots, for
+> convenience").
 
 ```rust
 use pluto_lib::EquipmentSlotKind;
@@ -421,9 +506,15 @@ assert_ne!(EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand);
 
 ### `EquipmentSlotKind::host_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn host_slot(self) -> i32`. The host's equipment index of this piece (the entity equipment numbering the host's own equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
+The host's equipment index of this piece (the entity equipment numbering the host's own equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
+
+`fn host_slot(self) -> i32`
+
+> The numbering is the host's own — feet 100, legs 101, chest 102, head 103, offhand -106 — and it
+> is the index the host's own equipment access reads and writes, so a kind converts straight to
+> the slot the host expects.
 
 ```rust
 use pluto_lib::EquipmentSlotKind;
@@ -436,9 +527,20 @@ assert_eq!(EquipmentSlotKind::OffHand.host_slot(), -106);
 
 ### `SlotSource`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a container slot of a window is backed by. `BlockEntity` is the opened block entity's own item slot of the same index. `PlayerEquipment(kind)` is a piece of the opening player's equipment, drawn from their live equipment; the host's menu model binds container slots to the opened block entity or to linked block containers only, so an equipment slot takes no clicks yet. `NeighbourBlockEntity(offset)` is a slot of the block entity at that offset from the opened block's position, in slot order among the layout's neighbour slots. `LinkedContainer` is a slot of the window's linked range, showing the containers the window's menu-links callback (`ScreenHandlerType::on_menu_links`) names, in order. Neighbour and linked slots ride the host's linked slots: the menu type declares `links` over them in order, and PlutoLib answers the host's menu-links question with the containers' positions, so what a player takes out of one leaves that container in the same step.
+What a container slot of a window is backed by.
+
+> `BlockEntity` is the opened block entity's own item slot of the same index.
+> `PlayerEquipment(kind)` is a piece of the opening player's equipment, drawn from their live
+> equipment; the host's menu model binds container slots to the opened block entity or to linked
+> block containers only, so an equipment slot takes no clicks yet. `NeighbourBlockEntity(offset)`
+> is a slot of the block entity at that offset from the opened block's position, in slot order
+> among the layout's neighbour slots. `LinkedContainer` is a slot of the window's linked range,
+> showing the containers the window's menu-links callback (`ScreenHandlerType::on_menu_links`)
+> names, in order. Neighbour and linked slots ride the host's linked slots: the menu type declares
+> `links` over them in order, and PlutoLib answers the host's menu-links question with the
+> containers' positions, so what a player takes out of one leaves that container in the same step.
 
 ```rust
 use pluto_lib::{EquipmentSlotKind, SlotSource};
@@ -450,9 +552,17 @@ assert_ne!(SlotSource::NeighbourBlockEntity([0, -1, 0]), SlotSource::LinkedConta
 
 ### `ScreenCanvas`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The surface a screen draws on, in GUI pixels: `fill(rect, argb)`, `sprite(name, src, dst) -> bool` (a part of a GUI texture into a rectangle), `text(text, at, rgb, shadow)` and `text_width(text) -> f32`. PlutoLib passes one to the draw callback; a test can implement it to check what a screen draws.
+The surface a screen draws on, in GUI pixels: `fill(rect, argb)`, `sprite(name, src, dst) -> bool` (a part of a GUI texture into a rectangle), `text(text, at, rgb, shadow)` and `text_width(text) -> f32`.
+
+> PlutoLib passes one to the draw callback; a test can implement it to check what a screen draws.
+> The canvas also draws 3D scenes: `scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view:
+> &SceneView)` draws a scene of blocks into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike
+> the flat draws' `[x, y, width, height]`), seen as `view` says. Each block is drawn with its
+> model; a block carrying a `SceneEntity` is drawn by that block's block-entity renderer, with its
+> baked entity-model layers, as in the world — how a screen shows a small structure (a book's
+> multiblock page) or a dressed block entity (an armor stand wearing the piece being made).
 
 ```rust
 use pluto_lib::ScreenCanvas;
@@ -470,9 +580,6 @@ canvas.text("hi", [0.0, 0.0], 0xFFFFFF, true);
 assert_eq!(canvas.0, 2);
 assert_eq!(canvas.text_width("ab"), 12.0);
 ```
-
-The canvas also draws 3D scenes: `scene(&mut self, rect: [f32; 4], blocks: &[SceneBlock], view: &SceneView)` draws a scene of blocks into `rect` (`[x0, y0, x1, y1]` corner coordinates, unlike the flat draws' `[x, y, width, height]`), seen as `view` says. Each block is drawn with its model; a block carrying a `SceneEntity` is drawn by that block's block-entity renderer, with its baked entity-model layers, as in the world — how a screen shows a small structure (a book's multiblock page) or a dressed block entity (an armor stand wearing the piece being made). The host resolves each block by name to its default state, so a state whose properties the default state does not carry draws in the default state. The default method draws nothing, so a canvas with no scene reach skips it.
-
 ```rust
 use pluto_lib::{BlockState, Identifier, SceneBlock, SceneView, ScreenCanvas};
 
@@ -491,9 +598,15 @@ assert_eq!(canvas.0, 0, "the default canvas has no scene reach and draws nothing
 
 ### `SceneBlock`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-`struct SceneBlock { pos: [i32; 3], block: BlockState, entity: Option<SceneEntity> }`. One block of a scene: its state, where it stands in the scene's own coordinates, and the block entity drawn with it, if any.
+One block of a scene: its state, where it stands in the scene's own coordinates, and the block entity drawn with it, if any.
+
+`struct SceneBlock { pos: [i32; 3], block: BlockState, entity: Option<SceneEntity> }`
+
+> Give the block's state and where it stands in the scene's own coordinates; add a `SceneEntity`
+> when the block's block entity should be drawn with it. A block without one is drawn with its
+> model alone.
 
 ```rust
 use pluto_lib::{BlockState, Identifier, SceneBlock};
@@ -505,9 +618,15 @@ assert!(block.entity.is_none());
 
 ### `SceneEntity`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-`struct SceneEntity { block: Identifier, data: NbtCompound, items: Vec<Option<ItemSlot>> }`. The block entity a scene draws at a block: which block's entity it is, the data it renders from, and the items it holds, in its slot order (an armor stand's worn pieces).
+The block entity a scene draws at a block: which block's entity it is, the data it renders from, and the items it holds, in its slot order (an armor stand's worn pieces).
+
+`struct SceneEntity { block: Identifier, data: NbtCompound, items: Vec<Option<ItemSlot>> }`
+
+> The data is what the block entity renders from, and the items are the ones it holds, in slot
+> order — an armor stand's worn pieces, for example. The scene draws it by that block's
+> block-entity renderer, with its baked entity-model layers, as in the world.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, NbtCompound, SceneEntity};
@@ -522,9 +641,16 @@ assert_eq!(stand.items.len(), 1);
 
 ### `SceneView`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-`struct SceneView { center: [f32; 3], yaw: f32, pitch: f32, scale: f32 }`. Where a scene is seen from: `center` is the scene point the rect's middle shows, `yaw` and `pitch` turn it in degrees (unturned, the scene is seen from the north; a positive pitch tilts its top towards the viewer), and `scale` is GUI pixels per block. The default centres one block at the origin, turned halfway round with its top tilted to the viewer at sixteen pixels a block.
+Where a scene is seen from.
+
+`struct SceneView { center: [f32; 3], yaw: f32, pitch: f32, scale: f32 }`
+
+> `center` is the scene point the rect's middle shows, `yaw` and `pitch` turn it in degrees
+> (unturned, the scene is seen from the north; a positive pitch tilts its top towards the viewer),
+> and `scale` is GUI pixels per block. The default centres one block at the origin, turned halfway
+> round with its top tilted to the viewer at sixteen pixels a block.
 
 ```rust
 use pluto_lib::SceneView;
@@ -535,9 +661,16 @@ assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45
 
 ### `LivingPreview`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-A living entity drawn as a screen preview (the station windows' armor stand, wearing the piece being made), drawn through `ScreenCanvas::living`. `kind` is the entity type drawn, such as `minecraft:armor_stand`; `item` the one item the figure wears or holds, if any; `yaw` the figure's turn, in degrees; `arms` whether an armor stand figure shows its arms; `base_plate` whether it shows its base plate. The host places the item by the item's own equipment slot, exactly as its smithing screen's preview does — a worn piece on its part of the figure, anything else in the left hand. Today the host has a renderer for the armor stand only; another `kind` draws nothing.
+A living entity drawn as a screen preview (the station windows' armor stand, wearing the piece being made), drawn through `ScreenCanvas::living`.
+
+> `kind` is the entity type drawn, such as `minecraft:armor_stand`; `item` the one item the figure
+> wears or holds, if any; `yaw` the figure's turn, in degrees; `arms` whether an armor stand
+> figure shows its arms; `base_plate` whether it shows its base plate. The host places the item by
+> the item's own equipment slot, exactly as its smithing screen's preview does — a worn piece on
+> its part of the figure, anything else in the left hand. Today the host has a renderer for the
+> armor stand only; another `kind` draws nothing.
 
 ```rust
 use pluto_lib::{Identifier, LivingPreview};
@@ -549,9 +682,14 @@ assert!(preview.arms && !preview.base_plate && preview.item.is_none());
 
 ### `LivingPreview::armor_stand`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn armor_stand(item: ItemSlot) -> LivingPreview`. An armor stand preview holding or wearing `item`, standing as the smithing screen's preview stand stands: turned to 210 degrees, arms shown, no base plate.
+An armor stand preview holding or wearing `item`, standing as the smithing screen's preview stand stands: turned to 210 degrees, arms shown, no base plate.
+
+`fn armor_stand(item: ItemSlot) -> LivingPreview`
+
+> It is the ready-made form of `LivingPreview` for the common case: one item shown on a stand,
+> standing as the smithing screen's preview stand stands while the piece is being made.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, LivingPreview};
@@ -564,9 +702,12 @@ assert!(preview.item.is_some());
 
 ### `ScreenLayoutContext`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What `ScreenHandlerType::on_dynamic_slots` receives. `data` are the menu's data slots; `items` are the block entity's current item slots only, in menu-slot order. Return positions in that same order.
+What `ScreenHandlerType::on_dynamic_slots` receives.
+
+> `data` are the menu's data slots; `items` are the block entity's current item slots only, in
+> menu-slot order. Return positions in that same order.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, ScreenLayoutContext};
@@ -579,9 +720,15 @@ assert_eq!(state.items[0].as_ref().unwrap().count, 1);
 
 ### `ScreenDraw`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the draw callback receives. `origin` is the window's top left in GUI pixels, `data` the menu's data slots (what the block entity set; empty until the server's first values arrive, so read it with `get`), `mouse` the cursor in GUI pixels from the window's top left (negative in a sidebar left of or above the window; how a hover face is drawn), `items` the container items the client last saw synced, in menu-slot order (how a side panel reads the staged stacks), `canvas` where to draw.
+What the draw callback receives.
+
+> `origin` is the window's top left in GUI pixels, `data` the menu's data slots (what the block
+> entity set; empty until the server's first values arrive, so read it with `get`), `mouse` the
+> cursor in GUI pixels from the window's top left (negative in a sidebar left of or above the
+> window; how a hover face is drawn), `items` the container items the client last saw synced, in
+> menu-slot order (how a side panel reads the staged stacks), `canvas` where to draw.
 
 ```rust
 use pluto_lib::{ScreenCanvas, ScreenDraw};
@@ -603,9 +750,14 @@ draw_bar(&mut ScreenDraw { origin: [100.0, 50.0], data: &[10], mouse: [0.0, 0.0]
 
 ### `ScreenScroll`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the scroll callback receives: the mouse wheel turned over the window. `at` is the cursor in GUI pixels from the window's top left, `delta` the roll (`delta[1]` positive is wheel up, the host's own sign) and `data` the menu's data slots. Scroll state is the window's own (client-side) business — no scroll reaches the server — so a window whose list scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
+What the scroll callback receives: the mouse wheel turned over the window.
+
+> `at` is the cursor in GUI pixels from the window's top left, `delta` the roll (`delta[1]`
+> positive is wheel up, the host's own sign) and `data` the menu's data slots. Scroll state is the
+> window's own (client-side) business — no scroll reaches the server — so a window whose list
+> scrolls keeps the offset itself, fed by its draw callback's view of the menu data.
 
 ```rust
 use pluto_lib::ScreenScroll;
@@ -616,9 +768,15 @@ assert!(roll.delta[1] > 0.0 && roll.data[0] == 3 && roll.at[1] == 20.0);
 
 ### `ScreenHandlerType::on_scroll`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_scroll(self, scroll: impl Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync + 'static)`. Hears the mouse wheel over the window; returning true consumes the roll, so the game does not also scroll the hotbar.
+Hears the mouse wheel over the window; returning true consumes the roll, so the game does not also scroll the hotbar.
+
+`fn on_scroll(self, scroll: impl Fn(&mut ScreenScroll<'_>) -> bool + Send + Sync + 'static)`
+
+> The callback receives a `ScreenScroll`: the cursor position, the wheel's roll and the menu's
+> data slots. Scroll state is the window's own client-side business — no scroll reaches the server
+> — so a window whose list scrolls keeps the offset itself.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -630,9 +788,13 @@ let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
 
 ### `ScreenHandlerType::on_char`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_char(self, typed: impl Fn(char) -> bool + Send + Sync + 'static)`. Hears each character typed while the window is open — the hearing of a text field, whose content is the window's own state to keep (a static of the mod's), because a menu button is the only road back to the server. Returning true consumes the character.
+Hears each character typed while the window is open — the hearing of a text field, whose content is the window's own state to keep (a static of the mod's), because a menu button is the only road back to the server.
+
+`fn on_char(self, typed: impl Fn(char) -> bool + Send + Sync + 'static)`
+
+> Returning true consumes the character.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -644,9 +806,13 @@ let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
 
 ### `ScreenHandlerType::on_key`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_key(self, pressed: impl Fn(&str) -> bool + Send + Sync + 'static)`. Hears each key press while the window is open, by its lower-cased game key name (`backspace`, `delete`, `enter`, `escape`, ...); returning true consumes it. The companion of `on_char` for the keys that are not characters.
+Hears each key press while the window is open, by its lower-cased game key name (`backspace`, `delete`, `enter`, `escape`, ...); returning true consumes it.
+
+`fn on_key(self, pressed: impl Fn(&str) -> bool + Send + Sync + 'static)`
+
+> The companion of `on_char` for the keys that are not characters.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -658,9 +824,12 @@ let window = ScreenHandlerType::new(id, ScreenLayout::new(176.0, 166.0))
 
 ### `ScreenClick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the click callback receives: a left or right press over no slot. `at` is where, in GUI pixels from the window's top left (outside it too), `right` whether it is the right button, `data` the menu's data slots.
+What the click callback receives: a left or right press over no slot.
+
+> `at` is where, in GUI pixels from the window's top left (outside it too), `right` whether it is
+> the right button, `data` the menu's data slots.
 
 ```rust
 use pluto_lib::ScreenClick;
@@ -673,9 +842,12 @@ assert!(press.data.is_empty());
 
 ### `ScreenTooltip`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the tooltip callback receives when the mouse is over no item. `at` is where, `data` the menu's data slots, `lines` the lines to show (push to add; legacy colour codes `§` work).
+What the tooltip callback receives when the mouse is over no item.
+
+> `at` is where, `data` the menu's data slots, `lines` the lines to show (push to add; legacy
+> colour codes `§` work).
 
 ```rust
 use pluto_lib::ScreenTooltip;
@@ -688,9 +860,18 @@ assert_eq!(lines, ["Heat: 42"]);
 
 ### `MenuButton`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the button callback receives on the server when a player presses a menu button. `pos` is the block entity's position, `id` the button (what the click callback answered), `data` the block entity's saved data, `items` its item slots and `carried` the stack on the pressing player's cursor, which the callback may change. `switch` is the menu switch the callback asked for with [`MenuButton::open_menu`](#menubuttonopen_menu), if any, read back by the transport once the callback returns. `fluid(index)` reads the block entity's own fluid tank of that index and `set_fluid(index, stack)` writes it (tanks live in the saved data, so no other reach is needed); a tank of another block — a melter's heater below, say — is out of this callback's reach.
+What the button callback receives on the server when a player presses a menu button.
+
+> `pos` is the block entity's position, `id` the button (what the click callback answered), `data`
+> the block entity's saved data, `items` its item slots and `carried` the stack on the pressing
+> player's cursor, which the callback may change. `switch` is the menu switch the callback asked
+> for with [`MenuButton::open_menu`](#menubuttonopen_menu), if any, read back by the transport
+> once the callback returns. `fluid(index)` reads the block entity's own fluid tank of that index
+> and `set_fluid(index, stack)` writes it (tanks live in the saved data, so no other reach is
+> needed); a tank of another block — a melter's heater below, say — is out of this callback's
+> reach.
 
 ```rust
 use pluto_lib::{MenuButton, Nbt, NbtCompound};
@@ -709,9 +890,13 @@ assert!(data.contains_key("lit"));
 
 ### `MenuButton::fluid`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fluid(&self, index: usize) -> Option<FluidStack>`. Reads the block entity's own fluid tank of that index (the tanks live in its saved data, so no other reach is needed). A tank of another block — a melter's heater below, say — is out of this callback's reach.
+Reads the block entity's own fluid tank of that index (the tanks live in its saved data, so no other reach is needed).
+
+`fn fluid(&self, index: usize) -> Option<FluidStack>`
+
+> A tank of another block — a melter's heater below, say — is out of this callback's reach.
 
 ```rust
 use pluto_lib::{MenuButton, NbtCompound};
@@ -725,9 +910,14 @@ assert!(button.fluid(0).is_none(), "an untouched tank reads empty");
 
 ### `MenuButton::set_fluid`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`. Writes the block entity's own fluid tank of that index; `None` empties it. Together with `fluid`, the pair a tank click trades through: read the tank, trade the carried container against it, write it back.
+Writes the block entity's own fluid tank of that index; `None` empties it.
+
+`fn set_fluid(&mut self, index: usize, stack: Option<FluidStack>)`
+
+> Together with `fluid`, the pair a tank click trades through: read the tank, trade the carried
+> container against it, write it back.
 
 ```rust
 use pluto_lib::{FluidStack, Identifier, MenuButton, NbtCompound};
@@ -742,9 +932,16 @@ assert_eq!(button.fluid(0).map(|stack| stack.amount), Some(500));
 
 ### `MenuButton::set_data`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_data(&mut self, index: usize, value: i32)`. Changes a synchronized menu data slot on the server. The content menu JSON must declare at least `index + 1` data slots. Indices 256 and above are ignored; values are clamped to the signed 16-bit wire range. The value is saved with the block entity and reaches drawing, clicking and dynamic-layout callbacks on all viewers; selection is shared by viewers of this block.
+Changes a synchronized menu data slot on the server.
+
+`fn set_data(&mut self, index: usize, value: i32)`
+
+> The content menu JSON must declare at least `index + 1` data slots. Indices 256 and above are
+> ignored; values are clamped to the signed 16-bit wire range. The value is saved with the block
+> entity and reaches drawing, clicking and dynamic-layout callbacks on all viewers; selection is
+> shared by viewers of this block.
 
 ```rust
 use pluto_lib::{MenuButton, NbtCompound};
@@ -757,9 +954,13 @@ button.set_data(0, button.id);
 
 ### `MenuButton::open_menu`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn open_menu(&mut self, pos: BlockPos)`. Asks for the pressing player's menu to be switched to the menu of the block at `pos`: this menu closes and that block's opens in its place, keeping what the player carries (the original's `StationTabPacket`, which a tabbed table's tab sends). The switch is carried out after the callback returns; asking twice keeps the last position.
+Asks for the pressing player's menu to be switched to the menu of the block at `pos`: this menu closes and that block's opens in its place, keeping what the player carries (the original's `StationTabPacket`, which a tabbed table's tab sends).
+
+`fn open_menu(&mut self, pos: BlockPos)`
+
+> The switch is carried out after the callback returns; asking twice keeps the last position.
 
 ```rust
 use pluto_lib::{MenuButton, NbtCompound};
@@ -774,9 +975,13 @@ assert_eq!(button.switch, Some([0, 64, 2]));
 
 ### `SlotRule`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a slot of the menu takes. `slot` is the container slot counted from 0, `item` and `count` the stack being asked about, and `may_place` and `max_stack` come in with the menu's own answer; change them. `max_stack` is kept between 1 and 99.
+What a slot of the menu takes.
+
+> `slot` is the container slot counted from 0, `item` and `count` the stack being asked about, and
+> `may_place` and `max_stack` come in with the menu's own answer; change them. `max_stack` is kept
+> between 1 and 99.
 
 ```rust
 use pluto_lib::SlotRule;
@@ -790,9 +995,14 @@ assert!(!rule.may_place && rule.max_stack == 16);
 
 ### `QuickMove`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A shift-click on a slot. `pos` is the block entity's position, `slot` the menu's index (below `container_slots` the block's own slot, then the player's 27 main slots, then the hotbar), `container_slots` how many slots the block's container has, `stack` a copy of what the slot holds (take what you move out of it), `data` the saved data and `items` the item slots, which the callback may change.
+A shift-click on a slot.
+
+> `pos` is the block entity's position, `slot` the menu's index (below `container_slots` the
+> block's own slot, then the player's 27 main slots, then the hotbar), `container_slots` how many
+> slots the block's container has, `stack` a copy of what the slot holds (take what you move out
+> of it), `data` the saved data and `items` the item slots, which the callback may change.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, NbtCompound, QuickMove};
@@ -810,9 +1020,12 @@ assert_eq!(items[0].as_ref().map(|s| s.count), Some(12));
 
 ### `ContainerAccept`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A hopper, dropper or other block asks whether the container takes an item. `pos` is the block entity's position, `slot` where it would go, `item` and `count` the stack, and `face` the side it comes in from, if any.
+A hopper, dropper or other block asks whether the container takes an item.
+
+> `pos` is the block entity's position, `slot` where it would go, `item` and `count` the stack,
+> and `face` the side it comes in from, if any.
 
 ```rust
 use pluto_lib::{ContainerAccept, Direction};
@@ -824,9 +1037,12 @@ assert_eq!(put.face, Some(Direction::Up));
 
 ### `MenuLinkContext`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the menu-links callback receives: `pos` is the opened block entity's position. The containers around it are read through `Neighbours` (see [neighbours](neighbours.md)), whose scope the host holds open for the call, exactly as for a ticking block entity.
+What the menu-links callback receives: `pos` is the opened block entity's position.
+
+> The containers around it are read through `Neighbours` (see [neighbours](neighbours.md)), whose
+> scope the host holds open for the call, exactly as for a ticking block entity.
 
 ```rust
 use pluto_lib::screen_handler_api_v1::MenuLinkContext;
@@ -837,9 +1053,15 @@ assert_eq!(context.pos, [3, 64, -2]);
 
 ### `ScreenHandlerType::on_slot_rule`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_slot_rule(self, rule: impl Fn(&mut SlotRule<'_>) + Send + Sync + 'static) -> ScreenHandlerType`. `rule` decides what each slot of the menu takes (Minecraft: `Slot.mayPlace`, `Slot.getMaxStackSize`). A slot that only gives answers `may_place = false`. The game asks the rule only for a menu type that a content mod adds (`data/<id>/horizon/menu/<name>.json`), not for a vanilla one such as the furnace.
+Decides what each slot of the menu takes, through the `rule` callback.
+
+`fn on_slot_rule(self, rule: impl Fn(&mut SlotRule<'_>) + Send + Sync + 'static) -> ScreenHandlerType`
+
+> A slot that only gives answers `may_place = false`. The game asks the rule only for a menu type
+> that a content mod adds (`data/<id>/horizon/menu/<name>.json`), not for a vanilla one such as
+> the furnace.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -851,9 +1073,14 @@ let _ = window;
 
 ### `ScreenHandlerType::on_quick_move`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_quick_move(self, quick_move: impl Fn(&mut QuickMove<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`. `quick_move` says where a shift-clicked stack goes (Minecraft: `quickMoveStack`). Answer `true` when you handled it: the slot then holds what is left of `stack` and the game's own routing is skipped. Answer `false` and what you changed is undone.
+Says where a shift-clicked stack goes, through the `quick_move` callback.
+
+`fn on_quick_move(self, quick_move: impl Fn(&mut QuickMove<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`
+
+> Answer `true` when you handled it: the slot then holds what is left of `stack` and the game's
+> own routing is skipped. Answer `false` and what you changed is undone.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -865,9 +1092,14 @@ let _ = window;
 
 ### `ScreenHandlerType::on_accepts`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_accepts(self, accepts: impl Fn(&ContainerAccept<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`. `accepts` says whether the container takes an item that a hopper, a dropper or another block puts in (NeoForge: `IItemHandler.isItemValid`). Players' clicks are the slot rules' instead.
+Says whether the container takes an item that a hopper, a dropper or another block puts in, through the `accepts` callback.
+
+`fn on_accepts(self, accepts: impl Fn(&ContainerAccept<'_>) -> bool + Send + Sync + 'static) -> ScreenHandlerType`
+
+> Players' clicks are the slot rules' business instead; this callback only hears about other
+> blocks putting items in.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -879,9 +1111,13 @@ let _ = window;
 
 ### `ScreenHandlerType`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The window of a block's menu. `block` is the block it belongs to and `layout` its static layout; the callbacks are added with `on_draw`, `on_dynamic_slots`, `on_click`, `on_tooltip`, `on_button`, `on_slot_rule`, `on_quick_move` and `on_accepts`.
+The window of a block's menu.
+
+> `block` is the block it belongs to and `layout` its static layout; the callbacks are added with
+> `on_draw`, `on_dynamic_slots`, `on_click`, `on_tooltip`, `on_button`, `on_slot_rule`,
+> `on_quick_move` and `on_accepts`.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -893,9 +1129,14 @@ assert_eq!(window.layout.width, 176.0);
 
 ### `ScreenHandlerType::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(block: Identifier, layout: ScreenLayout) -> ScreenHandlerType`. A window for `block`'s menu; nothing is drawn beyond the game's panel until `on_draw` is given.
+A window for `block`'s menu; nothing is drawn beyond the game's panel until `on_draw` is given.
+
+`fn new(block: Identifier, layout: ScreenLayout) -> ScreenHandlerType`
+
+> Give the window its behaviour by chaining the `on_*` builders — draw, dynamic slots, click,
+> tooltip, button and slot callbacks — then register it with `ScreenHandlerRegistry::register`.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -906,9 +1147,15 @@ assert_eq!(window.layout.slots.len(), 1);
 
 ### `ScreenHandlerType::on_dynamic_slots`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_dynamic_slots(self, resolve: impl Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync + 'static) -> ScreenHandlerType`. The resolver receives the container's current items and data after menu updates. Return one position per container slot; `None`, non-finite coordinates or a vector of the wrong length restores the static layout. The static `ScreenLayout` still provides the initial positions and all other window geometry.
+The resolver receives the container's current items and data after menu updates.
+
+`fn on_dynamic_slots(self, resolve: impl Fn(&ScreenLayoutContext<'_>) -> Option<Vec<Option<[f32; 2]>>> + Send + Sync + 'static) -> ScreenHandlerType`
+
+> Return one position per container slot; `None`, non-finite coordinates or a vector of the wrong
+> length restores the static layout. The static `ScreenLayout` still provides the initial
+> positions and all other window geometry.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -920,9 +1167,18 @@ let _ = window;
 
 ### `ScreenHandlerType::on_menu_links`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_menu_links(self, links: impl Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync + 'static) -> ScreenHandlerType`. `links` names the containers its linked slots show: the positions of the block entities whose slots fill the menu type's linked range, in fill order. The host asks while the menu is open (each tick), with the neighbours' reach open, and passes by anything that is not a container, so a named position with nothing behind it simply holds nothing. A window with a links callback answers the host's question with the callback's positions alone; its declared neighbour slots (if any) are not also answered. Use it for a linked inventory the window has to look for (a station's neighbouring chest); a fixed neighbour (a melter's heater) is a neighbour slot instead.
+Names the containers its linked slots show, through the `links` callback.
+
+`fn on_menu_links(self, links: impl Fn(&MenuLinkContext) -> Vec<BlockPos> + Send + Sync + 'static) -> ScreenHandlerType`
+
+> The host asks while the menu is open (each tick), with the neighbours' reach open, and passes by
+> anything that is not a container, so a named position with nothing behind it simply holds
+> nothing. A window with a links callback answers the host's question with the callback's
+> positions alone; its declared neighbour slots (if any) are not also answered. Use it for a
+> linked inventory the window has to look for (a station's neighbouring chest); a fixed neighbour
+> (a melter's heater) is a neighbour slot instead.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -934,9 +1190,15 @@ let _ = window;
 
 ### `ScreenHandlerType::on_draw`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_draw(self, draw: impl Fn(&mut ScreenDraw<'_>) + Send + Sync + 'static) -> ScreenHandlerType`. `draw` draws the window each frame, over the panel and the slot frames and under the items and labels (Fabric: `HandledScreen.drawBackground`).
+Draws the window each frame, through the `draw` callback.
+
+`fn on_draw(self, draw: impl Fn(&mut ScreenDraw<'_>) + Send + Sync + 'static) -> ScreenHandlerType`
+
+> The drawing runs over the panel and the slot frames and under the items and labels. The callback
+> receives a `ScreenDraw`: the window's origin, its data slots, the mouse and the items the client
+> last saw synced.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -951,9 +1213,15 @@ let _ = window;
 
 ### `ScreenHandlerType::on_click`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_click(self, click: impl Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync + 'static) -> ScreenHandlerType`. `click` decides which menu button a press over no slot is on: answer `Some(id)` and the press is sent to the server as button `id`; `None` leaves it to the game.
+Decides which menu button a press over no slot is on, through the `click` callback.
+
+`fn on_click(self, click: impl Fn(&ScreenClick<'_>) -> Option<i32> + Send + Sync + 'static) -> ScreenHandlerType`
+
+> Answer `Some(id)` and the press is sent to the server as button `id`; `None` leaves it to the
+> game. The callback receives a `ScreenClick`: where the press landed, whether it was the right
+> button, and the menu's data slots.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -968,9 +1236,14 @@ let _ = window;
 
 ### `ScreenHandlerType::on_tooltip`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_tooltip(self, tooltip: impl Fn(&mut ScreenTooltip<'_>) + Send + Sync + 'static) -> ScreenHandlerType`. `tooltip` adds lines when the mouse is over something of the screen's own and over no item.
+Adds lines when the mouse is over something of the screen's own and over no item, through the `tooltip` callback.
+
+`fn on_tooltip(self, tooltip: impl Fn(&mut ScreenTooltip<'_>) + Send + Sync + 'static) -> ScreenHandlerType`
+
+> The callback receives a `ScreenTooltip`: where the mouse is, the menu's data slots, and the
+> `lines` to push to. Tooltips for hovering an item are not this callback's business.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerType, ScreenLayout};
@@ -985,9 +1258,15 @@ let _ = window;
 
 ### `ScreenHandlerType::on_button`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn on_button(self, button: impl Fn(&mut MenuButton<'_>) + Send + Sync + 'static) -> ScreenHandlerType`. `button` runs on the server when a player presses a menu button (Minecraft: `clickMenuButton`).
+Runs on the server when a player presses a menu button, through the `button` callback.
+
+`fn on_button(self, button: impl Fn(&mut MenuButton<'_>) + Send + Sync + 'static) -> ScreenHandlerType`
+
+> The callback receives a `MenuButton`: the block entity's position, the button id the click
+> callback answered, its saved data and item slots, and the stack on the pressing player's cursor,
+> which the callback may change.
 
 ```rust
 use pluto_lib::{Identifier, Nbt, ScreenHandlerType, ScreenLayout};
@@ -1000,9 +1279,12 @@ let _ = window;
 
 ### `ScreenHandlerRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers windows (Fabric: `HandledScreens.register`).
+
+> Windows are kept per block: `register` gives a block's menu its window, and `get` looks the
+> window for a block id up again.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
@@ -1012,9 +1294,13 @@ ScreenHandlerRegistry::register(ScreenHandlerType::new(Identifier::new("example"
 
 ### `ScreenHandlerRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(handler: ScreenHandlerType)`. Gives `handler.block`'s menu its window. Registering the same block again replaces the earlier window.
+Gives `handler.block`'s menu its window.
+
+`fn register(handler: ScreenHandlerType)`
+
+> Registering the same block again replaces the earlier window.
 
 ```rust
 use pluto_lib::{Identifier, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout};
@@ -1027,9 +1313,14 @@ assert_eq!(ScreenHandlerRegistry::get("example:swapped").unwrap().layout.width, 
 
 ### `ScreenHandlerRegistry::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(block: &str) -> Option<ScreenHandlerType>`. The window registered for a block id such as `example:oven`, or `None`.
+The window registered for a block id such as `example:oven`, or `None`.
+
+`fn get(block: &str) -> Option<ScreenHandlerType>`
+
+> The answer is the window `register` stored for that block, or `None` when no window was
+> registered for it.
 
 ```rust
 use pluto_lib::ScreenHandlerRegistry;
@@ -1039,9 +1330,15 @@ assert!(ScreenHandlerRegistry::get("example:no_window").is_none());
 
 ### `ScreenHandlerRegistry::set_menu_equipment`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_menu_equipment(menu: &'static str, first: usize, kinds: &'static [&'static str])`. Registers `menu`'s equipment: the player's armor and offhand slots the window carries beside the block's own, in layout order. `first` is the layout index the equipment starts at, `kinds` the pieces' names (`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`). Registering the same menu again replaces the earlier entry.
+Registers `menu`'s equipment: the player's armor and offhand slots the window carries beside the block's own, in layout order.
+
+`fn set_menu_equipment(menu: &'static str, first: usize, kinds: &'static [&'static str])`
+
+> `first` is the layout index the equipment starts at, `kinds` the pieces' names (`"head"`,
+> `"chest"`, `"legs"`, `"feet"`, `"offhand"`). Registering the same menu again replaces the
+> earlier entry.
 
 ```rust
 use pluto_lib::ScreenHandlerRegistry;
@@ -1052,9 +1349,14 @@ assert_eq!(ScreenHandlerRegistry::menu_equipment("example:station"), Some((5, ve
 
 ### `ScreenHandlerRegistry::menu_equipment`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn menu_equipment(menu: &str) -> Option<(usize, Vec<&'static str>)>`. The equipment registered for `menu`, if any: the layout index it starts at and the pieces in layout order.
+The equipment registered for `menu`, if any: the layout index it starts at and the pieces in layout order.
+
+`fn menu_equipment(menu: &str) -> Option<(usize, Vec<&'static str>)>`
+
+> It answers what `set_menu_equipment` recorded for the menu: the layout index the equipment
+> starts at and the pieces in layout order, or nothing when the menu has no registered equipment.
 
 ```rust
 use pluto_lib::ScreenHandlerRegistry;
@@ -1064,9 +1366,16 @@ assert!(ScreenHandlerRegistry::menu_equipment("example:no_equipment").is_none())
 
 ### `BlockEntityType::menu`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn menu(self, menu_type: &str) -> BlockEntityType`. The menu the game opens when the block is used; its slots are the block entity's item slots. One of `minecraft:furnace`, `minecraft:blast_furnace`, `minecraft:smoker` (3 slots), `minecraft:hopper` (5), `minecraft:generic_3x3` (9), `minecraft:generic_9x1` to `minecraft:generic_9x6` (9 to 54), or a menu type of the mod's content; the slot count must match.
+The menu the game opens when the block is used; its slots are the block entity's item slots.
+
+`fn menu(self, menu_type: &str) -> BlockEntityType`
+
+> One of `minecraft:furnace`, `minecraft:blast_furnace`, `minecraft:smoker` (3 slots),
+> `minecraft:hopper` (5), `minecraft:generic_3x3` (9), `minecraft:generic_9x1` to
+> `minecraft:generic_9x6` (9 to 54), or a menu type of the mod's content; the slot count must
+> match.
 
 ```rust
 use pluto_lib::{BlockEntityType, Identifier};
@@ -1077,9 +1386,13 @@ let _ = kind;
 
 ### `NativeMenuClicked`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A click in a menu a mod opened (a native menu), which moved nothing: `player` is the player who clicked, `window` the window the click was in, `slot` the menu slot clicked (the menu's own slots first, then the player's inventory, -999 outside), `button` the button used, and `mode` the click's mode (the `ClickType` id).
+
+> The fields name the click completely: the player who clicked, the window it was in, the slot in
+> the menu's own numbering (the menu's slots first, then the player's inventory, -999 outside),
+> the button used and the mode, the `ClickType` id.
 
 ```rust
 use pluto_lib::NativeMenuClicked;
@@ -1091,9 +1404,12 @@ assert_eq!(click.window, 1);
 
 ### `NativeMenuClosed`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A menu a mod opened closed, for any reason (the player closed it, the server, a mod or another menu did, or the player died or left): `player` is the player whose menu closed and `window` the window that closed.
+
+> Whatever closed it — the player, the server, a mod, another menu, or the player dying or leaving
+> — the event reports only that this player's window closed.
 
 ```rust
 use pluto_lib::NativeMenuClosed;
@@ -1104,9 +1420,11 @@ assert_eq!(closed.window, 1);
 
 ### `NativeMenuInputClosed`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The input slots of a menu a mod opened as the player left them, on its closing: `player` is the player whose menu closed, `window` the window that closed, and `slots` the menu's input slots, in order, riding a `RefCell` — the slots a handler takes (`Option::take`) are what the mod keeps, and what stays goes back to the player. Heard before the menu's close event for the same window.
+The input slots of a menu a mod opened as the player left them, on its closing: `player` is the player whose menu closed, `window` the window that closed, and `slots` the menu's input slots, in order, riding a `RefCell` — the slots a handler takes (`Option::take`) are what the mod keeps, and what stays goes back to the player.
+
+> Heard before the menu's close event for the same window.
 
 ```rust
 use pluto_lib::NativeMenuInputClosed;
@@ -1118,9 +1436,12 @@ assert_eq!(closed.slots.borrow().len(), 1);
 
 ### `NativeMenuEvents`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Clicks in menus a mod opened, and their closings: `CLICKED`, `CLOSED` and `INPUT_CLOSED`.
+
+> `CLICKED` carries a `NativeMenuClicked`, `CLOSED` a `NativeMenuClosed` and `INPUT_CLOSED` a
+> `NativeMenuInputClosed`; subscribe to the ones you need.
 
 ```rust
 use pluto_lib::NativeMenuEvents;
@@ -1130,9 +1451,12 @@ NativeMenuEvents::CLICKED.register(|click| println!("slot {}", click.slot));
 
 ### `NativeMenuEvents::CLICKED`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A click in a menu a mod opened, which moved nothing (see `NativeMenuClicked`).
+
+> The payload is a `NativeMenuClicked`: the player who clicked, the window, the slot, the button
+> and the click's mode.
 
 ```rust
 use pluto_lib::{NativeMenuClicked, NativeMenuEvents};
@@ -1143,9 +1467,11 @@ NativeMenuEvents::CLICKED.invoke(&NativeMenuClicked { player: 7, window: 1, slot
 
 ### `NativeMenuEvents::CLOSED`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A menu a mod opened closed, for any reason (see `NativeMenuClosed`).
+
+> The payload is a `NativeMenuClosed`: the player whose menu closed and the window that closed.
 
 ```rust
 use pluto_lib::{NativeMenuClosed, NativeMenuEvents};
@@ -1156,9 +1482,11 @@ NativeMenuEvents::CLOSED.invoke(&NativeMenuClosed { player: 7, window: 1 });
 
 ### `NativeMenuEvents::INPUT_CLOSED`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The input slots of a menu a mod opened as the player left them, on its closing (see `NativeMenuInputClosed`). Heard before the close event for the same window.
+The input slots of a menu a mod opened as the player left them, on its closing (see `NativeMenuInputClosed`).
+
+> Heard before the close event for the same window.
 
 ```rust
 use pluto_lib::{NativeMenuEvents, NativeMenuInputClosed};

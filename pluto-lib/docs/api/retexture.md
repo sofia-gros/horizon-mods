@@ -52,9 +52,13 @@ assert_eq!(texture_of(&data), Some("minecraft:oak_log".to_owned()));
 
 ### `RetextureSlot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-One retextured texture slot of a block's model: the faces whose baked sprite and UVs it names take the block entity's texture instead. `sprite` is the baked sprite name (`namespace:path`) the slot shows by default, and `uv` lists the UV rectangles, in texels `[u0, v0, u1, v1]`, the slot's faces sample; an empty `uv` means the sprite alone names the slot.
+One retextured texture slot of a block's model: the faces whose baked sprite and UVs it names take the block entity's texture instead.
+
+> `sprite` is the baked sprite name (`namespace:path`) the slot shows by default, and `uv`
+> lists the UV rectangles, in texels `[u0, v0, u1, v1]`, the slot's faces sample; an empty
+> `uv` means the sprite alone names the slot.
 
 ```rust
 use pluto_lib::RetextureSlot;
@@ -70,9 +74,12 @@ assert_eq!(slot.uv.len(), 2);
 
 ### `slots_for`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-The retextured slots of a block, in the original's model order; empty when the block has no retextured model. The fourteen blocks are the ones the original's retextured recipes can make.
+The retextured slots of a block, in the original's model order.
+
+> Empty when the block has no retextured model. The fourteen blocks are the ones the
+> original's retextured recipes can make.
 
 ```rust
 use pluto_lib::slots_for;
@@ -86,9 +93,12 @@ assert!(slots_for("minecraft:oak_log").is_empty());
 
 ### `uv_rect`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-The texel rectangle a baked quad's UVs cover, from its four normalized corners: the minimum and maximum of each axis, scaled back to texels. The corners arrive in model order (a face `rotation` permutes them), so the rectangle is the same whichever corner the bake started from.
+The texel rectangle a baked quad's UVs cover, from its four normalized corners: the minimum and maximum of each axis, scaled back to texels.
+
+> The corners arrive in model order (a face `rotation` permutes them), so the rectangle is
+> the same whichever corner the bake started from.
 
 ```rust
 use pluto_lib::uv_rect;
@@ -98,9 +108,14 @@ assert_eq!(uv_rect([[0.75, 0.25], [1.0, 0.25], [1.0, 1.0], [0.75, 1.0]]), [12, 4
 
 ### `is_retextured_face`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Whether a baked face of `block` belongs to one of its retextured slots: its sprite names a slot and its UVs fall inside one of that slot's rectangles (any rectangle when the slot names none). A face of a block with no retextured model is never one.
+Whether a baked face of `block` belongs to one of its retextured slots: its sprite names a slot and its UVs fall inside one of that slot's rectangles (any rectangle when the slot names none).
+
+> Both halves must match: the face's sprite must name one of the block's slots, and its
+> UVs must fall inside one of that slot's rectangles — unless the slot names no
+> rectangles, when the sprite alone decides. A face of a block with no retextured model is
+> never one.
 
 ```rust
 use pluto_lib::is_retextured_face;
@@ -112,9 +127,12 @@ assert!(!is_retextured_face("tconstruct:seared_drain", "tconstruct:block/smelter
 
 ### `texture_of`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-The texture a stack's custom data names, if it names one: the item id of the material a retextured recipe made the stack from. The block side reads the same record out of the block entity; this reads it out of the stack, for the item seam above.
+The texture a stack's custom data names, if it names one: the item id of the material a retextured recipe made the stack from.
+
+> The block side reads the same record out of the block entity; this reads it out of the
+> stack, for the item seam above.
 
 ```rust
 use pluto_lib::{Nbt, NbtCompound, texture_of};

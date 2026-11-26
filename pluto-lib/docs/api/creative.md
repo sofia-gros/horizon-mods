@@ -52,9 +52,12 @@ The game pages mod tabs, ten to a page, with arrows on the screen; you do nothin
 
 ### `ItemStack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A stack of an item, optionally with data. `item` is the item, `count` how many, `components` the stack's data components as an SNBT compound (None for a plain stack).
+A stack of an item, optionally with data.
+
+> `item` is the item, `count` how many, `components` the stack's data components as an
+> SNBT compound (None for a plain stack).
 
 ```rust
 use pluto_lib::{Identifier, ItemStack};
@@ -67,12 +70,15 @@ assert_eq!(plain.item.to_string(), "minecraft:stick");
 
 ### `ItemStack::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(item: Identifier, count: u32) -> ItemStack`. A plain stack.
+A plain stack.
 
-> A plain stack of the given item with the given count and no custom data. Stacks that must carry
-> data — a tank's fluid, a tool's parts — are made with the data-carrying constructors instead.
+`fn new(item: Identifier, count: u32) -> ItemStack`
+
+> A plain stack of the given item with the given count and no custom data. Stacks that
+> must carry data — a tank's fluid, a tool's parts — are made with the data-carrying
+> constructors instead.
 
 ```rust
 use pluto_lib::{Identifier, ItemStack};
@@ -83,9 +89,15 @@ assert_eq!(ten_apples.count, 10);
 
 ### `ItemStack::with_components`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_components(self, snbt_compound: &str) -> ItemStack`. The same stack with data components, given as an SNBT compound.
+The same stack with data components, given as an SNBT compound.
+
+`fn with_components(self, snbt_compound: &str) -> ItemStack`
+
+> The components are given as an SNBT compound — the text form `to_snbt` writes for a
+> stack. The item and its count stay as they were; only the data components change. The
+> call consumes the stack and returns the result, so use the returned value.
 
 ```rust
 use pluto_lib::{Identifier, ItemStack};
@@ -97,9 +109,15 @@ assert!(named.components.is_some());
 
 ### `ItemStack::to_snbt`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn to_snbt(&self) -> String`. The stack in the SNBT form the creative inventory data uses.
+The stack in the SNBT form the creative inventory data uses.
+
+`fn to_snbt(&self) -> String`
+
+> The creative inventory data keeps stacks in this form, so this is the string to store or
+> compare when you need a stack as text. It borrows nothing: the returned `String` is
+> yours to keep, independent of the stack it came from.
 
 ```rust
 use pluto_lib::{Identifier, ItemStack};
@@ -112,9 +130,12 @@ assert_eq!(named.to_snbt(), "{count:2,id:\"minecraft:stick\",components:{\"minec
 
 ### `ItemGroup`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A creative tab. `id` names it, `display_name` is the title shown, `icon` the stack drawn on its button, `entries` the stacks it holds in order.
+A creative tab.
+
+> `id` names it, `display_name` is the title shown, `icon` the stack drawn on its button,
+> `entries` the stacks it holds in order.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -130,12 +151,14 @@ assert_eq!(group.icon.count, 1);
 
 ### `ItemGroup::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(id: Identifier, display_name: &str, icon: ItemStack) -> ItemGroup`. A tab with no entries yet.
+A tab with no entries yet.
 
-> A creative tab with the given id, display name and icon stack, and no entries yet. Entries are
-> appended with entry, in the order the tab should show them.
+`fn new(id: Identifier, display_name: &str, icon: ItemStack) -> ItemGroup`
+
+> A creative tab with the given id, display name and icon stack, and no entries yet.
+> Entries are appended with entry, in the order the tab should show them.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -147,12 +170,14 @@ assert_eq!(group.entries.len(), 0);
 
 ### `ItemGroup::entry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn entry(self, stack: ItemStack) -> ItemGroup`. One more entry at the end.
+One more entry at the end.
 
-> Returns the tab with one more entry appended at the end. Because a tab is built by chaining, the
-> order of the entry calls is the order the tab's contents appear in.
+`fn entry(self, stack: ItemStack) -> ItemGroup`
+
+> Returns the tab with one more entry appended at the end. Because a tab is built by
+> chaining, the order of the entry calls is the order the tab's contents appear in.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -164,9 +189,15 @@ assert_eq!(group.entries.len(), 1);
 
 ### `ItemGroup::entries`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn entries(self, stacks: impl IntoIterator<Item = ItemStack>) -> ItemGroup`. Several more entries at the end.
+Several more entries at the end.
+
+`fn entries(self, stacks: impl IntoIterator<Item = ItemStack>) -> ItemGroup`
+
+> Each stack becomes an entry of the tab, in the order given, after any entries already
+> added with `entry`. The call consumes the group and returns it, so chain the call or
+> rebind the result while you build the tab.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemStack};
@@ -179,9 +210,13 @@ assert_eq!(group.entries.len(), 3);
 
 ### `ItemGroupRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers tabs (Fabric: `Registry.register(Registries.ITEM_GROUP, ...)`).
+
+> A tab is an `ItemGroup` built with `ItemGroup::new` and filled through `entry` and
+> `entries`; registering it here is what puts it in the game. `registered` lists the tabs
+> registered so far, in registration order.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -192,9 +227,15 @@ ItemGroupRegistry::register(ItemGroup::new(Identifier::new("example", "first").u
 
 ### `ItemGroupRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(group: ItemGroup)`. Adds the tab to the creative inventory. Registering the same id again replaces the earlier tab.
+Adds the tab to the creative inventory.
+
+`fn register(group: ItemGroup)`
+
+> Registering the same id again replaces the earlier tab rather than adding a second one,
+> so re-registration is how a tab is revised. Once registered, the tab appears in the
+> creative inventory under its id.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -210,9 +251,15 @@ assert_eq!(mine[0].display_name, "New");
 
 ### `ItemGroupRegistry::registered`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn registered() -> Vec<ItemGroup>`. The tabs registered so far, in registration order.
+The tabs registered so far, in registration order.
+
+`fn registered() -> Vec<ItemGroup>`
+
+> The list is a snapshot owned by the caller, and it grows as more tabs are registered
+> with `register`. Nothing is deduplicated for you: what was registered is what you get
+> back.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroup, ItemGroupRegistry, ItemStack};
@@ -224,9 +271,12 @@ assert!(ItemGroupRegistry::registered().iter().any(|g| g.id.path() == "listed"))
 
 ### `ModifyEntries`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a modify-entries callback receives. `group` is the tab being filled, `added` the stacks to add after the tab's own entries (callbacks push onto it with `borrow_mut`).
+What a modify-entries callback receives.
+
+> `group` is the tab being filled, `added` the stacks to add after the tab's own entries
+> (callbacks push onto it with `borrow_mut`).
 
 ```rust
 use pluto_lib::{Identifier, ItemGroupEvents, ItemStack, ModifyEntries};
@@ -241,9 +291,13 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|entries: &ModifyEntries| {
 
 ### `ItemGroupEvents`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The events that edit tab entries. Fabric: `ItemGroupEvents`.
+The events that edit tab entries.
+
+> The holder groups the entry-editing events: `MODIFY_ENTRIES_ALL` runs for every tab as
+> the inventory is built, and `modify_entries_event` builds the event for one tab.
+> Register on the one that matches how widely your edits apply.
 
 ```rust
 use pluto_lib::ItemGroupEvents;
@@ -253,9 +307,13 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|_| {});
 
 ### `ItemGroupEvents::MODIFY_ENTRIES_ALL`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Runs for every tab, vanilla's and mods', as the creative inventory is built. Check `entries.group` to pick the tab.
+Runs for every tab, vanilla's and mods', as the creative inventory is built.
+
+> Because every tab passes through, the callback's first job is to check `entries.group`
+> and leave the tabs it does not own alone. For changes to one known tab only,
+> `modify_entries_event` is the narrower hook.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroupEvents, ItemStack};
@@ -270,9 +328,15 @@ assert_eq!(context.added.borrow().len(), 1);
 
 ### `ItemGroupEvents::modify_entries_event`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn modify_entries_event(group: Identifier, callback: impl Fn(&ModifyEntries) + Send + Sync + 'static)`. Runs `callback` for one tab only, vanilla's (`minecraft:ingredients`) or a mod's.
+Runs `callback` for one tab only, vanilla's (`minecraft:ingredients`) or a mod's.
+
+`fn modify_entries_event(group: Identifier, callback: impl Fn(&ModifyEntries) + Send + Sync + 'static)`
+
+> Use it instead of `MODIFY_ENTRIES_ALL` when your changes belong to one known tab: the
+> callback receives a `ModifyEntries` for that group alone, and no other tab — vanilla's
+> or another mod's — is touched.
 
 ```rust
 use pluto_lib::{Identifier, ItemGroupEvents, ItemStack, ModifyEntries};

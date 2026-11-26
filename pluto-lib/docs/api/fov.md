@@ -30,9 +30,18 @@ reads that count against its draw time. A callback that owns nothing in the fact
 
 ### `FovFacts`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The facts of one field-of-view computation: `base` is the field-of-view modifier the game computed from the player's state before callbacks (the value a callback's factor multiplies), `flying` whether the player is flying, `walking_speed` the player's walking speed attribute, `movement_speed` the player's movement speed attribute, `stacks` the player's equipment stacks (each naming its slot; an empty slot is absent), and `using_ticks` how many ticks the player has been using the item in use, or None when the player is not using anything. `keybind_zoom` says whether the worn-helmet keybind is held (a zoom module answers it with its keybind factor).
+The facts of one field-of-view computation.
+
+> `base` is the field-of-view modifier the game computed from the player's state before
+> callbacks (the value a callback's factor multiplies), `flying` whether the player is
+> flying, `walking_speed` the player's walking speed attribute, `movement_speed` the
+> player's movement speed attribute, `stacks` the player's equipment stacks (each naming
+> its slot; an empty slot is absent), and `using_ticks` how many ticks the player has been
+> using the item in use, or None when the player is not using anything. `keybind_zoom`
+> says whether the worn-helmet keybind is held (a zoom module answers it with its keybind
+> factor).
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -48,9 +57,13 @@ assert_eq!(facts.using_ticks, Some(12));
 
 ### `FovSlot`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One equipment slot of the local player, as a `FovStack` names it: `Feet`, `Legs`, `Chest`, `Head`, `MainHand` or `OffHand`.
+One equipment slot of the local player, as a `FovStack` names it.
+
+> The variants are `Feet`, `Legs`, `Chest`, `Head`, `MainHand` and `OffHand` — the four
+> armour slots and the two hands. A `FovStack` pairs one of these with the stack sitting
+> in it.
 
 ```rust
 use pluto_lib::fov_api_v1::FovSlot;
@@ -63,9 +76,11 @@ assert_ne!(FovSlot::Chest, FovSlot::Head);
 
 ### `FovStack`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One of the local player's equipment stacks: `slot` is the slot it sits in and `stack` the stack itself, with its custom data.
+One of the local player's equipment stacks.
+
+> `slot` is the slot it sits in and `stack` the stack itself, with its custom data.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -79,9 +94,15 @@ assert_eq!(fov_stack.stack.count, 1);
 
 ### `FovCallback`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`type FovCallback = fn(&FovFacts<'_>) -> Option<f32>`. Answers the factor one mod's modifiers contribute to the field of view, or None when they contribute nothing this tick.
+Answers the factor one mod's modifiers contribute to the field of view, or None when they contribute nothing this tick.
+
+`type FovCallback = fn(&FovFacts<'_>) -> Option<f32>`
+
+> The registry asks every registered callback on each field-of-view computation and
+> multiplies the game's own modifier by the product of the factors answered. Answer `None`
+> and your callback contributes nothing to that product this tick.
 
 ```rust
 use pluto_lib::fov_api_v1::{FovCallback, FovFacts};
@@ -93,9 +114,13 @@ assert_eq!(callback(&FovFacts { base: 1.0, flying: false, walking_speed: 0.1, mo
 
 ### `FovRegistry`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The registry of field-of-view callbacks. Register once during startup; the transport asks every registered callback on each field-of-view computation and multiplies the game's modifier by the product of the factors they answer.
+The registry of field-of-view callbacks.
+
+> Register once during startup; the transport asks every registered callback on each
+> field-of-view computation and multiplies the game's modifier by the product of the
+> factors they answer.
 
 ```rust
 use pluto_lib::fov_api_v1::{FovRegistry, fov_multiplier, FovFacts};
@@ -107,9 +132,15 @@ assert_eq!(fov_multiplier(&facts), Some(1.05));
 
 ### `FovRegistry::register`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(callback: FovCallback)`. Registers a field-of-view callback; registering the same callback again does not register it twice.
+Registers a field-of-view callback.
+
+`fn register(callback: FovCallback)`
+
+> Callbacks are plain functions (`FovCallback`), so the same function registered twice is
+> recognised and held once. Every registered callback is asked on each field-of-view
+> computation, and the factors they answer are multiplied together.
 
 ```rust
 use pluto_lib::fov_api_v1::{FovRegistry, fov_multiplier, FovFacts};
@@ -123,9 +154,13 @@ assert_eq!(fov_multiplier(&facts), Some(1.05), "registered once, applied once");
 
 ### `fov_multiplier`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fov_multiplier(facts: &FovFacts<'_>) -> Option<f32>`. The product of every registered callback's factor over `facts`, or None when no callback contributes: the transport multiplies the game's own modifier by this, and leaves it alone when None.
+The product of every registered callback's factor over `facts`, or None when no callback contributes.
+
+`fn fov_multiplier(facts: &FovFacts<'_>) -> Option<f32>`
+
+> The transport multiplies the game's own modifier by this, and leaves it alone when None.
 
 ```rust
 use pluto_lib::fov_api_v1::{FovRegistry, fov_multiplier, FovFacts};
@@ -140,9 +175,14 @@ assert_eq!(fov_multiplier(&facts), Some(1.05 * 0.5));
 
 ### `FovRegistry::set_keybind_zoom`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_keybind_zoom(held: bool)`. Records the helmet key as held (`true`) or released (`false`): the keybind zoom's half of the state, written by the armor interact hook's key tracking and read into `FovFacts::keybind_zoom` on each field-of-view computation.
+Records the helmet key as held (`true`) or released (`false`).
+
+`fn set_keybind_zoom(held: bool)`
+
+> The keybind zoom's half of the state, written by the armor interact hook's key tracking
+> and read into `FovFacts::keybind_zoom` on each field-of-view computation.
 
 ```rust
 use pluto_lib::fov_api_v1::{FovRegistry, keybind_zoom};
@@ -155,9 +195,14 @@ assert!(!keybind_zoom());
 
 ### `keybind_zoom`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn keybind_zoom() -> bool`. Whether the helmet key is held now, as the armor interact hook last reported it: the transport reads it into the facts on each field-of-view computation (see `FovRegistry::set_keybind_zoom`).
+Whether the helmet key is held now, as the armor interact hook last reported it.
+
+`fn keybind_zoom() -> bool`
+
+> The transport reads it into the facts on each field-of-view computation (see
+> `FovRegistry::set_keybind_zoom`).
 
 ```rust
 use pluto_lib::fov_api_v1::{FovRegistry, keybind_zoom};

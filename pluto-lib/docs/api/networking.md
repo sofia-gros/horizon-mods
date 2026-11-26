@@ -56,9 +56,12 @@ The host enforces at most 32 mod messages per player per tick. `Ok(())` means **
 
 ### `ClientPlayConnectionEvents`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-Client login/disconnection boundaries, distinct from the server's player membership events. No fabricated player handle is supplied. Use these to discard connection-owned caches or incomplete transfers.
+Client login/disconnection boundaries, distinct from the server's player membership events.
+
+> No fabricated player handle is supplied. Use these to discard connection-owned caches or
+> incomplete transfers.
 
 ```rust
 use pluto_lib::ClientPlayConnectionEvents;
@@ -67,9 +70,12 @@ ClientPlayConnectionEvents::DISCONNECT.register(|_| {});
 
 ### `ClientPlayConnectionEvents::JOIN`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-Fires after the client's login packet, including a new login after reconfiguration without a prior disconnect. The player may not yet be available. It is not a guarantee that a server accepts mod messages.
+Fires after the client's login packet, including a new login after reconfiguration without a prior disconnect.
+
+> The player may not yet be available. It is not a guarantee that a server accepts mod
+> messages.
 
 ```rust
 use pluto_lib::ClientPlayConnectionEvents;
@@ -78,9 +84,11 @@ ClientPlayConnectionEvents::JOIN.register(|_| {});
 
 ### `ClientPlayConnectionEvents::DISCONNECT`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-Fires before an actual connection is discarded, not for a dimension change. This callback has no mutable host scope; clear local state, do not send.
+Fires before an actual connection is discarded, not for a dimension change.
+
+> This callback has no mutable host scope; clear local state, do not send.
 
 ```rust
 use pluto_lib::ClientPlayConnectionEvents;
@@ -89,9 +97,13 @@ ClientPlayConnectionEvents::DISCONNECT.register(|_| {});
 
 ### `MAX_PLAY_PAYLOAD`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Maximum data bytes in either direction, before the native transport envelope.
+
+> The cap counts your data bytes only; the transport's own envelope rides on top of it. A
+> transfer bigger than the cap has to be split into several messages, each under it, in
+> either direction.
 
 ```rust
 use pluto_lib::MAX_PLAY_PAYLOAD;
@@ -100,9 +112,13 @@ let data = vec![0u8; MAX_PLAY_PAYLOAD];
 
 ### `ServerPlayNetworking`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Server receiver registration and targeted sends; see the transport limitations above.
+Server receiver registration and targeted sends.
+
+> Register receivers with `register_global_receiver` — a channel and a callback that hears
+> the sender's UUID and the message bytes — and reach one player with `send`, which queues
+> bytes for that player's UUID. Registering the same channel twice returns an error.
 
 ```rust
 use pluto_lib::ServerPlayNetworking;
@@ -111,9 +127,13 @@ let _api = ServerPlayNetworking;
 
 ### `ServerPlayNetworking::register_global_receiver`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Takes a channel `Identifier` and a thread-safe static callback receiving sender UUID and borrowed bytes. Duplicate registration returns an error.
+Takes a channel `Identifier` and a thread-safe static callback receiving sender UUID and borrowed bytes.
+
+> Registering the same channel twice returns an error rather than replacing the first
+> receiver. The callback hears the sender's UUID with the borrowed bytes, so it can answer
+> a specific player through `send`.
 
 ```rust
 use pluto_lib::{Identifier, ServerPlayNetworking};
@@ -124,9 +144,13 @@ ServerPlayNetworking::register_global_receiver(Identifier::new("example", "reque
 
 ### `ServerPlayNetworking::send`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Queues bytes for the player's UUID; returns native queue errors unchanged. This example is intentionally outside a live callback and therefore fails.
+Queues bytes for the player's UUID.
+
+> Errors from the queue come back unchanged rather than wrapped or swallowed. The call
+> needs a live callback's scope: outside one there is no queue to accept the bytes, and
+> the call fails.
 
 ```rust
 use pluto_lib::{Identifier, ServerPlayNetworking};
@@ -135,9 +159,13 @@ assert!(ServerPlayNetworking::send(7, &Identifier::new("example", "state").unwra
 
 ### `ClientPlayNetworking`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Client receiver registration and sends to the connected server.
+
+> Use `register_global_receiver` to hear the connected server's messages on a channel and
+> `send` to queue bytes back to it. Sends run from a host-scoped callback; with no
+> connection or no scope, `send` returns an error.
 
 ```rust
 use pluto_lib::ClientPlayNetworking;
@@ -146,9 +174,13 @@ let _api = ClientPlayNetworking;
 
 ### `ClientPlayNetworking::register_global_receiver`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Takes a channel and a thread-safe static callback receiving borrowed server bytes.
+
+> The callback must be thread-safe and static: a free function, or a closure that captures
+> nothing by reference. The server's bytes are borrowed for the duration of the call, so
+> copy anything you need to keep.
 
 ```rust
 use pluto_lib::{Identifier, ClientPlayNetworking};
@@ -159,9 +191,13 @@ ClientPlayNetworking::register_global_receiver(Identifier::new("example", "state
 
 ### `ClientPlayNetworking::send`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Queues bytes to a joined mod-capable server from a host-scoped callback. No connection or scope returns an error.
+Queues bytes to a joined mod-capable server from a host-scoped callback.
+
+> The call runs from a host-scoped callback; with no connection, or no scope, it returns
+> an error instead of queueing. The bytes are queued for the connected server, not
+> delivered synchronously.
 
 ```rust
 use pluto_lib::{Identifier, ClientPlayNetworking};
@@ -170,9 +206,12 @@ assert!(ClientPlayNetworking::send(&Identifier::new("example", "request").unwrap
 
 ### `PlayerConnection`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-What a connection callback receives. `player` is the `ServerPlayer` (its methods work inside the callback), `name` is the player's name (also `player.name`).
+What a connection callback receives.
+
+> `player` is the `ServerPlayer` (its methods work inside the callback), `name` is the
+> player's name (also `player.name`).
 
 ```rust
 use pluto_lib::{PlayerConnection, ServerPlayConnectionEvents, ServerPlayer};
@@ -189,12 +228,12 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 
 ### `ServerPlayConnectionEvents`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
 The two connection events.
 
-> The holder of the two connection events, JOIN and DISCONNECT. Callbacks registered on them hear
-> when a player connects to the server and when they leave it.
+> The holder of the two connection events, JOIN and DISCONNECT. Callbacks registered on
+> them hear when a player connects to the server and when they leave it.
 
 ```rust
 use pluto_lib::ServerPlayConnectionEvents;
@@ -205,9 +244,12 @@ ServerPlayConnectionEvents::DISCONNECT.register(|_| {});
 
 ### `ServerPlayConnectionEvents::JOIN`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-A player joined the server. The usual place to greet a player or give a starting item; the player handle works inside this callback.
+A player joined the server.
+
+> The usual place to greet a player or give a starting item; the player handle works
+> inside this callback.
 
 ```rust
 use pluto_lib::{PlayerConnection, ServerPlayConnectionEvents, ServerPlayer};
@@ -227,9 +269,13 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 
 ### `ServerPlayConnectionEvents::DISCONNECT`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-A player left the server. The handle is still valid inside the callback.
+A player left the server.
+
+> The handle is still valid inside the callback, so last writes — saving data, clearing
+> per-player state — happen here. After the callback returns the player is gone, and the
+> handle must not be used.
 
 ```rust
 use pluto_lib::{PlayerConnection, ServerPlayConnectionEvents, ServerPlayer};

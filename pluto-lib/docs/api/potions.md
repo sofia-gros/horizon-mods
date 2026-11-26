@@ -4,9 +4,13 @@ The effects a potion carries, read from the game's own potion registry: which ef
 
 ### `PotionEffectFact`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One effect of a potion, as the game's registry lists it. Its fields are `effect` (the effect's id), `duration` (in ticks; an instantaneous effect's stored duration is 1), `amplifier` (the effect's level less one) and `instant` (whether the effect applies at once instead of lasting).
+One effect of a potion, as the game's registry lists it.
+
+> Its fields are `effect` (the effect's id), `duration` (in ticks; an instantaneous
+> effect's stored duration is 1), `amplifier` (the effect's level less one) and `instant`
+> (whether the effect applies at once instead of lasting).
 
 ```rust
 use pluto_lib::{Identifier, PotionEffectFact};
@@ -18,9 +22,12 @@ assert_eq!((fact.duration, fact.amplifier, fact.instant), (432, 1, false));
 
 ### `Potions`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Looking potions up in the game's registry. Outside the game (unit tests, tools) there is no registry to read, and a lookup finds nothing.
+Looking potions up in the game's registry.
+
+> Outside the game (unit tests, tools) there is no registry to read, and a lookup finds
+> nothing.
 
 ```rust
 use pluto_lib::{Identifier, Potions};
@@ -31,9 +38,13 @@ assert_eq!(Potions::effects(&water), None, "no game is running in a unit test");
 
 ### `Potions::effects`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The effects of a potion, in the order the game lists them. None when the game has no potion under the id — an invalid id is not an error, it simply carries no effects. A known potion with no effects (water, mundane) answers Some with an empty list.
+The effects of a potion, in the order the game lists them.
+
+> None when the game has no potion under the id — an invalid id is not an error, it simply
+> carries no effects. A known potion with no effects (water, mundane) answers Some with an
+> empty list.
 
 ```rust
 use pluto_lib::{Identifier, Potions};
@@ -44,9 +55,12 @@ assert_eq!(Potions::effects(&poison), None, "the registry is the game's, and no 
 
 ### `Potions::contents`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The effects a potion's contents apply, as a stack carries them: the potion's own effects followed by the contents' custom effects, in that order. An unknown potion contributes no effects of its own, so the custom effects are the whole list.
+The effects a potion's contents apply, as a stack carries them: the potion's own effects followed by the contents' custom effects, in that order.
+
+> An unknown potion contributes no effects of its own, so the custom effects are the whole
+> list.
 
 ```rust
 use pluto_lib::{Identifier, PotionEffectFact, Potions};

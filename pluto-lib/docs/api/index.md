@@ -87,7 +87,7 @@ Each page starts with a **Basic Example** and then walks through the feature one
 
 PlutoLib offers the whole API on every platform it ships for; whether a call takes effect depends on the platform's edition of PlutoLib. Each function in the Reference sections carries two badges by its name — **Horizon** for the edition built on Horizon's new mod API, and **Sunrise** for the Sunrise edition:
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) the call works there · ![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) the call is accepted but has no effect there yet · ![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) the edition does not provide it · ![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) the availability records do not cover it yet
+![Horizon: works](badges/horizon-works.svg) the call works there · ![Horizon: inert](badges/horizon-inert.svg) the call is accepted but has no effect there yet · ![Horizon: absent](badges/horizon-absent.svg) the edition does not provide it · ![Horizon: unclassified](badges/horizon-unclassified.svg) the availability records do not cover it yet
 
 Read the badges as the current state of each edition, not as a difference in the API: the shape is the same everywhere, so a mod written against these pages is written once, and an edition catching up turns calls on without the mod changing. The "Stub" notes elsewhere in these pages belong to the pinned-Horizon line this book was written for; the badges are about the two current editions.
 

@@ -54,9 +54,21 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile that has found what it meets. `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity id, `kind` its type (`minecraft:snowball` or a mod's thrown type), `owner` the entity that threw it (negative if none), `entity` the entity it hit, `entity_kind` that entity's type (empty for a block), `entity_effects` the mob effects the entity it hit carries, by id (empty for a block, or when the host could not reach the target), `block` the block it hit, `face` the face as a direction vector (`[0, 1, 0]` is the top) and `at` where it hit. `motion` is how fast it was moving when it hit, in blocks a tick, and `data` the projectile's saved data — what its spawn data and the stack that fired it left on it, so a launcher that puts its modifiers in the fired stack's data reads them back here. `piercing_ignored` is the entities a piercing arrow has already gone through, by id, as the game reports them — the entity this hit is on is already in it — and `ignore_entities` is where a callback writes the entities the hit has passed through, for the game to add to the arrow's list before it flies again, so a piercing arrow does not meet the same entity twice. Two outcomes a callback settles on the projectile itself: set `discard` to have the game remove it as the callbacks return, or set `motion_after` to the motion it flies on with — with a cancelled hit, a bounce. And `actions` is the queue of actions for the hit's parties (`Victim` the entity it hit, `Attacker` the thrower), which the game does after the callbacks answer.
+A projectile that has found what it meets.
+
+> `dimension` is the dimension id (also `world()`), `projectile` the projectile's entity
+> id, `kind` its type, `owner` the entity that threw it (negative if none), `entity` the
+> entity it hit, `entity_kind` its type (empty for a block) and `entity_effects` the mob
+> effects that entity carries, by id. `block` is the block hit, `face` the face as a
+> direction vector (`[0, 1, 0]` is the top), `at` where it hit, `motion` its speed in
+> blocks a tick, and `data` its saved data — what its spawn data and the stack that fired
+> it left on it. `piercing_ignored` lists the entities a piercing arrow has already gone
+> through; write to `ignore_entities` to add more before it flies again. Set `discard` to
+> have the game remove it, or `motion_after` to the motion it flies on with — with a
+> cancelled hit, a bounce — and `actions` is the queue of actions done afterwards to the
+> hit's parties, the entity hit as victim and the thrower as attacker.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -90,9 +102,13 @@ assert_eq!(hit.motion[1], -1.5);
 
 ### `ProjectileImpact::world`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn world(&self) -> World`. The world the projectile is in, to read and change blocks with.
+The world the projectile is in.
+
+`fn world(&self) -> World`
+
+> Use the returned `World` to read and change blocks around the hit.
 
 ```rust
 use pluto_lib::ProjectileImpact;
@@ -110,12 +126,13 @@ assert_eq!(dimension_of(&hit), "minecraft:the_nether");
 
 ### `ProjectileEvents`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Events about projectiles.
+The holder of the projectile events.
 
-> The holder of the projectile events: each field is one event in a projectile's life — launch,
-> flight, impact and their kin — that callbacks register on.
+> Each field is one event in a projectile's life — launch, flight, impact and their kin —
+> that callbacks register on: `IMPACT`, `LAUNCH`, `SHOOT_BOW`, `AMMO`, `SPAWN` and
+> `FLIGHT`.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -125,9 +142,16 @@ ProjectileEvents::IMPACT.register(|_| true);
 
 ### `ProjectileEvents::IMPACT`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile hit something, before the hit acts. Answer `false` to cancel the hit; one `false` is enough. Heard for the projectiles the game flies: arrows, tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, wither skulls, wind charges, llama spit and shulker bullets. While callbacks run, the entities around the hit are in reach (`EntityReach`), and the actions a callback queues on the hit's `actions` are done to its parties afterwards — the entity it hit as the victim, the thrower as the attacker — whether the hit is cancelled or not.
+A projectile hit something, before the hit acts.
+
+> Answer `false` to cancel the hit; one `false` is enough. It is heard for arrows,
+> tridents, snowballs and mod thrown types, eggs, pearls, potions, fireballs, wither
+> skulls, wind charges, llama spit and shulker bullets. While callbacks run, the entities
+> around the hit are in reach, and the actions a callback queues on the hit's `actions`
+> are done to its parties afterwards — the entity hit as the victim, the thrower as the
+> attacker — whether the hit is cancelled or not.
 
 ```rust
 use pluto_lib::{ProjectileEvents, ProjectileImpact};
@@ -143,9 +167,12 @@ assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 
 ### `ProjectileEvents::LAUNCH`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile entered a server level (Bukkit: `ProjectileLaunchEvent`; Fabric has no counterpart), heard after it exists, so nothing here can stop it. It is heard for every projectile the game adds, a bow's arrow included, whoever launched it: `launch.player` is set only when a player did.
+A projectile entered a server level, heard after it exists.
+
+> It is heard for every projectile the game adds, a bow's arrow included, whoever launched
+> it, so nothing here can stop it. `launch.player` is set only when a player launched it.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -159,9 +186,14 @@ ProjectileEvents::LAUNCH.register(|launch| {
 
 ### `ProjectileLaunch`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile that entered a level. `player` is the launching player's uuid (`None` for a dispenser's or a mob's), `name` their name (empty without a player), `projectile` the projectile's entity id and `kind` its type. `motion` is how fast it is moving as it enters, in blocks a tick, and `data` its saved data, as on `ProjectileImpact`.
+A projectile that entered a level.
+
+> `player` is the launching player's uuid (`None` for a dispenser's or a mob's), `name`
+> their name (empty without a player), `projectile` the projectile's entity id and `kind`
+> its type. `motion` is how fast it is moving as it enters, in blocks a tick, and `data`
+> its saved data, as on `ProjectileImpact`.
 
 ```rust
 use pluto_lib::ProjectileLaunch;
@@ -174,9 +206,14 @@ assert_eq!(launch.motion[2], -3.0);
 
 ### `ProjectileEvents::SHOOT_BOW`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A player's bow or crossbow shot an arrow, heard on a server after the arrow entered the level, once for each arrow (a multishot crossbow reports three). Push `EntityAction`s for the player onto `shot.actions` (`ActionTarget::Attacker`), for example a status effect for the shooter; the bow is in `shot.main_hand` or `shot.off_hand`.
+A player's bow or crossbow shot an arrow.
+
+> Heard after the arrow entered the level, once for each arrow — a multishot crossbow
+> reports three. Push `EntityAction`s for the player onto `shot.actions`
+> (`ActionTarget::Attacker`), for example a status effect for the shooter; the bow is in
+> `shot.main_hand` or `shot.off_hand`.
 
 ```rust
 use pluto_lib::{ActionTarget, EntityAction, ProjectileEvents};
@@ -192,9 +229,15 @@ ProjectileEvents::SHOOT_BOW.register(|shot| {
 
 ### `BowShot`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An arrow shot by a player's bow or crossbow. `player` is the shooting player's uuid and `name` their name, `projectile` the arrow's entity id, `force` the arrow's launch speed as the game reports it (a fully drawn bow gives 3.0, a weaker draw less, a crossbow its fixed power), `main_hand` and `off_hand` the stacks in the player's hands as the arrow left (damage, max damage and custom data; `None` for an empty hand) and `actions` the `EntityAction`s to do to the player.
+An arrow shot by a player's bow or crossbow.
+
+> `player` is the shooting player's uuid and `name` their name, `projectile` the arrow's
+> entity id, and `force` the arrow's launch speed as the game reports it — a fully drawn
+> bow gives 3.0, a weaker draw less, a crossbow its fixed power. `main_hand` and
+> `off_hand` are the stacks in the player's hands as the arrow left (`None` for an empty
+> hand), and `actions` the `EntityAction`s to do to the player.
 
 ```rust
 use pluto_lib::{BowShot, ProjectileEvents};
@@ -248,9 +291,15 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `ThrownType`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A thrown item type: `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla one), `item`, `damage` and `throw_sound`, the sound a hand throw plays instead of the game's snowball throw (`None` keeps the game's own). `ThrownType::new` validates as the game validates its content form: the damage must be finite and not negative.
+A thrown item type.
+
+> Its fields are `id` (never a `minecraft:` id — a mod's type must not shadow a vanilla
+> one), `item` (what it flies as and drops), `damage` (what a hit hurts for) and
+> `throw_sound`, the sound a hand throw plays instead of the game's snowball throw (`None`
+> keeps the game's own). `ThrownType::new` validates as the game validates its content
+> form: the damage must be finite and not negative.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType};
@@ -264,9 +313,14 @@ assert_eq!(thrown.throw_sound, None);
 
 ### `ThrownTypeRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The registry of thrown types. `register` fails, keeping the earlier registration, for a duplicate id or after the declarations have been collected. `get(id)` returns the registered type. `declarations()` returns every registered type, by id, and freezes the registry, as the game's own set-once registry does.
+The registry of thrown types.
+
+> `register` fails, keeping the earlier registration, for a duplicate id or after the
+> declarations have been collected. `get(id)` returns the registered type.
+> `declarations()` returns every registered type, by id, and freezes the registry, as the
+> game's own set-once registry does.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
@@ -279,9 +333,15 @@ assert!(ThrownTypeRegistry::get(&Identifier::parse("example:missing_thrown").unw
 
 ### `ProjectileSpawn`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile to spawn: `kind`, `position`, `motion` (blocks per tick), `owner` (the throwing entity's uuid, if any) and `data`, the kind's own saved data. `ProjectileSpawn::new(kind, position, motion)` starts with no owner and no data; `.owner(uuid)` and `.data(nbt)` add them. `to_nbt()` is the saved data the spawn loads from: the kind's data with `Motion` (a list of three doubles) and `Owner` (a uuid as four ints, most significant first) written from the fields, replacing any in the data.
+A projectile to spawn.
+
+> Its fields are `kind`, `position`, `motion` (blocks per tick), `owner` (the throwing
+> entity's uuid, if any) and `data`, the kind's own saved data.
+> `ProjectileSpawn::new(kind, position, motion)` starts with no owner and no data;
+> `.owner(uuid)` and `.data(nbt)` add them. `to_nbt()` is the saved data the spawn loads
+> from, with `Motion` and `Owner` written from the fields.
 
 ```rust
 use pluto_lib::{Identifier, Nbt, ProjectileSpawn};
@@ -295,9 +355,15 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 
 ### `spawn_projectile`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn spawn_projectile(world: &World, spawn: &ProjectileSpawn) -> Option<u32>`. Spawns the projectile in `world` and returns the new entity's id; `None` when the world cannot summon there or outside a callback that carries a world.
+Spawns the projectile in `world` and returns the new entity's id.
+
+`fn spawn_projectile(world: &World, spawn: &ProjectileSpawn) -> Option<u32>`
+
+> Returns `None` when the world cannot summon there, or outside a callback that carries a
+> world. The returned id is the id the projectile's hit is later reported under in
+> `ProjectileEvents::IMPACT`.
 
 ```rust
 use pluto_lib::{Identifier, MemoryWorldOps, ProjectileSpawn, World, spawn_projectile, with_world};
@@ -312,9 +378,14 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `spawn_thrown`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn spawn_thrown(world: &World, thrown: &Identifier, position: [f64; 3], motion: [f64; 3], owner: Option<u128>, data: NbtCompound) -> Option<u32>`. Spawns a registered thrown type by its id; `None` when no type is registered under `thrown`.
+Spawns a registered thrown type by its id.
+
+`fn spawn_thrown(world: &World, thrown: &Identifier, position: [f64; 3], motion: [f64; 3], owner: Option<u128>, data: NbtCompound) -> Option<u32>`
+
+> Returns the new entity's id, or `None` when no type is registered under `thrown`. The
+> spawn carries the given position, motion, owner and saved data.
 
 ```rust
 use pluto_lib::{Identifier, MemoryWorldOps, NbtCompound, ThrownType, ThrownTypeRegistry, World, spawn_thrown, with_world};
@@ -330,9 +401,14 @@ assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown"
 
 ### `throw_sound_for`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn throw_sound_for(id: &str) -> Option<&'static str>`. The sound a thrown type throws with, for the host's throw-sound sink: the registered type's throw sound, if it carries one. None keeps the game's own snowball throw.
+The sound a thrown type throws with.
+
+`fn throw_sound_for(id: &str) -> Option<&'static str>`
+
+> For the host's throw-sound sink: the registered type's throw sound, if it carries one.
+> `None` keeps the game's own snowball throw.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry, throw_sound_for};
@@ -346,9 +422,14 @@ assert_eq!(throw_sound_for("example:chime_thrown"), Some("example:throw.chime"))
 
 ### `uuid_int_array`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn uuid_int_array(uuid: u128) -> [i32; 4]`. A uuid as the four ints entity data holds it in (`UUIDUtil.uuidToIntArray`), most significant first.
+A uuid as the four ints entity data holds it in.
+
+`fn uuid_int_array(uuid: u128) -> [i32; 4]`
+
+> Most significant first — the game's `UUIDUtil.uuidToIntArray` layout, as an owner is
+> written in saved data.
 
 ```rust
 use pluto_lib::uuid_int_array;
@@ -358,9 +439,14 @@ assert_eq!(uuid_int_array(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF), [0x0011_22
 
 ### `ThrownType::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(id: Identifier, item: Identifier, damage: f32) -> Result<ThrownType, String>`. A thrown type validated as the game validates its content form: a `minecraft:` id and a non-finite or negative `damage` are errors.
+A thrown type, validated as the game validates its content form.
+
+`fn new(id: Identifier, item: Identifier, damage: f32) -> Result<ThrownType, String>`
+
+> A `minecraft:` id and a non-finite or negative `damage` are errors. On success the type
+> carries no throw sound until `.throw_sound(...)` adds one.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType};
@@ -373,9 +459,14 @@ assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identi
 
 ### `ThrownType::throw_sound`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn throw_sound(self, sound: Identifier) -> ThrownType`. The same thrown type, throwing with `sound` instead of the vanilla snowball throw.
+The same thrown type, throwing with `sound`.
+
+`fn throw_sound(self, sound: Identifier) -> ThrownType`
+
+> The sound replaces the vanilla snowball throw for hand throws of this type, instead of
+> the game's own. The throw's volume and pitch are unchanged; only the event id changes.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType};
@@ -387,9 +478,14 @@ assert_eq!(thrown.throw_sound.unwrap().to_string(), "example:throw.throwball");
 
 ### `ThrownTypeRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(thrown: ThrownType) -> Result<(), String>`. Registers a thrown type; a duplicate id or registration after the declarations have been collected fails, keeping the earlier registration.
+Registers a thrown type.
+
+`fn register(thrown: ThrownType) -> Result<(), String>`
+
+> A duplicate id, or registration after the declarations have been collected, fails and
+> keeps the earlier registration.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
@@ -401,9 +497,13 @@ assert!(ThrownTypeRegistry::register(thrown).is_err(), "duplicate id");
 
 ### `ThrownTypeRegistry::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(id: &Identifier) -> Option<ThrownType>`. The thrown type registered under `id`, if any.
+The thrown type registered under `id`, if any.
+
+`fn get(id: &Identifier) -> Option<ThrownType>`
+
+> Returns the registered type, or `None` when nothing is registered under that id.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
@@ -416,9 +516,14 @@ assert_eq!(ThrownTypeRegistry::get(&id).unwrap().item.to_string(), "example:orb"
 
 ### `ThrownTypeRegistry::throw_sound`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn throw_sound(id: &Identifier) -> Option<Identifier>`. The throw sound registered for `id`, if the type carries one.
+The throw sound registered for `id`, if the type carries one.
+
+`fn throw_sound(id: &Identifier) -> Option<Identifier>`
+
+> Returns `None` when the type is unregistered or carries no throw sound, in which case a
+> hand throw keeps the game's own snowball throw.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
@@ -432,9 +537,15 @@ assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), 
 
 ### `ThrownTypeRegistry::declarations`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn declarations() -> Result<Vec<ThrownType>, String>`. Every registered thrown type, by id; collecting them freezes the registry, as the game's own set-once registry does.
+Every registered thrown type, by id.
+
+`fn declarations() -> Result<Vec<ThrownType>, String>`
+
+> Collecting them freezes the registry, as the game's own set-once registry does:
+> registrations after collection fail. The declarations hand over exactly what a mod's
+> content entity types need to declare the same types.
 
 ```rust
 use pluto_lib::{Identifier, ThrownType, ThrownTypeRegistry};
@@ -448,9 +559,14 @@ assert!(ThrownTypeRegistry::register(ThrownType::new(Identifier::parse("example:
 
 ### `ProjectileSpawn::new`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(kind: Identifier, position: [f64; 3], motion: [f64; 3]) -> ProjectileSpawn`. A projectile of `kind` at `position` with `motion`, with no owner and no extra data.
+A projectile of `kind` at `position` with `motion`.
+
+`fn new(kind: Identifier, position: [f64; 3], motion: [f64; 3]) -> ProjectileSpawn`
+
+> The spawn starts with no owner and no extra data; add them with `.owner(...)` and
+> `.data(...)`.
 
 ```rust
 use pluto_lib::{Identifier, ProjectileSpawn};
@@ -463,9 +579,14 @@ assert!(spawn.owner.is_none() && spawn.data.is_empty());
 
 ### `ProjectileSpawn::owner`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn owner(self, owner: u128) -> ProjectileSpawn`. The same spawn, thrown by the entity `owner`.
+The same spawn, thrown by the entity `owner`.
+
+`fn owner(self, owner: u128) -> ProjectileSpawn`
+
+> The owner is the throwing entity's uuid; `to_nbt()` writes it into the spawn's saved
+> data as `Owner`.
 
 ```rust
 use pluto_lib::{Identifier, ProjectileSpawn};
@@ -476,9 +597,14 @@ assert_eq!(spawn.owner, Some(42));
 
 ### `ProjectileSpawn::data`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn data(self, data: NbtCompound) -> ProjectileSpawn`. The same spawn, with the kind's own saved `data`.
+The same spawn, with the kind's own saved `data`.
+
+`fn data(self, data: NbtCompound) -> ProjectileSpawn`
+
+> `Motion` and `Owner` are still written from the spawn's fields by `to_nbt()`, replacing
+> any in this data.
 
 ```rust
 use pluto_lib::{Identifier, Nbt, NbtCompound, ProjectileSpawn};
@@ -491,9 +617,14 @@ assert_eq!(spawn.data.get("damage"), Some(&Nbt::Double(2.5)));
 
 ### `ProjectileSpawn::to_nbt`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn to_nbt(&self) -> NbtCompound`. The saved data the spawn loads from: the kind's data with `Motion` (a list of three doubles) and `Owner` (a uuid as four ints, most significant first) written from the fields, replacing any in the data.
+The saved data the spawn loads from.
+
+`fn to_nbt(&self) -> NbtCompound`
+
+> The kind's data with `Motion` (a list of three doubles) and `Owner` (a uuid as four
+> ints, most significant first) written from the fields, replacing any in the data.
 
 ```rust
 use pluto_lib::{Identifier, Nbt, ProjectileSpawn};
@@ -506,9 +637,16 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 
 ### `AmmoRequest`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A living entity is about to shoot and the game asks what projectile it fires. `player` is the shooting player's uuid (`None` for a mob), `name` their name (empty for a mob), `entity` the shooting mob's entity id (`None` for a player), `kind` the shooter's type, `weapon` the weapon being shot, `vanilla` the projectile stack the game picked itself, `carried` every stack the shooter carries, `supplied` the projectile stack to fire instead of `vanilla` (which a callback may set; a count of 0 means no projectile) and `edits` the whole new stacks for places the shooter carries, which callbacks add to in order to consume the source of a supplied stack.
+A living entity is about to shoot, and the game asks what projectile it fires.
+
+> `player` is the shooting player's uuid (`None` for a mob), `name` their name (empty for
+> a mob), `entity` the shooting mob's entity id (`None` for a player), `kind` the
+> shooter's type, and `weapon` the weapon being shot. `vanilla` is the projectile stack
+> the game picked itself and `carried` every stack the shooter carries. A callback sets
+> `supplied` to the stack to fire instead of `vanilla` (a count of 0 means no projectile)
+> and adds whole new stacks to `edits`, in order, to consume the supplied stack's source.
 
 ```rust
 use pluto_lib::{AmmoRequest, StackData};
@@ -530,9 +668,13 @@ assert!(request.supplied.borrow().is_none() && request.edits.borrow().is_empty()
 
 ### `ProjectileEvents::AMMO`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A living entity is about to shoot a weapon and the game asks what projectile it fires (NeoForge: `LivingGetProjectileEvent`), heard before the shot. Leave a request's `supplied` alone to change nothing; set it to take over firing that stack, consuming its source yourself through its `edits`. Server only.
+A living entity is about to shoot a weapon, and the game asks what projectile it fires.
+
+> Heard before the shot. Leave a request's `supplied` alone to change nothing; set it to
+> take over firing that stack, consuming its source yourself through its `edits`. Server
+> only.
 
 ```rust
 use pluto_lib::{AmmoRequest, Identifier, ItemSlot, ProjectileEvents, StackData};
@@ -554,9 +696,16 @@ assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecr
 
 ### `ProjectileEvents::SPAWN`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile joined the flying list, before its first tick: the set-up pass. A callback may still set the shot up — replace its `motion_after`, give an arrow a `pierce` level, set an arrow's pickup status (`pickup`), lift its gravity (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every projectile the game adds on a server, a callback's own summons included; the projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile state at `LAUNCH` or on the first `FLIGHT`. Server only.
+A projectile joined the flying list, before its first tick: the set-up pass.
+
+> A callback may still set the shot up — replace its `motion_after`, give an arrow a
+> `pierce` level, set an arrow's pickup status (`pickup`), lift its gravity
+> (`no_gravity`), or name the `pickup_stack` a stuck arrow hands back. Heard for every
+> projectile the game adds on a server, a callback's own summons included; the
+> projectile's id may still be 0 here (it is numbered as it joins), so bind per-projectile
+> state at `LAUNCH` or on the first `FLIGHT`. Server only.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -570,9 +719,18 @@ ProjectileEvents::SPAWN.register(|spawn| {
 
 ### `ProjectileSpawned`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile at the moment it joins the flying list. `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered), `kind` its type, `owner` the entity that threw or shot it (negative if none), `position` where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the arrow facts when it is an arrow, `stack` the projectile's own stack as data (an arrow's pickup stack, a thrown type's item) and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce level, `pickup` sets an arrow's pickup status (creative-only for an arrow its launcher supplied), `no_gravity` lifts its gravity, and `pickup_stack` names the stack a stuck arrow hands back when picked up.
+A projectile at the moment it joins the flying list.
+
+> `dimension` is the dimension id, `projectile` its entity id (0 when not yet numbered),
+> `kind` its type, `owner` the entity that threw or shot it (negative if none), `position`
+> where it enters and `motion` how fast it is moving, in blocks a tick. `arrow` holds the
+> arrow facts when it is an arrow, `stack` the projectile's own stack as data, and `data`
+> its saved data, as on `ProjectileImpact`. The outcomes a callback settles:
+> `motion_after` replaces the motion of its first tick, `pierce` gives an arrow its pierce
+> level, `pickup` sets an arrow's pickup status, `no_gravity` lifts its gravity, and
+> `pickup_stack` names the stack a stuck arrow hands back when picked up.
 
 ```rust
 use pluto_lib::{ArrowFacts, ArrowPickup, ProjectileSpawned};
@@ -594,9 +752,14 @@ assert_eq!(spawn.pickup.get(), Some(ArrowPickup::CreativeOnly));
 
 ### `ArrowFacts`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a flying projectile's arrow half keeps: `pierce` how many entities it passes through, `in_ground` whether it rests stuck in a block, `in_ground_time` how many ticks it has been stuck, and `dealt_damage` whether it has dealt its damage (a trident body's flag: it hits no more, and a loyal flight comes home).
+What a flying projectile's arrow half keeps.
+
+> `pierce` is how many entities it passes through, `in_ground` whether it rests stuck in a
+> block, `in_ground_time` how many ticks it has been stuck, and `dealt_damage` whether it
+> has dealt its damage — a trident body's flag: it hits no more, and a loyal flight comes
+> home.
 
 ```rust
 use pluto_lib::ArrowFacts;
@@ -607,9 +770,14 @@ assert!(facts.in_ground && facts.in_ground_time > 4 && !facts.dealt_damage);
 
 ### `ArrowPickup`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An arrow's pickup status (`AbstractArrow.Pickup`): who may pick a stuck arrow up. `Disallowed` is picked up by no player, `Allowed` by any player (who is handed the arrow's pickup stack), and `CreativeOnly` only by a player in creative, who takes no item for it — an arrow its shooter did not spend, such as one a launcher's modifier supplied. The codes are the host's saved byte: 0, 1, 2.
+An arrow's pickup status: who may pick a stuck arrow up.
+
+> `Disallowed` is picked up by no player, `Allowed` by any player (who is handed the
+> arrow's pickup stack), and `CreativeOnly` only by a player in creative, who takes no
+> item for it — an arrow its shooter did not spend, such as one a launcher's modifier
+> supplied. The codes are the saved byte: 0, 1, 2.
 
 ```rust
 use pluto_lib::ArrowPickup;
@@ -620,9 +788,16 @@ assert_eq!((ArrowPickup::Disallowed as u8, ArrowPickup::Allowed as u8, ArrowPick
 
 ### `ProjectileEvents::FLIGHT`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile ended a tick it flew (or rested stuck) in: the steering pass. Heard once a tick for every projectile the game flies on a server, stuck arrows included, for as long as it stays in the flying list. A callback may set the motion it flies the next tick with, lift or restore its gravity, set an arrow's pickup status, free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its tool rests stuck. Server only.
+A projectile ended a tick it flew (or rested stuck) in: the steering pass.
+
+> Heard once a tick for every projectile the game flies on a server, stuck arrows
+> included, for as long as it stays in the flying list. A callback may set the motion it
+> flies the next tick with, lift or restore its gravity, set an arrow's pickup status,
+> free a stuck arrow, discard it, and queue `FlightAction`s around it. A fuse is a
+> callback counting `age`; a magnet is one queueing `FlightAction::PullItems` while its
+> tool rests stuck. Server only.
 
 ```rust
 use pluto_lib::ProjectileEvents;
@@ -636,9 +811,22 @@ ProjectileEvents::FLIGHT.register(|flight| {
 
 ### `ProjectileFlight`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A projectile at the end of a tick of flight. `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner` the entity that threw or shot it (negative if none); `owner_position` is where the owner stands, when the game could reach it — how a callback steers a flight home. `age` is how many ticks it has flown, `position` where it ended the tick and `motion` how fast it is moving, in blocks a tick: the motion it will fly the next tick with, before drag and gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data, as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts or restores its gravity from the next tick, `pickup_after` sets an arrow's pickup status from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given can fly it, and `actions` is the queue of `FlightAction`s to do around it.
+A projectile at the end of a tick of flight.
+
+> `dimension` is the dimension id, `projectile` its entity id, `kind` its type and `owner`
+> the entity that threw or shot it (negative if none); `owner_position` is where the owner
+> stands, when the game could reach it — how a callback steers a flight home. `age` is how
+> many ticks it has flown, `position` where it ended the tick and `motion` how fast it is
+> moving, in blocks a tick — the motion it will fly the next tick with, before drag and
+> gravity. `in_ground` says it rests stuck in a block, `no_gravity` whether its flight is
+> without gravity, `arrow` the arrow facts when it is an arrow, and `data` its saved data,
+> as on `ProjectileImpact`. The outcomes a callback settles: `motion_after` replaces the
+> next tick's motion, `discard` removes it as the tick settles, `no_gravity_after` lifts
+> or restores its gravity from the next tick, `pickup_after` sets an arrow's pickup status
+> from the next tick, `release_from_ground` frees a stuck arrow so the motion it is given
+> can fly it, and `actions` is the queue of `FlightAction`s to do around it.
 
 ```rust
 use pluto_lib::{ArrowFacts, FlightAction, ProjectileFlight};
@@ -663,9 +851,16 @@ assert_eq!(flight.actions.borrow().len(), 1);
 
 ### `FlightAction`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One thing a flight callback asks the game to do around a flying projectile, in plain data, done as the tick settles in the order queued: `Explode` sets off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity, `PullItems` pulls the item entities near a point toward it, `PullEntities` pulls the mobs near a point toward it, `DropStack` drops a stack as an item entity, and `GiveStack` hands a stack to the projectile's owner (into a player owner's inventory, or dropped at their feet when it does not fit or the owner is no player).
+One thing a flight callback asks the game to do around a flying projectile.
+
+> Given in plain data and done as the tick settles, in the order queued: `Explode` sets
+> off a blast, `Particle` spawns a particle, `PushEntity` adds a motion to an entity,
+> `PullItems` pulls the item entities near a point toward it, and `PullEntities` pulls the
+> mobs near a point toward it. `DropStack` drops a stack as an item entity, and
+> `GiveStack` hands a stack to the projectile's owner — into a player owner's inventory,
+> or dropped at their feet when it does not fit or the owner is no player.
 
 ```rust
 use pluto_lib::{FlightAction, StackData, ExplosionInteraction};

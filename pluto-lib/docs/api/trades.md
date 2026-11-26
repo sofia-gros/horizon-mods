@@ -22,9 +22,14 @@ The native source view uses authoritative ordered item tags and actual item exis
 
 ### `TradeRandom`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The authoritative caller RNG: `next_int(&mut self, bound: i32) -> i32` for a positive bound, `next_float(&mut self) -> f32` and `next_double(&mut self) -> f64`. A backend must not substitute a newly seeded generator or erase singleton draws. Native generation forwards the borrowed per-set sequence; runtime behavior is not yet verified.
+The authoritative caller RNG: `next_int(&mut self, bound: i32) -> i32` for a positive bound, `next_float(&mut self) -> f32` and `next_double(&mut self) -> f64`.
+
+> A backend must not substitute a newly seeded generator or erase singleton draws: the
+> draws a set makes are the draws it gets, in order. Native generation forwards the
+> borrowed per-set sequence, so generation consumes the caller's RNG rather than a private
+> one.
 
 ```rust
 use pluto_lib::TradeRandom;
@@ -39,9 +44,13 @@ assert_eq!(First.next_int(1), 0);
 
 ### `TradeWorld`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Borrowed item registry access: `item_tag(&self, tag: &str) -> Option<Vec<String>>` returns authoritative ordered members (None is missing/unavailable), and `item_exists(&self, item: &str) -> bool` checks the actual registry. Never synthesize tag members from a static fallback.
+Borrowed item registry access: `item_tag(&self, tag: &str) -> Option<Vec<String>>` returns authoritative ordered members (None is missing/unavailable), and `item_exists(&self, item: &str) -> bool` checks the actual registry.
+
+> Never synthesize tag members from a static fallback: `None` from `item_tag` means the
+> tag is missing or unavailable, and that answer is authoritative. `item_exists` likewise
+> checks the actual registry, not a list of your own.
 
 ```rust
 use pluto_lib::TradeWorld;
@@ -55,9 +64,15 @@ assert!(Unavailable.item_tag("example:tools").is_none());
 
 ### `TradeOfferContext`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`TradeOfferContext<'a>` carries `world: &'a dyn TradeWorld`, `position: [f64; 3]` and `variant: &'a str`. These are borrowed from the current generation request, not retained global merchant handles.
+The context a trade offer is generated in.
+
+`TradeOfferContext<'a>`
+
+> It carries `world: &'a dyn TradeWorld`, `position: [f64; 3]` and `variant: &'a str`.
+> These are borrowed from the current generation request, not retained global merchant
+> handles — when the request ends, the context goes with it.
 
 ```rust
 use pluto_lib::{TradeOfferContext, TradeWorld};
@@ -72,9 +87,12 @@ assert_eq!(context.position[1], 64.0);
 
 ### `TradeOffer`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A fresh offer has `first_buy: StackData`, `second_buy: Option<StackData>`, `sell: StackData`, `max_uses: i32`, `experience: i32` and `price_multiplier: f32`. Native demand, uses and special prices belong to the native merchant after creation. Stack damage, max damage and custom data are not flattened to item IDs.
+A fresh offer has `first_buy: StackData`, `second_buy: Option<StackData>`, `sell: StackData`, `max_uses: i32`, `experience: i32` and `price_multiplier: f32`.
+
+> Native demand, uses and special prices belong to the native merchant after creation.
+> Stack damage, max damage and custom data are not flattened to item IDs.
 
 ```rust
 use pluto_lib::{StackData, TradeOffer};
@@ -89,9 +107,12 @@ assert_eq!(offer.first_buy.count, 6);
 
 ### `TradeOfferFactory`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A cloneable selected-offer callback. Cloning preserves callback identity/state and does not invoke it; duplicate candidate entries are retained.
+A cloneable selected-offer callback.
+
+> Cloning preserves callback identity/state and does not invoke it; duplicate candidate
+> entries are retained.
 
 ```rust
 use pluto_lib::TradeOfferFactory;
@@ -102,9 +123,15 @@ assert_eq!(weighted.len(), 2);
 
 ### `TradeOfferFactory::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(create: impl Fn(&TradeOfferContext<'_>, &mut dyn TradeRandom) -> Result<Option<TradeOffer>, String> + Send + Sync + 'static) -> TradeOfferFactory`. The callback can inspect registry context and consume the same RNG; it must not retain borrowed context.
+The callback can inspect registry context and consume the same RNG.
+
+`fn new(create: impl Fn(&TradeOfferContext<'_>, &mut dyn TradeRandom) -> Result<Option<TradeOffer>, String> + Send + Sync + 'static) -> TradeOfferFactory`
+
+> The callback can inspect the registry context and consume the same RNG the caller is
+> using; it must not retain the borrowed context beyond the call. It answers the offer to
+> add, `None` for none, or an error — the two stay distinct.
 
 ```rust
 use pluto_lib::TradeOfferFactory;
@@ -116,9 +143,13 @@ let factory = TradeOfferFactory::new(|context, _| {
 
 ### `TradeOfferFactory::create`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn create(&self, context: &TradeOfferContext<'_>, random: &mut dyn TradeRandom) -> Result<Option<TradeOffer>, String>`. Invokes exactly this selected listing. None and error remain distinct; pool retry policy is the adapter's responsibility.
+Invokes exactly this selected listing.
+
+`fn create(&self, context: &TradeOfferContext<'_>, random: &mut dyn TradeRandom) -> Result<Option<TradeOffer>, String>`
+
+> None and error remain distinct; pool retry policy is the adapter's responsibility.
 
 ```rust
 use pluto_lib::{TradeOfferContext, TradeOfferFactory, TradeRandom, TradeWorld};
@@ -140,9 +171,12 @@ assert!(TradeOfferFactory::new(|_, _| Err("failed".into())).create(&context, &mu
 
 ### `TradeOfferHelper`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Fabric-shaped wandering-trader registration. Providers append candidate factories; they do not themselves edit a merchant's existing saved offers.
+Fabric-shaped wandering-trader registration.
+
+> Providers append candidate factories; they do not themselves edit a merchant's existing
+> saved offers.
 
 ```rust
 use pluto_lib::TradeOfferHelper;
@@ -151,9 +185,14 @@ TradeOfferHelper::register_wandering_trader_offers(1, Vec::new).unwrap();
 
 ### `TradeOfferHelper::register_wandering_trader_offers`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_wandering_trader_offers(level: u32, provider: impl Fn() -> Vec<TradeOfferFactory> + Send + Sync + 'static) -> Result<(), String>`. Accepts only levels 1 and 2. Providers are additive and may be invoked more than once; avoid generating tools or consuming RNG while building a pool.
+Accepts only levels 1 and 2.
+
+`fn register_wandering_trader_offers(level: u32, provider: impl Fn() -> Vec<TradeOfferFactory> + Send + Sync + 'static) -> Result<(), String>`
+
+> Providers are additive and may be invoked more than once; avoid generating tools or
+> consuming RNG while building a pool.
 
 ```rust
 use pluto_lib::TradeOfferHelper;
@@ -163,9 +202,14 @@ TradeOfferHelper::register_wandering_trader_offers(2, Vec::new).unwrap();
 
 ### `TradeOfferHelper::wandering_trader_offers`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn wandering_trader_offers(level: u32) -> Result<Vec<TradeOfferFactory>, String>`. Gets an owned custom-candidate snapshot, preserving registration order and duplicates. This does not select listings or generate native merchant offers; adapters must append it to the appropriate native pool before selection.
+Gets an owned custom-candidate snapshot, preserving registration order and duplicates.
+
+`fn wandering_trader_offers(level: u32) -> Result<Vec<TradeOfferFactory>, String>`
+
+> This does not select listings or generate native merchant offers; adapters must append
+> it to the appropriate native pool before selection.
 
 ```rust
 use pluto_lib::{TradeOfferFactory, TradeOfferHelper};

@@ -48,9 +48,12 @@ ConfigEvents::RELOADING.register(|config| {
 
 ### `ConfigKind`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Which side reads a config and when. `Client` loads on the window when the game starts, `Common` once per process (the window or a dedicated server), `Server` for each world the server opens.
+Which side reads a config and when.
+
+> `Client` loads on the window when the game starts, `Common` once per process (the window
+> or a dedicated server), `Server` for each world the server opens.
 
 ```rust
 use pluto_lib::ConfigKind;
@@ -61,13 +64,13 @@ assert_eq!(kinds.len(), 3);
 
 ### `ConfigRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers config files.
 
-> Registers a mod's config files: the mod names a file and its kind, and the game reads the file
-> and hands back the parsed ModConfig when it loads. Registrations are made once, while the mod
-> sets itself up.
+> Registers a mod's config files: the mod names a file and its kind, and the game reads
+> the file and hands back the parsed ModConfig when it loads. Registrations are made once,
+> while the mod sets itself up.
 
 ```rust
 use pluto_lib::{ConfigKind, ConfigRegistry};
@@ -77,9 +80,15 @@ ConfigRegistry::register("example", ConfigKind::Common, "greeting = \"hello\"\n"
 
 ### `ConfigRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(mod_id: &str, kind: ConfigKind, default_text: &str)`. Asks for `config/<mod_id>-<kind>.toml` (`example-common.toml` above), created from `default_text` when missing.
+Asks for `config/<mod_id>-<kind>.toml` (`example-common.toml` above), created from `default_text` when missing.
+
+`fn register(mod_id: &str, kind: ConfigKind, default_text: &str)`
+
+> When the file is missing it is created from `default_text`, so ship a complete default
+> text. To put a config in a differently named file inside `config/` instead, use
+> `register_file`.
 
 ```rust
 use pluto_lib::{ConfigKind, ConfigRegistry};
@@ -89,9 +98,15 @@ ConfigRegistry::register("example", ConfigKind::Server, "difficulty = 2\n");
 
 ### `ConfigRegistry::register_file`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_file(mod_id: &str, kind: ConfigKind, file: &str, default_text: &str)`. The same in another file inside `config/`, such as `example/machines.toml`.
+The same in another file inside `config/`, such as `example/machines.toml`.
+
+`fn register_file(mod_id: &str, kind: ConfigKind, file: &str, default_text: &str)`
+
+> Use it when one file per kind is not the shape you want: the file name is yours, as in
+> `example/machines.toml`, but it still lives inside `config/` and, as with `register`, is
+> created from `default_text` when missing.
 
 ```rust
 use pluto_lib::{ConfigKind, ConfigRegistry};
@@ -101,9 +116,14 @@ ConfigRegistry::register_file("example", ConfigKind::Common, "example/machines.t
 
 ### `ConfigSpec`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A config as registered. `mod_id` is the owner, `kind` when it loads, `file` the file name inside `config/` if it is not the default one, `default_text` what is written when the file is missing. PlutoLib builds these from `register` and `register_file`; read them back with a `ConfigSpec` only in tooling.
+A config as registered.
+
+> `mod_id` is the owner, `kind` when it loads, `file` the file name inside `config/` if it
+> is not the default one, `default_text` what is written when the file is missing.
+> PlutoLib builds these from `register` and `register_file`; read them back with a
+> `ConfigSpec` only in tooling.
 
 ```rust
 use pluto_lib::{ConfigKind, ConfigSpec};
@@ -117,9 +137,12 @@ assert!(spec.default_text.is_empty());
 
 ### `ModConfig`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A config file as the game read it. `mod_id` is the owner, `kind` its kind, `file` the name inside `config/`, `text` the file's contents.
+A config file as the game read it.
+
+> `mod_id` is the owner, `kind` its kind, `file` the name inside `config/`, `text` the
+> file's contents.
 
 ```rust
 use pluto_lib::{ConfigEvents, ConfigKind, ModConfig};
@@ -139,9 +162,13 @@ ConfigEvents::LOADING.invoke(&ModConfig {
 
 ### `ConfigEvents`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The three config events. Every mod hears every config, so a callback checks `config.mod_id`.
+The three config events.
+
+> The three are `LOADING`, `RELOADING` and `UNLOADING`, one per moment in a config's life.
+> Because every mod hears every config, a callback's first job is to check `config.mod_id`
+> and ignore the configs it does not own.
 
 ```rust
 use pluto_lib::ConfigEvents;
@@ -153,9 +180,13 @@ ConfigEvents::UNLOADING.register(|_| {});
 
 ### `ConfigEvents::LOADING`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A registered config was read. Parse `config.text` here.
+A registered config was read.
+
+> Parse `config.text` here — this is the moment the file's contents are handed to you, as
+> a `ModConfig` naming its `mod_id`, `kind` and `file`. What you build from the text is
+> yours to keep.
 
 ```rust
 use pluto_lib::{ConfigEvents, ConfigKind, ModConfig};
@@ -173,9 +204,11 @@ assert!(!GREETING_ON.load(Ordering::Relaxed));
 
 ### `ConfigEvents::RELOADING`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A loaded config's file changed on disk; `config.text` is the new text. Not fired when the same text is saved again.
+A loaded config's file changed on disk.
+
+> `config.text` is the new text. Not fired when the same text is saved again.
 
 ```rust
 use pluto_lib::{ConfigEvents, ConfigKind, ModConfig};
@@ -186,9 +219,11 @@ ConfigEvents::RELOADING.invoke(&ModConfig { mod_id: "example".into(), kind: Conf
 
 ### `ConfigEvents::UNLOADING`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A `Server` config was dropped as its server stopped; the next world reads it again. `Client` and `Common` configs stay until the game quits.
+A `Server` config was dropped as its server stopped.
+
+> The next world reads it again. `Client` and `Common` configs stay until the game quits.
 
 ```rust
 use pluto_lib::{ConfigEvents, ConfigKind, ModConfig};

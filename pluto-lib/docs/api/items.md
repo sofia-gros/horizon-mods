@@ -205,9 +205,13 @@ StandingAndWallBlockItem::register(Identifier::parse("example:same").unwrap(), f
 
 ### `TooltipLine`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One tooltip line to add. `text` is the line (or a translation key when `translate` is true), `color` is `0xRRGGBBAA`.
+One tooltip line to add.
+
+> `text` is the line — or a translation key when `translate` is true — and `color` is
+> `0xRRGGBBAA`. Build one directly, or through `TooltipLine::translatable` and
+> `TooltipLine::grey`.
 
 ```rust
 use pluto_lib::TooltipLine;
@@ -218,9 +222,14 @@ assert_eq!(gold.color >> 24, 0xFF);
 
 ### `TooltipLine::translatable`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn translatable(key: impl Into<String>) -> TooltipLine`. A grey line whose text is the translation `key` from your mod's language files, shown in the player's language.
+A grey tooltip line whose text is a translation key.
+
+`fn translatable(key: impl Into<String>) -> TooltipLine`
+
+> The `key` is looked up in your mod's language files and shown in the player's
+> language.
 
 ```rust
 use pluto_lib::TooltipLine;
@@ -232,9 +241,14 @@ assert_eq!(line.text, "item.example.cheese.tooltip");
 
 ### `TooltipLine::grey`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn grey(text: impl Into<String>) -> TooltipLine`. A grey line, like most tooltip text.
+A grey tooltip line with the given text.
+
+`fn grey(text: impl Into<String>) -> TooltipLine`
+
+> Grey, like most tooltip text. For a line the player's language files should supply,
+> use `TooltipLine::translatable` instead.
 
 ```rust
 use pluto_lib::TooltipLine;
@@ -244,9 +258,13 @@ assert_eq!(TooltipLine::grey("Hello").text, "Hello");
 
 ### `ItemTooltipContext`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The tooltip being built for an item stack. `item` is the item id (`tconstruct:flint_pickaxe`), `count` the stack size, `stack` the stack itself (damage, max damage, custom data) and `added` the lines callbacks want after the game's own (push onto it with `borrow_mut`).
+The tooltip being built for an item stack.
+
+> `item` is the item id (such as `tconstruct:flint_pickaxe`), `count` the stack size and
+> `stack` the stack itself, with damage, max damage and custom data. `added` holds the
+> lines callbacks want after the game's own — push onto it with `borrow_mut`.
 
 ```rust
 use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, StackData, TooltipLine};
@@ -264,9 +282,17 @@ assert_eq!(tip.added.borrow()[0].text, "x8");
 
 ### `ItemTooltipContext::with_lines`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_lines<R>(&self, edit: impl FnOnce(&mut Vec<TooltipText>) -> R) -> Option<R>`. Read or mutate the current list in place; `Some(result)` contains the closure's result. Callbacks see earlier edits in event order. Remove, reorder or clone existing entries without losing their styling. To change their text, replace them with a new literal or translated entry; that deliberately replaces the old content/style. The public context fields and `added` behavior are unchanged.
+Reads or mutates the tooltip's current list of lines in place.
+
+`fn with_lines<R>(&self, edit: impl FnOnce(&mut Vec<TooltipText>) -> R) -> Option<R>`
+
+> `Some(result)` contains the closure's result, and callbacks see earlier edits in event
+> order. You can remove, reorder or clone existing entries without losing their styling;
+> to change their text, replace them with a new literal or translated entry, which
+> deliberately replaces the old content and style. The public context fields and the
+> `added` behavior are unchanged.
 
 ```rust
 use pluto_lib::{ItemTooltipCallback, TooltipText};
@@ -284,9 +310,15 @@ ItemTooltipCallback::EVENT.register(|tip| {
 
 ### `TooltipText`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An owned editable entry. Existing entries preserve their complete native text internally, including styling not represented by a simple string. Entries can be cloned or cached without referring to a slot index from an earlier tooltip. New entries can be literal or translated; arbitrary rich-component mutation is not exposed here. `component()` provides a read-only copy for inspection.
+An owned, editable tooltip entry.
+
+> Existing entries preserve their complete native text internally, including styling not
+> represented by a simple string, and can be cloned or cached without referring to a
+> slot index from an earlier tooltip. New entries can be literal or translated;
+> arbitrary rich-component mutation is not exposed here. `component()` provides a
+> read-only copy for inspection.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -296,9 +328,14 @@ assert_eq!(line.clone().plain_text(), "Detail");
 
 ### `TooltipText::literal`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn literal(text: impl Into<String>) -> TooltipText`. A literal entry with grey base tint.
+A literal tooltip entry with a grey base tint.
+
+`fn literal(text: impl Into<String>) -> TooltipText`
+
+> The text is shown as written; for text from the player's language files, use
+> `TooltipText::translatable` instead.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -307,9 +344,14 @@ assert_eq!(TooltipText::literal("Detail").plain_text(), "Detail");
 
 ### `TooltipText::translatable`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn translatable(key: impl Into<String>) -> TooltipText`. A translated entry with grey base tint. The native renderer resolves the key in the client's language; `plain_text()` uses PlutoLib's current language lookup.
+A translated tooltip entry with a grey base tint.
+
+`fn translatable(key: impl Into<String>) -> TooltipText`
+
+> The native renderer resolves the key in the client's language; `plain_text()` uses
+> PlutoLib's current language lookup.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -319,9 +361,14 @@ assert_eq!(line.component()["translate"], "item.minecraft.diamond");
 
 ### `TooltipText::plain_text`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn plain_text(&self) -> String`. Visible text without decoration. For existing entries this is the native text's resolved snapshot, not a guessed translation of its component.
+The entry's visible text without decoration.
+
+`fn plain_text(&self) -> String`
+
+> For existing entries this is the native text's resolved snapshot, not a guessed
+> translation of its component.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -330,9 +377,15 @@ assert_eq!(TooltipText::literal("Read me").plain_text(), "Read me");
 
 ### `TooltipText::component`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn component(&self) -> serde_json::Value`. A copy of the text component, retaining the original rich structure for existing entries. Editing the returned JSON does not change the entry. The separate base tint is read with `color()`.
+A copy of the entry's text component.
+
+`fn component(&self) -> serde_json::Value`
+
+> The copy retains the original rich structure for existing entries, and editing the
+> returned JSON does not change the entry. The separate base tint is read with
+> `color()`.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -344,9 +397,13 @@ assert_eq!(line.plain_text(), "Original");
 
 ### `TooltipText::color`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn color(&self) -> u32`. The base line tint as `0xRRGGBBAA`; embedded rich-text colors can override it.
+The entry's base line tint as `0xRRGGBBAA`.
+
+`fn color(&self) -> u32`
+
+> Embedded rich-text colors can override the base tint where they appear.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -355,9 +412,14 @@ assert_eq!(TooltipText::literal("Grey").color(), 0xAAAAAAFF);
 
 ### `TooltipText::with_color`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_color(self, color: u32) -> TooltipText`. Change the base tint without reconstructing the rich text. For unstyled new text the tint is the visible color; existing embedded span colors retain their precedence.
+Changes the entry's base tint without reconstructing the rich text.
+
+`fn with_color(self, color: u32) -> TooltipText`
+
+> For unstyled new text the tint is the visible color; existing embedded span colors
+> retain their precedence.
 
 ```rust
 use pluto_lib::TooltipText;
@@ -368,12 +430,12 @@ assert_eq!(line.plain_text(), "Green");
 
 ### `ItemTooltipCallback`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Holder of the tooltip event.
 
-> The holder of the tooltip event. Callbacks registered on it receive the tooltip being built for
-> a stack and may edit its lines before the tooltip is shown.
+> Callbacks registered on it receive the tooltip being built for a stack and may edit
+> its lines before the tooltip is shown.
 
 ```rust
 use pluto_lib::ItemTooltipCallback;
@@ -383,9 +445,13 @@ ItemTooltipCallback::EVENT.register(|_| {});
 
 ### `ItemTooltipCallback::EVENT`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Runs whenever the game builds a tooltip. Edit current lines with `with_lines` or append simple lines to `added`. Manual `EVENT.invoke` still supports `added` but does not create a native editable-list scope.
+Runs whenever the game builds a tooltip.
+
+> Edit current lines with `with_lines` or append simple lines to `added`. A manual
+> `EVENT.invoke` still supports `added` but does not create a native editable-list
+> scope.
 
 ```rust
 use pluto_lib::{ItemTooltipCallback, ItemTooltipContext, StackData, TooltipLine};
@@ -407,9 +473,12 @@ An item can take time to use (eating, drinking, drawing): register how long it t
 
 ### `UseAction`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The pose while using: `None` (held still), `Eat`, `Drink`, `Block` (shield), `Bow`, `Trident`, `Crossbow`, `Spyglass`, `TootHorn`, `Brush`, `Bundle`, `Spear`.
+The pose a player holds while using an item.
+
+> The variants are `None` (held still), `Eat`, `Drink`, `Block` (shield), `Bow`,
+> `Trident`, `Crossbow`, `Spyglass`, `TootHorn`, `Brush`, `Bundle` and `Spear`.
 
 ```rust
 use pluto_lib::UseAction;
@@ -421,9 +490,14 @@ assert_eq!(poses.len(), 12);
 
 ### `ItemUse`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How an item is used over time. `use_time` is the number of ticks the use takes (20 ticks are one second), `action` the pose, `food` what completing the use feeds, `can_always_eat` whether a feeding item can be started at full hunger, `remainder` what is handed back when one of the item is used up. Build one with `ItemUse::new` and the builder methods.
+How an item is used over time.
+
+> `use_time` is the number of ticks the use takes (20 ticks are one second), `action`
+> the pose, `food` what completing the use feeds, `can_always_eat` whether a feeding
+> item can be started at full hunger, and `remainder` what is handed back when one of
+> the item is used up. Build one with `ItemUse::new` and the builder methods.
 
 ```rust
 use pluto_lib::{Identifier, ItemUse, UseAction};
@@ -440,9 +514,14 @@ assert_eq!(stew.remainder.unwrap().1, 1);
 
 ### `ItemUse::new`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(use_time: i32, action: UseAction) -> ItemUse`. An item used for `use_time` ticks in the given pose, with no food and no remainder.
+An item use of `use_time` ticks in the given pose.
+
+`fn new(use_time: i32, action: UseAction) -> ItemUse`
+
+> It starts with no food and no remainder; add them with the `food` and `remainder`
+> builder methods.
 
 ```rust
 use pluto_lib::{ItemUse, UseAction};
@@ -453,9 +532,14 @@ assert!(horn.food.is_none() && horn.remainder.is_none());
 
 ### `ItemUse::food`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn food(self, nutrition: i32, saturation: f32) -> ItemUse`. Completing the use feeds the player. A player who is not hungry cannot start using a feeding item (unless `can_always_eat`), as with vanilla food.
+Makes completing the use feed the player.
+
+`fn food(self, nutrition: i32, saturation: f32) -> ItemUse`
+
+> A player who is not hungry cannot start using a feeding item (unless `can_always_eat`
+> is set), as with vanilla food.
 
 ```rust
 use pluto_lib::{ItemUse, UseAction};
@@ -466,9 +550,13 @@ assert_eq!(snack.food.unwrap().nutrition, 4);
 
 ### `ItemUse::can_always_eat`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn can_always_eat(self) -> ItemUse`. A feeding item that can be started at full hunger (like a golden apple).
+Lets a feeding item be started at full hunger.
+
+`fn can_always_eat(self) -> ItemUse`
+
+> Like a golden apple: the use may begin even when the player is not hungry.
 
 ```rust
 use pluto_lib::{ItemUse, UseAction};
@@ -479,9 +567,14 @@ assert!(apple.can_always_eat);
 
 ### `ItemUse::remainder`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn remainder(self, item: Identifier, count: u32) -> ItemUse`. When one of the item is used up, `count` of `item` is handed back: in the hand if it was the last one, else into the inventory (the use is refused when it would not fit).
+Hands back `count` of `item` when one of the item is used up.
+
+`fn remainder(self, item: Identifier, count: u32) -> ItemUse`
+
+> The remainder goes in the hand if it was the last one, else into the inventory; the
+> use is refused when it would not fit.
 
 ```rust
 use pluto_lib::{Identifier, ItemUse, UseAction};
@@ -574,9 +667,12 @@ assert!(ItemBehaviors::register(ItemBehavior::new(id)).is_err());
 
 ### `Food`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What eating an item gives. `nutrition` is the hunger points restored (2 are one drumstick), `saturation` the saturation restored.
+What eating an item gives.
+
+> `nutrition` is the hunger points restored (2 are one drumstick) and `saturation` the
+> saturation restored.
 
 ```rust
 use pluto_lib::Food;
@@ -588,9 +684,12 @@ assert_eq!(bread.saturation, 6.0);
 
 ### `ItemUseRegistry`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers the use behavior of items.
+
+> Register an `ItemUse` for a plain per-item behavior, or a `StackUse` when the behavior
+> is decided per stack; look registrations up with `get` and `stack_use`.
 
 ```rust
 use pluto_lib::{Identifier, ItemUse, ItemUseRegistry, UseAction};
@@ -600,9 +699,13 @@ ItemUseRegistry::register(Identifier::new("example", "jerky").unwrap(), ItemUse:
 
 ### `ItemUseRegistry::register`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(item: Identifier, behavior: ItemUse)`. Makes `item` usable over time. Registering the same item again replaces the earlier entry.
+Makes `item` usable over time with the given `ItemUse` behavior.
+
+`fn register(item: Identifier, behavior: ItemUse)`
+
+> Registering the same item again replaces the earlier entry.
 
 ```rust
 use pluto_lib::{Identifier, ItemUse, ItemUseRegistry, UseAction};
@@ -615,9 +718,16 @@ assert_eq!(ItemUseRegistry::get("example:tonic").unwrap().use_time, 40);
 
 ### `ItemUseRegistry::register_stack`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_stack(item: Identifier, behavior: StackUse)`. Makes `item` usable over time, decided per stack. Registering the same item again replaces the earlier entry. The use time and pose are asked where the game asks them, a use of a stack the registration accepts never starts for a player who is not hungry when `requires_hunger` is set, and the food is given when it completes.
+Makes `item` usable over time, with the behavior decided per stack.
+
+`fn register_stack(item: Identifier, behavior: StackUse)`
+
+> Registering the same item again replaces the earlier entry. The use time and pose are
+> asked where the game asks them, a use of a stack the registration accepts never starts
+> for a player who is not hungry when `requires_hunger` is set, and the food is given
+> when it completes.
 
 ```rust
 use pluto_lib::{Identifier, ItemUseRegistry, StackUse, UseAction};
@@ -630,9 +740,14 @@ assert!(ItemUseRegistry::stack_use("example:flask").is_some());
 
 ### `ItemUseRegistry::stack_use`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn stack_use(item: &str) -> Option<StackUse>`. The per-stack use registered for an item id such as `example:flask`, or `None`.
+The per-stack use registered for an item id, or `None`.
+
+`fn stack_use(item: &str) -> Option<StackUse>`
+
+> Ask with an item id such as `example:flask`; `None` means no `StackUse` is registered
+> for it.
 
 ```rust
 use pluto_lib::ItemUseRegistry;
@@ -642,9 +757,12 @@ assert!(ItemUseRegistry::stack_use("example:never_registered").is_none());
 
 ### `StackUse`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How one stack of an item is used over time, decided per stack (Fabric: `getMaxUseTime(ItemStack)`). It has no public fields: build it with `StackUse::new` and the chained methods.
+How one stack of an item is used over time, decided per stack.
+
+> This is Fabric's `getMaxUseTime(ItemStack)` answered per stack. It has no public
+> fields: build it with `StackUse::new` and the chained methods.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -655,9 +773,14 @@ assert!(format!("{use_it:?}").contains("Eat"));
 
 ### `StackUse::new`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(action: UseAction) -> StackUse`. A use in the given pose that every stack may start, for 0 ticks (so nothing happens until `use_time` says otherwise), with no food.
+A stack use in the given pose that every stack may start.
+
+`fn new(action: UseAction) -> StackUse`
+
+> It lasts 0 ticks — so nothing happens until `use_time` says otherwise — and has no
+> food.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -667,9 +790,16 @@ let _plain = StackUse::new(UseAction::Drink);
 
 ### `StackUse::can_use`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn can_use(self, can_use: impl Fn(&StackData) -> bool + Send + Sync + 'static) -> StackUse`. Whether this registration applies to the stack (a broken tool, a tool without the stat that makes it edible). A refused stack is left to the game: its own use time, pose and rules, usually no use at all. It runs often, when a use starts and as the hand draws one in use: answer from the stack alone and cheaply.
+Sets whether this registration applies to a stack.
+
+`fn can_use(self, can_use: impl Fn(&StackData) -> bool + Send + Sync + 'static) -> StackUse`
+
+> Use it for conditions like a broken tool, or a tool without the stat that makes it
+> edible. A refused stack is left to the game: its own use time, pose and rules, usually
+> no use at all. It runs often — when a use starts and as the hand draws one in use — so
+> answer from the stack alone and cheaply.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -679,9 +809,14 @@ let _only_whole = StackUse::new(UseAction::Eat).can_use(|stack| stack.damage == 
 
 ### `StackUse::use_time`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn use_time(self, use_time: impl Fn(&StackData) -> i32 + Send + Sync + 'static) -> StackUse`. The ticks this stack's use takes. Only asked for a stack `can_use` accepts; 0 or less means the stack is not used over time.
+Sets the ticks this stack's use takes.
+
+`fn use_time(self, use_time: impl Fn(&StackData) -> i32 + Send + Sync + 'static) -> StackUse`
+
+> Only asked for a stack `can_use` accepts; 0 or less means the stack is not used over
+> time.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -691,9 +826,14 @@ let _slow_when_worn = StackUse::new(UseAction::Eat).use_time(|stack| 16 + stack.
 
 ### `StackUse::food`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn food(self, food: impl Fn(&StackData) -> Option<Food> + Send + Sync + 'static) -> StackUse`. What completing the use feeds for this stack (`None` feeds nothing). The player is fed on the server before `UseItemFinishCallback` is called. Do not also register a plain `ItemUse` with food for the item.
+Sets what completing the use feeds for this stack.
+
+`fn food(self, food: impl Fn(&StackData) -> Option<Food> + Send + Sync + 'static) -> StackUse`
+
+> `None` feeds nothing. The player is fed on the server before `UseItemFinishCallback`
+> is called. Do not also register a plain `ItemUse` with food for the item.
 
 ```rust
 use pluto_lib::{Food, StackUse, UseAction};
@@ -703,9 +843,15 @@ let _fed = StackUse::new(UseAction::Eat).food(|stack| Some(Food { nutrition: sta
 
 ### `StackUse::requires_hunger`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn requires_hunger(self) -> StackUse`. A player who is not hungry (food level 20) cannot start using the stack unless they are in creative mode (Fabric: the `canEat(false)` check of a food item). Use it for a stack whose finish callback feeds the player itself.
+Stops a player who is not hungry from starting to use the stack.
+
+`fn requires_hunger(self) -> StackUse`
+
+> A player at food level 20 cannot start unless they are in creative mode (Fabric: the
+> `canEat(false)` check of a food item). Use it for a stack whose finish callback feeds
+> the player itself.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -715,9 +861,14 @@ let _only_when_hungry = StackUse::new(UseAction::Eat).requires_hunger();
 
 ### `ItemUseRegistry::get`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(item: &str) -> Option<ItemUse>`. What is registered for an item id such as `example:tonic`, or `None`.
+What is registered for an item id, or `None`.
+
+`fn get(item: &str) -> Option<ItemUse>`
+
+> Ask with an item id such as `example:tonic`; `None` means no plain `ItemUse` is
+> registered for it.
 
 ```rust
 use pluto_lib::{Identifier, ItemUse, ItemUseRegistry, UseAction};
@@ -729,9 +880,15 @@ assert_eq!(ItemUseRegistry::get("example:horn").unwrap().action, UseAction::Toot
 
 ### `StackUse::action_for`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn action_for(self, action_for: impl Fn(&StackData) -> Option<UseAction> + Send + Sync + 'static) -> StackUse`. The same use, with the pose chosen per stack: the closure answers the stack's pose, or `None` to leave the game its own for that stack. Only asked for a stack `can_use` accepts; without it, every accepted stack takes the fixed pose.
+Chooses the use's pose per stack.
+
+`fn action_for(self, action_for: impl Fn(&StackData) -> Option<UseAction> + Send + Sync + 'static) -> StackUse`
+
+> The closure answers the stack's pose, or `None` to leave the game its own for that
+> stack. Only asked for a stack `can_use` accepts; without it, every accepted stack
+> takes the fixed pose from `StackUse::new`.
 
 ```rust
 use pluto_lib::{StackUse, UseAction};
@@ -815,9 +972,13 @@ let _ = behavior;
 
 ### `ItemStorage`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Item queries over a `BlockEntityStore`, following forwarding blocks: the slots a block shows a face, narrowed by its forward's filter, its sided access and its transfer rule.
+Item queries over a `BlockEntityStore`, following forwarding blocks.
+
+> The queries see the slots a block shows a face, narrowed by its forward's filter, its
+> sided access and its transfer rule. Build one with `ItemStorage::new` over the store
+> to query.
 
 ```rust
 use pluto_lib::{ItemStorage, MemoryBlockEntities};
@@ -828,13 +989,15 @@ assert!(ItemStorage::new(&mut world).slots([0, 0, 0], pluto_lib::Direction::Down
 
 ### `ItemStorage::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(store: &mut dyn BlockEntityStore) -> ItemStorage`. Queries over `store`.
+Queries over `store`.
 
-> Wraps a block-entity store so the item queries can run over it: the slots a face shows, and
-> taking and putting, following forwarding blocks. The store is borrowed for the queries'
-> lifetime.
+`fn new(store: &mut dyn BlockEntityStore) -> ItemStorage`
+
+> Wraps a block-entity store so the item queries can run over it: the slots a face
+> shows, and taking and putting, following forwarding blocks. The store is borrowed for
+> the queries' lifetime.
 
 ```rust
 use pluto_lib::{ItemStorage, MemoryBlockEntities};
@@ -845,9 +1008,14 @@ let _storage = ItemStorage::new(&mut world);
 
 ### `ItemStorage::slots`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn slots(&mut self, pos: BlockPos, face: Direction) -> Option<Vec<NeighbourSlot>>`. The slots the block at `pos` shows `face`, as the forward's filter, the face's sided access and the transfer rule narrow them; `None` where there is no storage.
+The slots the block at `pos` shows `face`.
+
+`fn slots(&mut self, pos: BlockPos, face: Direction) -> Option<Vec<NeighbourSlot>>`
+
+> The list is narrowed by the forward's filter, the face's sided access and the transfer
+> rule; `None` where there is no storage.
 
 ```rust
 use pluto_lib::{Direction, ItemStorage, MemoryBlockEntities};
@@ -858,9 +1026,13 @@ assert_eq!(ItemStorage::new(&mut world).slots([5, 5, 5], Direction::Up), None);
 
 ### `ItemStorage::extract`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn extract(&mut self, pos: BlockPos, face: Direction, slot: usize, count: u32) -> Option<ItemSlot>`. Takes up to `count` out of `slot` of the block at `pos` through `face`; `None` when nothing came out.
+Takes up to `count` out of `slot` of the block at `pos` through `face`.
+
+`fn extract(&mut self, pos: BlockPos, face: Direction, slot: usize, count: u32) -> Option<ItemSlot>`
+
+> `None` when nothing came out.
 
 ```rust
 use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, ItemSlot, ItemStorage, MemoryBlockEntities, NbtCompound};
@@ -876,9 +1048,14 @@ assert_eq!(storage.extract([0, 0, 0], Direction::Down, 0, 0), None);
 
 ### `ItemStorage::insert`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn insert(&mut self, pos: BlockPos, face: Direction, stack: ItemSlot) -> Option<ItemSlot>`. Puts as much of `stack` into the block at `pos` through `face` as its slots take, merging into stacks of the same item first, then into empty slots; the leftover that did not fit, or `None` when everything went in.
+Puts as much of `stack` into the block at `pos` through `face` as its slots take.
+
+`fn insert(&mut self, pos: BlockPos, face: Direction, stack: ItemSlot) -> Option<ItemSlot>`
+
+> It merges into stacks of the same item first, then into empty slots. The answer is the
+> leftover that did not fit, or `None` when everything went in.
 
 ```rust
 use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Direction, Identifier, ItemSlot, ItemStorage, MemoryBlockEntities, NbtCompound};
@@ -899,9 +1076,14 @@ Custom item predicates and custom trigger events for the game's advancement engi
 
 ### `ItemSnapshot`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Borrowed facts about one item stack, valid only for one synchronous evaluation: `id` the item id, `count` the stack size, `damage` its damage, `enchantments` its enchantments as (id, level) pairs, `potion` its potion id if any, `custom_name` whether it has a custom name and `components` its component tree in NBT form when the adapter could supply it (missing means unavailable, not an empty stack).
+Borrowed facts about one item stack, valid only for one synchronous evaluation.
+
+> `id` is the item id, `count` the stack size, `damage` its damage, `enchantments` its
+> enchantments as (id, level) pairs, and `potion` its potion id if any. `custom_name`
+> says whether it has a custom name, and `components` is its component tree in NBT form
+> when the adapter could supply it — missing means unavailable, not an empty stack.
 
 ```rust
 use pluto_lib::advancement_api_v1::ItemSnapshot;
@@ -915,9 +1097,13 @@ assert!(item.potion.is_none() && !item.custom_name && item.components.is_none())
 
 ### `TagLookup`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A read-only membership query: `fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool`. The adapter owns world identity and resolution; callers supply the registry, tag and item strings and the library interprets none.
+A read-only tag membership query.
+
+> Its one method is `fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool`. The
+> adapter owns world identity and resolution; callers supply the registry, tag and item
+> strings and the library interprets none of them.
 
 ```rust
 use pluto_lib::advancement_api_v1::TagLookup;
@@ -934,9 +1120,13 @@ assert!(!Tags.in_tag("item", "example:tag", "example:other"));
 
 ### `PredicateRequest`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-One predicate evaluation: `predicate` the criterion's predicate form as JSON (the caller's own, uninterpreted), `item` the stack being tested and `tags` the tag lookup the callback may query.
+One predicate evaluation request.
+
+> `predicate` is the criterion's predicate form as JSON — the caller's own,
+> uninterpreted — `item` the stack being tested, and `tags` the tag lookup the callback
+> may query.
 
 ```rust
 use pluto_lib::advancement_api_v1::{ItemSnapshot, PredicateRequest, TagLookup};
@@ -954,9 +1144,12 @@ assert!(!request.tags.in_tag("item", "example:tag", "example:item"));
 
 ### `PredicateResult`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-A callback's answer: `Unsupported` when this callback does not own the supplied predicate form, or `Handled(bool)` when it owns the form, including malformed and nonmatching cases.
+A predicate callback's answer.
+
+> `Unsupported` says this callback does not own the supplied predicate form.
+> `Handled(bool)` says it owns the form, including malformed and nonmatching cases.
 
 ```rust
 use pluto_lib::advancement_api_v1::PredicateResult;
@@ -967,9 +1160,13 @@ assert_ne!(PredicateResult::Handled(false), PredicateResult::Unsupported);
 
 ### `DispatchResult`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The result of dispatching a request to every registered callback: `Unsupported` when none claimed it, `Handled(bool)` when exactly one did, or `Conflict` with `first` and `second`, the first two owner ids in lexical order, when two or more claimed ownership (the adapter must fail closed).
+The result of dispatching a request to every registered callback.
+
+> `Unsupported` when none claimed it, `Handled(bool)` when exactly one did, or
+> `Conflict` with `first` and `second` — the first two owner ids in lexical order — when
+> two or more claimed ownership. On a conflict the adapter must fail closed.
 
 ```rust
 use pluto_lib::advancement_api_v1::DispatchResult;
@@ -981,9 +1178,14 @@ assert_ne!(DispatchResult::Unsupported, DispatchResult::Handled(true));
 
 ### `PredicateCallback`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`PredicateCallback` is the callback type `for<'a> fn(&PredicateRequest<'a>) -> PredicateResult`: a plain function that answers read-only for one request.
+The item-predicate callback type.
+
+`PredicateCallback`
+
+> It is `for<'a> fn(&PredicateRequest<'a>) -> PredicateResult`: a plain function that
+> answers read-only for one request.
 
 ```rust
 use pluto_lib::advancement_api_v1::{PredicateCallback, PredicateRequest, PredicateResult};
@@ -995,9 +1197,13 @@ let _ = callback;
 
 ### `PredicateRegistration`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-One registration: `id` the stable unique registration identity (not a predicate discriminator), `callback` the `PredicateCallback` and `inventory_components` whether it explicitly requests metadata-sensitive inventory events.
+One item-predicate registration.
+
+> `id` is the stable unique registration identity (not a predicate discriminator),
+> `callback` the `PredicateCallback`, and `inventory_components` whether it explicitly
+> requests metadata-sensitive inventory events.
 
 ```rust
 use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult};
@@ -1010,9 +1216,11 @@ assert!(!entry.inventory_components);
 
 ### `RegistrationError`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Why a registration failed: `EmptyId` for an empty id, or `DuplicateId` for an id already registered.
+Why a registration failed.
+
+> `EmptyId` for an empty id, or `DuplicateId` for an id already registered.
 
 ```rust
 use pluto_lib::advancement_api_v1::RegistrationError;
@@ -1023,9 +1231,15 @@ assert_ne!(RegistrationError::EmptyId, RegistrationError::DuplicateId);
 
 ### `register_item_predicate`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn register_item_predicate(entry: PredicateRegistration) -> Result<(), RegistrationError>`. Process-lifetime registration, once during startup before inventory events or predicate evaluation; duplicate ids are rejected without replacement, and a successful registration with `inventory_components` opts into the shared component-aware inventory event adapter.
+Registers an item predicate for the process lifetime.
+
+`fn register_item_predicate(entry: PredicateRegistration) -> Result<(), RegistrationError>`
+
+> Register once during startup, before inventory events or predicate evaluation.
+> Duplicate ids are rejected without replacement, and a successful registration with
+> `inventory_components` opts into the shared component-aware inventory event adapter.
 
 ```rust
 use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, RegistrationError, register_item_predicate};
@@ -1039,9 +1253,13 @@ assert_eq!(register_item_predicate(PredicateRegistration { id: "", callback: no,
 
 ### `has_item_predicates`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn has_item_predicates() -> bool`. Whether any item predicate is registered.
+Whether any item predicate is registered.
+
+`fn has_item_predicates() -> bool`
+
+> The answer reflects every successful `register_item_predicate` call so far.
 
 ```rust
 use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, has_item_predicates, register_item_predicate};
@@ -1054,9 +1272,14 @@ assert!(has_item_predicates());
 
 ### `inventory_component_events_requested`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn inventory_component_events_requested() -> bool`. Whether any successful registration asked for component-aware inventory events; the native adapter reads this when deciding whether the shared inventory evaluation may stay inert.
+Whether any successful registration asked for component-aware inventory events.
+
+`fn inventory_component_events_requested() -> bool`
+
+> The native adapter reads this when deciding whether the shared inventory evaluation
+> may stay inert.
 
 ```rust
 use pluto_lib::advancement_api_v1::{PredicateRegistration, PredicateRequest, PredicateResult, inventory_component_events_requested, register_item_predicate};
@@ -1069,9 +1292,14 @@ assert!(inventory_component_events_requested());
 
 ### `dispatch_item_predicate`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn dispatch_item_predicate(request: &PredicateRequest<'_>) -> DispatchResult`. Runs every registered callback for `request` outside the registry lock and settles the single, conflicting or unsupported outcome.
+Runs every registered callback for `request`.
+
+`fn dispatch_item_predicate(request: &PredicateRequest<'_>) -> DispatchResult`
+
+> The callbacks run outside the registry lock, and the outcome settles as a single,
+> conflicting or unsupported `DispatchResult`.
 
 ```rust
 use pluto_lib::advancement_api_v1::{DispatchResult, ItemSnapshot, PredicateRegistration, PredicateRequest, PredicateResult, TagLookup, dispatch_item_predicate, register_item_predicate};
@@ -1089,9 +1317,15 @@ assert_eq!(dispatch_item_predicate(&request), DispatchResult::Handled(true));
 
 ### `EventMatcher`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`EventMatcher` is the matcher type `fn(&Value, &Value) -> bool`: it compares one submitted event payload with one criterion's conditions, both the caller's own JSON, and the library interprets neither.
+The custom-event matcher type.
+
+`EventMatcher`
+
+> It is `fn(&Value, &Value) -> bool`: it compares one submitted event payload with one
+> criterion's conditions, both the caller's own JSON, and the library interprets
+> neither.
 
 ```rust
 use pluto_lib::advancement_api_v1::EventMatcher;
@@ -1105,9 +1339,12 @@ assert!(!matcher(&serde_json::json!({"type": "example:a"}), &serde_json::json!({
 
 ### `QueuedEvent`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A custom trigger event waiting for the native adapter: `trigger` the trigger id, `payload` the event's JSON payload and `matches` the `EventMatcher` that decides each criterion for it.
+A custom trigger event waiting for the native adapter.
+
+> `trigger` is the trigger id, `payload` the event's JSON payload, and `matches` the
+> `EventMatcher` that decides each criterion for it.
 
 ```rust
 use pluto_lib::advancement_api_v1::QueuedEvent;
@@ -1121,9 +1358,11 @@ assert!((event.matches)(&event.payload, &serde_json::json!({"type": "example:a"}
 
 ### `MAX_QUEUED_EVENTS`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The most events the queue holds: `1024`. A full queue drops a new event rather than blocking gameplay.
+The most events the queue holds: `1024`.
+
+> A full queue drops a new event rather than blocking gameplay.
 
 ```rust
 use pluto_lib::advancement_api_v1::MAX_QUEUED_EVENTS;
@@ -1133,9 +1372,14 @@ assert_eq!(MAX_QUEUED_EVENTS, 1024);
 
 ### `submit_event`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn submit_event(trigger: &str, payload: Value, matches: EventMatcher) -> bool`. Queues one custom trigger event for the native adapter; `false` when the queue is full and the event was dropped. Submit only after the action's successful authoritative boundary.
+Queues one custom trigger event for the native adapter.
+
+`fn submit_event(trigger: &str, payload: Value, matches: EventMatcher) -> bool`
+
+> Returns `false` when the queue is full and the event was dropped. Submit only after
+> the action's successful authoritative boundary.
 
 ```rust
 use pluto_lib::advancement_api_v1::{queued_event_count, submit_event, take_queued_events};
@@ -1150,9 +1394,14 @@ let _ = take_queued_events();
 
 ### `take_queued_events`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn take_queued_events() -> Vec<QueuedEvent>`. Drains every queued event, oldest first; the native adapter calls this from a game scope where it can bind events to the current actor.
+Drains every queued event, oldest first.
+
+`fn take_queued_events() -> Vec<QueuedEvent>`
+
+> The native adapter calls this from a game scope where it can bind events to the
+> current actor.
 
 ```rust
 use pluto_lib::advancement_api_v1::{submit_event, take_queued_events};
@@ -1170,9 +1419,14 @@ assert!(take_queued_events().is_empty());
 
 ### `queued_event_count`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn queued_event_count() -> usize`. How many events are waiting in the queue.
+How many events are waiting in the queue.
+
+`fn queued_event_count() -> usize`
+
+> The count covers events submitted with `submit_event` and not yet drained by
+> `take_queued_events`.
 
 ```rust
 use pluto_lib::advancement_api_v1::{queued_event_count, submit_event, take_queued_events};
@@ -1189,9 +1443,16 @@ assert_eq!(queued_event_count(), 0);
 
 ### `TagSnapshot`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`type TagSnapshot = BTreeMap<String, Option<Vec<String>>>`. One owner's resolved item-tag snapshot for advancement matching: tag id to member ids. `Some(empty)` is a known empty tag; `None` is a tag the owner knows but cannot currently resolve, which matching fails closed on rather than falling back to the native table. Tags absent from the snapshot are not the owner's business.
+One owner's resolved item-tag snapshot for advancement matching.
+
+`type TagSnapshot = BTreeMap<String, Option<Vec<String>>>`
+
+> It maps tag id to member ids. `Some(empty)` is a known empty tag; `None` is a tag the
+> owner knows but cannot currently resolve, which matching fails closed on rather than
+> falling back to the native table. Tags absent from the snapshot are not the owner's
+> business.
 
 ```rust
 use pluto_lib::advancement_api_v1::TagSnapshot;
@@ -1207,9 +1468,16 @@ assert_eq!(snapshot["example:empty"], Some(Vec::new()));
 
 ### `publish_tag_snapshot`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot)`. Publishes one owner's current resolved item-tag snapshot, replacing the owner's previous publication wholesale. Publishing an empty snapshot releases the ownership; the publication is retained as an empty snapshot so the adapter releases the owner's world-side ownership on its next tick. Consumers publish when their data (re)loads and release when it unloads.
+Publishes one owner's current resolved item-tag snapshot.
+
+`fn publish_tag_snapshot(owner: &str, snapshot: TagSnapshot)`
+
+> Publishing replaces the owner's previous publication wholesale, and publishing an
+> empty snapshot releases the ownership — the publication is retained as an empty
+> snapshot so the adapter releases the owner's world-side ownership on its next tick.
+> Consumers publish when their data (re)loads and release when it unloads.
 
 ```rust
 use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
@@ -1228,9 +1496,15 @@ assert!(tag_snapshots().contains(&("example:docs".to_string(), TagSnapshot::new(
 
 ### `tag_snapshot_generation`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tag_snapshot_generation() -> u64`. The publication generation: 0 before the first publication, bumped by every `publish_tag_snapshot` call. The native adapter compares it against the generation it last applied to a world's store, so an unchanged publication costs one comparison per tick.
+The tag-snapshot publication generation.
+
+`fn tag_snapshot_generation() -> u64`
+
+> It is 0 before the first publication and is bumped by every `publish_tag_snapshot`
+> call. The native adapter compares it against the generation it last applied to a
+> world's store, so an unchanged publication costs one comparison per tick.
 
 ```rust
 use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshot_generation};
@@ -1242,9 +1516,13 @@ assert_eq!(tag_snapshot_generation(), before + 1);
 
 ### `tag_snapshots`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tag_snapshots() -> Vec<(String, TagSnapshot)>`. Every currently published owner snapshot, cloned for the native adapter; pure consumers only publish.
+Every currently published owner snapshot.
+
+`fn tag_snapshots() -> Vec<(String, TagSnapshot)>`
+
+> The snapshots are cloned for the native adapter; pure consumers only publish.
 
 ```rust
 use pluto_lib::advancement_api_v1::{TagSnapshot, publish_tag_snapshot, tag_snapshots};
@@ -1255,9 +1533,16 @@ assert!(tag_snapshots().iter().any(|(owner, snapshot)| owner == "example:docs" &
 
 ### `FunctionRewardCallback`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`FunctionRewardCallback` is the callback type `fn(&str) -> Vec<String>`: called with a function id, it returns the advancement ids to grant the player the reward belongs to. An empty return leaves the function unexecuted, exactly as an unregistered one does; the callback names grants only and the native adapter performs them, against progress whose grants are idempotent.
+The function-reward callback type.
+
+`FunctionRewardCallback`
+
+> It is `fn(&str) -> Vec<String>`: called with a function id, it returns the advancement
+> ids to grant the player the reward belongs to. An empty return leaves the function
+> unexecuted, exactly as an unregistered one does; the callback names grants only and
+> the native adapter performs them, against progress whose grants are idempotent.
 
 ```rust
 use pluto_lib::advancement_api_v1::FunctionRewardCallback;
@@ -1272,9 +1557,13 @@ assert!(callback("example:other").is_empty());
 
 ### `FunctionRewardRegistration`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One registration: `id` the stable unique registration identity (not a function discriminator), `function` the function id it resolves (the id an advancement's `rewards.function` names) and `callback` the `FunctionRewardCallback`.
+One function-reward registration.
+
+> `id` is the stable unique registration identity (not a function discriminator),
+> `function` the function id it resolves — the id an advancement's `rewards.function`
+> names — and `callback` the `FunctionRewardCallback`.
 
 ```rust
 use pluto_lib::advancement_api_v1::{FunctionRewardCallback, FunctionRewardRegistration};
@@ -1288,9 +1577,15 @@ let _: FunctionRewardCallback = entry.callback;
 
 ### `register_function_reward`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_function_reward(entry: FunctionRewardRegistration) -> Result<(), RegistrationError>`. Process-lifetime registration, once during startup before the first advancement completes; a function id and a registration id are each claimed once, and duplicates are rejected without replacement.
+Registers a function reward for the process lifetime.
+
+`fn register_function_reward(entry: FunctionRewardRegistration) -> Result<(), RegistrationError>`
+
+> Register once during startup, before the first advancement completes. A function id
+> and a registration id are each claimed once, and duplicates are rejected without
+> replacement.
 
 ```rust
 use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, RegistrationError, register_function_reward, resolve_function_reward};
@@ -1306,9 +1601,13 @@ assert_eq!(resolve_function_reward("example:grant_root"), vec!["minecraft:story/
 
 ### `has_function_rewards`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn has_function_rewards() -> bool`. Whether any function reward is registered.
+Whether any function reward is registered.
+
+`fn has_function_rewards() -> bool`
+
+> The answer reflects every successful `register_function_reward` call so far.
 
 ```rust
 use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, has_function_rewards, register_function_reward};
@@ -1321,9 +1620,14 @@ assert!(has_function_rewards());
 
 ### `resolve_function_reward`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn resolve_function_reward(function: &str) -> Vec<String>`. The advancements a registered resolver grants for `function`; empty when the function is unregistered or its resolver grants none. The native adapter calls this at the game's reward boundary; pure consumers only register.
+The advancements a registered resolver grants for `function`.
+
+`fn resolve_function_reward(function: &str) -> Vec<String>`
+
+> Empty when the function is unregistered or its resolver grants none. The native
+> adapter calls this at the game's reward boundary; pure consumers only register.
 
 ```rust
 use pluto_lib::advancement_api_v1::{FunctionRewardRegistration, register_function_reward, resolve_function_reward};
@@ -1352,9 +1656,18 @@ assert!(matches!(StackedOnOtherRegistry::get("example:kit").unwrap()(&request), 
 
 ### `StackedOnOtherRequest`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A click of the carried stack onto another stack in a menu: `carried` is the stack in the player's hand (the registered item), `clicked` the stack in the clicked slot (None when the slot is empty), `player` the clicking player's uuid (0 when the menu names none), `secondary` is true for the secondary (right) click and false for the primary, and `allow_modification` is whether the clicked slot allows modification by this player (the game's own `Slot.allowModification` answer), and `random` is a draw in [0, 1) from the game's own random stream for this click, for an answer that varies by chance (the original reads the level's random for its saw pitch).
+A click of the carried stack onto another stack in a menu.
+
+> `carried` is the stack in the player's hand (the registered item), `clicked` the stack
+> in the clicked slot (`None` when the slot is empty), and `player` the clicking
+> player's uuid (0 when the menu names none). `secondary` is true for the secondary
+> (right) click and false for the primary, `allow_modification` whether the clicked slot
+> allows modification by this player (the game's own `Slot.allowModification` answer),
+> and `random` a draw in [0, 1) from the game's own random stream for this click, for an
+> answer that varies by chance — the original reads the level's random for its saw
+> pitch.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -1370,9 +1683,16 @@ assert_eq!(request.clicked.map(|slot| slot.count), Some(1));
 
 ### `StackedOnOtherDecision`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the carried item does with the click: `Pass` leaves the game's own click handling to run; `Consume` takes the click with no stack change; `Apply` takes the click and replaces both stacks — `clicked` is the clicked slot's new stack (None empties it), `carried` the carried stack (None empties the hand), `give` a stack handed to the clicking player (into their inventory, else dropped, such as a single filled item split off a carried stack of more than one), and `sound` a `StackedSound` played to the player with its own volume and pitch.
+What the carried item does with a stacked-on-other click.
+
+> `Pass` leaves the game's own click handling to run, and `Consume` takes the click with
+> no stack change. `Apply` takes the click and replaces both stacks: `clicked` is the
+> clicked slot's new stack (`None` empties it), `carried` the carried stack (`None`
+> empties the hand), `give` a stack handed to the clicking player (into their inventory,
+> else dropped — such as a single filled item split off a carried stack of more than
+> one), and `sound` a `StackedSound` played to the player with its own volume and pitch.
 
 ```rust
 use pluto_lib::item_api_v1::{StackedOnOtherDecision, StackedSound};
@@ -1385,9 +1705,15 @@ assert!(matches!(StackedOnOtherDecision::Consume, StackedOnOtherDecision::Consum
 
 ### `StackedSound`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A sound a stacked-on-other click plays for the player, with the volume and pitch the caller chose (the original's `Player.playSound(sound, volume, pitch)`): `id` is the sound event id, `volume` the volume it plays at (1 is the event's own level) and `pitch` the pitch it plays at (1 is the event's own pitch). An `Apply` decision's sound travels on the rich menu-sound queue, which carries both, where the menu's own sounds carry only their event id.
+A sound a stacked-on-other click plays for the player.
+
+> `id` is the sound event id, `volume` the volume it plays at (1 is the event's own
+> level) and `pitch` the pitch it plays at (1 is the event's own pitch) — the original's
+> `Player.playSound(sound, volume, pitch)`. An `Apply` decision's sound travels on the
+> rich menu-sound queue, which carries both, where the menu's own sounds carry only
+> their event id.
 
 ```rust
 use pluto_lib::item_api_v1::StackedSound;
@@ -1400,9 +1726,14 @@ assert!((sound.pitch - 1.0).abs() < 1e-6);
 
 ### `StackedOnOtherCallback`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision`. Decides one click of the carried stack it is registered for.
+The callback type for stacked-on-other clicks.
+
+`type StackedOnOtherCallback = fn(&StackedOnOtherRequest<'_>) -> StackedOnOtherDecision`
+
+> A callback of this type decides one click of the carried stack it is registered for,
+> answering a `StackedOnOtherDecision`.
 
 ```rust
 use pluto_lib::item_api_v1::{StackedOnOtherCallback, StackedOnOtherDecision, StackedOnOtherRequest};
@@ -1416,9 +1747,12 @@ assert!(matches!(callback(&request), StackedOnOtherDecision::Pass));
 
 ### `StackedOnOtherRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The registry of stacked-on-other behaviours, keyed by the carried item. Register once during startup; registering the same item again replaces the earlier entry.
+The registry of stacked-on-other behaviours, keyed by the carried item.
+
+> Register once during startup; registering the same item again replaces the earlier
+> entry.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot};
@@ -1434,9 +1768,13 @@ assert!(StackedOnOtherRegistry::get("example:other").is_none());
 
 ### `StackedOnOtherRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(item: Identifier, callback: StackedOnOtherCallback)`. Makes `item` answer clicks of its carried stacks onto other stacks; registering the same item again replaces the earlier entry.
+Makes `item` answer clicks of its carried stacks onto other stacks.
+
+`fn register(item: Identifier, callback: StackedOnOtherCallback)`
+
+> Registering the same item again replaces the earlier entry.
 
 ```rust
 use pluto_lib::Identifier;
@@ -1449,9 +1787,14 @@ assert!(StackedOnOtherRegistry::get("example:kit").is_some());
 
 ### `StackedOnOtherRegistry::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(item: &str) -> Option<StackedOnOtherCallback>`. The callback registered for `item` (an id such as `tconstruct:repair_kit`), if anything.
+The callback registered for `item`, if anything.
+
+`fn get(item: &str) -> Option<StackedOnOtherCallback>`
+
+> Ask with an item id such as `tconstruct:repair_kit`; `None` means the item answers no
+> stacked-on-other clicks.
 
 ```rust
 use pluto_lib::Identifier;
@@ -1463,13 +1806,13 @@ assert!(StackedOnOtherRegistry::get("example:kit").is_some());
 ```
 ### `ItemEvents`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Events about items.
 
-> The holder of the item family's events: each field is one event about items — the tooltip event
-> among them — that callbacks register on. It is the item counterpart of the other event holders
-> in the API.
+> The holder of the item family's events: each field is one event about items — the
+> tooltip event among them — that callbacks register on. It is the item counterpart of
+> the other event holders in the API.
 
 ```rust
 use pluto_lib::ItemEvents;
@@ -1479,9 +1822,13 @@ ItemEvents::RELEASE_USING.register(|_| {});
 
 ### `ItemEvents::RELEASE_USING`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A player let go of an item they were using, before its use time ran out: the charge-and-release half of a use (a bow-like item shoots by its charge; a thrown tool leaves the hand). Only a player's release is heard, and only for an item a `StackUse` or `ItemUse` registration gave a use time. Server only.
+Heard when a player lets go of an item they were using, before its use time ran out.
+
+> This is the charge-and-release half of a use: a bow-like item shoots by its charge,
+> and a thrown tool leaves the hand. Only a player's release is heard, only for an item
+> a `StackUse` or `ItemUse` registration gave a use time, and only on the server.
 
 ```rust
 use pluto_lib::ItemEvents;
@@ -1495,9 +1842,13 @@ ItemEvents::RELEASE_USING.register(|release| {
 
 ### `ItemEvents::USE_TICK`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One tick of a player using an item over time (see [`UseTick`](#usetick)): heard every tick of the use, for the using player only, and only when a callback listens. The tick itself changes nothing; a callback acts through the player and the world. Server only.
+Heard on every tick of a player using an item over time.
+
+> See `UseTick` for the report it carries. It is heard for the using player only, and
+> only when a callback listens; the tick itself changes nothing, and a callback acts
+> through the player and the world. Server only.
 
 ```rust
 use pluto_lib::ItemEvents;
@@ -1511,9 +1862,20 @@ ItemEvents::USE_TICK.register(|tick| {
 
 ### `ReleaseUsing`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A player releasing an item they were using. `stack` is the stack that was being used, `player` who let go and `dimension` the dimension they are in. `position` is where the player stands, `eye` where their eyes are (where a thrown projectile leaves from) and `look` the direction they look, as a unit vector. `creative` says whether the player is in creative mode. `ticks_used` is how many ticks the use was held — the charge. `main_hand` and `off_hand` are the stacks in the player's hands as the use ends (the used stack is one of them). Set `used` (with `set_used`) to count the release as a use of the item, which starts its cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the player carries, written after the callbacks ran; a count of 0 empties the place, as an ammunition callback spends its source.
+A player releasing an item they were using.
+
+> `stack` is the stack that was being used, `player` who let go and `dimension` the
+> dimension they are in; `position` is where the player stands, `eye` where their eyes
+> are (where a thrown projectile leaves from) and `look` the direction they look, as a
+> unit vector. `creative` says whether the player is in creative mode, and `ticks_used`
+> how many ticks the use was held — the charge. `main_hand` and `off_hand` are the
+> stacks in the player's hands as the use ends, and the used stack is one of them. Set
+> `used` (with `set_used`) to count the release as a use of the item, which starts its
+> cooldown. Spending the stack is an `edits` entry — a whole new stack for a place the
+> player carries, written after the callbacks ran; a count of 0 empties the place, as an
+> ammunition callback spends its source.
 
 ```rust
 use pluto_lib::{CarriedEdit, CarriedSlot, ItemSlot, Identifier, ReleaseUsing, ServerPlayer, StackData, StackSlot};
@@ -1544,9 +1906,13 @@ assert_eq!(release.edits.borrow().len(), 1);
 
 ### `ReleaseUsing::set_used`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_used(&self)`. Mark the release as a use of the item, so its cooldown starts.
+Marks the release as a use of the item.
+
+`fn set_used(&self)`
+
+> Counting the release as a use starts the item's cooldown.
 
 ```rust
 use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
@@ -1563,12 +1929,14 @@ assert!(release.used.get());
 
 ### `ReleaseUsing::world`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn world(&self) -> World`. The world the player is in.
+The world the player is in.
 
-> The world the player releasing the item is in. Release answers that depend on where the use
-> happened — what the released shot or throw meets — read the world from here.
+`fn world(&self) -> World`
+
+> The world the player releasing the item is in. Release answers that depend on where
+> the use happened — what the released shot or throw meets — read the world from here.
 
 ```rust
 use pluto_lib::{ReleaseUsing, ServerPlayer, StackData};
@@ -1584,9 +1952,20 @@ assert_eq!(release.world().dimension, "minecraft:the_nether");
 
 ### `UseTick`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`). `stack` is the stack in use, `player` the player using it and `dimension` the dimension they are in; `position` is where the player stands (their feet), `eye` where their eyes are and `look` the direction they look, as a unit vector (where a use that aims, such as a brush's strokes, traces from), and `creative` whether they are in creative mode. `ticks_used` is how many ticks the use has run (the use's full time less the ticks left, so the first ticks of a use read near 0 and the last near the end) and `duration` the use's full time in ticks, as the stack's use gives it. The tick itself changes nothing: a callback acts through the player and the world, as the finish and release callbacks do (an eating tool's sounds, a charge's drain). A use that ran its time out is finished, not ticked past its end.
+One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`).
+
+> `stack` is the stack in use, `player` the player using it and `dimension` the
+> dimension they are in; `position` is where the player stands (their feet), `eye` where
+> their eyes are and `look` the direction they look, as a unit vector — where a use that
+> aims, such as a brush's strokes, traces from. `creative` says whether they are in
+> creative mode, `ticks_used` how many ticks the use has run (the use's full time less
+> the ticks left, so the first ticks of a use read near 0 and the last near the end) and
+> `duration` the use's full time in ticks, as the stack's use gives it. The tick itself
+> changes nothing: a callback acts through the player and the world, as the finish and
+> release callbacks do. A use that ran its time out is finished, not ticked past its
+> end.
 
 ```rust
 use pluto_lib::{ServerPlayer, StackData};
@@ -1609,12 +1988,15 @@ assert!(tick.ticks_used < tick.duration);
 
 ### `UseTick::world`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn world(&self) -> World`. The world the player is in.
+The world the player is in.
 
-> The world the player using the item is in. Per-tick use answers that need the surroundings —
-> drawing a bow where something can be hit, for one — read the world from here.
+`fn world(&self) -> World`
+
+> The world the player using the item is in. Per-tick use answers that need the
+> surroundings — drawing a bow where something can be hit, for one — read the world from
+> here.
 
 ```rust
 use pluto_lib::{ServerPlayer, StackData};

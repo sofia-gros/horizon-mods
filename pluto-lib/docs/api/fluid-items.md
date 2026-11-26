@@ -75,9 +75,13 @@ assert_eq!(world.blocks[&[1, 1, 0]].property("level"), Some("3"), "a drop of 3 l
 
 ### `FluidItemDef`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One kind of item that holds fluid. `item` is the item it describes.
+One kind of item that holds fluid.
+
+> `item` is the item it describes. Build a definition with `tank`, `portion`,
+> `constant` or `empty_container` — plus the tagged variants — and register it
+> with `FluidItems::register`.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -88,9 +92,14 @@ assert_eq!(def.item.to_string(), "example:tank");
 
 ### `FluidItemDef::tank`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tank(item: Identifier, key: &str, capacity: u32) -> FluidItemDef`. Any one fluid up to `capacity` millibuckets, kept under `key` in the stack's custom data as `{FluidName, Amount}`.
+A container holding any one fluid up to `capacity` millibuckets.
+
+`fn tank(item: Identifier, key: &str, capacity: u32) -> FluidItemDef`
+
+> The fluid is kept under `key` in the stack's custom data as
+> `{FluidName, Amount}`.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -100,9 +109,14 @@ assert_eq!(FluidItemDef::tank(Identifier::parse("example:tank").unwrap(), "tank"
 
 ### `FluidItemDef::portion`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn portion(item: Identifier, key: &str, amount: u32) -> FluidItemDef`. Exactly `amount` of one fluid or nothing, kept as the fluid id under `key`; a stack of several holds `amount` each.
+A container holding exactly `amount` of one fluid, or nothing.
+
+`fn portion(item: Identifier, key: &str, amount: u32) -> FluidItemDef`
+
+> The fluid is kept as the fluid id under `key`. A stack of several holds
+> `amount` each, so the stack's contents scale with its count.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -112,9 +126,14 @@ assert_eq!(FluidItemDef::portion(Identifier::parse("example:can").unwrap(), "flu
 
 ### `FluidItemDef::constant`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`. An item that always holds `amount` of `fluid`; drained, it becomes `empty` or vanishes.
+An item that always holds `amount` of one `fluid`.
+
+`fn constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`
+
+> Drained, the item becomes `empty` — or vanishes when no empty item is named.
+> Its contents need no stored key, so `key()` is `None` for this kind.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -125,9 +144,14 @@ assert_eq!(FluidItemDef::constant(id("example:bottle"), id("example:honey"), 250
 
 ### `FluidItemDef::empty_container`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn empty_container(item, accepts: impl Fn(&Identifier) -> bool, amount: u32, filled: Identifier) -> FluidItemDef`. An empty item that becomes `filled` when `amount` of an accepted fluid goes in.
+An empty item that becomes `filled` when an accepted fluid goes in.
+
+`fn empty_container(item, accepts: impl Fn(&Identifier) -> bool, amount: u32, filled: Identifier) -> FluidItemDef`
+
+> It takes `amount` of a fluid the `accepts` predicate allows and turns into the
+> `filled` item. Add further fillings of the same empty item with `fills`.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -139,9 +163,15 @@ assert_eq!(bowl.item.to_string(), "minecraft:bowl");
 
 ### `FluidItemDef::fills`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fills(self, accepts, amount: u32, filled: Identifier) -> FluidItemDef`. One more filling of the same empty item, tried after the earlier ones.
+One more filling of the same empty item.
+
+`fn fills(self, accepts, amount: u32, filled: Identifier) -> FluidItemDef`
+
+> Each added filling is tried after the earlier ones when the empty item is
+> filled, so the order of `fills` calls sets the priority between accepted
+> fluids.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -154,9 +184,14 @@ assert_eq!(bottle.item.path(), "glass_bottle");
 
 ### `FluidItemDef::scaled`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn scaled(self) -> FluidItemDef`. A tank whose stack of n items is one tank of n times the capacity; amounts are kept per item and transfers move in steps of n.
+A tank whose stack of n items is one tank of n times the capacity.
+
+`fn scaled(self) -> FluidItemDef`
+
+> Amounts are kept per item and transfers move in steps of n — the behaviour of
+> Forge's `ScaledFluidTank`.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
@@ -169,9 +204,14 @@ assert_eq!(filled.amount, 4000);
 
 ### `FluidItemDef::fill_stack_limit`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fill_stack_limit(self, limit: u32) -> FluidItemDef`. A tank that takes no fluid while the stack holds more than `limit` items; draining is unaffected.
+A tank that takes no fluid while the stack holds more than `limit` items.
+
+`fn fill_stack_limit(self, limit: u32) -> FluidItemDef`
+
+> Draining is unaffected — the limit only refuses fills. It pairs with `scaled`,
+> where a bigger stack would otherwise mean a bigger tank.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
@@ -183,9 +223,14 @@ assert_eq!(FluidItems::fill(&ItemSlot::new(id("example:limited"), 17), &FluidSta
 
 ### `FluidItemDef::key`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn key(&self) -> Option<&str>`. The custom data key that holds the fluid; `None` for constant and empty containers.
+The custom data key that holds the fluid.
+
+`fn key(&self) -> Option<&str>`
+
+> It answers `None` for constant and empty containers, whose contents are not
+> stored under a key.
 
 ```rust
 use pluto_lib::{FluidItemDef, Identifier};
@@ -195,9 +240,13 @@ assert_eq!(FluidItemDef::tank(Identifier::parse("example:t").unwrap(), "tank", 1
 
 ### `Filled`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a fill did: `amount` that went in and the `container` stack afterwards (same count, possibly another item).
+What a fill did.
+
+> `amount` is how much went in, and `container` the stack afterwards — same
+> count, possibly another item, as when an empty container becomes its filled
+> form.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
@@ -210,9 +259,12 @@ assert_eq!((filled.amount, filled.container.item.path()), (30, "f"));
 
 ### `Drained`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a drain did: the `fluid` that came out and the `container` afterwards (`None` when nothing is left of the stack).
+What a drain did.
+
+> `fluid` is the fluid that came out, and `container` the stack afterwards —
+> `None` when nothing is left of the stack.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier, ItemSlot};
@@ -226,9 +278,13 @@ assert!(drained.container.is_none());
 
 ### `FluidTarget`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A tank to trade with: `fill` and `drain`, each with an `execute` flag that false turns into a question. See the Basic Example.
+A tank to trade with.
+
+> It offers `fill` and `drain`, each with an `execute` flag; passing false turns
+> the call into a question — how much would move — without moving anything. See
+> the Basic Example.
 
 ```rust
 use pluto_lib::{FluidStack, FluidTarget, Identifier};
@@ -243,9 +299,12 @@ assert_eq!(Nothing.fill(&FluidStack { fluid: Identifier::parse("minecraft:water"
 
 ### `TransferDirection`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Which way a held stack and a tank trade: `Auto` (stack into tank first, otherwise tank into stack), `ToTank`, `FromTank`.
+Which way a held stack and a tank trade.
+
+> `Auto` tries the stack into the tank first, and otherwise the tank into the
+> stack. `ToTank` and `FromTank` force the one direction.
 
 ```rust
 use pluto_lib::TransferDirection;
@@ -256,9 +315,12 @@ assert_eq!(TransferDirection::Auto, TransferDirection::Auto);
 
 ### `Interaction`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a trade did: `held` (the hand afterwards), `give` (stacks for the player), `moved` (the fluid) and `into_tank` (whether it went into the tank).
+What a trade did.
+
+> `held` is the hand afterwards, `give` the stacks for the player, `moved` the
+> fluid that moved, and `into_tank` whether it went into the tank.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot, TransferDirection};
@@ -277,9 +339,14 @@ assert_eq!((done.moved.amount, done.held.unwrap().item.path().to_owned()), (250,
 
 ### `FluidItems`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The registry and the transfers.
+The registry of fluid containers and the transfers between them.
+
+> Register definitions with `register` and look them up with `get` and
+> `registered`. Move fluid with `fill`, `drain` and `interact`; `contents` and
+> `capacity` read a stack without moving anything, and `is_container` says
+> whether a stack can trade at all.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier};
@@ -290,9 +357,13 @@ assert!(FluidItems::get("example:reg").is_some());
 
 ### `FluidItems::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(def: FluidItemDef)`. Makes the item a container; the same item again replaces the earlier definition.
+Registers a definition, making its item a container.
+
+`fn register(def: FluidItemDef)`
+
+> Registering the same item again replaces the earlier definition.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier};
@@ -303,9 +374,14 @@ FluidItems::register(FluidItemDef::tank(Identifier::parse("example:again").unwra
 
 ### `FluidItems::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(item: &str) -> Option<FluidItemDef>`. The definition registered for an item id.
+The definition registered for an item id.
+
+`fn get(item: &str) -> Option<FluidItemDef>`
+
+> It answers `None` when the item has no definition — such an item is not a
+> fluid container.
 
 ```rust
 use pluto_lib::FluidItems;
@@ -315,11 +391,13 @@ assert!(FluidItems::get("example:never_registered").is_none());
 
 ### `FluidItems::registered`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn registered() -> Vec<FluidItemDef>`. Every definition registered so far, in registration order.
+Every definition registered so far, in registration order.
 
+`fn registered() -> Vec<FluidItemDef>`
 
+> The list is empty in a fresh process, before any `register` call has run.
 
 ```rust
 use pluto_lib::FluidItems;
@@ -328,9 +406,14 @@ assert!(FluidItems::registered().is_empty(), "nothing is registered in a fresh p
 ```
 ### `FluidItems::is_container`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_container(stack: &ItemSlot) -> bool`. Whether the stack's item holds or can be filled with fluid.
+Whether the stack's item holds or can be filled with fluid.
+
+`fn is_container(stack: &ItemSlot) -> bool`
+
+> Both a container already holding fluid and an empty container that can accept
+> one count; an ordinary item does not.
 
 ```rust
 use pluto_lib::{FluidItems, Identifier, ItemSlot};
@@ -340,9 +423,14 @@ assert!(!FluidItems::is_container(&ItemSlot::new(Identifier::parse("minecraft:st
 
 ### `FluidItems::contents`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn contents(stack: &ItemSlot) -> Option<FluidStack>`. What the stack holds, the whole stack's amount for a scaled tank or a stack of portions.
+What the stack holds.
+
+`fn contents(stack: &ItemSlot) -> Option<FluidStack>`
+
+> For a scaled tank or a stack of portions, the amount is the whole stack's, not
+> one item's. A stack holding no fluid answers `None`.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier, ItemSlot};
@@ -354,9 +442,13 @@ assert_eq!(FluidItems::contents(&ItemSlot::new(id("example:c"), 1)).unwrap().amo
 
 ### `FluidItems::capacity`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn capacity(stack: &ItemSlot) -> u32`. How much the stack holds at most; 0 for an item that is not a container.
+How much the stack holds at most.
+
+`fn capacity(stack: &ItemSlot) -> u32`
+
+> It answers 0 for an item that is not a container.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier, ItemSlot};
@@ -369,9 +461,14 @@ assert_eq!(FluidItems::capacity(&ItemSlot::new(id("minecraft:stick"), 1)), 0);
 
 ### `FluidItems::fill`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fill(stack: &ItemSlot, fluid: &FluidStack) -> Filled`. The stack with fluid put in as far as it goes; asking and doing are the same call.
+Puts fluid into the stack as far as it goes.
+
+`fn fill(stack: &ItemSlot, fluid: &FluidStack) -> Filled`
+
+> Asking and doing are the same call: the returned `Filled` reports how much
+> went in and the container stack afterwards.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
@@ -384,9 +481,14 @@ assert_eq!(filled.amount, 100);
 
 ### `FluidItems::drain`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn drain(stack: &ItemSlot, wanted: Option<&Identifier>, max: u32) -> Option<Drained>`. The fluid the stack gives up to `max`; a portion or constant gives all of it or nothing.
+Drains the fluid the stack gives up, up to `max`.
+
+`fn drain(stack: &ItemSlot, wanted: Option<&Identifier>, max: u32) -> Option<Drained>`
+
+> A portion or constant gives all of it or nothing — those kinds cannot be
+> partly drained. The result names the fluid and the container stack afterwards.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot};
@@ -399,9 +501,15 @@ assert_eq!(FluidItems::drain(&full, None, 30).unwrap().fluid.amount, 30);
 
 ### `FluidItems::interact`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn interact(held: Option<&ItemSlot>, target: &mut dyn FluidTarget, direction: TransferDirection) -> Option<Interaction>`. A trade between the held stack and a tank (`FluidUtil.interactWithFluidHandler`). A container that is not a scaled tank trades one at a time, splitting one off a stack and giving its result in `give`.
+A trade between the held stack and a tank.
+
+`fn interact(held: Option<&ItemSlot>, target: &mut dyn FluidTarget, direction: TransferDirection) -> Option<Interaction>`
+
+> This is `FluidUtil.interactWithFluidHandler`. A container that is not a scaled
+> tank trades one at a time, splitting one off a stack and giving its result in
+> `give`.
 
 ```rust
 use pluto_lib::{FluidItems, FluidStack, FluidTarget, Identifier, TransferDirection};
@@ -416,9 +524,13 @@ assert!(FluidItems::interact(None, &mut Empty, TransferDirection::Auto).is_none(
 
 ### `FluidFlow`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How a fluid flows: `tick_delay` game ticks per step, `level_drop` levels lost per block, `slope_distance` blocks searched for a way down.
+How a fluid flows.
+
+> `tick_delay` is game ticks per step, `level_drop` the levels lost per block,
+> and `slope_distance` how many blocks are searched for a way down.
+> `FluidFlow::standard` gives the water-like numbers.
 
 ```rust
 use pluto_lib::FluidFlow;
@@ -429,13 +541,14 @@ assert_ne!(flow, FluidFlow::standard());
 
 ### `FluidFlow::standard`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`const fn standard() -> FluidFlow`. Water-like flow: 5, 1 and 4.
+Water-like flow: a tick delay of 5, a level drop of 1 and a slope distance of 4.
 
-> The flow numbers of water: a tick delay of 5, a level drop of 1 and a slope distance of 4. It is
-> the starting point for a fluid that should spread the way water does; adjust the fields from
-> there.
+`const fn standard() -> FluidFlow`
+
+> These are the flow numbers of water. Use them as the starting point for a
+> fluid that should spread the way water does, and adjust the fields from there.
 
 ```rust
 use pluto_lib::FluidFlow;
@@ -445,9 +558,15 @@ assert_eq!(FluidFlow::standard().tick_delay, 5);
 
 ### `FluidDef::flow`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn flow(self, tick_delay: u16, level_drop: u8, slope_distance: u8) -> FluidDef`. How the fluid flows in the world.
+Sets how the fluid flows in the world.
+
+`fn flow(self, tick_delay: u16, level_drop: u8, slope_distance: u8) -> FluidDef`
+
+> The three numbers become the fluid's `FluidFlow`: `tick_delay` game ticks per
+> step, `level_drop` levels lost per block, and `slope_distance` blocks searched
+> for a way down.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -458,9 +577,15 @@ assert_eq!(def.flow.level_drop, 2);
 
 ### `FluidDef::bucket_sounds`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn bucket_sounds(self, fill: &str, empty: &str) -> FluidDef`. The sound events the bucket makes taking the fluid up and pouring it out.
+The sound events the bucket makes with this fluid.
+
+`fn bucket_sounds(self, fill: &str, empty: &str) -> FluidDef`
+
+> `fill` is the sound of taking the fluid up and `empty` the sound of pouring it
+> out; they are kept as the definition's `bucket_fill_sound` and
+> `bucket_empty_sound`.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -472,9 +597,14 @@ assert!(def.bucket_fill_sound.is_some());
 
 ### `FluidWorld`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The rules of a mod fluid in the world.
+
+> Its functions name the fluid's block ( `<id>_fluid`) and bucket (
+> `<id>_bucket`), read levels from block states, place and pick up sources, and
+> run the flow tick. A fluid gets a world form through
+> `FluidDef::with_world_blocks`.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -484,9 +614,12 @@ assert_eq!(FluidWorld::bucket_id(&Identifier::parse("example:oil").unwrap()).to_
 
 ### `FluidWorld::LEVEL`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The block state property that carries the level.
+
+> Its values are `BLOCK_LEVELS`: `0` for a source, `1` to `7` for flowing
+> levels, and `8` for falling.
 
 ```rust
 use pluto_lib::FluidWorld;
@@ -496,9 +629,12 @@ assert_eq!(FluidWorld::LEVEL, "level");
 
 ### `FluidWorld::BLOCK_LEVELS`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The values of the property: `0` source, `1` to `7` flowing, `8` falling.
+The values of the `level` property.
+
+> `0` is a source, `1` to `7` are flowing levels, and `8` is falling — nine
+> values in all.
 
 ```rust
 use pluto_lib::FluidWorld;
@@ -508,13 +644,15 @@ assert_eq!(FluidWorld::BLOCK_LEVELS.len(), 9);
 
 ### `FluidWorld::state`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn state(fluid: &Identifier, level: u8) -> BlockState`. The fluid block at a level.
+The fluid block at a level.
 
-> The block state of the fluid's own block at the given level — what a world query answers for a
-> position the fluid fills to that height. Levels run from a full block down to the thinnest film
-> the fluid can stand at.
+`fn state(fluid: &Identifier, level: u8) -> BlockState`
+
+> It is the block state of the fluid's own block at the given level — what a
+> world query answers for a position the fluid fills to that height. Levels run
+> from a full block down to the thinnest film the fluid can stand at.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -524,9 +662,14 @@ assert_eq!(FluidWorld::state(&Identifier::parse("example:oil").unwrap(), 2).to_s
 
 ### `FluidWorld::block_id`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn block_id(fluid: &Identifier) -> Identifier`. The fluid's block id, `<id>_fluid` (so a fluid and a building block of the same name do not clash).
+The fluid's block id, `<id>_fluid`.
+
+`fn block_id(fluid: &Identifier) -> Identifier`
+
+> The `_fluid` suffix keeps a fluid and a building block of the same name from
+> clashing.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -536,9 +679,14 @@ assert_eq!(FluidWorld::block_id(&Identifier::parse("a:b").unwrap()).path(), "b_f
 
 ### `FluidWorld::bucket_id`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn bucket_id(fluid: &Identifier) -> Identifier`. The fluid's bucket item id, `<id>_bucket`.
+The fluid's bucket item id, `<id>_bucket`.
+
+`fn bucket_id(fluid: &Identifier) -> Identifier`
+
+> This is the item `FluidDef::with_bucket` registers for the fluid: a 1000
+> container that becomes `minecraft:bucket` when emptied.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -548,9 +696,13 @@ assert_eq!(FluidWorld::bucket_id(&Identifier::parse("a:b").unwrap()).path(), "b_
 
 ### `FluidWorld::level_of`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn level_of(state: &BlockState, fluid: &Identifier) -> Option<u8>`. The level of a state of the fluid's block; `None` for another block or a level above 8.
+The level of a state of the fluid's block.
+
+`fn level_of(state: &BlockState, fluid: &Identifier) -> Option<u8>`
+
+> It answers `None` for another block, or for a level above 8.
 
 ```rust
 use pluto_lib::{BlockState, FluidWorld, Identifier};
@@ -562,9 +714,17 @@ assert_eq!(FluidWorld::level_of(&BlockState::parse("minecraft:stone").unwrap(), 
 
 ### `FluidWorld::source_block`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn source_block(fluid: &Identifier) -> Option<BlockState>`. The source block of a fluid that has a world form: water and lava (whose block id is the fluid's own id) and a registered fluid with world blocks (its block at level 0). `None` for a fluid with no world form, so a bucket module's world halves know the fluid cannot be placed. The forward half of the fluid's world-block form, with `fluid_of` as the reverse.
+The source block of a fluid that has a world form.
+
+`fn source_block(fluid: &Identifier) -> Option<BlockState>`
+
+> For water and lava the block id is the fluid's own id; for a registered fluid
+> with world blocks it is its block at level 0. It answers `None` for a fluid
+> with no world form, so a bucket module's world halves know the fluid cannot be
+> placed. It is the forward half of the fluid's world-block form, with
+> `fluid_of` as the reverse.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, FluidWorld, Identifier};
@@ -578,9 +738,17 @@ assert!(FluidWorld::source_block(&Identifier::parse("example:potion").unwrap()).
 
 ### `FluidWorld::fluid_of`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fluid_of(state: &BlockState) -> Option<(Identifier, u8)>`. The fluid and level a block state holds, if it is a fluid's world form: a registered fluid's `<id>_fluid` block with its `level` (0 source, 1 to 7 flowing, 8 falling), or water and lava by their own block id (a missing `level` reads as a source; a vanilla level of 8 to 15 is a falling cell, the port's 8). `None` for any other block. The reverse half of the fluid's world-block form.
+The fluid and level a block state holds, if it is a fluid's world form.
+
+`fn fluid_of(state: &BlockState) -> Option<(Identifier, u8)>`
+
+> A registered fluid's `<id>_fluid` block reports its `level` — 0 source, 1 to 7
+> flowing, 8 falling — and water and lava report by their own block id, where a
+> missing `level` reads as a source and a vanilla level of 8 to 15 is a falling
+> cell, the port's 8. Any other block answers `None`. It is the reverse half of
+> the fluid's world-block form, with `source_block` as the forward half.
 
 ```rust
 use pluto_lib::{BlockState, FluidWorld, Identifier};
@@ -592,9 +760,14 @@ assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:stone").unwrap()),
 
 ### `FluidWorld::is_world_fluid`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_world_fluid(block: &Identifier) -> bool`. Whether `block` is the block (`<id>_fluid`) of a defined fluid with world blocks.
+Whether `block` is the block of a defined fluid with world blocks.
+
+`fn is_world_fluid(block: &Identifier) -> bool`
+
+> The block must be the fluid's `<id>_fluid` block; the fluid's own item id and
+> unrelated blocks answer false.
 
 ```rust
 use pluto_lib::{FluidWorld, Identifier};
@@ -604,9 +777,14 @@ assert!(!FluidWorld::is_world_fluid(&Identifier::parse("minecraft:stone").unwrap
 
 ### `FluidWorld::place_source`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn place_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`. Puts a source at `pos` and schedules its tick; only into air or a replaceable non-fluid block.
+Puts a source of the fluid at `pos` and schedules its tick.
+
+`fn place_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`
+
+> It only places into air or a replaceable non-fluid block, and answers false
+> when the position will not take the source.
 
 ```rust
 use pluto_lib::{FluidDef, FluidWorld, Identifier, MemoryBlockView};
@@ -619,9 +797,14 @@ assert!(!FluidWorld::place_source(&mut world, [0, 64, 0], &def));
 
 ### `FluidWorld::pick_up_source`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn pick_up_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`. Removes a source of this fluid; a flowing cell is refused.
+Removes a source of this fluid.
+
+`fn pick_up_source(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef) -> bool`
+
+> A flowing cell is refused — only a true source can be picked up, which is what
+> a bucket takes.
 
 ```rust
 use pluto_lib::{FluidDef, FluidWorld, Identifier, MemoryBlockView};
@@ -634,9 +817,15 @@ assert!(FluidWorld::pick_up_source(&mut world, [0, 64, 0], &def));
 
 ### `FluidWorld::tick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tick(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef)`. One scheduled tick of a cell (`FlowingFluid.tick`): a flowing cell settles to what its neighbours make of it, then the cell spreads down or toward the nearest drop; changed cells are scheduled again.
+One scheduled tick of a fluid cell.
+
+`fn tick(world: &mut dyn BlockEditor, pos: BlockPos, def: &FluidDef)`
+
+> This is `FlowingFluid.tick`: a flowing cell settles to what its neighbours
+> make of it, then the cell spreads down or toward the nearest drop. Changed
+> cells are scheduled again.
 
 ```rust
 use pluto_lib::{FluidDef, FluidWorld, Identifier, MemoryBlockView};
@@ -650,9 +839,14 @@ assert!(world.blocks.contains_key(&[0, 63, 0]), "it falls");
 
 ### `FluidWorld::register_behaviour`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_behaviour(def: &FluidDef)`. Gives the fluid's block the flow behaviour; `FluidRegistry::register` calls it for a fluid with world blocks. Extend the registered behaviour with `BlockBehaviors::get` rather than replacing it.
+Gives the fluid's block the flow behaviour.
+
+`fn register_behaviour(def: &FluidDef)`
+
+> `FluidRegistry::register` calls it for a fluid with world blocks. Extend the
+> registered behaviour with `BlockBehaviors::get` rather than replacing it.
 
 ```rust
 use pluto_lib::{BlockBehaviors, FluidDef, FluidWorld, Identifier};
@@ -663,9 +857,14 @@ assert!(BlockBehaviors::get("example:tar_fluid").is_some());
 
 ### `World::schedule_tick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool`. Asks for the block at `pos` to tick after `delay` game ticks; false outside a callback, for a delay below 1, or when the host cannot schedule from this callback.
+Asks for the block at `pos` to tick after `delay` game ticks.
+
+`fn schedule_tick(&self, pos: BlockPos, block: &str, delay: i32) -> bool`
+
+> It answers false outside a callback, for a delay below 1, or when the host
+> cannot schedule from this callback.
 
 ```rust
 use pluto_lib::World;
@@ -674,9 +873,15 @@ assert!(!World::new("minecraft:overworld").schedule_tick([0, 0, 0], "example:oil
 ```
 ### `FluidItemDef::tagged_constant`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn tagged_constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`. An item that always holds `amount` of `fluid` together with a tag: the stack's own custom data is the fluid's tag, so a stack with no custom data holds the plain fluid. Drained, it becomes `empty` or vanishes and hands the tag back with the fluid.
+An item that always holds `amount` of `fluid`, together with a tag.
+
+`fn tagged_constant(item: Identifier, fluid: Identifier, amount: u32, empty: Option<Identifier>) -> FluidItemDef`
+
+> The stack's own custom data is the fluid's tag, so a stack with no custom data
+> holds the plain fluid. Drained, it becomes `empty` or vanishes and hands the
+> tag back with the fluid.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, Identifier, ItemSlot, Nbt, NbtCompound};
@@ -694,9 +899,14 @@ assert_eq!(contents.tag, Some(tag));
 
 ### `FluidItemDef::empty_container_tagged`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn empty_container_tagged(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. An empty item that becomes `filled` when `amount` of an accepted fluid goes in, taking the fluid's tag as the filled stack's own custom data.
+An empty item that becomes `filled` when an accepted fluid goes in, carrying the fluid's tag.
+
+`fn empty_container_tagged(item: Identifier, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`
+
+> It takes `amount` of a fluid the `accepts` predicate allows, and the filled
+> stack's own custom data is the fluid's tag.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound};
@@ -713,9 +923,14 @@ assert_eq!(filled.container.custom_data, tag);
 
 ### `FluidItemDef::fills_tagged`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn fills_tagged(self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`. One more filling of the same empty item, tried after the earlier ones, whose filled stack takes the fluid's tag as its own custom data. Does nothing to other kinds of item.
+One more filling of the same empty item, whose filled stack takes the fluid's tag.
+
+`fn fills_tagged(self, accepts: impl Fn(&Identifier) -> bool + Send + Sync + 'static, amount: u32, filled: Identifier) -> FluidItemDef`
+
+> The filling is tried after the earlier ones, and the filled stack's own custom
+> data is the fluid's tag. It does nothing to other kinds of item.
 
 ```rust
 use pluto_lib::{FluidItemDef, FluidItems, FluidStack, Identifier, ItemSlot, Nbt, NbtCompound};

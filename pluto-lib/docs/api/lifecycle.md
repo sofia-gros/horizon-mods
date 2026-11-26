@@ -55,9 +55,13 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk| {
 
 ### `ServerInfo`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-What the server callbacks learn about the server. `dedicated` is true for a dedicated server and false for the integrated one (single player or LAN host).
+What the server callbacks learn about the server.
+
+> Its field `dedicated` is true for a dedicated server and false for the integrated one —
+> single player or a LAN host. Branch on it for setup that only makes sense on one kind of
+> server.
 
 ```rust
 use pluto_lib::{ServerInfo, ServerLifecycleEvents};
@@ -72,9 +76,12 @@ ServerLifecycleEvents::SERVER_STARTING.invoke(&ServerInfo { dedicated: true });
 
 ### `WorldTick`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-A world (dimension) tick. `dimension` is the dimension id, such as `minecraft:overworld`.
+A world (dimension) tick.
+
+> Its field `dimension` is the dimension id, such as `minecraft:overworld`, naming the
+> world that is starting or ending this tick.
 
 ```rust
 use pluto_lib::{ServerTickEvents, WorldTick};
@@ -87,9 +94,13 @@ ServerTickEvents::END_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:the_n
 
 ### `ServerChunk`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-A chunk of a world. `dimension` is the dimension id, `x` and `z` are the chunk coordinates, and `newly_generated` is true on `CHUNK_LOAD` when the chunk was generated just now rather than read from disk.
+A chunk of a world, as chunk callbacks receive it.
+
+> `dimension` is the dimension id, `x` and `z` are the chunk coordinates, and
+> `newly_generated` is true on `CHUNK_LOAD` when the chunk was generated just now rather
+> than read from disk. Multiply `x` and `z` by 16 for block coordinates.
 
 ```rust
 use pluto_lib::{ServerChunk, ServerChunkEvents};
@@ -106,9 +117,14 @@ ServerChunkEvents::CHUNK_LOAD.register(|chunk: &ServerChunk| {
 
 ### `ServerLifecycleEvents`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-The four server lifecycle events. `SERVER_STARTING` and `SERVER_STOPPING` run before startup and teardown; `SERVER_STARTED` is invoked at the first server tick after startup. `SERVER_STOPPED` runs once after a successful final save and teardown of an integrated or dedicated server. It is not emitted when the stop routine returns a save/teardown error.
+The four server lifecycle events.
+
+> `SERVER_STARTING` and `SERVER_STOPPING` run before startup and teardown;
+> `SERVER_STARTED` is invoked at the first server tick after startup. `SERVER_STOPPED`
+> runs once after a successful final save and teardown, and is not emitted when the stop
+> routine returns a save or teardown error.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -119,9 +135,12 @@ ServerLifecycleEvents::SERVER_STOPPING.register(|_| {});
 
 ### `ServerLifecycleEvents::SERVER_STARTING`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-The server is about to start (before the world loads). Use it to read configuration or register data.
+The server is about to start, before the world loads.
+
+> Use it to read configuration or register data. The callback receives the `ServerInfo`,
+> so it can branch on whether the server is dedicated.
 
 ```rust
 use pluto_lib::{ServerInfo, ServerLifecycleEvents};
@@ -132,9 +151,12 @@ ServerLifecycleEvents::SERVER_STARTING.invoke(&ServerInfo { dedicated: false });
 
 ### `ServerLifecycleEvents::SERVER_STARTED`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-The server has finished starting: called at the first server tick after it started.
+The server has finished starting.
+
+> It is called at the first server tick after the server started, so by the time callbacks
+> run the world is up. The callback receives the `ServerInfo`.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -144,9 +166,12 @@ ServerLifecycleEvents::SERVER_STARTED.register(|server| println!("started, dedic
 
 ### `ServerLifecycleEvents::SERVER_STOPPING`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-The server is about to stop. Use it to save your own data.
+The server is about to stop.
+
+> Use it to save your own data while the server is still running. The callback receives
+> the `ServerInfo`.
 
 ```rust
 use pluto_lib::{ServerInfo, ServerLifecycleEvents};
@@ -157,9 +182,13 @@ ServerLifecycleEvents::SERVER_STOPPING.invoke(&ServerInfo { dedicated: true });
 
 ### `ServerLifecycleEvents::SERVER_STOPPED`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-The server has finished its successful final save and teardown. The callback receives `ServerInfo { dedicated }`; use it to release mod-owned resources, not to operate on departed players. A crash or failed final save is not reported as successful shutdown.
+The server has finished its successful final save and teardown.
+
+> The callback receives `ServerInfo { dedicated }`; use it to release mod-owned resources,
+> not to operate on departed players. A crash or failed final save is not reported as a
+> successful shutdown.
 
 ```rust
 use pluto_lib::ServerLifecycleEvents;
@@ -171,9 +200,13 @@ ServerLifecycleEvents::SERVER_STOPPED.register(|_| {});
 
 ### `ServerTickEvents`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-Tick events, each running every game tick. Keep callbacks short.
+Tick events, each running every game tick.
+
+> Its fields are the start and end events for the server tick and for each world tick:
+> `START_SERVER_TICK`, `END_SERVER_TICK`, `START_WORLD_TICK` and `END_WORLD_TICK`. Keep
+> callbacks short — they run twenty times a second, so a little work each time adds up.
 
 ```rust
 use pluto_lib::ServerTickEvents;
@@ -184,9 +217,12 @@ ServerTickEvents::END_SERVER_TICK.register(|_| {});
 
 ### `ServerTickEvents::START_SERVER_TICK`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
 Before the server runs a tick.
+
+> The callback receives no value. Pair it with `END_SERVER_TICK` to bracket a tick, and
+> keep the work small enough to run twenty times a second.
 
 ```rust
 use pluto_lib::ServerTickEvents;
@@ -202,9 +238,12 @@ assert_eq!(TICKS.load(Ordering::Relaxed), 1);
 
 ### `ServerTickEvents::END_SERVER_TICK`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
 After the server has run a tick.
+
+> The callback receives no value. It is the usual place for once-a-tick bookkeeping;
+> prefer a counter and do real work only every few ticks.
 
 ```rust
 use pluto_lib::ServerTickEvents;
@@ -215,9 +254,11 @@ ServerTickEvents::END_SERVER_TICK.invoke(&());
 
 ### `ServerTickEvents::START_WORLD_TICK`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
 Before a world (dimension) ticks.
+
+> The callback receives the `WorldTick`, whose `dimension` names the world about to tick.
 
 ```rust
 use pluto_lib::{ServerTickEvents, WorldTick};
@@ -228,9 +269,12 @@ ServerTickEvents::START_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:ove
 
 ### `ServerTickEvents::END_WORLD_TICK`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
 After a world (dimension) ticked.
+
+> The callback receives the `WorldTick`, whose `dimension` names the world that just
+> ticked.
 
 ```rust
 use pluto_lib::{ServerTickEvents, WorldTick};
@@ -245,12 +289,12 @@ ServerTickEvents::END_WORLD_TICK.invoke(&WorldTick { dimension: "minecraft:overw
 
 ### `ServerChunkEvents`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-Chunk load and unload events.
+The holder of the chunk load and unload events.
 
-> The holder of the chunk load and unload events. Callbacks registered on its fields hear when a
-> chunk loads into a world and when it unloads, which is where per-chunk setup and teardown
+> Callbacks registered on its fields — `CHUNK_LOAD` and `CHUNK_UNLOAD` — hear when a chunk
+> loads into a world and when it unloads, which is where per-chunk setup and teardown
 > belong.
 
 ```rust
@@ -262,9 +306,12 @@ ServerChunkEvents::CHUNK_UNLOAD.register(|_| {});
 
 ### `ServerChunkEvents::CHUNK_LOAD`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-A chunk loaded. Check `newly_generated` to tell fresh terrain from a chunk read from disk.
+A chunk loaded.
+
+> Check `newly_generated` on the `ServerChunk` to tell fresh terrain from a chunk read
+> from disk, and read its `dimension`, `x` and `z` for where it loaded.
 
 ```rust
 use pluto_lib::{ServerChunk, ServerChunkEvents};
@@ -275,9 +322,12 @@ ServerChunkEvents::CHUNK_LOAD.invoke(&ServerChunk { dimension: "minecraft:overwo
 
 ### `ServerChunkEvents::CHUNK_UNLOAD`
 
-![Horizon: unclassified](https://img.shields.io/badge/Horizon-unclassified-lightgrey) ![Sunrise: unclassified](https://img.shields.io/badge/Sunrise-unclassified-lightgrey)
+![Horizon: unclassified](badges/horizon-unclassified.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
-A chunk unloaded. `newly_generated` is false.
+A chunk unloaded.
+
+> `newly_generated` on the `ServerChunk` is false here; its `dimension`, `x` and `z`
+> fields say which chunk went away. Use it to drop any per-chunk state you kept for it.
 
 ```rust
 use pluto_lib::{ServerChunk, ServerChunkEvents};

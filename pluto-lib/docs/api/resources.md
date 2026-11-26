@@ -116,9 +116,15 @@ ResourceManagerHelper::get(ResourceType::ServerData)
 
 ### `ResourceType`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Which kind of resources a listener follows. `ClientResources` are client assets (models, textures, language files): listeners run once the initial client backend is installed and after successful client-resource reloads install their fresh handle. `ServerData` covers the server's data-table load/rebuild notification (recipes, loot tables, tags): initial world opening and subsequent `/reload`, through the pinned native server-data-loaded hook. Reloading one resource type does not invoke the other's listeners.
+Which kind of resources a listener follows.
+
+> `ClientResources` are client assets (models, textures, language files): listeners run
+> once the initial client backend is installed and after successful client-resource
+> reloads install their fresh handle. `ServerData` covers the server's data-table
+> load/rebuild notification (recipes, loot tables, tags): initial world opening and
+> subsequent `/reload`. Reloading one kind does not invoke the other's listeners.
 
 ```rust
 use pluto_lib::ResourceType;
@@ -128,9 +134,13 @@ assert_ne!(ResourceType::ClientResources, ResourceType::ServerData);
 
 ### `ResourceManagerHelper`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Registers reload listeners for one kind of resources and provides static read methods for the active client assets. Client resource ids are `namespace:path`, not paths into the working directory.
+Registers reload listeners for one kind of resources.
+
+> Get the helper for a `ResourceType` with `get`, register listeners on it, and use its
+> static read methods for the active client assets. Client resource ids are
+> `namespace:path`, not paths into the working directory.
 
 ```rust
 use pluto_lib::{ResourceManagerHelper, ResourceType};
@@ -141,12 +151,14 @@ helper.register_reload_listener(pluto_lib::Identifier::new("example", "rebuild")
 
 ### `ResourceManagerHelper::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn get(resource_type: ResourceType) -> ResourceManagerHelper`.
+The helper for one kind of resource.
 
-> The helper for one kind of resource: the value a mod holds to register reload listeners for that
-> kind and to read the active resources of that kind. Each resource type has its own helper.
+`fn get(resource_type: ResourceType) -> ResourceManagerHelper`
+
+> The value a mod holds to register reload listeners for that kind and to read the active
+> resources of that kind. Each resource type has its own helper.
 
 ```rust
 use pluto_lib::{ResourceManagerHelper, ResourceType};
@@ -158,9 +170,15 @@ let _ = (assets, data);
 
 ### `ResourceManagerHelper::register_reload_listener`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn register_reload_listener(&self, id: Identifier, listener: impl Fn() + Send + Sync + 'static)`. The listener runs after every reload of this kind of resources. The identifier names its phase, so listeners can be ordered with `Event::add_phase_ordering` on `reload_event`.
+Registers a listener that runs after every reload of this kind of resources.
+
+`fn register_reload_listener(&self, id: Identifier, listener: impl Fn() + Send + Sync + 'static)`
+
+> The identifier names its phase, so listeners can be ordered with
+> `Event::add_phase_ordering` on `reload_event` — for example the listener that builds a
+> table before the one that reads it.
 
 ```rust
 use pluto_lib::{reload_event, Identifier, ResourceManagerHelper, ResourceType};
@@ -177,9 +195,17 @@ assert_eq!(RELOADS.load(Ordering::Relaxed), 1);
 
 ### `ResourceManagerHelper::register_json_reload_listener`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn register_json_reload_listener(&self, id: Identifier, directory: &str, apply: impl Fn(&[(Identifier, serde_json::Value)]) -> Result<(), String> + Send + Sync + 'static) -> Result<(), String>`. Registers a complete JSON-folder batch callback for this resource type. Duplicate listener IDs within the same type are rejected without replacement. Directories are nonempty slash-separated relative segments, without empty, `.` or `..` segments, backslashes or colons. Listener/resource IDs must also be plain namespaced paths. Callbacks may retain cloned JSON and register other listeners without a held registry lock. No client-native JSON discovery exists yet; server-native transport is source-wired but unverified.
+Registers a complete JSON-folder batch callback for this resource type.
+
+`fn register_json_reload_listener(&self, id: Identifier, directory: &str, apply: impl Fn(&[(Identifier, serde_json::Value)]) -> Result<(), String> + Send + Sync + 'static) -> Result<(), String>`
+
+> Duplicate listener IDs within the same type are rejected without replacement.
+> Directories are nonempty slash-separated relative segments, without empty, `.` or `..`
+> segments, backslashes or colons, and listener/resource IDs must also be plain namespaced
+> paths. Callbacks may retain cloned JSON and register other listeners without a held
+> registry lock.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper, ResourceType};
@@ -192,9 +218,17 @@ assert!(data.register_json_reload_listener(Identifier::new("example", "unsafe").
 
 ### `ResourceManagerHelper::reload_json_stacks`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn reload_json_stacks(directory: &str) -> Option<Vec<JsonResourceStack>>`. Returns owned complete stacks for an exact directory captured in the current server reload pass, in backend resource-ID order, with layers bottom pack first. All registered folders are captured before callbacks; another captured folder is readable regardless of listener order. Unsafe, uncaptured or unavailable directories and out-of-scope/client backends return `None`. A captured folder with no resources returns `Some(vec![])`. This reads the captured snapshot, not the filesystem again.
+Owned complete stacks for a directory captured in the current reload pass.
+
+`fn reload_json_stacks(directory: &str) -> Option<Vec<JsonResourceStack>>`
+
+> Stacks come in backend resource-ID order, with layers bottom pack first. All registered
+> folders are captured before callbacks, so another captured folder is readable regardless
+> of listener order. Unsafe, uncaptured or unavailable directories and out-of-scope calls
+> return `None`; a captured folder with no resources returns `Some(vec![])`. This reads
+> the captured snapshot, not the filesystem again.
 
 ```rust
 use pluto_lib::ResourceManagerHelper;
@@ -204,9 +238,15 @@ assert!(ResourceManagerHelper::reload_json_stacks("../escape").is_none());
 
 ### `JsonResourceStack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Owned JSON layers: `id: Identifier` is the resource ID with the directory and `.json` suffix removed; `layers: Vec<Result<serde_json::Value, String>>` retains each pack's JSON or read/parse error, bottom-to-top. Error strings identify their resource/layer where available. Cloning or editing this value does not change the callback's retained snapshot. Manual construction does not install packs or publish a reload.
+Owned JSON layers for one resource.
+
+> `id` is the resource ID with the directory and `.json` suffix removed; `layers` retains
+> each pack's JSON or read/parse error, bottom-to-top, and error strings identify their
+> resource/layer where available. Cloning or editing this value does not change the
+> callback's retained snapshot, and manual construction does not install packs or publish
+> a reload.
 
 ```rust
 use pluto_lib::{Identifier, JsonResourceStack};
@@ -221,9 +261,17 @@ assert!(stack.layers[1].is_err()); // not replaced by the lower layer
 
 ### `ResourceManagerHelper::reload_registry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`. Captures a supported registry's membership/tags during a server JSON callback. Outside that scope, and for unsupported or unavailable registries, returns `None`. Source support currently covers `minecraft:entity_type`, `minecraft:item`, `minecraft:fluid` (membership with mod fluids and tags) and `minecraft:block` (the world's blocks and their tags); native integration remains unverified.
+A supported registry's membership and tags, captured during a reload callback.
+
+`fn reload_registry(registry: &Identifier) -> Option<RegistryLookup>`
+
+> Outside that scope, and for unsupported or unavailable registries, it returns `None`.
+> Supported registries are `minecraft:entity_type`, `minecraft:item`, `minecraft:fluid`
+> (membership with mod fluids and tags) and `minecraft:block` (the world's blocks and
+> their tags). Keep the returned lookup to pair derived data with the same reload
+> generation.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -235,9 +283,12 @@ for registry in ["entity_type", "item"] {
 
 ### `RegistryLookup`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-A cloneable, owned registry/tag membership snapshot. Keep it to pair derived data with the same reload generation. Values cannot be edited through this view; retaining or cloning one does not refresh it.
+A cloneable, owned registry/tag membership snapshot.
+
+> Keep it to pair derived data with the same reload generation. Values cannot be edited
+> through this view; retaining or cloning one does not refresh it.
 
 ```rust
 use pluto_lib::{Identifier, RegistryLookup, ResourceManagerHelper};
@@ -248,9 +299,14 @@ assert_eq!(snapshot, retained);
 
 ### `RegistryLookup::contains`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn contains(&self, id: &Identifier) -> bool`. Tests actual captured registry membership, independent of renderer/model availability.
+Tests actual captured registry membership.
+
+`fn contains(&self, id: &Identifier) -> bool`
+
+> Membership is independent of renderer or model availability: an entry counts because the
+> registry held it in the captured generation.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -261,9 +317,14 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 
 ### `RegistryLookup::get_tag`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn get_tag(&self, tag: &Identifier) -> Option<&std::collections::BTreeSet<Identifier>>`. Returns the captured tag's members; `None` means absent, `Some(empty)` means present but empty. This is membership, not an ordered tag RNG API.
+The captured members of a tag.
+
+`fn get_tag(&self, tag: &Identifier) -> Option<&std::collections::BTreeSet<Identifier>>`
+
+> `None` means the tag is absent and `Some(empty)` means present but empty — keep the two
+> apart. This is membership, not an ordered tag API, so do not rely on member order.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -276,9 +337,14 @@ if let Some(entities) = ResourceManagerHelper::reload_registry(&Identifier::pars
 
 ### `RegistryLookup::tags`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn tags(&self) -> &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>`. Every captured tag with its members, for consumers that republish the resolved snapshot (the advancement tag overlay). A tag the reload did not capture is not in this map.
+Every captured tag with its members.
+
+`fn tags(&self) -> &std::collections::BTreeMap<Identifier, std::collections::BTreeSet<Identifier>>`
+
+> For consumers that republish the resolved snapshot, such as the advancement tag overlay.
+> A tag the reload did not capture is not in this map.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -291,9 +357,16 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 
 ### `RegistryLookup::with_extra_tags`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`. A copy whose tags also hold the given members (a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the game defines). Members that are not registry entries are dropped, and a tag with no remaining member is not created. The original snapshot is unchanged; redo it for every reload.
+A copy of the lookup whose tags also hold the given members.
+
+`fn with_extra_tags(&self, extra: &[(Identifier, Vec<Identifier>)]) -> RegistryLookup`
+
+> For a mod that needs a convention tag such as `forge:ingots/iron` that nothing in the
+> game defines. Members that are not registry entries are dropped, and a tag with no
+> remaining member is not created. The original snapshot is unchanged; redo it for every
+> reload.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -308,9 +381,14 @@ if let Some(items) = ResourceManagerHelper::reload_registry(&Identifier::parse("
 
 ### `RegistryLookup::from_parts`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn from_parts(entries: &[String], tags: &[(String, Vec<String>)]) -> Result<Self, String>`. A registry snapshot built from its entries and tags: every tag member must be an entry, and a tag may not repeat. A malformed id, an unknown tag member or a duplicate tag rejects the whole snapshot.
+Builds a registry snapshot from its entries and tags.
+
+`fn from_parts(entries: &[String], tags: &[(String, Vec<String>)]) -> Result<Self, String>`
+
+> Every tag member must be an entry, and a tag may not repeat. A malformed id, an unknown
+> tag member or a duplicate tag rejects the whole snapshot.
 
 ```rust
 use pluto_lib::{Identifier, RegistryLookup};
@@ -324,9 +402,16 @@ assert_eq!(lookup.get_tag(&Identifier::parse("minecraft:logs").unwrap()).unwrap(
 ```
 ### `ResourceManagerHelper::read_client_resource`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`. Read the active client asset identified by `id`, respecting the resource-pack stack. The returned bytes are owned; `None` means no client backend is installed, the id contains a non-plain path (empty, `.` or `..` segments), or the asset could not be read. This does not read server datapacks, and does not validate the file's format.
+Reads the active client asset identified by `id`.
+
+`fn read_client_resource(id: &Identifier) -> Option<Vec<u8>>`
+
+> The read respects the resource-pack stack, and the returned bytes are owned. `None`
+> means no client backend is installed, the id contains a non-plain path (empty, `.` or
+> `..` segments), or the asset could not be read. This does not read server datapacks, and
+> does not validate the file's format.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -340,9 +425,17 @@ if let Some(bytes) = ResourceManagerHelper::read_client_resource(&id) {
 
 ### `ResourceManagerHelper::read_client_image`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn read_client_image(id: &Identifier) -> Option<ResourceImage>`. Read and decode a PNG from the active client resources. The path must start with `textures/` and end in `.png`, for example `tconstruct:textures/colormap/earth_grass_color.png`. Pixels are top-row-first, gamma-encoded, non-premultiplied RGBA bytes; each pixel occupies four consecutive bytes. `None` covers an unsupported/non-plain id, missing client backend, missing/unreadable resource, decode failure, zero dimensions or an inconsistent pixel-buffer length.
+Reads and decodes a PNG from the active client resources.
+
+`fn read_client_image(id: &Identifier) -> Option<ResourceImage>`
+
+> The path must start with `textures/` and end in `.png`, for example
+> `tconstruct:textures/colormap/earth_grass_color.png`. Pixels are top-row-first, gamma-
+> encoded, non-premultiplied RGBA bytes, four per pixel. `None` covers an unsupported or
+> non-plain id, a missing client backend, a missing or unreadable resource, a decode
+> failure, zero dimensions or an inconsistent pixel-buffer length.
 
 ```rust
 use pluto_lib::{Identifier, ResourceManagerHelper};
@@ -360,9 +453,14 @@ if let Some(image) = ResourceManagerHelper::read_client_image(&id) {
 
 ### `ResourceImage`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An owned decoded image: `width: u32` and `height: u32` count pixels; `rgba: Vec<u8>` stores top-row-first, gamma-encoded, non-premultiplied red/green/blue/alpha bytes. For a valid image the vector contains `width * height` pixels, four bytes each. A copied image is a snapshot, not a live view of future pack reloads. When constructing one manually, keep its dimensions and buffer consistent.
+An owned decoded image.
+
+> `width` and `height` count pixels; `rgba` stores top-row-first, gamma-encoded, non-
+> premultiplied red/green/blue/alpha bytes — `width * height` pixels, four bytes each, for
+> a valid image. A copied image is a snapshot, not a live view of future pack reloads;
+> when constructing one manually, keep its dimensions and buffer consistent.
 
 ```rust
 use pluto_lib::ResourceImage;
@@ -410,9 +508,14 @@ assert_eq!(image.rgba[3], 128);
 
 ### `reload_event`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`fn reload_event(resource_type: ResourceType) -> &'static Event<(), ()>`. The event behind the listeners of a kind of resources; use it to order listeners or, in tests, to trigger a reload.
+The event behind the listeners of a kind of resources.
+
+`fn reload_event(resource_type: ResourceType) -> &'static Event<(), ()>`
+
+> Use it to order listeners with phase ordering, or, in tests, to trigger a reload's
+> listeners. Triggering it only calls listeners; it does not itself reload packs.
 
 ```rust
 use pluto_lib::{reload_event, Identifier, ResourceType};

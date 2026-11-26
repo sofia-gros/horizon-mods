@@ -86,9 +86,11 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A connected player. `uuid` is the player's UUID as a number, `name` the player's name.
+A connected player.
+
+> `uuid` is the player's UUID as a number, `name` the player's name.
 
 ```rust
 use pluto_lib::ServerPlayer;
@@ -100,9 +102,13 @@ assert_eq!(player.uuid, 0x1234);
 
 ### `ServerPlayer::send_message`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn send_message(&self, text: &str) -> bool`. Sends a system chat line to the player. False if the player is gone or the call is made outside a callback that carries the player.
+Sends a system chat line to the player.
+
+`fn send_message(&self, text: &str) -> bool`
+
+> False if the player is gone or the call is made outside a callback that carries the player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -117,9 +123,14 @@ assert_eq!(game.told, [(1, "Welcome!".to_owned())]);
 
 ### `ServerPlayer::give_item`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn give_item(&self, item: &str, count: u32) -> u32`. Gives `count` of `item` and returns how many did **not** fit (0 means all were given). Outside a callback it returns `count`.
+Gives `count` of `item` and returns how many did **not** fit (0 means all were given).
+
+`fn give_item(&self, item: &str, count: u32) -> u32`
+
+> The return value counts what did not fit, so 0 means the whole stack was given. Outside a
+> callback it returns `count`, because nothing could be given there.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -134,9 +145,13 @@ assert_eq!(game.items[&(1, "minecraft:bread".to_owned())], 3);
 
 ### `ServerPlayer::count_item`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn count_item(&self, item: &str) -> u32`. How many of `item` the player carries in the main inventory. 0 outside a callback.
+How many of `item` the player carries in the main inventory. 0 outside a callback.
+
+`fn count_item(&self, item: &str) -> u32`
+
+> It counts the main inventory only, and answers 0 outside a callback that carries the player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -152,9 +167,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::take_item`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn take_item(&self, item: &str, count: u32) -> u32`. Takes up to `count` of `item` from the player and returns how many were taken. 0 outside a callback.
+Takes up to `count` of `item` from the player and returns how many were taken. 0 outside a callback.
+
+`fn take_item(&self, item: &str, count: u32) -> u32`
+
+> It takes from the main inventory and never more than the player carries; the return value is how
+> many were actually taken, and 0 outside a callback.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -170,9 +190,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::count_in_tag`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn count_in_tag(&self, tag: &str) -> u32`. How many items of the item tag `tag` the player carries in the main inventory. 0 outside a callback.
+How many items of the item tag `tag` the player carries in the main inventory. 0 outside a callback.
+
+`fn count_in_tag(&self, tag: &str) -> u32`
+
+> It counts the main inventory only, across every item in the tag, and answers 0 outside a
+> callback that carries the player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -189,9 +214,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::take_in_tag`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn take_in_tag(&self, tag: &str, count: u32) -> u32`. Takes up to `count` items of the item tag `tag` and returns how many were taken. 0 outside a callback.
+Takes up to `count` items of the item tag `tag` and returns how many were taken. 0 outside a callback.
+
+`fn take_in_tag(&self, tag: &str, count: u32) -> u32`
+
+> It takes from the main inventory across every item in the tag, up to `count` in total; the
+> return value is how many were actually taken, and 0 outside a callback.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -209,9 +239,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::language`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn language(&self) -> String`. The language option of the player's client (`en_us`, `ja_jp`, ...); `en_us` outside a callback that carries this player. Use it to write a message in the player's language with `I18n::translate_in` (see [i18n](i18n.md)).
+The language option of the player's client (`en_us`, `ja_jp`, ...); `en_us` outside a callback that carries this player.
+
+`fn language(&self) -> String`
+
+> Use it to write a message in the player's language with `I18n::translate_in` (see
+> [i18n](i18n.md)).
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -224,9 +259,15 @@ with_ops(&mut game, || assert_eq!(player.language(), "ja_jp"));
 
 ### `EffectInstance`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A status effect on a player. Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration: i32` (ticks; -1 never ends), `ambient: bool` (beacon-style), `particles: bool` and `show_icon: bool` (whether its icon shows in the GUI; the read's flag, published by PlutoLib's effect-icon reach at the head of every HUD draw — giving an effect always shows its icon, as the host's add path carries no flag).
+A status effect on a player.
+
+> Fields: `id: String` (such as `minecraft:speed`), `amplifier: u8` (0 is level I), `duration:
+> i32` (ticks; -1 never ends), `ambient: bool` (beacon-style), `particles: bool` and `show_icon:
+> bool` (whether its icon shows in the GUI; the read's flag, published by PlutoLib's effect-icon
+> reach at the head of every HUD draw — giving an effect always shows its icon, as the host's add
+> path carries no flag).
 
 ```rust
 use pluto_lib::EffectInstance;
@@ -240,9 +281,14 @@ assert_eq!(custom.duration, -1);
 
 ### `EffectInstance::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(id: &str, duration: i32) -> EffectInstance`. An effect of level I lasting `duration` ticks, with particles and its icon showing.
+An effect of level I lasting `duration` ticks, with particles and its icon showing.
+
+`fn new(id: &str, duration: i32) -> EffectInstance`
+
+> Adjust the result with `amplifier` for another level or `without_particles` to hide its
+> particles; the defaults are level I, particles on and the icon showing.
 
 ```rust
 use pluto_lib::EffectInstance;
@@ -254,9 +300,14 @@ assert_eq!(effect.duration, 600);
 
 ### `EffectInstance::amplifier`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn amplifier(self, amplifier: u8) -> EffectInstance`. The same effect at another level (0 is level I).
+The same effect at another level (0 is level I).
+
+`fn amplifier(self, amplifier: u8) -> EffectInstance`
+
+> The amplifier is not the level number: 0 is level I, 1 is level II, and so on. The rest of the
+> effect — its duration and display flags — is unchanged.
 
 ```rust
 use pluto_lib::EffectInstance;
@@ -266,9 +317,13 @@ assert_eq!(EffectInstance::new("minecraft:strength", 100).amplifier(2).amplifier
 
 ### `EffectInstance::without_particles`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn without_particles(self) -> EffectInstance`. The same effect without particles.
+The same effect without particles.
+
+`fn without_particles(self) -> EffectInstance`
+
+> Only the particles go; the effect's level, duration and icon are unchanged.
 
 ```rust
 use pluto_lib::EffectInstance;
@@ -278,9 +333,11 @@ assert!(!EffectInstance::new("minecraft:speed", 100).without_particles().particl
 
 ### `FoodStatus`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A player's hunger. Fields: `level: i32` (0 to 20), `saturation: f32` and `exhaustion: f32`.
+A player's hunger.
+
+> Fields: `level: i32` (0 to 20), `saturation: f32` and `exhaustion: f32`.
 
 ```rust
 use pluto_lib::FoodStatus;
@@ -291,9 +348,14 @@ assert!(hungry.level < 20);
 
 ### `ServerPlayer::add_effect`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn add_effect(&self, effect: &EffectInstance) -> bool`. Gives the player a status effect; it replaces a weaker or shorter one of the same kind. False if nothing changed (an unknown effect, a duration of 0, a dead player) or outside a callback that carries the player.
+Gives the player a status effect; it replaces a weaker or shorter one of the same kind.
+
+`fn add_effect(&self, effect: &EffectInstance) -> bool`
+
+> False if nothing changed (an unknown effect, a duration of 0, a dead player) or outside a
+> callback that carries the player.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
@@ -310,9 +372,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::remove_effect`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn remove_effect(&self, id: &str) -> bool`. Takes the effect `id` off the player; true if they had it.
+Takes the effect `id` off the player; true if they had it.
+
+`fn remove_effect(&self, id: &str) -> bool`
+
+> It answers true only when the player actually had the effect to take off; asking for one they do
+> not have changes nothing.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
@@ -328,9 +395,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::effects`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn effects(&self) -> Vec<EffectInstance>`. The status effects the player has; empty outside a callback that carries the player.
+The status effects the player has; empty outside a callback that carries the player.
+
+`fn effects(&self) -> Vec<EffectInstance>`
+
+> Each entry is an `EffectInstance` with its level, remaining duration and display flags. Outside
+> a callback that carries the player the list is empty.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, MemoryPlayerOps, ServerPlayer};
@@ -346,9 +418,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::food`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn food(&self) -> Option<FoodStatus>`. The player's hunger; None outside a callback that carries the player.
+The player's hunger; None outside a callback that carries the player.
+
+`fn food(&self) -> Option<FoodStatus>`
+
+> The `FoodStatus` carries the food `level` (0 to 20), the `saturation` and the `exhaustion`.
+> Outside a callback that carries the player the answer is None.
 
 ```rust
 use pluto_lib::{with_ops, FoodStatus, MemoryPlayerOps, ServerPlayer};
@@ -362,9 +439,14 @@ with_ops(&mut game, || assert_eq!(player.food().unwrap().level, 4));
 
 ### `ServerPlayer::add_food`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn add_food(&self, nutrition: i32, saturation: f32) -> bool`. Add food as vanilla `FoodData.eat`: add `nutrition` to the food level and clamp to 0–20; add `nutrition * saturation * 2` to saturation and clamp to 0–the new food level. Exhaustion is unchanged. Returns `false` for an unavailable player, outside a player scope, an unsupported backend, or a non-finite calculation, without writing anything.
+Add food as vanilla `FoodData.eat`: add `nutrition` to the food level and clamp to 0–20; add `nutrition * saturation * 2` to saturation and clamp to 0–the new food level.
+
+`fn add_food(&self, nutrition: i32, saturation: f32) -> bool`
+
+> Exhaustion is unchanged. It returns `false` for an unavailable player, outside a player scope,
+> an unsupported backend, or a non-finite calculation, without writing anything.
 
 ```rust
 use pluto_lib::{with_ops, FoodStatus, MemoryPlayerOps, ServerPlayer};
@@ -381,10 +463,9 @@ assert!(!player.add_food(4, 0.5));
 
 > **Use with Caution.** As in vanilla, finite negative values can reduce food/saturation, and integer addition follows Java's wrapping arithmetic before clamping. This is not a direct setter. The native adapter uses the pinned host's existing player-status setter; no extra Mixin is needed.
 
+
+
 For custom `PlayerOps` backends:
-
-`fn add_food(&mut self, player: u128, nutrition: i32, saturation: f32) -> bool`. Backend operation for the same feeding semantics. `player` is the UUID; `saturation` is a modifier. The default implementation returns `false`, keeping existing custom backends compatible. `MemoryPlayerOps` implements it for tests.
-
 ```rust
 use pluto_lib::{FoodStatus, MemoryPlayerOps, PlayerOps};
 let mut backend = MemoryPlayerOps { food: Some(FoodStatus { level: 10, saturation: 0.0, exhaustion: 1.0 }), ..Default::default() };
@@ -394,9 +475,14 @@ assert_eq!(backend.food(1).unwrap().saturation, 2.0);
 
 ### `ServerPlayer::swing_hand`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn swing_hand(&self, hand: Hand) -> bool`. Swings the player's arm — the place animation of a mod that places a block for them, the attack animation of one that hits. True when the swing was queued; it plays at the acting player's turn (inside their break, or at their next tick). False outside a callback.
+Swings the player's arm — the place animation of a mod that places a block for them, the attack animation of one that hits.
+
+`fn swing_hand(&self, hand: Hand) -> bool`
+
+> True when the swing was queued; it plays at the acting player's turn (inside their break, or at
+> their next tick). False outside a callback.
 
 ```rust
 use pluto_lib::{Hand, ServerPlayer};
@@ -407,9 +493,15 @@ assert!(!player.swing_hand(Hand::Off)); // no running game: nothing happens
 
 ### `ServerPlayer::broadcast_item_break`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn broadcast_item_break(&self, slot: StackSlot, stack: &StackData) -> bool`. Broadcasts that the stack in `slot` broke — the break sound and crumbs where the player stands, and the item-break event for the mods listening. Use it only when the mod itself wore the stack to breaking (a `damage_slot` that returned `broke`); the host's own wear already broadcasts, so calling it there would sound the break twice. True when the broadcast was queued. False outside a callback.
+Broadcasts that the stack in `slot` broke — the break sound and crumbs where the player stands, and the item-break event for the mods listening.
+
+`fn broadcast_item_break(&self, slot: StackSlot, stack: &StackData) -> bool`
+
+> Use it only when the mod itself wore the stack to breaking (a `damage_slot` that returned
+> `broke`); the host's own wear already broadcasts, so calling it there would sound the break
+> twice. True when the broadcast was queued. False outside a callback.
 
 ```rust
 use pluto_lib::{NbtCompound, ServerPlayer, StackData, StackSlot};
@@ -421,9 +513,15 @@ assert!(!player.broadcast_item_break(StackSlot::MainHand, &stack)); // no runnin
 
 ### `PlayerItemBreakEvents`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`PlayerItemBreakEvents::EVENT` hears a player's stack break: the player, the item id, and the slot it broke in. The host reports it when its own wear breaks a stack; a mod that wears a stack itself reports it by calling `ServerPlayer::broadcast_item_break`, which is also what plays the sound and crumbs. There is no body or saddle slot on a player, so those never arrive.
+Hears a player's stack break: the player, the item id, and the slot it broke in.
+
+`PlayerItemBreakEvents::EVENT`
+
+> The host reports it when its own wear breaks a stack; a mod that wears a stack itself reports it
+> by calling `ServerPlayer::broadcast_item_break`, which is also what plays the sound and crumbs.
+> There is no body or saddle slot on a player, so those never arrive.
 
 ```rust
 use pluto_lib::{ItemBreak, PlayerItemBreakEvents, StackSlot};
@@ -438,9 +536,14 @@ PlayerItemBreakEvents::EVENT.invoke(&ItemBreak { player: pluto_lib::ServerPlayer
 
 ### `ServerPlayer::empty_slots`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn empty_slots(&self) -> u32`. How many of the 36 main inventory slots are empty. Check it before an action that needs room, so nothing is consumed and then lost. 0 outside a callback.
+How many of the 36 main inventory slots are empty.
+
+`fn empty_slots(&self) -> u32`
+
+> Check it before an action that needs room, so nothing is consumed and then lost. 0 outside a
+> callback.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -457,9 +560,18 @@ with_ops(&mut game, || {
 
 ### `StackData`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An item stack as a mod sees it. `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item), `max_damage` the most damage this stack takes before it breaks when that differs from the item's (None for the item's own; a tool whose durability depends on its materials sets it), and `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data` component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod keeps its materials and stats here. `custom_model_data` is the stack's `minecraft:custom_model_data` component (see `CustomModelData`), None for none: an item model definition selects its sprite from it, and the game reads and writes it with the stack.
+An item stack as a mod sees it.
+
+> `item` is the item id, `count` how many, `damage` the damage taken (0 for a new item),
+> `max_damage` the most damage this stack takes before it breaks when that differs from the item's
+> (None for the item's own; a tool whose durability depends on its materials sets it), and
+> `custom_data` the compound a mod keeps on the stack (Minecraft: the `minecraft:custom_data`
+> component, which the stack keeps when saved and sent, and which `/give` can set too). A tool mod
+> keeps its materials and stats here. `custom_model_data` is the stack's
+> `minecraft:custom_model_data` component (see `CustomModelData`), None for none: an item model
+> definition selects its sprite from it, and the game reads and writes it with the stack.
 
 ```rust
 use pluto_lib::{Nbt, StackData};
@@ -471,9 +583,16 @@ assert_eq!((tool.count, tool.damage), (1, 0));
 
 ### `CustomModelData`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What an item model can select on (Minecraft: `minecraft:custom_model_data`). `strings` are matched by a `select` in the item definition (`index` picks the entry), `floats` feed a `range_dispatch`, `flags` a `condition` and `colors` (0xRRGGBB) a tint source. Set it on a `StackData` or `ItemSlot` and the game stores it as the component, so a mod can give each stack its own sprite, such as one per material, without a model per combination. The game cannot look inside `custom_data`, so a sprite choice must be copied here. Keep it in step with the data it comes from every time that data changes.
+What an item model can select on (Minecraft: `minecraft:custom_model_data`).
+
+> `strings` are matched by a `select` in the item definition (`index` picks the entry), `floats`
+> feed a `range_dispatch`, `flags` a `condition` and `colors` (0xRRGGBB) a tint source. Set it on
+> a `StackData` or `ItemSlot` and the game stores it as the component, so a mod can give each
+> stack its own sprite, such as one per material, without a model per combination. The game cannot
+> look inside `custom_data`, so a sprite choice must be copied here. Keep it in step with the data
+> it comes from every time that data changes.
 
 ```rust
 use pluto_lib::{CustomModelData, StackData};
@@ -488,9 +607,11 @@ assert_eq!(head.custom_model_data.unwrap().strings[0], "wood");
 
 ### `CustomModelData::with_strings`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_strings(strings) -> CustomModelData`. Data with only `strings`.
+Data with only `strings`.
+
+`fn with_strings(strings) -> CustomModelData`
 
 > Model data carrying only its string entries, with the other components empty. It is the form to
 > build when a model's overrides select on text — a name or a variant word — rather than on
@@ -504,9 +625,14 @@ assert_eq!(CustomModelData::with_strings(["wood", ""]).strings, ["wood", ""]);
 
 ### `CustomModelData::is_empty`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_empty(&self) -> bool`. True when all four lists are empty; empty data is not stored on a stack.
+True when all four lists are empty; empty data is not stored on a stack.
+
+`fn is_empty(&self) -> bool`
+
+> Empty data is not stored on a stack, so a stack whose model data is empty behaves as if it had
+> none at all.
 
 ```rust
 use pluto_lib::CustomModelData;
@@ -517,9 +643,13 @@ assert!(!CustomModelData::with_strings(["wood"]).is_empty());
 
 ### `CustomModelData::to_nbt`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn to_nbt(&self) -> NbtCompound`. The saved form of the component: `strings`, `floats`, `flags` (bytes 0 or 1) and `colors` lists, each left out when empty. The host adapters write this as `minecraft:custom_model_data`.
+The saved form of the component: `strings`, `floats`, `flags` (bytes 0 or 1) and `colors` lists, each left out when empty.
+
+`fn to_nbt(&self) -> NbtCompound`
+
+> The host adapters write this as `minecraft:custom_model_data`.
 
 ```rust
 use pluto_lib::{CustomModelData, Nbt};
@@ -531,9 +661,13 @@ assert!(!saved.contains_key("floats"));
 
 ### `CustomModelData::from_nbt`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn from_nbt(nbt: &NbtCompound) -> CustomModelData`. Reads the saved form back, also accepting int and byte arrays, any non-zero number as a flag and three floats from 0 to 1 as a colour. Entries of another type are skipped.
+Reads the saved form back, also accepting int and byte arrays, any non-zero number as a flag and three floats from 0 to 1 as a colour.
+
+`fn from_nbt(nbt: &NbtCompound) -> CustomModelData`
+
+> Entries of another type are skipped.
 
 ```rust
 use pluto_lib::CustomModelData;
@@ -544,9 +678,14 @@ assert_eq!(CustomModelData::from_nbt(&data.to_nbt()), data);
 
 ### `ServerPlayer::stack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn stack(&self, slot: i32) -> Option<StackData>`. The stack in main inventory slot `slot` (0 to 35, the hotbar first) with its custom data; None for an empty slot, and outside a callback that carries the player.
+The stack in main inventory slot `slot` (0 to 35, the hotbar first) with its custom data; None for an empty slot, and outside a callback that carries the player.
+
+`fn stack(&self, slot: i32) -> Option<StackData>`
+
+> The stack comes back as a `StackData` — item, count, damage, max damage and custom data. Write
+> changes back with `update_stack`, which checks the slot still holds the same item.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
@@ -563,9 +702,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::give_stack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn give_stack(&self, stack: StackData) -> Option<StackData>`. Gives the player a stack with its damage, max damage and custom data, such as a tool a mod has just made. Returns what did not fit (None if all of it did); outside a callback that carries the player, the whole stack comes back.
+Gives the player a stack with its damage, max damage and custom data, such as a tool a mod has just made.
+
+`fn give_stack(&self, stack: StackData) -> Option<StackData>`
+
+> Returns what did not fit (None if all of it did); outside a callback that carries the player,
+> the whole stack comes back.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, Nbt, ServerPlayer, StackData};
@@ -581,9 +725,14 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::update_stack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn update_stack(&self, slot: i32, new: &StackData) -> bool`. Writes count, damage and custom data of the stack in `slot` back, if it still holds the item `new.item`. A count of 0 empties the slot. True if it was written; false for an empty slot, another item, a slot that does not exist, or outside a callback.
+Writes count, damage and custom data of the stack in `slot` back, if it still holds the item `new.item`.
+
+`fn update_stack(&self, slot: i32, new: &StackData) -> bool`
+
+> A count of 0 empties the slot. True if it was written; false for an empty slot, another item, a
+> slot that does not exist, or outside a callback.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
@@ -601,9 +750,17 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::set_stack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool`. Sets the stack carried in a slot named by the carried numbering (feet 100, legs 101, chest 102, head 103, offhand -106), creating it in an empty slot, or clearing it with `None`. Unlike `update_stack`, this creates: the host's carried read names occupied slots only, but its equipment write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that equips a copy of itself (a piggyback pack on the chest) needs. The host answers only for the equipment slots; any other slot, and outside a callback, is false. The memory backend keeps no such restriction.
+Sets the stack carried in a slot named by the carried numbering (feet 100, legs 101, chest 102, head 103, offhand -106), creating it in an empty slot, or clearing it with `None`.
+
+`fn set_stack(&self, slot: i32, stack: Option<&StackData>) -> bool`
+
+> Unlike `update_stack`, this creates: the host's carried read names occupied slots only, but its
+> equipment write (`LivingEntity.setItemSlot`) creates and clears, which is what an item that
+> equips a copy of itself (a piggyback pack on the chest) needs. The host answers only for the
+> equipment slots; any other slot, and outside a callback, is false. The memory backend keeps no
+> such restriction.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
@@ -620,9 +777,13 @@ assert!(game.carried.is_empty());
 
 ### `ServerPlayer::set_equipment`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_equipment(&self, slot: StackSlot, stack: Option<&StackData>) -> bool`. The `set_stack` form that names the slot as a `StackSlot` (from `entity_events_v1`): feet, legs, chest, head and offhand map to their carried numbers. The main hand has no equipment write and answers false; use `update_stack` there.
+The `set_stack` form that names the slot as a `StackSlot` (from `entity_events_v1`): feet, legs, chest, head and offhand map to their carried numbers.
+
+`fn set_equipment(&self, slot: StackSlot, stack: Option<&StackData>) -> bool`
+
+> The main hand has no equipment write and answers false; use `update_stack` there.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData, StackSlot};
@@ -639,9 +800,19 @@ assert_eq!(game.carried.get(&(1, 102)).map(|stack| stack.count), Some(2));
 
 ### `PlayerOps`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What the game can do for a player. PlutoLib implements it over Horizon; a test can implement it (or use `MemoryPlayerOps`). Methods: `tell(player, line) -> bool`, `give(player, item, count) -> u32` (the number that did not fit), `attachment_get(player, id) -> Option<String>`, `attachment_set(player, id, json) -> bool`, `count_item(player, item) -> u32`, `take_item(player, item, count) -> u32`, `empty_slots(player) -> u32`, `language(player) -> Option<String>`, `add_effect(player, &EffectInstance) -> bool`, `remove_effect(player, id) -> bool`, `effects(player) -> Option<Vec<EffectInstance>>`, `food(player) -> Option<FoodStatus>`, `is_item_on_cooldown(player, item) -> bool`, `start_item_cooldown(player, item, ticks)`, and, with defaults that do nothing, `stack(player, slot) -> Option<StackData>`, `give_stack(player, StackData) -> Option<StackData>` (what did not fit; the default gives nothing), `update_stack(player, slot, expected_item, &StackData) -> bool` and `set_stack(player, slot, Option<&StackData>) -> bool` (creates in an empty carried slot; the default sets nothing), `release_use(player) -> bool` and `stop_use(player) -> bool` (the release and the plain end of the player's item use in progress; the defaults end nothing), and `attribute_value(player, attribute) -> Option<f64>` (the value of one of the player's host attributes with every modifier on it; None when the game cannot answer).
+What the game can do for a player.
+
+> PlutoLib implements it over the game; a test can implement it itself or use `MemoryPlayerOps`.
+> The methods cover messages (`tell`), items (`give`, `count_item`, `take_item`, `empty_slots`,
+> `language`), effects (`add_effect`, `remove_effect`, `effects`), `food`, item cooldowns
+> (`is_item_on_cooldown`, `start_item_cooldown`) and attachments (`attachment_get`,
+> `attachment_set`). With defaults that do nothing, it also offers stack access (`stack`,
+> `give_stack`, `update_stack`, `set_stack`), `release_use` and `stop_use` for the player's item
+> use in progress, and `attribute_value` for one of the player's host attributes with every
+> modifier on it. The policy-aware attachment methods are `attachment_get_with_policy`,
+> `attachment_set_with_policy`, `entity_attachment_get` and `entity_attachment_set`.
 
 ```rust
 use pluto_lib::{with_ops, EffectInstance, FoodStatus, PlayerOps, ServerPlayer};
@@ -669,19 +840,7 @@ with_ops(&mut FullWorld, || assert_eq!(player.give_item("minecraft:bread", 2), 2
 
 **Policy-aware attachment methods on `PlayerOps`:**
 
-**`attachment_get_with_policy`**
 
-`fn attachment_get_with_policy(&mut self, player: u128, id: &str, sync: bool) -> Option<String>` reads existing player JSON with the declared sync policy. The default delegates unsynced access to `attachment_get`; synchronized access is unsupported unless overridden.
-
-**`attachment_set_with_policy`**
-
-`fn attachment_set_with_policy(&mut self, player: u128, id: &str, json: &str, sync: bool) -> bool` stores player JSON with the declared policy. The default refuses synchronized writes.
-
-**`entity_attachment_get`**
-
-`fn entity_attachment_get(&mut self, entity: u32, dimension: &str, id: &str, sync: bool) -> Option<String>` reads current-world entity JSON; the default is unavailable. Native forwarding rejects the wrong host dimension and delegates missing-holder/UUID rules to the host.
-
-**`entity_attachment_set`**
 
 `fn entity_attachment_set(&mut self, entity: u32, dimension: &str, id: &str, json: &str, sync: bool) -> bool` stores entity JSON; the default refuses. This backend-level example exercises all four policy-aware methods without claiming native transport:
 
@@ -697,9 +856,15 @@ assert!(!game.entity_attachment_set(7, "minecraft:overworld", "example:entity_st
 
 ### `with_ops`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_ops<R>(ops: &mut dyn PlayerOps, f: impl FnOnce() -> R) -> R`. Runs `f` with `ops` available to every `ServerPlayer` method called on this thread during `f`. The previous scope is restored when `f` returns, also when it panics.
+Runs `f` with `ops` available to every `ServerPlayer` method called on this thread during `f`.
+
+`fn with_ops<R>(ops: &mut dyn PlayerOps, f: impl FnOnce() -> R) -> R`
+
+> While `f` runs, every `ServerPlayer` method called on this thread talks to `ops`. The previous
+> scope is restored when `f` returns, also when it panics, so nested scopes hand the outer one
+> back when they end.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -718,11 +883,19 @@ assert!(!player.send_message("after")); // the scope is closed
 
 ### `MemoryPlayerOps`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`entity_attachments` stores JSON by `(dimension, callback-local entity ID, attachment ID)`; tests simulating holder removal/ID reuse must clear the old holder themselves. `attachment_policies` records the immutable sync flag per attachment ID across holder kinds. These collections test routing and values, not native UUID ownership, save files or network delivery.
+An in-memory game for tests.
 
-An in-memory game for tests. `told` records every message sent, `items` holds each player's items by `(player, item id)`, `item_tags` the members of each item tag, `attachments` holds attachment JSON by `(player, attachment id)`, `free_slots` is how many main slots are empty for every player and `language` the language option of every player's client (empty means `en_us`), `effects` the status effects by `(player, effect id)`, `food` the hunger every player has (None means full) and `stacks` the main inventory slots of each player, `carried` the stacks the stack operations set by `(player, carried slot)`, `selected_slot` the selected hotbar slot of every player (0 to 8), and `cooldowns` the item cooldowns started for each player by `(player, item id)` to ticks left (the memory backend does not tick them down), `released_uses` every player whose use a `release_use` ended and `stopped_uses` every player whose use a `stop_use` ended, both in order, and `attributes` the host attribute values set for a player by `(player, attribute)`. `opened_item_menus` records every item menu a callback opened, in the order they opened.
+> `told` records every message sent, `items` holds each player's items by `(player, item id)`,
+> `item_tags` the members of each item tag, and `attachments` attachment JSON by `(player,
+> attachment id)`. `entity_attachments` stores JSON by `(dimension, callback-local entity ID,
+> attachment ID)` — tests simulating holder removal or ID reuse must clear the old holder
+> themselves — and `attachment_policies` records the immutable sync flag per attachment ID across
+> holder kinds. The remaining state mirrors the operations: `free_slots`, `language`, `effects`,
+> `food`, `stacks`, `carried`, `selected_slot`, `cooldowns`, `released_uses`, `stopped_uses`,
+> `attributes` and `opened_item_menus`. These collections test routing and values, not native UUID
+> ownership, save files or network delivery.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -742,9 +915,13 @@ assert_eq!(game.free_slots, 36);
 
 ### `StackData::enchantment_level`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn enchantment_level(&self, id: &str) -> i32`. The level of enchantment `id` on this stack, from its own `minecraft:enchantments` component; 0 when it has none. Enchantments the item itself grants through its data are not listed here.
+The level of enchantment `id` on this stack, from its own `minecraft:enchantments` component; 0 when it has none.
+
+`fn enchantment_level(&self, id: &str) -> i32`
+
+> Enchantments the item itself grants through its data are not listed here.
 
 ```rust
 use pluto_lib::StackData;
@@ -757,9 +934,14 @@ assert_eq!(stack.enchantment_level("minecraft:efficiency"), 0);
 
 ### `ServerPlayer::selected_slot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn selected_slot(&self) -> Option<i32>`. The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
+The hotbar slot the player has selected (0 to 8); None outside a callback that carries this player.
+
+`fn selected_slot(&self) -> Option<i32>`
+
+> The number is the player's current hotbar selection, from 0 to 8. Outside a callback that
+> carries this player there is no answer.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -772,9 +954,13 @@ with_ops(&mut game, || assert_eq!(player.selected_slot(), Some(3)));
 
 ### `ServerPlayer::is_item_on_cooldown`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_item_on_cooldown(&self, item: &str) -> bool`. Whether `item` is on the player's item cooldown (the item's own `use_cooldown` component, else the item's default). False for an item with no cooldown, or outside a callback that carries this player.
+Whether `item` is on the player's item cooldown (the item's own `use_cooldown` component, else the item's default).
+
+`fn is_item_on_cooldown(&self, item: &str) -> bool`
+
+> False for an item with no cooldown, or outside a callback that carries this player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -790,9 +976,15 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::start_item_cooldown`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn start_item_cooldown(&self, item: &str, ticks: i32)`. Starts the player's cooldown for `item` for `ticks` ticks (the item's own `use_cooldown` component, else the item's default, names the group). Nothing happens outside a callback that carries this player, or for an item with no cooldown.
+Starts the player's cooldown for `item` for `ticks` ticks (the item's own `use_cooldown` component, else the item's default, names the group).
+
+`fn start_item_cooldown(&self, item: &str, ticks: i32)`
+
+> Nothing happens outside a callback that carries this player, or for an item with no cooldown.
+> The group the cooldown runs under comes from the item's own `use_cooldown` component, else the
+> item's default.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -805,9 +997,15 @@ assert_eq!(game.cooldowns[&(1, "minecraft:ender_pearl".to_owned())], 10);
 
 ### `ServerPlayer::main_hand_stack`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn main_hand_stack(&self) -> Option<StackData>`. The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback that carries this player.
+The stack in the player's selected hotbar slot (their main hand); None for an empty slot or outside a callback that carries this player.
+
+`fn main_hand_stack(&self) -> Option<StackData>`
+
+> It reads the selected hotbar slot — the slot `selected_slot` numbers. The stack comes back as
+> `StackData`, or None when the slot is empty or the call is made outside a callback that carries
+> this player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer, StackData};
@@ -824,9 +1022,15 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::release_use`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn release_use(&self) -> bool`. Ends the player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own release runs first (a callback's Stop may skip that part, never the end itself), then the use is over — what letting go of the use button does, asked for from inside a callback such as a use tick. The game applies the end at its next tick seam, so a use that already ended is untouched, and an end ordered during one use never lands on a later use of a mod's. False outside a callback that carries the player.
+Ends the player's item use in progress as `LivingEntity.releaseUsingItem` does: the use's own release runs first (a callback's Stop may skip that part, never the end itself), then the use is over — what letting go of the use button does, asked for from inside a callback such as a use tick.
+
+`fn release_use(&self) -> bool`
+
+> The game applies the end at its next tick seam, so a use that already ended is untouched, and an
+> end ordered during one use never lands on a later use of a mod's. False outside a callback that
+> carries the player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -840,9 +1044,14 @@ assert_eq!(game.released_uses, vec![1]);
 
 ### `ServerPlayer::stop_use`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn stop_use(&self) -> bool`. Ends the player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply over, with no release run — what an item breaking in the hand does to its use. Applied at the game's next tick seam like `release_use`. False outside a callback that carries the player.
+Ends the player's item use in progress as `LivingEntity.stopUsingItem` does: the use is simply over, with no release run — what an item breaking in the hand does to its use.
+
+`fn stop_use(&self) -> bool`
+
+> Applied at the game's next tick seam like `release_use`. False outside a callback that carries
+> the player.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -856,9 +1065,15 @@ assert_eq!(game.stopped_uses, vec![1]);
 
 ### `ServerPlayer::attribute_value`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn attribute_value(&self, attribute: &str) -> Option<f64>`. The value of the host attribute `attribute` for this player with every modifier on it (armour, effects, `/attribute`), as `LivingEntity.getAttributeValue` answers it: `minecraft:block_interaction_range` is the range a use that aims traces over, `minecraft:max_health` the health cap. None outside a callback that carries the player, when the attribute is not one players have, or when the player is not reached or between bodies (just respawned, not yet ticked) — the caller falls back to the attribute's base value then, as the game's own range reads do.
+The value of the host attribute `attribute` for this player with every modifier on it (armour, effects, `/attribute`), as `LivingEntity.getAttributeValue` answers it: `minecraft:block_interaction_range` is the range a use that aims traces over, `minecraft:max_health` the health cap.
+
+`fn attribute_value(&self, attribute: &str) -> Option<f64>`
+
+> None outside a callback that carries the player, when the attribute is not one players have, or
+> when the player is not reached or between bodies (just respawned, not yet ticked) — the caller
+> falls back to the attribute's base value then, as the game's own range reads do.
 
 ```rust
 use pluto_lib::{with_ops, MemoryPlayerOps, ServerPlayer};
@@ -872,9 +1087,14 @@ with_ops(&mut game, || assert_eq!(player.attribute_value("minecraft:block_intera
 
 ### `KeyPress`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A key of the player's own keyboard or mouse changed state, heard on the client for the local player only. `player` is the local player (None when the game names none), `key` is the game's own name for the key (the names key bindings use, such as `key.keyboard.left.shift` or `key.mouse.left`) and `pressed` says which way it moved: true when the key went down, false when it came up. Repeats are not reported.
+A key of the player's own keyboard or mouse changed state, heard on the client for the local player only.
+
+> `player` is the local player (None when the game names none), `key` is the game's own name for
+> the key (the names key bindings use, such as `key.keyboard.left.shift` or `key.mouse.left`) and
+> `pressed` says which way it moved: true when the key went down, false when it came up. Repeats
+> are not reported.
 
 ```rust
 use pluto_lib::{KeyPress, ServerPlayer};
@@ -888,9 +1108,11 @@ assert!(!release.pressed && release.player.is_none());
 
 ### `PlayerKeyEvents`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Key presses of the local player (see `KeyPress`). No instance constructor; use `EVENT`.
+Key presses of the local player (see `KeyPress`).
+
+> No instance constructor; use `EVENT`.
 
 ```rust
 use pluto_lib::{KeyPress, PlayerKeyEvents};
@@ -902,9 +1124,12 @@ PlayerKeyEvents::EVENT.register(|press: &KeyPress| {
 
 ### `PlayerKeyEvents::EVENT`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The event for a local player's key press: every callback runs, in registration order. A callback that needs the server to act sends its own packet with the networking API, as a client key press can only ever be a hint to the server.
+The event for a local player's key press: every callback runs, in registration order.
+
+> A callback that needs the server to act sends its own packet with the networking API, as a
+> client key press can only ever be a hint to the server.
 
 ```rust
 use pluto_lib::{KeyPress, PlayerKeyEvents};
@@ -919,9 +1144,14 @@ PlayerKeyEvents::EVENT.invoke(&KeyPress { player: None, key: "key.keyboard.r".in
 
 ### `InventoryTick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One inventory slot of a player ticked, heard on a server once per tick for each carried slot the game ticks. `player` is the player carrying the slot (None when the game names none), `slot` is the slot's own number in the player's inventory in the game's numbering, `selected` says whether the slot is the selected hotbar slot, and `stack` is the stack in the slot, with its damage, max damage, custom data and enchantments (None for an empty slot, or a stack the game did not read).
+One inventory slot of a player ticked, heard on a server once per tick for each carried slot the game ticks.
+
+> `player` is the player carrying the slot (None when the game names none), `slot` is the slot's
+> own number in the player's inventory in the game's numbering, `selected` says whether the slot
+> is the selected hotbar slot, and `stack` is the stack in the slot, with its damage, max damage,
+> custom data and enchantments (None for an empty slot, or a stack the game did not read).
 
 ```rust
 use pluto_lib::{InventoryTick, ServerPlayer, StackData};
@@ -941,9 +1171,11 @@ assert!(empty.stack.is_none() && !empty.selected);
 
 ### `PlayerInventoryEvents`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Inventory slot ticks of players (see `InventoryTick`). No instance constructor; use `TICK`.
+Inventory slot ticks of players (see `InventoryTick`).
+
+> No instance constructor; use `TICK`.
 
 ```rust
 use pluto_lib::{InventoryTick, PlayerInventoryEvents};
@@ -955,9 +1187,12 @@ PlayerInventoryEvents::TICK.register(|tick: &InventoryTick| {
 
 ### `PlayerInventoryEvents::TICK`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The event for a player's inventory slot tick: every callback runs, in registration order. Callbacks that need to change the world act through the scopes the host opens around the event (the entity and world reaches).
+The event for a player's inventory slot tick: every callback runs, in registration order.
+
+> Callbacks that need to change the world act through the scopes the host opens around the event
+> (the entity and world reaches).
 
 ```rust
 use pluto_lib::{InventoryTick, PlayerInventoryEvents, StackData};
@@ -975,9 +1210,11 @@ PlayerInventoryEvents::TICK.invoke(&InventoryTick {
 
 ### `aim_of`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Where the player `uuid` is and looks as of their last tick, for a keybind shot to fire with: the dimension, their feet position, the direction they look and whether they are in creative mode. `None` when no tick has heard them.
+Where the player `uuid` is and looks as of their last tick, for a keybind shot to fire with: the dimension, their feet position, the direction they look and whether they are in creative mode.
+
+> `None` when no tick has heard them.
 
 ```rust
 use pluto_lib::entity_events_v1::aim_of;
@@ -987,9 +1224,12 @@ assert!(aim_of(0).is_none());
 
 ### `PlayerAim`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Where a player is and where they look, as of their last tick: `dimension` the dimension they are in, `position` their feet position, `look` the direction they look (a unit vector) and `creative` whether they are in creative mode.
+
+> `aim_of` answers this for a player, as of their last tick. Before any tick has heard of them
+> there is no aim to answer with.
 
 ```rust
 use pluto_lib::entity_events_v1::PlayerAim;
@@ -1000,9 +1240,26 @@ assert_eq!((aim.dimension.as_str(), aim.position[1], aim.look[2], aim.creative),
 
 ### `PlayerTick`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A server player's tick: `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in, `position` their feet position, `look` the direction the player faces (a unit vector), `creative` whether they are in creative mode, `on_ground` whether they stand on the ground, `sneaking` whether they hold sneak, `gliding` whether they glide, `spectator` whether they spectate, `in_water` whether their feet block holds water, `on_climbable` whether on a climbable block (a gliding player passing a block it can glide through never counts), `armor` the pieces worn that carry custom data (as (slot, stack)), `hands` the stacks held that carry custom data (as (slot, stack): `mainhand`, `offhand`), `block_light`, `sky_light` and `sky_darken` the light where the player stands, sampled at their position raised by half a block, `effects` the player's effects as (effect id, amplifier, ticks left), `remove_effects` the ids callbacks push to take off, `attribute_additions` the (attribute id, amount) pairs callbacks push to add to the player's attribute base values for as long as they push them (amounts for one attribute add up; one no callback pushes any more is taken off again), and `actions` the [`EntityAction`](#entityaction)s callbacks push to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's end: a player the host can name by entity id is reached, any other is skipped. The tick is heard once more after the last piece with custom data is put away, so an equipment-tied amount is let go, and while the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear. The host gives no transient modifier call, so the amount moves the saved base value: exact for an addition, taken off again when the player leaves (best effort), and a crash while it is applied leaves it in the save.
+A server player's tick: who and where the player is, what they wear and hold, and what callbacks may push back.
+
+> `player` is the uuid, `entity` the entity id, `dimension` the dimension the player is in,
+> `position` their feet position, `look` the direction the player faces (a unit vector) and
+> `creative` whether they are in creative mode. `on_ground`, `sneaking`, `gliding`, `spectator`,
+> `in_water` and `on_climbable` are the player's current states (a gliding player passing a block
+> it can glide through never counts as on a climbable). `armor` lists the worn pieces that carry
+> custom data and `hands` the held stacks that do, as (slot, stack) pairs (`mainhand`, `offhand`);
+> `block_light`, `sky_light` and `sky_darken` are the light where the player stands, sampled at
+> their position raised by half a block, and `effects` the player's effects as (effect id,
+> amplifier, ticks left). Callbacks push back through `remove_effects` (the ids to take off),
+> `attribute_additions` ((attribute id, amount) pairs added to the player's attribute base values
+> for as long as they are pushed; amounts for one attribute add up) and `actions`, the
+> `EntityAction`s to be done to the ticking player (as `Attacker`; `Victim` is no one) at tick's
+> end. The tick is heard once more after the last piece with custom data is put away, and while
+> the player carries a mob effect, so an effect's per-tick behaviour runs even with no gear.
+> Attribute amounts move the saved base value: exact for an addition, taken off again when the
+> player leaves (best effort), and a crash while one is applied leaves it in the save.
 
 ```rust
 use pluto_lib::PlayerTick;
@@ -1016,9 +1273,18 @@ assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
 
 ### `MovementInput`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: absent](https://img.shields.io/badge/Sunrise-absent-lightgrey)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
 
-The local player's movement input, after the game read it and before it applies it (client only). `entity` is the local player's entity id, or -1 when the game names no acting player; `forward` and `strafe` are the impulses now (each a `Cell`: change it with `set`); `jump` and `sneak` whether the keys are held (each a `Cell`); `using_item` whether the player is using an item; `using` the stack being used, the held (main-hand) stack, `None` when nothing is used or no player is named — an off-hand use reads as the main hand's stack, as the native hook names no hand. A callback may scale the impulses (an item's use slowdown) or read the jump key state (a double jump); it may not reach the player themselves, so a motion change is deferred to the player's next tick.
+The local player's movement input, after the game read it and before it applies it (client only).
+
+> `entity` is the local player's entity id, or -1 when the game names no acting player; `forward`
+> and `strafe` are the impulses now (each a `Cell`: change it with `set`); `jump` and `sneak`
+> whether the keys are held (each a `Cell`); `using_item` whether the player is using an item;
+> `using` the stack being used, the held (main-hand) stack, `None` when nothing is used or no
+> player is named — an off-hand use reads as the main hand's stack, as the native hook names no
+> hand. A callback may scale the impulses (an item's use slowdown) or read the jump key state (a
+> double jump); it may not reach the player themselves, so a motion change is deferred to the
+> player's next tick.
 
 ```rust
 use pluto_lib::MovementInput;
@@ -1031,9 +1297,13 @@ assert_eq!((input.forward.get(), input.using.is_none()), (0.5, true));
 
 ### `ServerLivingEntityEvents::PLAYER_TICK`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A server player's tick, heard while they wear armor or hold a tool carrying custom data (a mod's own armor keeps its state there). It carries the armor, the held stacks, the light where the player stands and the effects on the player; take effects off them with `remove_effects`. It is how a mod grants immunity to an effect the game gives no call to refuse: the effect is gone by the next tick.
+A server player's tick, heard while they wear armor or hold a tool carrying custom data (a mod's own armor keeps its state there).
+
+> It carries the armor, the held stacks, the light where the player stands and the effects on the
+> player; take effects off them with `remove_effects`. It is how a mod grants immunity to an
+> effect the game gives no call to refuse: the effect is gone by the next tick.
 
 ```rust
 use pluto_lib::ServerLivingEntityEvents;
@@ -1047,9 +1317,14 @@ ServerLivingEntityEvents::PLAYER_TICK.register(|tick| {
 
 ### `ServerPlayer::stack_named`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn stack_named(&self, slot: i32) -> Option<StackData>`. The stack the player carries in `slot` (the carried numbering, as in `set_stack`), with its custom data; None for an empty slot or outside a callback. Unlike `stack`, this names the player, so it answers in a packet receiver too, where the player's own turn is not open.
+The stack the player carries in `slot` (the carried numbering, as in `set_stack`), with its custom data; None for an empty slot or outside a callback.
+
+`fn stack_named(&self, slot: i32) -> Option<StackData>`
+
+> Unlike `stack`, this names the player, so it answers in a packet receiver too, where the
+> player's own turn is not open.
 
 ```rust
 use pluto_lib::{MemoryPlayerOps, Nbt, ServerPlayer, StackData, with_ops};
@@ -1066,9 +1341,15 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::open_item_menu`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn open_item_menu(&self, menu: &str, title: &str, items: Vec<Option<ItemSlot>>, extra: Vec<u8>) -> Option<i32>`. Opens a mod menu for the player's item (a content menu type, such as a tool's container) with `items` in its slots and `extra` as its menu-extra data, titled `title`; the window id, or None outside a callback, for an unknown player or menu type, or inside the player's own turn (the original opened such a menu only from a command or a packet handler).
+Opens a mod menu for the player's item (a content menu type, such as a tool's container) with `items` in its slots and `extra` as its menu-extra data, titled `title`.
+
+`fn open_item_menu(&self, menu: &str, title: &str, items: Vec<Option<ItemSlot>>, extra: Vec<u8>) -> Option<i32>`
+
+> The menu is a content menu type, such as a tool's container, and it opens only outside the
+> player's own turn — the original opened such a menu only from a command or a packet handler. It
+> answers None outside a callback, and for an unknown player or menu type.
 
 ```rust
 use pluto_lib::{MemoryPlayerOps, ServerPlayer, with_ops};
@@ -1085,9 +1366,13 @@ assert_eq!(game.opened_item_menus[0].player, 1);
 
 ### `ItemBreak`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A player's item broke (NeoForge's `PlayerDestroyItemEvent`), heard through `PlayerItemBreakEvents::EVENT` when the game's own wear breaks a player's stack: `player` is the player whose item broke, `item` the item that broke, and `slot` the equipment slot it broke in.
+
+> The event is heard through `PlayerItemBreakEvents::EVENT`. A mod that wears a stack itself
+> reports the break by calling `ServerPlayer::broadcast_item_break`, which is also what plays the
+> sound and crumbs.
 
 ```rust
 use pluto_lib::{ItemBreak, ServerPlayer, StackSlot};
@@ -1099,9 +1384,12 @@ assert_eq!(broken.slot, StackSlot::MainHand);
 
 ### `PlayerItemBreakEvents::EVENT`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The `ItemBreak` event: every callback runs, in registration order.
+
+> The payload is an `ItemBreak`: the player whose item broke, the item that broke and the
+> equipment slot it broke in. Every registered callback runs, in registration order.
 
 ```rust
 use pluto_lib::{ItemBreak, PlayerItemBreakEvents, ServerPlayer, StackSlot};
@@ -1112,9 +1400,12 @@ PlayerItemBreakEvents::EVENT.invoke(&ItemBreak { player: ServerPlayer { uuid: 1,
 
 ### `OpenedItemMenu`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 An item menu opened through the memory backend, as `MemoryPlayerOps::opened_item_menus` records it: `player` is the player it opened for, `menu` the menu type, `title` the title shown, `items` the items in its slots, in order, and `extra` its menu-extra data.
+
+> It is the record the memory backend keeps for each menu a callback opened, in the order they
+> opened, so a test can check what was opened for whom.
 
 ```rust
 use pluto_lib::OpenedItemMenu;

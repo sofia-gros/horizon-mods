@@ -6,9 +6,12 @@ A tank that lives in an item stack's own data rather than in a block: one fluid 
 
 ### `read`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The fluid stored under a key, if any. A stored amount of 0 or less, a missing name or an unparsable fluid id all read as an empty tank.
+The fluid stored under a key, if any.
+
+> A stored amount of 0 or less, a missing name or an unparsable fluid id all read as an
+> empty tank.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};
@@ -22,9 +25,13 @@ assert_eq!(tool_tank_api_v1::read(&data, "tank"), Some(lava));
 
 ### `write`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Stores a fluid under a key, clamped to the capacity; an empty stack (or one clamped to nothing) removes the key. Returns what is stored afterwards.
+Stores a fluid under a key, clamped to the capacity.
+
+> An empty stack — or one clamped to nothing — removes the key instead of storing an empty
+> entry. The call returns what is stored afterwards, so you can read the result of the
+> clamp or the removal without looking the key up again.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};
@@ -39,9 +46,13 @@ assert_eq!(tool_tank_api_v1::read(&data, "tank"), None, "an empty write removes 
 
 ### `fill`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How much of an offered fluid the tank takes, out of a capacity. An empty tank takes the offered fluid up to the capacity; a tank holding the same fluid (same id and same tag) tops up; any other fluid is refused whole. With `execute` the taken fluid is stored; a simulation changes nothing.
+How much of an offered fluid the tank takes, out of a capacity.
+
+> An empty tank takes the offered fluid up to the capacity; a tank holding the same fluid
+> (same id and same tag) tops up; any other fluid is refused whole. With `execute` the
+> taken fluid is stored; a simulation changes nothing.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};
@@ -57,9 +68,13 @@ assert_eq!(tool_tank_api_v1::fill(&mut data, "tank", 1000, &water, true), 0, "an
 
 ### `drain`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Takes up to the wanted amount of the stored fluid, which must be the same fluid as the wanted one (id and tag). None when the tank is empty or holds another fluid.
+Takes up to the wanted amount of the stored fluid, which must be the same fluid as the wanted one (id and tag).
+
+> The wanted fluid must match the stored one in both id and tag; a tank holding anything
+> else gives nothing, as does an empty tank. To take whatever the tank holds without
+> naming a fluid, use `drain_amount`.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};
@@ -76,9 +91,12 @@ assert_eq!(tool_tank_api_v1::drain(&mut data, "tank", &water, true), None);
 
 ### `drain_amount`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Takes up to a millibucket amount of whatever the tank holds.
+
+> Unlike `drain`, which only releases the fluid you name, this takes whatever the tank
+> currently holds, up to the amount asked. An empty tank gives nothing.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};
@@ -92,9 +110,13 @@ assert_eq!(tool_tank_api_v1::read(&data, "tank"), None, "a full drain empties th
 
 ### `validate`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Clamps the stored amount to the capacity, keeping the fluid itself — the check to run when a stack's capacity may have shrunk under its content. Returns whether the stored stack changed.
+Clamps the stored amount to the capacity, keeping the fluid itself.
+
+> Run it when a stack's capacity may have shrunk under its content — the stored amount is
+> cut down to the new capacity, never the fluid swapped. It returns whether the stored
+> stack changed.
 
 ```rust
 use pluto_lib::{tool_tank_api_v1, FluidStack, Identifier, NbtCompound};

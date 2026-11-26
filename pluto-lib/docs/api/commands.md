@@ -54,9 +54,13 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrationCallback`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Holder of the registration event.
+
+> Its `EVENT` runs when the server builds its command tree, and the callback receives a
+> `CommandRegistrar` to add commands with: `register` for a command every player may run,
+> `register_op` for an operator-only one.
 
 ```rust
 use pluto_lib::CommandRegistrationCallback;
@@ -68,9 +72,13 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrationCallback::EVENT`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Runs when the server builds its command tree; the callback receives a `CommandRegistrar`.
+Runs when the server builds its command tree.
+
+> Register your commands in this callback, through the `CommandRegistrar` it receives: the
+> tree is built per server, so this runs again for each new server. Commands added
+> anywhere else are not in the tree.
 
 ```rust
 use pluto_lib::CommandRegistrationCallback;
@@ -86,9 +94,13 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrar`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Collects the commands one registration pass adds; it is handed to the callback of `CommandRegistrationCallback::EVENT`.
+Collects the commands one registration pass adds.
+
+> It is handed to the callback of `CommandRegistrationCallback::EVENT`, and it lives only
+> for that pass: add every command inside the callback, with `register` or `register_op`.
+> There is no registrar to hold onto afterwards.
 
 ```rust
 use pluto_lib::CommandRegistrationCallback;
@@ -101,9 +113,15 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrar::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(&self, usage: &str, handler: impl Fn(&CommandContext) -> i32 + Send + Sync + 'static)`. A command every player may run.
+A command every player may run.
+
+`fn register(&self, usage: &str, handler: impl Fn(&CommandContext) -> i32 + Send + Sync + 'static)`
+
+> `usage` is the command's text — its name and argument shape — and the handler runs the
+> command, receiving a `CommandContext` and returning an `i32` result code. For a command
+> only operators may run, use `register_op` instead.
 
 ```rust
 use pluto_lib::CommandRegistrationCallback;
@@ -119,9 +137,14 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandRegistrar::register_op`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register_op(&self, usage: &str, level: u8, handler: ...)`. A command for operators of `level` (1 to 4) and above.
+A command for operators of `level` (1 to 4) and above.
+
+`fn register_op(&self, usage: &str, level: u8, handler: ...)`
+
+> `level` is the operator permission level the command requires, from 1 to 4, and players
+> below it cannot run the command. The `usage` text and the handler work as in `register`.
 
 ```rust
 use pluto_lib::CommandRegistrationCallback;
@@ -133,9 +156,13 @@ CommandRegistrationCallback::EVENT.register(|registrar| {
 
 ### `CommandContext`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a handler receives. `source` is the player who ran the command (its methods work inside the handler), `args` the argument words in the order the usage lists them; an omitted optional argument is absent. Build one yourself to test a handler.
+What a handler receives.
+
+> `source` is the player who ran the command (its methods work inside the handler), `args`
+> the argument words in the order the usage lists them; an omitted optional argument is
+> absent. Build one yourself to test a handler.
 
 ```rust
 use pluto_lib::{with_ops, CommandContext, MemoryPlayerOps, ServerPlayer};

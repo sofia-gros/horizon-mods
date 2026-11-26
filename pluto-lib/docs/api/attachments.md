@@ -83,9 +83,14 @@ assert!(!entity.set_attached(&metal, false)); // no host scope
 
 ### `AttachmentRegistry::create_synced`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn create_synced<T: Serialize + DeserializeOwned>(id: Identifier, default: fn() -> T) -> AttachmentType<T>`. Like `create`, with persistent JSON and tracking-client sync requested. One ID cannot mix sync policies. Custom hosts without policy support refuse rather than silently storing unsynced data.
+Like `create`, with persistent JSON and tracking-client sync requested.
+
+`fn create_synced<T: Serialize + DeserializeOwned>(id: Identifier, default: fn() -> T) -> AttachmentType<T>`
+
+> One ID cannot mix sync policies. Custom hosts without policy support refuse rather than
+> silently storing unsynced data.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, Identifier};
@@ -95,9 +100,16 @@ assert_eq!(state.id().to_string(), "example:synced_state");
 
 ### `EntityInfo::has_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn has_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> bool`. True only for existing decodable data in the current host scope.
+True only for existing decodable data in the current host scope.
+
+`fn has_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> bool`
+
+> Stored data that cannot be decoded, or that sits outside the current scope, counts as
+> absent: the answer is about usable data, not about whether anything was ever written.
+> The check creates nothing — pair it with `get_attached_existing` when you need the value
+> itself.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
@@ -108,9 +120,13 @@ assert!(!entity.has_attached(&value));
 
 ### `EntityInfo::get_attached_existing`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get_attached_existing<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> Option<T>`. Does not create data; missing, invalid, unsupported and out-of-scope access returns None.
+Does not create data.
+
+`fn get_attached_existing<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> Option<T>`
+
+> Missing, invalid, unsupported and out-of-scope access returns None.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
@@ -121,9 +137,16 @@ assert_eq!(entity.get_attached_existing(&value), None);
 
 ### `EntityInfo::get_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> T`. Returns stored data or an unstored default.
+Returns stored data or an unstored default.
+
+`fn get_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>) -> T`
+
+> Unlike `get_attached_existing`, which answers `None` when nothing is stored, this always
+> answers a value: the stored data when there is some, and the attachment type's default
+> when there is not. Use it when the default is a sensible stand-in and you do not need to
+> tell “never set” apart.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, EntityInfo, Identifier};
@@ -134,9 +157,13 @@ assert_eq!(entity.get_attached(&value), 12);
 
 ### `EntityInfo::set_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>, value: T) -> bool`. Stores JSON through the current native holder; unsupported/out-of-scope, policy-conflicting or unserializable writes return false.
+Stores JSON through the current native holder.
+
+`fn set_attached<T: Serialize + DeserializeOwned>(&self, attachment: &AttachmentType<T>, value: T) -> bool`
+
+> Unsupported/out-of-scope, policy-conflicting or unserializable writes return false.
 
 ```rust
 use pluto_lib::{with_ops, AttachmentRegistry, EntityInfo, Identifier, MemoryPlayerOps};
@@ -147,13 +174,13 @@ with_ops(&mut MemoryPlayerOps::default(), || assert!(entity.set_attached(&value,
 
 ### `AttachmentRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Creates attachment types.
 
-> The factory for attachment types. A mod creates each kind of data it wants to carry on players
-> or entities once, keeps the returned AttachmentType, and uses that handle for every read and
-> write of the data from then on.
+> The factory for attachment types. A mod creates each kind of data it wants to carry on
+> players or entities once, keeps the returned AttachmentType, and uses that handle for
+> every read and write of the data from then on.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, Identifier};
@@ -164,9 +191,15 @@ assert_eq!(visits.id().to_string(), "example:visits");
 
 ### `AttachmentRegistry::create`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn create<T: Serialize + DeserializeOwned>(id: Identifier, default: fn() -> T) -> AttachmentType<T>`. `default` is the value `get_attached` returns while nothing is stored.
+Makes a new attachment type from an id and a default-value function.
+
+`fn create<T: Serialize + DeserializeOwned>(id: Identifier, default: fn() -> T) -> AttachmentType<T>`
+
+> `default` is the value `get_attached` returns while nothing is stored, so it runs
+> whenever a player with no stored data is read. `T` is the stored value's type, and its
+> serde bounds in the signature are what let stored values be kept and read back.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, Identifier};
@@ -181,9 +214,12 @@ let _ = quest;
 
 ### `AttachmentType`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A kind of data a player can carry; made by `AttachmentRegistry::create`. Keep it in a function, a `static` with `LazyLock`, or recreate it where used: it holds only an id and a default.
+A kind of data a player can carry; made by `AttachmentRegistry::create`.
+
+> Keep it in a function, a `static` with `LazyLock`, or recreate it where used: it holds
+> only an id and a default.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, AttachmentType, Identifier};
@@ -196,9 +232,15 @@ assert_eq!(flag().id().path(), "flag");
 
 ### `AttachmentType::id`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn id(&self) -> &Identifier`. The id the value is stored under.
+The id the value is stored under.
+
+`fn id(&self) -> &Identifier`
+
+> Every read and write of this attachment goes under this id, so it is the identity of the
+> stored value. It is the `Identifier` the type was created with, through
+> `AttachmentRegistry::create` or `create_synced`.
 
 ```rust
 use pluto_lib::{AttachmentRegistry, Identifier};
@@ -209,9 +251,13 @@ assert_eq!(kind.id().namespace(), "example");
 
 ### `ServerPlayer::set_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn set_attached<T>(&self, attachment: &AttachmentType<T>, value: T) -> bool`. Stores the value. False if it cannot be stored or the call is outside a callback.
+Stores the value.
+
+`fn set_attached<T>(&self, attachment: &AttachmentType<T>, value: T) -> bool`
+
+> False if it cannot be stored or the call is outside a callback.
 
 ```rust
 use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};
@@ -227,9 +273,15 @@ assert_eq!(game.attachments.len(), 1);
 
 ### `ServerPlayer::get_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get_attached<T>(&self, attachment: &AttachmentType<T>) -> T`. The stored value, or the type's default when nothing is stored (the default is not stored).
+The stored value, or the type's default when nothing is stored (the default is not stored).
+
+`fn get_attached<T>(&self, attachment: &AttachmentType<T>) -> T`
+
+> Because the default is not stored, reading a player who was never written changes
+> nothing, and a later `get_attached_existing` still answers `None`. Use that call instead
+> when you must tell “never set” from “set to the default”.
 
 ```rust
 use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};
@@ -246,9 +298,15 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::get_attached_existing`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get_attached_existing<T>(&self, attachment: &AttachmentType<T>) -> Option<T>`. The stored value, or `None` if nothing is stored (or it cannot be read back). Use it to tell "never set" from "set to the default".
+The stored value, or `None` if nothing is stored (or it cannot be read back).
+
+`fn get_attached_existing<T>(&self, attachment: &AttachmentType<T>) -> Option<T>`
+
+> Use it to tell “never set” from “set to the default” — the distinction `get_attached`
+> erases by answering the default. Data that cannot be read back also answers `None`, so
+> `None` means no usable stored value.
 
 ```rust
 use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};
@@ -265,13 +323,15 @@ with_ops(&mut game, || {
 
 ### `ServerPlayer::has_attached`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn has_attached<T>(&self, attachment: &AttachmentType<T>) -> bool`. Whether a value is stored.
+Whether a value is stored.
 
-> Whether a value is currently stored for this player under the given attachment type. It answers
-> false when nothing was ever set, which makes it the check to make before get_attached when
-> absence is a normal case.
+`fn has_attached<T>(&self, attachment: &AttachmentType<T>) -> bool`
+
+> Whether a value is currently stored for this player under the given attachment type. It
+> answers false when nothing was ever set, which makes it the check to make before
+> get_attached when absence is a normal case.
 
 ```rust
 use pluto_lib::{with_ops, AttachmentRegistry, Identifier, MemoryPlayerOps, ServerPlayer};

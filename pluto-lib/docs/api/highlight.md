@@ -39,9 +39,13 @@ that owns nothing in the facts answers an empty set.
 
 ### `HighlightTarget`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The block the local player's view rests on: `pos` is its position, `face` the face the view enters it through as a unit offset (the face an area-of-effect iterator orients itself by), `block` what it is, and `distance` how far along the view it sits, in blocks.
+The block the local player's view rests on.
+
+> `pos` is its position, `face` the face the view enters it through as a unit offset (the
+> face an area-of-effect iterator orients itself by), `block` what it is, and `distance`
+> how far along the view it sits, in blocks.
 
 ```rust
 use pluto_lib::Identifier;
@@ -55,9 +59,20 @@ assert_eq!(target.distance, 2.5);
 
 ### `HighlightFacts`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The facts of one frame's outline ask: `main_hand` is the stack in the player's main hand (a tool's modifiers and persistent data ride in its custom data), or None when the hand is empty or its stack cannot be named; `target` is the block the view rests on, or None when it rests on nothing; `yaw` and `pitch` are the player's look in degrees; `block_reach` is the block reach the distance gate uses (the `minecraft:block_interaction_range` attribute's base value for the player's game mode: 4.5 in survival, 5.0 in creative); `in_world_border` answers whether a position sits inside the world border (positions outside it are never outlined, and do not spend one of the sixty slots); `block_at` reads the block at a position near the view (None where nothing is loaded); and `in_tag_at` answers whether the block at a position is in a block tag.
+The facts of one frame's outline ask.
+
+> `main_hand` is the stack in the player's main hand (a tool's modifiers and persistent
+> data ride in its custom data), or None when the hand is empty or its stack cannot be
+> named; `target` is the block the view rests on, or None when it rests on nothing; `yaw`
+> and `pitch` are the player's look in degrees; `block_reach` is the block reach the
+> distance gate uses (the `minecraft:block_interaction_range` attribute's base value for
+> the player's game mode: 4.5 in survival, 5.0 in creative); `in_world_border` answers
+> whether a position sits inside the world border (positions outside it are never
+> outlined, and do not spend one of the sixty slots); `block_at` reads the block at a
+> position near the view (None where nothing is loaded); and `in_tag_at` answers whether
+> the block at a position is in a block tag.
 
 ```rust
 use pluto_lib::highlight_api_v1::HighlightFacts;
@@ -73,9 +88,15 @@ assert!((facts.block_at)([0, 64, 0]).is_none());
 
 ### `HighlightProvider`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`type HighlightProvider = fn(&HighlightFacts<'_>) -> Vec<[i32; 3]>`. Answers the extra block positions one mod's hooks highlight under the facts, or an empty set when they highlight nothing this frame.
+Answers the extra block positions one mod's hooks highlight under the facts, or an empty set when they highlight nothing this frame.
+
+`type HighlightProvider = fn(&HighlightFacts<'_>) -> Vec<[i32; 3]>`
+
+> The positions are extra highlights, added under the facts of this frame; they do not
+> replace anything the game draws itself. Return an empty vector when your hook has
+> nothing to add this frame — that is the normal case, not an error.
 
 ```rust
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightProvider};
@@ -88,9 +109,12 @@ assert!(provider(&facts).is_empty());
 
 ### `HighlightRegistry`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The registry of highlight providers. Register once during startup; the transport asks every registered provider on each frame the world is drawn and draws the merged set as block outlines.
+The registry of highlight providers.
+
+> Register once during startup; the transport asks every registered provider on each frame
+> the world is drawn and draws the merged set as block outlines.
 
 ```rust
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry, highlight_positions};
@@ -102,9 +126,15 @@ assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]]);
 
 ### `HighlightRegistry::register`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(provider: HighlightProvider)`. Registers a highlight provider; registering the same provider again does not register it twice.
+Registers a highlight provider.
+
+`fn register(provider: HighlightProvider)`
+
+> Providers are plain functions (`HighlightProvider`), so the same function registered
+> twice is recognised and held once. Every registered provider is asked when the frame's
+> highlights are built, and the positions they answer are merged into one set.
 
 ```rust
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightProvider, HighlightRegistry, highlight_positions};
@@ -119,9 +149,14 @@ assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]], "registered once, dra
 
 ### `highlight_positions`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn highlight_positions(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]>`. The merged outline set over the facts: every registered provider's positions, in the order they answered, each position once, cut to `MAX_HIGHLIGHTS`. A position outside the world border never enters the set, and does not spend one of the sixty slots. Empty when no provider highlights anything.
+The merged outline set over the facts: every registered provider's positions, in the order they answered, each position once, cut to `MAX_HIGHLIGHTS`.
+
+`fn highlight_positions(facts: &HighlightFacts<'_>) -> Vec<[i32; 3]>`
+
+> A position outside the world border never enters the set, and does not spend one of the
+> sixty slots. Empty when no provider highlights anything.
 
 ```rust
 use pluto_lib::highlight_api_v1::{HighlightFacts, HighlightRegistry, highlight_positions};
@@ -133,9 +168,15 @@ assert_eq!(highlight_positions(&facts), vec![[1, 64, -3]], "each position is dra
 
 ### `SURVIVAL_BLOCK_REACH`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`pub const SURVIVAL_BLOCK_REACH: f32 = 4.5`. The block reach in survival (and adventure and spectator): the `minecraft:block_interaction_range` attribute's base value, as the game recomputes it every tick.
+The block reach in survival (and adventure and spectator).
+
+`pub const SURVIVAL_BLOCK_REACH: f32 = 4.5`
+
+> It is the base value of the `minecraft:block_interaction_range` attribute, as the game
+> recomputes it every tick; modifiers ride on top of it. `block_reach_for_mode` picks
+> between this value and the creative one.
 
 ```rust
 use pluto_lib::highlight_api_v1::SURVIVAL_BLOCK_REACH;
@@ -145,9 +186,14 @@ assert_eq!(SURVIVAL_BLOCK_REACH, 4.5);
 
 ### `CREATIVE_BLOCK_REACH`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`pub const CREATIVE_BLOCK_REACH: f32 = 5.0`. The block reach in creative: the same attribute's base value there.
+The block reach in creative.
+
+`pub const CREATIVE_BLOCK_REACH: f32 = 5.0`
+
+> The same attribute's base value in creative — half a block beyond the survival reach.
+> `block_reach_for_mode` picks the value that matches the player's mode.
 
 ```rust
 use pluto_lib::highlight_api_v1::CREATIVE_BLOCK_REACH;
@@ -157,9 +203,14 @@ assert_eq!(CREATIVE_BLOCK_REACH, 5.0);
 
 ### `block_reach_for_mode`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn block_reach_for_mode(mode: i32) -> f32`. The block reach for game mode `mode` (0 survival, 1 creative, 2 adventure, 3 spectator, as the game numbers its modes): creative reaches 5.0, every other mode 4.5. The transport reads the mode the game's mode setter last left, since no host read states the local player's mode on the render path.
+The block reach for game mode `mode` (0 survival, 1 creative, 2 adventure, 3 spectator, as the game numbers its modes): creative reaches 5.0, every other mode 4.5.
+
+`fn block_reach_for_mode(mode: i32) -> f32`
+
+> The transport reads the mode the game's mode setter last left, since no host read states
+> the local player's mode on the render path.
 
 ```rust
 use pluto_lib::highlight_api_v1::{block_reach_for_mode, SURVIVAL_BLOCK_REACH, CREATIVE_BLOCK_REACH};
@@ -172,9 +223,15 @@ assert_eq!(block_reach_for_mode(3), SURVIVAL_BLOCK_REACH, "spectator reaches as 
 
 ### `MAX_HIGHLIGHTS`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`pub const MAX_HIGHLIGHTS: usize = 60`. The most extra blocks outlined at once, across every provider (the original's `MAX_BLOCKS` in its render event): the merged set is cut to this, in the order providers answered.
+The most extra blocks outlined at once, across every provider (the original's `MAX_BLOCKS` in its render event).
+
+`pub const MAX_HIGHLIGHTS: usize = 60`
+
+> The merged set is cut to this many positions, in the order providers answered, so
+> earlier providers keep their slots when the cap is hit. The cap is shared: sixty
+> positions across every provider together, not sixty each.
 
 ```rust
 use pluto_lib::highlight_api_v1::MAX_HIGHLIGHTS;
@@ -184,9 +241,15 @@ assert_eq!(MAX_HIGHLIGHTS, 60);
 
 ### `OUTLINE_ARGB`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`pub const OUTLINE_ARGB: u32 = 0x6600_0000`. The outline's colour, as the game draws a targeted block's own: black at 40% opacity, ARGB.
+The outline's colour, as the game draws a targeted block's own.
+
+`pub const OUTLINE_ARGB: u32 = 0x6600_0000`
+
+> Black at 40% opacity, in ARGB order — the colour the game itself uses for a targeted
+> block's outline, so extra highlights match it. Providers do not choose their own colour;
+> they only name positions.
 
 ```rust
 use pluto_lib::highlight_api_v1::OUTLINE_ARGB;
@@ -197,9 +260,15 @@ assert_eq!(OUTLINE_ARGB & 0xFF_FFFF, 0);
 
 ### `OUTLINE_WIDTH`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`pub const OUTLINE_WIDTH: f32 = 2.0`. The outline's line width in pixels, as the game draws a targeted block's own.
+The outline's line width in pixels, as the game draws a targeted block's own.
+
+`pub const OUTLINE_WIDTH: f32 = 2.0`
+
+> Extra highlights are drawn with this width so a mod's outlines match the game's own
+> targeted-block outline. It is a constant of the drawing, not a setting: there is nothing
+> to configure.
 
 ```rust
 use pluto_lib::highlight_api_v1::OUTLINE_WIDTH;

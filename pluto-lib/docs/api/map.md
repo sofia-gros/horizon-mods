@@ -24,9 +24,13 @@ assert_eq!(MapTickCallback::EVENT.invoke(&MapTickRequest { head }), Some(7));
 
 ### `MapTickRequest`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The worn head stack a map-tick handler is asked about. `head` is the worn head stack: the piece whose stored map may tick.
+The worn head stack a map-tick handler is asked about.
+
+> `head` is the worn head stack: the piece whose stored map may tick. The handler answers
+> from its own storage layout — the game cannot parse a mod's storage, so it asks instead
+> of reading.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, MapTickRequest};
@@ -38,9 +42,12 @@ assert_eq!(request.head.item.to_string(), "example:helmet");
 
 ### `MapTickCallback`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The stored map's id for a worn head stack (see `MapTickRequest`): the mod that owns the storage registers one callback answering the id of the map to tick, or `None` for a head it does not own. The first `Some` wins.
+The stored map's id for a worn head stack (see `MapTickRequest`): the mod that owns the storage registers one callback answering the id of the map to tick, or `None` for a head it does not own.
+
+> The first `Some` wins: handlers are asked in turn until one answers with an id, and the
+> rest are not asked for that head. A head every handler passes on ticks no map.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, MapTickCallback, MapTickRequest};
@@ -58,9 +65,13 @@ assert_eq!(MapTickCallback::EVENT.invoke(&MapTickRequest { head }), Some(7));
 
 ### `MapTickCallback::EVENT`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The event itself. A head no handler answers for ticks no map.
+The event itself.
+
+> Handlers register on this event; invoking it asks each in turn for the stored map's id,
+> and the first `Some` wins. A head no handler answers for ticks no map — the event
+> answers `None` and the worn piece is left alone.
 
 ```rust
 use pluto_lib::{Identifier, ItemSlot, MapTickCallback, MapTickRequest};

@@ -147,9 +147,16 @@ I18n::use_language(None);
 
 ### `FluidRegistry::snapshot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn snapshot() -> Option<FluidRegistrySnapshot>`. Returns this server JSON callback's immutable native-plus-defined fluid membership, or `None` when capture or scope is unavailable. No hardcoded/builtin fallback substitutes for an unavailable native registry.
+This reload callback's fluid membership snapshot.
+
+`fn snapshot() -> Option<FluidRegistrySnapshot>`
+
+> Returns the immutable native-plus-defined fluid membership captured for the current
+> server JSON callback, or `None` when capture or scope is unavailable. No hardcoded or
+> builtin fallback substitutes for an unavailable native registry, so keep the snapshot
+> alongside your parsed data rather than querying later global definitions.
 
 ```rust
 use pluto_lib::FluidRegistry;
@@ -158,9 +165,13 @@ assert!(FluidRegistry::snapshot().is_none()); // outside a supported server call
 
 ### `FluidRegistrySnapshot`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-An owned, cloneable membership generation. Clones share immutable storage; keeping one does not observe later registration, reloads or world changes. Constructed by the backend, not from guessed IDs.
+An owned membership generation of the fluid registry.
+
+> Clones share immutable storage; keeping one does not observe later registration, reloads
+> or world changes. It is constructed by the backend, not from guessed IDs, and `contains`
+> tests membership in this generation only.
 
 ```rust
 use pluto_lib::{FluidRegistry, FluidRegistrySnapshot};
@@ -170,9 +181,14 @@ assert_eq!(captured.clone(), captured);
 
 ### `FluidRegistrySnapshot::contains`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn contains(&self, id: &Identifier) -> bool`. Tests this generation's fluid membership. It does not query attributes, tags or world-fluid support.
+Tests this generation's fluid membership.
+
+`fn contains(&self, id: &Identifier) -> bool`
+
+> Answers whether `id` was a fluid in the captured generation. It does not query
+> attributes, tags or world-fluid support.
 
 ```rust
 use pluto_lib::{FluidRegistry, Identifier};
@@ -183,9 +199,14 @@ if let Some(fluids) = FluidRegistry::snapshot() {
 
 ### `FluidAttributes`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How a fluid looks and behaves. `temperature` is in kelvin (water 300, lava 1300), `luminance` the light level 0 to 15, `density` (water 1000, lava 3000; a negative fluid rises), `viscosity` (water 1000, lava 6000; higher flows slower) and `color` as `0xAARRGGBB` (white leaves the texture as it is). The default is water's.
+How a fluid looks and behaves.
+
+> `temperature` is in kelvin (water 300, lava 1300), `luminance` the light level 0 to 15,
+> `density` (water 1000, lava 3000; a negative fluid rises), `viscosity` (water 1000, lava
+> 6000; higher flows slower) and `color` as `0xAARRGGBB`, where white leaves the texture
+> as it is. The default is water's.
 
 ```rust
 use pluto_lib::FluidAttributes;
@@ -197,9 +218,15 @@ assert_eq!(water.color, 0xFFFF_FFFF);
 
 ### `FluidDef`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-A fluid a mod defines. `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it has source and flowing blocks in the world, `bucket` whether it has a bucket, `bucket_carries_tag` whether its bucket keeps the fluid's tag as the item's whole tag, `flow` how it flows, and `bucket_fill_sound` / `bucket_empty_sound` the sounds of its bucket.
+A fluid a mod defines.
+
+> `id` is its id, `attributes` how it looks and behaves, `world_blocks` whether it has
+> source and flowing blocks in the world, `bucket` whether it has a bucket, and
+> `bucket_carries_tag` whether its bucket keeps the fluid's tag as the item's whole tag.
+> `flow` says how it flows, and `bucket_fill_sound` / `bucket_empty_sound` are the sounds
+> of its bucket.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -212,9 +239,14 @@ assert!(!def.world_blocks && !def.bucket && !def.bucket_carries_tag);
 
 ### `FluidDef::new`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn new(id: Identifier) -> FluidDef`. A fluid with water's attributes, no world blocks and no bucket.
+A fluid with water's attributes, no world blocks and no bucket.
+
+`fn new(id: Identifier) -> FluidDef`
+
+> Start from it and chain the builder steps — `temperature`, `density` and their kin — to
+> describe the fluid you mean, then register the result with `FluidRegistry::register`.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -224,13 +256,15 @@ assert_eq!(FluidDef::new(Identifier::new("example", "oil").unwrap()).attributes.
 
 ### `FluidDef::temperature`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn temperature(self, kelvin: i32) -> FluidDef`. The temperature in kelvin.
+Sets the fluid's temperature, in kelvin, and returns the definition.
 
-> A builder step on a fluid definition: sets the fluid's temperature, in kelvin, and returns the
-> definition with it set. Temperature is one of the facts other rules compare — what counts as hot
-> starts here.
+`fn temperature(self, kelvin: i32) -> FluidDef`
+
+> A builder step on a fluid definition: the definition comes back with the temperature
+> set. Temperature is one of the facts other rules compare — what counts as hot starts
+> here.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -241,9 +275,14 @@ assert_eq!(lava_like.attributes.temperature, 1300);
 
 ### `FluidDef::luminance`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn luminance(self, level: u8) -> FluidDef`. The light level the fluid gives, 0 to 15 (larger values are clamped to 15).
+Sets the light level the fluid gives, and returns the definition.
+
+`fn luminance(self, level: u8) -> FluidDef`
+
+> A builder step on a fluid definition. The level runs 0 to 15, and larger values are
+> clamped to 15.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -253,9 +292,14 @@ assert_eq!(FluidDef::new(Identifier::new("example", "glow").unwrap()).luminance(
 
 ### `FluidDef::density`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn density(self, density: i32) -> FluidDef`. The density; a negative fluid rises.
+Sets the fluid's density, and returns the definition.
+
+`fn density(self, density: i32) -> FluidDef`
+
+> Water is 1000 and lava 3000, for comparison. A negative density makes the fluid rise
+> instead of sink.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -265,9 +309,14 @@ assert_eq!(FluidDef::new(Identifier::new("example", "gas").unwrap()).density(-10
 
 ### `FluidDef::viscosity`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn viscosity(self, viscosity: i32) -> FluidDef`. The viscosity; the higher, the slower it flows.
+Sets the fluid's viscosity, and returns the definition.
+
+`fn viscosity(self, viscosity: i32) -> FluidDef`
+
+> Water is 1000 and lava 6000, for comparison; the higher the viscosity, the slower the
+> fluid flows.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -277,12 +326,15 @@ assert_eq!(FluidDef::new(Identifier::new("example", "tar").unwrap()).viscosity(8
 
 ### `FluidDef::color`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn color(self, argb: u32) -> FluidDef`. The colour as `0xAARRGGBB`.
+Sets the fluid's colour, as `0xAARRGGBB`, and returns the definition.
 
-> A builder step on a fluid definition: sets the fluid's colour as 0xAARRGGBB (alpha, red, green,
-> blue) and returns the definition with it set. The colour tints the fluid wherever it is drawn.
+`fn color(self, argb: u32) -> FluidDef`
+
+> A builder step on a fluid definition: alpha, red, green and blue in one word. The colour
+> tints the fluid wherever it is drawn; the default white leaves its texture as it is, so
+> one grey texture can serve many fluids.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -292,9 +344,14 @@ assert_eq!(FluidDef::new(Identifier::new("example", "ink").unwrap()).color(0xFF1
 
 ### `FluidDef::with_world_blocks`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_world_blocks(self) -> FluidDef`. The fluid has source and flowing blocks in the world (see [fluid-items](fluid-items.md)).
+Gives the fluid source and flowing blocks in the world.
+
+`fn with_world_blocks(self) -> FluidDef`
+
+> The fluid's block is `<id>_fluid`, flowing in cells in the world. See fluid-items for
+> the rules and limits of those blocks.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -304,9 +361,14 @@ assert!(FluidDef::new(Identifier::new("example", "lake").unwrap()).with_world_bl
 
 ### `FluidDef::with_bucket`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn with_bucket(self) -> FluidDef`. The fluid has a bucket `<id>_bucket` (see [fluid-items](fluid-items.md)).
+Gives the fluid a bucket.
+
+`fn with_bucket(self) -> FluidDef`
+
+> The bucket is `<id>_bucket`; see fluid-items for the container rules. Combine it with
+> `bucket_carries_tag` when the bucket must keep the fluid's tag.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -316,9 +378,14 @@ assert!(FluidDef::new(Identifier::new("example", "milk_like").unwrap()).with_buc
 
 ### `FluidDef::translation_key`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn translation_key(&self) -> String`. The key of the fluid's name in the language files: `fluid.<namespace>.<path>`.
+The key of the fluid's name in the language files.
+
+`fn translation_key(&self) -> String`
+
+> The key is `fluid.<namespace>.<path>`, built from the fluid's id. Register a translation
+> under it for each language you support.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};
@@ -328,9 +395,15 @@ assert_eq!(FluidDef::new(Identifier::new("tconstruct", "molten_iron").unwrap()).
 
 ### `FluidRegistry::display_name`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn display_name(id: &str) -> Option<String>`. The fluid's name in the language in use (see `I18n`); the translation key itself if nobody translated it, and `None` if no mod defined the fluid.
+The fluid's name in the language in use.
+
+`fn display_name(id: &str) -> Option<String>`
+
+> Returns the translation key itself if nobody translated the fluid, and `None` if no mod
+> defined it. For a specific language regardless of the game's setting, use
+> `display_name_in`.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, Identifier};
@@ -342,9 +415,14 @@ assert!(FluidRegistry::display_name("example:never_defined").is_none());
 
 ### `FluidRegistry::display_name_in`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn display_name_in(language: &str, id: &str) -> Option<String>`. The fluid's name in `language`, whatever the game is set to; `None` if no mod defined the fluid.
+The fluid's name in a given language.
+
+`fn display_name_in(language: &str, id: &str) -> Option<String>`
+
+> The language is the one named, whatever the game is set to. Returns `None` if no mod
+> defined the fluid.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, Identifier, Translations};
@@ -356,9 +434,13 @@ assert_eq!(FluidRegistry::display_name_in("ja_jp", "example:juice").unwrap(), "�
 
 ### `FluidRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-Registers fluids (Fabric: `Registry.register(Registries.FLUID, ...)`).
+The registry mods define fluids in.
+
+> Define a fluid here once, and any code can look it up by id later — for example to find
+> out how hot it is. It is the counterpart of registering into the game's fluid registry
+> directly.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, Identifier};
@@ -368,9 +450,14 @@ FluidRegistry::register(FluidDef::new(Identifier::new("example", "syrup").unwrap
 
 ### `FluidRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(def: FluidDef)`. Defines a fluid. Registering the same id again replaces the earlier definition. Register in your mod's `hooks()`.
+Defines a fluid.
+
+`fn register(def: FluidDef)`
+
+> Registering the same id again replaces the earlier definition. Register in your mod's
+> `hooks()`.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, Identifier};
@@ -383,9 +470,13 @@ assert_eq!(FluidRegistry::get("example:swapped").unwrap().attributes.temperature
 
 ### `FluidRegistry::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(id: &str) -> Option<FluidDef>`. The definition of the fluid `id` (such as `example:syrup`), if a mod defined it.
+The definition of the fluid `id`, if a mod defined it.
+
+`fn get(id: &str) -> Option<FluidDef>`
+
+> The id is a string such as `example:syrup`. Returns `None` for a fluid nobody defined.
 
 ```rust
 use pluto_lib::FluidRegistry;
@@ -395,9 +486,13 @@ assert!(FluidRegistry::get("example:never_defined").is_none());
 
 ### `FluidRegistry::registered`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn registered() -> Vec<FluidDef>`. Every defined fluid, sorted by id.
+Every defined fluid, sorted by id.
+
+`fn registered() -> Vec<FluidDef>`
+
+> Use it to enumerate the fluids mods have defined, in a stable order.
 
 ```rust
 use pluto_lib::{FluidDef, FluidRegistry, Identifier};
@@ -411,9 +506,14 @@ assert_eq!(ids, sorted);
 ```
 ### `FluidDef::bucket_carries_tag`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn bucket_carries_tag(self) -> FluidDef`. The same fluid, whose bucket item carries the fluid's tag as its own tag: the bucket holds the fluid together with the tag of the stack it was filled from. Only meaningful with `with_bucket`.
+Makes the fluid's bucket carry the fluid's tag as its own tag.
+
+`fn bucket_carries_tag(self) -> FluidDef`
+
+> The bucket then holds the fluid together with the tag of the stack it was filled from.
+> Only meaningful with `with_bucket`.
 
 ```rust
 use pluto_lib::{FluidDef, Identifier};

@@ -30,9 +30,15 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`HudRegistry::register(draw)` gives the HUD a draw callback, called each frame the HUD shows. Registering again adds another callback; each runs in registration order.
+Gives the HUD a draw callback, called each frame the HUD shows.
+
+`HudRegistry::register(draw)`
+
+> Registering again adds another callback rather than replacing the first; each runs in
+> registration order, every frame the HUD shows. There is no unregister, so register once,
+> during setup.
 
 ```rust
 use pluto_lib::{HudDraw, HudRegistry};
@@ -44,9 +50,14 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(draw: impl Fn(&mut HudDraw<'_>) + Send + Sync + 'static)`. Registers one HUD draw callback. Registration is the whole setup: there is no unregister, and a callback that has nothing to draw (no player, a spectator, the wrong equipment) simply returns.
+Registers one HUD draw callback.
+
+`fn register(draw: impl Fn(&mut HudDraw<'_>) + Send + Sync + 'static)`
+
+> Registration is the whole setup: there is no unregister, and a callback that has nothing
+> to draw (no player, a spectator, the wrong equipment) simply returns.
 
 ```rust
 use pluto_lib::{HudDraw, HudRegistry};
@@ -61,9 +72,12 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudDraw`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-What a HUD draw callback receives: `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left), `size`, `inventory`, `equipment`, `spectator` and `effects`, as described above.
+What a HUD draw callback receives.
+
+> `canvas` (a [`ScreenCanvas`](screen.md), in GUI pixels from the window's top left),
+> `size`, `inventory`, `equipment`, `spectator` and `effects`, as described above.
 
 ```rust
 use pluto_lib::{HudDraw, HudRegistry};
@@ -76,9 +90,13 @@ HudRegistry::register(|draw: &mut HudDraw<'_>| {
 
 ### `HudEquipment`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The local player's worn and held stacks, one `Option<ItemSlot>` per slot (`head`, `chest`, `legs`, `feet`, `offhand`, `main_hand`), plus `right_handed: bool`.
+
+> Each slot is an `Option`, `None` when that slot is empty, so an unworn helmet and an
+> empty main hand are both plain `None`s. `right_handed` tells you which hand is the
+> player's main hand, for placing held-item elements on the correct side.
 
 ```rust
 use pluto_lib::HudEquipment;
@@ -89,9 +107,14 @@ assert!(equipment.right_handed && equipment.legs.is_none() && equipment.main_han
 
 ### `HudEffect`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-One of the local player's active effects, as the HUD needs it for the original's effect shift: `beneficial` is whether the effect's category is beneficial (a harmful or neutral effect is not), and `visible` whether the effect shows in the GUI (its icon flag as the host reports it; an effect the snapshot does not name counts as shown, as vanilla defaults the flag).
+One of the local player's active effects, as the HUD needs it for the original's effect shift.
+
+> `beneficial` is whether the effect's category is beneficial (a harmful or neutral effect
+> is not), and `visible` whether the effect shows in the GUI (its icon flag as the host
+> reports it; an effect the snapshot does not name counts as shown, as vanilla defaults
+> the flag).
 
 ```rust
 use pluto_lib::HudEffect;

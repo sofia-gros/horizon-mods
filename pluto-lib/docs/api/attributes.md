@@ -4,9 +4,14 @@ Attributes of a mod's own, for the ones the host does not have. The host's attri
 
 ### `AttributeOperation`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-How one contribution bends an attribute's value, in the data's own names — the game's three modifier operations. `Addition` adds the amount; `MultiplyBase` adds the amount times the value after additions; `MultiplyTotal` multiplies the value by one plus the amount, one such contribution at a time. The order the operations apply in is fixed by [`attribute_value`](#attribute_value): every addition first, then every multiply-base against the added value, then each multiply-total in turn.
+How one contribution bends an attribute's value.
+
+> `Addition` adds the amount; `MultiplyBase` adds the amount times the value after
+> additions; `MultiplyTotal` multiplies the value by one plus the amount, one such
+> contribution at a time. The order is fixed: every addition first, then every multiply-
+> base against the added value, then each multiply-total in turn — see `attribute_value`.
 
 ```rust
 use pluto_lib::AttributeOperation;
@@ -17,9 +22,15 @@ assert_eq!(AttributeOperation::MultiplyBase.name(), "multiply_base");
 
 ### `AttributeOperation::from_name`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn from_name(name: &str) -> Option<AttributeOperation>`. The operation the data names, or None for a name that is not one of the three.
+The operation the data names.
+
+`fn from_name(name: &str) -> Option<AttributeOperation>`
+
+> Returns the operation for one of the three data names, or `None` for a name that is not
+> one of them. Note the stack-entry name is not the data name, so an unknown name gives
+> `None` rather than a guess.
 
 ```rust
 use pluto_lib::AttributeOperation;
@@ -30,9 +41,14 @@ assert_eq!(AttributeOperation::from_name("add_value"), None, "the stack entry na
 
 ### `AttributeOperation::name`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn name(self) -> &'static str`. The name the data uses for this operation.
+The name the data uses for this operation.
+
+`fn name(self) -> &'static str`
+
+> The inverse of `from_name`: it gives the data's own spelling, such as `addition` or
+> `multiply_total`, for writing a contribution back out.
 
 ```rust
 use pluto_lib::AttributeOperation;
@@ -43,9 +59,13 @@ assert_eq!(AttributeOperation::MultiplyTotal.name(), "multiply_total");
 
 ### `AttributeDef`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One attribute a mod declares: `id` is the attribute's id, such as `tconstruct:generic.bouncy`; `default` the value an entity has with no contributions; `min` and `max` the range the worked-out value is clamped into.
+One attribute a mod declares.
+
+> `id` is the attribute's id, such as `tconstruct:generic.bouncy`; `default` the value an
+> entity has with no contributions; `min` and `max` the range the worked-out value is
+> clamped into. Declare it through `AttributeRegistry::register`.
 
 ```rust
 use pluto_lib::{AttributeDef, Identifier};
@@ -56,9 +76,14 @@ assert_eq!((def.default, def.min, def.max), (0.0, 0.0, 100.0));
 
 ### `AttributeContribution`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-One amount contributed to an attribute: by an equipment or tool module on a worn or held stack, by a max-armor claim, or by an effect active on the entity. `operation` says how the amount bends the value, and `amount` is the amount, already scaled by whatever level produced it (a module's formula result, an effect's per-level amount times its level).
+One amount contributed to an attribute.
+
+> A contribution comes from an equipment or tool module on a worn or held stack, a max-
+> armor claim, or an effect active on the entity. `operation` says how the amount bends
+> the value, and `amount` is the amount, already scaled by whatever level produced it — a
+> module's formula result, or an effect's per-level amount times its level.
 
 ```rust
 use pluto_lib::{AttributeContribution, AttributeOperation};
@@ -69,9 +94,15 @@ assert_eq!(contribution.amount, 0.25);
 
 ### `AttributeContribution::scaled`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn scaled(self, count: i32) -> AttributeContribution`. This contribution scaled by a count, as an effect's modifier is scaled by its level (the game's effect attribute modifiers grow by the per-level amount times amplifier + 1).
+This contribution scaled by a count.
+
+`fn scaled(self, count: i32) -> AttributeContribution`
+
+> Use it as an effect's modifier is scaled by its level: effect attribute modifiers grow
+> by the per-level amount times amplifier + 1. The `operation` is unchanged; only `amount`
+> is multiplied.
 
 ```rust
 use pluto_lib::{AttributeContribution, AttributeOperation};
@@ -82,9 +113,17 @@ assert_eq!(per_level.scaled(3).amount, 0.75);
 
 ### `attribute_value`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn attribute_value(def: &AttributeDef, contributions: &[AttributeContribution]) -> f64`. An attribute's value under `contributions`, worked out as the game works out an attribute instance: the default, plus every addition; that sum grown by each multiply-base amount's share of it; the result then multiplied by one plus each multiply-total amount in turn; and the whole clamped into the declared range. A contribution whose amount is not finite is ignored, and a result that is not finite falls back to the default.
+An attribute's value under a set of contributions.
+
+`fn attribute_value(def: &AttributeDef, contributions: &[AttributeContribution]) -> f64`
+
+> Worked out as the game works out an attribute instance: the default plus every addition;
+> that sum grown by each multiply-base amount's share of it; the result then multiplied by
+> one plus each multiply-total amount in turn; and the whole clamped into the declared
+> range. A contribution whose amount is not finite is ignored, and a result that is not
+> finite falls back to the default.
 
 ```rust
 use pluto_lib::{AttributeContribution, AttributeDef, AttributeOperation, Identifier, attribute_value};
@@ -101,9 +140,13 @@ assert_eq!(attribute_value(&def, &[]), 1.0, "no contributions, the default");
 
 ### `AttributeRegistry`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-The attributes mods have declared, by id. Registration is process-lifetime: declaring an id again with the same declaration stands as it was, and a different declaration for an id already declared is refused, so the first declaration for an id is the one that stands.
+The attributes mods have declared, by id.
+
+> Registration is process-lifetime: declaring an id again with the same declaration stands
+> as it was, and a different declaration for an id already declared is refused, so the
+> first declaration for an id is the one that stands.
 
 ```rust
 use pluto_lib::{AttributeDef, AttributeRegistry, Identifier};
@@ -114,9 +157,17 @@ assert!(AttributeRegistry::is_registered("example:registry_bouncy"));
 
 ### `AttributeRegistry::register`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn register(def: AttributeDef) -> Result<(), String>`. Declares an attribute. The declaration is validated whole first — the numbers finite and the default inside the range — so a refused declaration leaves any previous one intact. A declaration for an id already declared is refused the same way when it differs from the one standing (a different default or range); declaring the same declaration again is accepted and changes nothing.
+Declares an attribute.
+
+`fn register(def: AttributeDef) -> Result<(), String>`
+
+> The declaration is validated whole first — the numbers finite and the default inside the
+> range — so a refused declaration leaves any previous one intact. A declaration for an id
+> already declared is refused the same way when it differs from the one standing (a
+> different default or range); declaring the same declaration again is accepted and
+> changes nothing.
 
 ```rust
 use pluto_lib::{AttributeDef, AttributeRegistry, Identifier};
@@ -128,9 +179,14 @@ assert!(AttributeRegistry::register(AttributeDef { default: 5.0, ..def }).is_err
 
 ### `AttributeRegistry::get`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn get(id: &str) -> Option<AttributeDef>`. The declaration of the attribute `id`, or None when no mod declared one.
+The declaration of the attribute `id`.
+
+`fn get(id: &str) -> Option<AttributeDef>`
+
+> Returns the declared `AttributeDef`, or `None` when no mod declared an attribute under
+> that id.
 
 ```rust
 use pluto_lib::{AttributeDef, AttributeRegistry, Identifier};
@@ -142,9 +198,13 @@ assert!(AttributeRegistry::get("example:missing").is_none());
 
 ### `AttributeRegistry::is_registered`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn is_registered(id: &str) -> bool`. Whether a mod declared the attribute `id`.
+Whether a mod declared the attribute `id`.
+
+`fn is_registered(id: &str) -> bool`
+
+> A quick existence check; use `get` instead when you need the declaration itself.
 
 ```rust
 use pluto_lib::AttributeRegistry;
@@ -154,9 +214,14 @@ assert!(!AttributeRegistry::is_registered("example:never_declared"));
 
 ### `AttributeRegistry::registered`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn registered() -> Vec<AttributeDef>`. Every declared attribute, sorted by id (the registry's own census, for tests and tools).
+Every declared attribute, sorted by id.
+
+`fn registered() -> Vec<AttributeDef>`
+
+> The registry's own census, for tests and tools that need to enumerate what mods have
+> declared.
 
 ```rust
 use pluto_lib::{AttributeDef, AttributeRegistry, Identifier};
@@ -167,9 +232,15 @@ assert!(AttributeRegistry::registered().iter().any(|def| def.id.to_string() == "
 
 ### `AttributeRegistry::value`
 
-![Horizon: works](https://img.shields.io/badge/Horizon-works-blue) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`fn value(id: &str, contributions: &[AttributeContribution]) -> Option<f64>`. The value of the declared attribute `id` under `contributions`, or None when no mod declared it.
+The value of the declared attribute `id` under `contributions`.
+
+`fn value(id: &str, contributions: &[AttributeContribution]) -> Option<f64>`
+
+> Returns the worked-out value (see `attribute_value`), or `None` when no mod declared
+> that id — so an undeclared attribute is distinguishable from one whose value happens to
+> be its default.
 
 ```rust
 use pluto_lib::{AttributeContribution, AttributeDef, AttributeOperation, AttributeRegistry, Identifier};
@@ -216,9 +287,15 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
 
 ### `AttributeBaseValue`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`AttributeBaseValue { attribute: Identifier, value: f64 }` is an owned explicit base write. Zero is a value, not a fallback.
+An owned, explicit attribute base write.
+
+`AttributeBaseValue { attribute: Identifier, value: f64 }`
+
+> Its fields are `attribute`, the attribute to set, and `value`, the base to write. Zero
+> is a value, not a fallback: writing 0 sets the base to 0. Values like these are what an
+> `attribute_bases_on_load` callback returns.
 
 ```rust
 use pluto_lib::{AttributeBaseValue, Identifier};
@@ -228,9 +305,15 @@ assert_eq!(base.value, 0.0);
 
 ### `LivingEntityLoadContext`
 
-![Horizon: inert](https://img.shields.io/badge/Horizon-inert-yellow) ![Sunrise: works](https://img.shields.io/badge/Sunrise-works-blue)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
-`LivingEntityLoadContext { entity: EntityInfo, slime_size: Option<i32> }` carries callback-local entity identity/dimension and a native cube/slime size, absent for other implementations. The entity's typed attachment methods use the current host scope.
+The context a load-time base callback receives.
+
+`LivingEntityLoadContext { entity: EntityInfo, slime_size: Option<i32> }`
+
+> Its fields are `entity`, the callback-local entity identity and dimension (an
+> `EntityInfo`), and `slime_size`, the native cube/slime size, absent for other
+> implementations. The entity's typed attachment methods use the current host scope.
 
 ```rust
 use pluto_lib::{EntityInfo, LivingEntityLoadContext};
@@ -240,9 +323,15 @@ assert_eq!(context.slime_size, Some(4));
 
 ### `LivingEntityBehavior::attribute_bases_on_load`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`attribute_bases_on_load(self, callback: impl Fn(&LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String> + Send + Sync + 'static) -> Self` installs the class's load-time base callback. Empty output leaves bases unchanged. The callback executes outside registration locks and may read existing attachments.
+Installs the class's load-time base callback.
+
+`attribute_bases_on_load(self, callback: impl Fn(&LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String> + Send + Sync + 'static) -> Self`
+
+> The callback returns the `AttributeBaseValue`s to write for a loading entity of the
+> class; empty output leaves bases unchanged. The callback executes outside registration
+> locks and may read existing attachments.
 
 ```rust
 use pluto_lib::{Identifier, LivingEntityBehavior};
@@ -252,9 +341,14 @@ let behavior = LivingEntityBehavior::new(Identifier::parse("example:load_policy"
 
 ### `LivingEntityBehaviors::attribute_bases_on_load`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`attribute_bases_on_load(context: &LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String>` dispatches and validates duplicate attribute IDs. An unregistered class returns an empty vector.
+Dispatches the load-time base callback for a context.
+
+`attribute_bases_on_load(context: &LivingEntityLoadContext) -> Result<Vec<AttributeBaseValue>, String>`
+
+> It runs the registered class's callback and validates the output for duplicate attribute
+> IDs. An unregistered class returns an empty vector.
 
 ```rust
 use pluto_lib::{EntityInfo, LivingEntityLoadContext, LivingEntityBehaviors};
@@ -264,9 +358,14 @@ assert!(LivingEntityBehaviors::attribute_bases_on_load(&context).unwrap().is_emp
 
 ### `AttributeModifierOperation`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-The three Minecraft operations: `AddValue` adds to the base; `AddMultipliedBase` adds a proportion of that additive-phase base; `AddMultipliedTotal` multiplies the accumulated result by `1 + amount`, before effective-value sanitization. This enum describes operations, not a standalone calculator.
+The three Minecraft attribute modifier operations.
+
+> `AddValue` adds to the base; `AddMultipliedBase` adds a proportion of that additive-
+> phase base; `AddMultipliedTotal` multiplies the accumulated result by `1 + amount`,
+> before effective-value sanitization. This enum describes operations, not a standalone
+> calculator.
 
 ```rust
 use pluto_lib::AttributeModifierOperation;
@@ -277,9 +376,14 @@ assert_ne!(operation, AttributeModifierOperation::AddValue);
 
 ### `TransientAttributeModifier`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-Declaration fields: `attribute: Identifier`, modifier `id: Identifier`, `amount: f64` and `operation: AttributeModifierOperation`. IDs are native identifier keys (not the source era's display-name/random-UUID representation); declarations contain no live entity handles.
+A declared transient attribute modifier for a class.
+
+> Its fields are `attribute` (the attribute to modify), `id` (the modifier's id), `amount`
+> and `operation` (an `AttributeModifierOperation`). IDs are identifier keys, not a
+> display-name or random-UUID representation, and declarations contain no live entity
+> handles.
 
 ```rust
 use pluto_lib::{Identifier, TransientAttributeModifier, AttributeModifierOperation};
@@ -291,9 +395,14 @@ assert_eq!(modifier.clone(), modifier);
 
 ### `LivingEntityBehavior::transient_attribute_modifier`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`transient_attribute_modifier(self, modifier: TransientAttributeModifier) -> Self` adds a class declaration. Registration rejects duplicate attribute/ID pairs; the same modifier ID on different attributes is permitted. Register one complete behavior per type.
+Adds a transient modifier declaration to a class behavior.
+
+`transient_attribute_modifier(self, modifier: TransientAttributeModifier) -> Self`
+
+> Registration rejects duplicate attribute/ID pairs; the same modifier ID on different
+> attributes is permitted. Register one complete behavior per type.
 
 ```rust
 use pluto_lib::{Identifier, LivingEntityBehavior, TransientAttributeModifier, AttributeModifierOperation};
@@ -307,9 +416,14 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:resistant")
 
 ### `LivingEntityBehaviors::transient_attribute_modifiers`
 
-![Horizon: absent](https://img.shields.io/badge/Horizon-absent-lightgrey) ![Sunrise: inert](https://img.shields.io/badge/Sunrise-inert-yellow)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
-`transient_attribute_modifiers(entity_type: &Identifier) -> Result<Vec<TransientAttributeModifier>, String>` returns an owned declaration snapshot, empty for an unregistered type. Poisoned registration returns an error, not an empty policy; mutating the returned vector does not alter registrations or a live mob.
+An owned snapshot of a type's transient modifier declarations.
+
+`transient_attribute_modifiers(entity_type: &Identifier) -> Result<Vec<TransientAttributeModifier>, String>`
+
+> Empty for an unregistered type. A poisoned registration returns an error, not an empty
+> policy; mutating the returned vector does not alter registrations or a live mob.
 
 ```rust
 use pluto_lib::{Identifier, LivingEntityBehaviors};
