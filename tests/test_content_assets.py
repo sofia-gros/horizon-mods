@@ -411,7 +411,7 @@ class ContentAssets(unittest.TestCase):
                     self.assertIn(value.removeprefix('tconstruct:'), blocks, f'{path.name}: {value}')
 
     def test_slime_block_models_keep_the_originals_texture_and_vanilla_parent(self):
-        """Sky and ender slime reuse vanilla's slime block shape with their own texture; ichor adds the lava core; render_type is a 1.20 key."""
+        """Sky and ender slime reuse vanilla's slime block shape with their own texture; ichor adds the lava core; item models never carry the 1.20 render_type key."""
         for slime in ('sky', 'ender'):
             model = load(ASSETS / f'models/block/slime/sticky/{slime}.json')
             self.assertEqual(model['parent'], 'minecraft:block/slime_block')
@@ -419,7 +419,12 @@ class ContentAssets(unittest.TestCase):
         ichor = load(ASSETS / 'models/block/slime/sticky/ichor.json')
         self.assertEqual(ichor['textures']['inner'], 'minecraft:block/lava_still')
         self.assertEqual(len(ichor['elements']), 2)
-        for path in (ASSETS / 'models').rglob('*.json'):
+        # Item models only: the originals' item models are parent-only stubs with no layer
+        # key, and the port's flat item models need none. Block models are exempt because
+        # the host honors NeoForge's render_type (horizon-assets model.rs) and the
+        # original platform block models require "minecraft:cutout" — without it the
+        # platform renders as an opaque plate instead of a see-through lattice.
+        for path in (ASSETS / 'models' / 'item').rglob('*.json'):
             self.assertNotIn('render_type', load(path), path)
 
     def test_every_content_path_is_a_plain_host_path(self):

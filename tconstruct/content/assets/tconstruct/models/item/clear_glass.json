@@ -3,6 +3,5 @@
   "textures": {
     "all": "tconstruct:block/clear_glass",
     "particle": "tconstruct:block/clear_glass"
-  },
-  "render_type": "minecraft:cutout"
+  }
 }

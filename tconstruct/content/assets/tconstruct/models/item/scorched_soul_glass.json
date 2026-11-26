@@ -3,6 +3,5 @@
   "textures": {
     "all": "tconstruct:block/foundry/soul_glass",
     "particle": "tconstruct:block/foundry/soul_glass"
-  },
-  "render_type": "minecraft:translucent"
+  }
 }

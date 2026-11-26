@@ -169,6 +169,7 @@ class CleanPort(unittest.TestCase):
                 'mixins/tconstruct_native/api/src/part_recycling.rs',
         'mixins/tconstruct_native/api/src/particles.rs',
                 'mixins/tconstruct_native/api/src/piggyback.rs',
+                'mixins/tconstruct_native/api/src/platform.rs',
                 'mixins/tconstruct_native/api/src/projectile_modules.rs',
                 'mixins/tconstruct_native/api/src/protection.rs',
                 'mixins/tconstruct_native/api/src/protection_hook.rs',

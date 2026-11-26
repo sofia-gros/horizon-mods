@@ -3,6 +3,5 @@
   "textures": {
     "all": "tconstruct:block/foundry/glass",
     "particle": "tconstruct:block/foundry/glass"
-  },
-  "render_type": "minecraft:cutout"
+  }
 }
