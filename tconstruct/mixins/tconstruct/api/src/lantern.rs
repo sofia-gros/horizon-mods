@@ -134,6 +134,53 @@ mod tests {
     }
 
     #[test]
+    fn a_bucket_never_trades_with_a_lantern_but_a_partial_container_does() {
+        crate::fluids::register();
+        crate::fluid_items::register();
+        register();
+        // A bucket holds 1000 and trades all-or-nothing (it has no part-filled form),
+        // and the lantern holds 50, so no bucket trade is possible in either
+        // direction — the original gives the lantern block no bucket trade at all
+        // (SearedLanternBlock has no use; only SearedTankBlock answers
+        // FluidTransferHelper.interactWithTank), and the click passes to the
+        // bucket's own use. The step-2 session's side-face click moving nothing is
+        // this rule, not an unwired route.
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        let (result, held) = {
+            let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(ItemSlot::new(fluid_id("tconstruct:molten_iron_bucket"), 1)), sneaking: false, give: Vec::new() };
+            let result = use_lantern(&mut used);
+            (result, used.held.as_ref().map(|held| held.item.to_string()))
+        };
+        assert_eq!(result, ActionResult::Pass, "a full bucket cannot partly fill a 50 lantern");
+        assert_eq!(held.as_deref(), Some("tconstruct:molten_iron_bucket"), "the bucket is untouched");
+        assert_eq!(Tank::read(&data, LANTERN_CAPACITY).amount(), 0);
+        // Nor can an empty bucket draw from a filled lantern: it needs a full 1000.
+        Tank { fluid: Some(crate::tank::Fluid { fluid: fluid_id("tconstruct:molten_iron"), amount: 50 }), capacity: LANTERN_CAPACITY }.write(&mut data);
+        let (result, held) = {
+            let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(ItemSlot::new(fluid_id("minecraft:bucket"), 1)), sneaking: false, give: Vec::new() };
+            let result = use_lantern(&mut used);
+            (result, used.held.as_ref().map(|held| held.item.to_string()))
+        };
+        assert_eq!(result, ActionResult::Pass, "50 in the lantern cannot fill a bucket");
+        assert_eq!(held.as_deref(), Some("minecraft:bucket"));
+        assert_eq!(Tank::read(&data, LANTERN_CAPACITY).amount(), 50, "the lantern keeps its fluid");
+        // A container that trades in part (a tank item) does trade: of its 100,
+        // the lantern takes its 50 and the item keeps the rest.
+        let mut data = NbtCompound::new();
+        let mut carrier = ItemSlot::new(fluid_id("tconstruct:seared_ingot_tank"), 1);
+        crate::tank::set_item_tank(&mut carrier, &Tank { fluid: Some(crate::tank::Fluid { fluid: fluid_id("tconstruct:molten_iron"), amount: 100 }), capacity: 4320 });
+        let (result, kept) = {
+            let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(carrier), sneaking: false, give: Vec::new() };
+            let result = use_lantern(&mut used);
+            (result, used.held.as_ref().and_then(|held| crate::tank::item_tank(held)).map(|tank| tank.amount()))
+        };
+        assert_eq!(result, ActionResult::Success, "the lantern's use route answers a partial container");
+        assert_eq!(Tank::read(&data, LANTERN_CAPACITY).amount(), 50);
+        assert_eq!(kept, Some(50), "the item keeps what the lantern could not take");
+    }
+
+    #[test]
     fn the_soul_glass_and_cheese_carry_their_canon_movement_factors() {
         use pluto_lib::movement::{MovementFactors, get};
         register();

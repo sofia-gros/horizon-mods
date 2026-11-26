@@ -257,6 +257,35 @@ mod tests {
     }
 
     #[test]
+    fn a_bucket_trades_with_the_fuel_tank_through_its_use_as_with_any_tank() {
+        crate::fluids::register();
+        register();
+        let mut data = NbtCompound::new();
+        let mut items = Vec::new();
+        // A filled bucket empties into the fuel tank, leaving the empty bucket in hand:
+        // the fuel tank is a SearedTankBlock like any other, so its use answers the
+        // trade the same way (the step-2 session found the in-structure fuel tank
+        // refusing buckets; the route itself is the tank route, pinned here).
+        let (result, held) = {
+            let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(ItemSlot::new(id("tconstruct:molten_iron_bucket"), 1)), sneaking: false, give: Vec::new() };
+            let result = use_tank("seared_fuel_tank", &mut used);
+            (result, used.held.as_ref().map(|held| held.item.to_string()))
+        };
+        assert_eq!(result, pluto_lib::ActionResult::Success);
+        assert_eq!(held.as_deref(), Some("minecraft:bucket"), "the hand keeps the emptied bucket");
+        assert_eq!(Tank::read(&data, BUCKET * 4).amount(), 1000, "the bucketful is in the fuel tank");
+        // An empty bucket takes a bucketful back out.
+        let (result, held) = {
+            let mut used = pluto_lib::BlockEntityUse { pos: [0; 3], data: &mut data, items: &mut items, held: Some(ItemSlot::new(id("minecraft:bucket"), 1)), sneaking: false, give: Vec::new() };
+            let result = use_tank("seared_fuel_tank", &mut used);
+            (result, used.held.as_ref().map(|held| held.item.to_string()))
+        };
+        assert_eq!(result, pluto_lib::ActionResult::Success);
+        assert_eq!(held.as_deref(), Some("tconstruct:molten_iron_bucket"));
+        assert_eq!(Tank::read(&data, BUCKET * 4).amount(), 0);
+    }
+
+    #[test]
     fn the_hooks_answer_a_neighbours_reads_fills_and_drains() {
         let mut data = NbtCompound::new();
         let mut items = Vec::new();
