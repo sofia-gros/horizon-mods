@@ -1,0 +1,50 @@
+# PlutoLib (Sunrise edition) — registry page.
+# Placement at execution: pluto-lib-sunrise/mod/page.toml
+# Screenshot placement:    pluto-lib-sunrise/mod/page/plutolib-smeltery-gui.png
+#
+# Schema (Sunrise modding book, "Publishing your mod" / cargo-sunrise-mod page checks):
+# - summary >= 25 chars, description >= 125 chars (Unicode scalars after trimming)
+# - name / authors / homepage / issues default from sunrise-mod.toml; set here to
+#   pin what the page shows. "title" on the page is the manifest name ("PlutoLib").
+# - categories omitted on purpose: IDs are maintainer-owned in the registry's
+#   registry/categories.toml and must fit kind "native-mod"; a wrong ID fails
+#   `cargo sunrise-mod check`. Add at execution only if a fitting ID exists.
+# - SCREENSHOT IS A PENDING-REPLACEMENT PLACEHOLDER: the bundled shot was
+#   captured on the Horizon build, not the Sunrise client. Re-capture the same
+#   subject (smeltery controller GUI on PlutoLib's menu API) on the Sunrise
+#   client and replace page/plutolib-smeltery-gui.png before the release
+#   freezes the page bundle.
+
+summary = "PlutoLib for Sunrise: a Fabric-API-style foundation library that gives native mods a stable, general-purpose API over the game's internals."
+
+description = """
+PlutoLib is a foundation library for Sunrise native mods, in the role Fabric
+API plays for Fabric: a trait mod that other mods build on instead of
+attaching to the game themselves.
+
+A mod declares `pluto_lib` in its `[dependencies]` and calls PlutoLib's
+public API. The launcher links the API package into the game, and PlutoLib
+owns all of the attachment to game internals — the native bridges and the
+woven mixins against the pinned Sunrise SDK. Its surfaces cover blocks and
+block entities, items and inventories, fluids, menus and screens, rendering
+helpers, events and registries.
+
+This package is the Sunrise edition of PlutoLib, built for Sunrise game 26.3
+(SDK ba1f24e4). It ships as source plus `Cargo.lock`; the launcher builds it
+on the player's computer.
+
+Known gaps: a set of API surfaces still waits on upstream Sunrise
+primitives (filed as issues with sunrise-org/sunrise). Those features are
+absent rather than stubbed; everything the package connects works as the
+API documents.
+"""
+
+authors = ["sofia-gros"]
+license = "MIT"
+homepage = "https://github.com/sofia-gros/horizon-mods"
+issues = "https://github.com/sofia-gros/horizon-mods/issues"
+source = "https://github.com/sofia-gros/horizon-mods"
+
+[[screenshots]]
+path = "page/plutolib-smeltery-gui.png"
+caption = "PENDING REPLACEMENT — placeholder captured on the Horizon build; re-capture on the Sunrise client before release. A Tinkers' Construct smeltery controller GUI running on PlutoLib's menu API."

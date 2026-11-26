@@ -3,6 +3,7 @@ name = "PlutoLib"
 version = "0.1.0"
 api = "0.2"
 side = "both"
+license = "MIT"
 
 [native]
 game = "26.3"
