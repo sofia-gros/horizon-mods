@@ -25,9 +25,10 @@ use pluto_lib::{
     ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout,
 };
 
-/// The visible grid: eight columns of eight rows.
+/// The visible grid: eight columns of four rows (the original's scaling module is 162 wide
+/// and 72 high: `ScalingChestScreen` over `DynamicContainerScreen`'s defaults plus one row).
 const COLUMNS: usize = 8;
-const ROWS: usize = 8;
+const ROWS: usize = 4;
 const PAGE: usize = COLUMNS * ROWS;
 /// The scaling chests' underlying size (`ScalingChestItemHandler.DEFAULT_MAX`).
 const SCALING_SLOTS: usize = 256;
@@ -35,8 +36,13 @@ const SCALING_SLOTS: usize = 256;
 const TINKERS_SLOTS: usize = 64;
 /// The saved scroll offset, in rows.
 const ROW_KEY: &str = "row";
-/// The slider: its track's left, top, width and height (right of the grid).
-const SLIDER: (f32, f32, f32, f32) = (154.0, 18.0, 12.0, 144.0);
+/// The slider: its track's left, top, width and height (right of the grid, where
+/// `DynamicContainerScreen.updateSlider` puts it: the module's right edge, its full height).
+const SLIDER: (f32, f32, f32, f32) = (157.0, 17.0, 12.0, 72.0);
+/// The slider handle's height (the generic sheet's slider element is a fixed 10x15).
+const HANDLE_H: f32 = 15.0;
+/// The window's background (`TinkerChestScreen` draws BLANK_BACK_PLUS_1) and the module sheet.
+const BACKGROUND: &str = "tconstruct:gui/blank_extra_row";
 /// The icons sheet, as the station windows name it (the tab strip's texture).
 const ICONS: &str = "tconstruct:gui/icons";
 /// The menu-data base of the tabbed tables' words: the chest's own words are 0 (the display
@@ -92,13 +98,12 @@ fn row_of(data: &NbtCompound) -> usize {
 fn rows_total(visual: usize) -> usize { visual.div_ceil(COLUMNS) }
 fn max_row(visual: usize) -> usize { rows_total(visual).saturating_sub(ROWS) }
 
-/// The slider handle's height and top for a display size and scroll offset.
+/// The slider handle's height and top for a display size and scroll offset: the handle is the
+/// sheet's fixed-size element, travelling the track by the scroll's share of its range.
 fn handle(visual: usize, row: usize) -> (f32, f32) {
-    let total = rows_total(visual).max(ROWS);
-    let height = (SLIDER.3 * ROWS as f32 / total as f32).max(12.0);
-    let travel = SLIDER.3 - height;
+    let travel = SLIDER.3 - HANDLE_H;
     let progress = if max_row(visual) > 0 { row.min(max_row(visual)) as f32 / max_row(visual) as f32 } else { 0.0 };
-    (height, SLIDER.1 + travel * progress)
+    (HANDLE_H, SLIDER.1 + travel * progress)
 }
 
 /// Where a slot sits on the window under the current scroll and display size; `None` hides it.
@@ -150,7 +155,7 @@ fn deposit(kind: Kind, items: &mut [Option<ItemSlot>], held: ItemSlot) -> ItemSl
 fn register_chest(name: &'static str, kind: Kind) {
     let id = Identifier::new("tconstruct", name).expect("valid chest id");
     let slots = kind.slots();
-    let mut layout = ScreenLayout::new(176.0, 252.0).inventory_at(8.0, 170.0);
+    let mut layout = ScreenLayout::new(176.0, 184.0).inventory_at(8.0, 102.0).with_own_background();
     // The whole grid is in the menu; the current page positions it.
     for _ in 0..slots { layout = layout.dynamic_slot(); }
     let window = ScreenHandlerType::new(id.clone(), layout)
@@ -172,16 +177,34 @@ fn register_chest(name: &'static str, kind: Kind) {
             Some((0..slots).map(|slot| slot_position(slot, visual, row)).collect())
         })
         .on_draw(|draw| {
+            let (ox, oy) = (draw.origin[0], draw.origin[1]);
+            // The window's own background, the original's blank sheet with its extra row.
+            draw.canvas.sprite(BACKGROUND, [0.0, 0.0, 176.0, 184.0], [ox, oy, 176.0, 184.0]);
+            let visual = draw.data.first().copied().unwrap_or(0).max(0) as usize;
+            let row = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
+            // The module's slot frames: a filled frame per shown slot, the empty frame for
+            // the rest of a partial last row (`DynamicContainerScreen.renderBg`).
+            let shown = visual.saturating_sub(row * COLUMNS).min(PAGE);
+            let (full_rows, partial) = (shown / COLUMNS, shown % COLUMNS);
+            for r in 0..ROWS {
+                let cells = if r < full_rows { COLUMNS } else if r == full_rows { partial } else { break };
+                for c in 0..COLUMNS {
+                    let src = if c < cells { [7.0, 7.0, 18.0, 18.0] } else if r == full_rows && partial > 0 { [25.0, 7.0, 18.0, 18.0] } else { continue };
+                    draw.canvas.sprite(crate::station_menu::GENERIC, src, [ox + 7.0 + c as f32 * 18.0, oy + 17.0 + r as f32 * 18.0, 18.0, 18.0]);
+                }
+            }
+            // The slider, when the display size scrolls: the generic sheet's caps, its scaled
+            // track and the fixed handle element (`GenericScreen`'s slider pieces).
+            if max_row(visual) > 0 {
+                let (height, top) = handle(visual, row);
+                let (x, y) = (ox + SLIDER.0, oy + SLIDER.1);
+                draw.canvas.sprite(crate::station_menu::GENERIC, [43.0, 7.0, 12.0, 1.0], [x, y, 12.0, 1.0]);
+                draw.canvas.sprite(crate::station_menu::GENERIC, [43.0, 8.0, 12.0, 30.0], [x, y + 1.0, 12.0, SLIDER.3 - 2.0]);
+                draw.canvas.sprite(crate::station_menu::GENERIC, [43.0, 38.0, 12.0, 1.0], [x, y + SLIDER.3 - 1.0, 12.0, 1.0]);
+                draw.canvas.sprite(crate::station_menu::GENERIC, [7.0, 25.0, 10.0, 15.0], [x + 1.0, oy + top, 10.0, height]);
+            }
             // The neighbouring tables' tabs above the window (see `tabbed_tables`).
             crate::tabbed_tables::draw_tabs(draw.canvas, draw.origin, draw.data, TABBED_AT, ICONS);
-            let visual = draw.data.first().copied().unwrap_or(0).max(0) as usize;
-            if max_row(visual) == 0 { return; }
-            let row = draw.data.get(1).copied().unwrap_or(0).max(0) as usize;
-            let (height, top) = handle(visual, row);
-            let (x, y) = (draw.origin[0] + SLIDER.0, draw.origin[1] + SLIDER.1);
-            draw.canvas.fill([x, y, SLIDER.2, SLIDER.3], 0xFF37_3737);
-            draw.canvas.fill([x, draw.origin[1] + top, SLIDER.2, height], 0xFFC6_C6C6);
-            draw.canvas.fill([x, draw.origin[1] + top, SLIDER.2, 1.0], 0xFF55_5555);
         })
         .on_click(|press| {
             if !press.right {
@@ -274,15 +297,17 @@ mod tests {
     fn slots_scroll_in_rows_of_eight_and_hide_outside_the_display_size() {
         assert_eq!(slot_position(0, 1, 0), Some([8.0, 18.0]));
         assert_eq!(slot_position(1, 1, 0), None, "past the display size");
-        assert_eq!(slot_position(63, 64, 0), Some([8.0 + 7.0 * 18.0, 18.0 + 7.0 * 18.0]));
-        assert_eq!(slot_position(64, 100, 0), None, "below the visible rows");
-        assert_eq!(slot_position(64, 100, 1), Some([8.0, 18.0 + 7.0 * 18.0]), "one row of scroll brings slot 64 to the last visible row");
+        assert_eq!(slot_position(31, 64, 0), Some([8.0 + 7.0 * 18.0, 18.0 + 3.0 * 18.0]), "the page's last slot");
+        assert_eq!(slot_position(32, 64, 0), None, "below the visible rows");
+        assert_eq!(slot_position(32, 100, 1), Some([8.0, 18.0 + 3.0 * 18.0]), "one row of scroll brings slot 32 to the last visible row");
         assert_eq!(slot_position(0, 100, 1), None, "scrolled off the top");
         assert_eq!(rows_total(64), 8);
-        assert_eq!(max_row(64), 0, "eight rows fit without scrolling");
-        assert_eq!(max_row(65), 1);
-        assert_eq!(max_row(256), 24);
-        let (height, top) = handle(256, 24);
+        assert_eq!(max_row(32), 0, "four rows fit without scrolling");
+        assert_eq!(max_row(64), 4);
+        assert_eq!(max_row(65), 5);
+        assert_eq!(max_row(256), 28);
+        let (height, top) = handle(256, 28);
+        assert_eq!(height, HANDLE_H, "the handle is the sheet's fixed-size element");
         assert!(top + height <= SLIDER.1 + SLIDER.3 + 0.01, "the handle stays in its track at the bottom");
     }
 
