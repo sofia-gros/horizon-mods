@@ -73,6 +73,16 @@
       "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e"
     },
     {
+      "module_id": "pluto-crafting-lookup",
+      "file": "crates/horizon-client/src/crafting.rs",
+      "name": "pluto_crafting_lookup",
+      "visibility": "pub",
+      "fingerprint": "c2d2acf483670cda14df39e0da0d730516e500db691cba1866d30be082f729aa",
+      "source_file": "pluto-crafting-lookup.rs",
+      "source_sha256": "409a9d5aaa8e8e499116e2b7c71c36374adb04ec4f7feb06a5d14964faeffa5a",
+      "file_sha256": "298e65ea0417a37ccc73c29c23e25b396c369faeb9b17f0fef7f32b097c2243e"
+    },
+    {
       "target": "horizon_client_lib::crafting::Recipes::assemble_if_matches",
       "file": "crates/horizon-client/src/crafting.rs",
       "kind": "HEAD",
