@@ -430,3 +430,6 @@ mod armor_trim;
 mod table_recipes;
 #[cfg(test)]
 mod particle_tests;
+
+#[cfg(test)]
+mod channel_dispatch_tests;
