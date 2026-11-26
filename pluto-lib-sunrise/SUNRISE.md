@@ -848,6 +848,206 @@ Reclassified (a) -> (c), rows stay in the manifest:
   exactly the L2 baseline set (129) minus the union of both lanes'
   removed rows (17 + 19, disjoint), zero new errors; lints 5x0.
 
+## L5a life・motion (2026-11-26, branch `sunrise/l5a-life-motion`)
+
+Base `4ae287fab` (L3-merged). Cluster: the (c) rows for living entities,
+damage, spawn, movement, drops and projectiles — 43 of the 93 failing ids
+at the base. Step 0 re-confirmation of the latest SDK was attempted per
+the always-track-latest policy; the Releases API fetch was unreachable
+from this lane, so the lane proceeded on the confirmed pin `6a02076f89cd`
+(the daily SDK watch and the L7 gate are the backstops). Verification:
+MSVC cargo check exit 0; pure --lib 425/425; doctests
+1307 pass / 1 ignored; plan failing-id set 93 → 86 (exactly the
+7 rows resolved below, zero new); lints 5/5 zero.
+
+### Implemented (7 rows leave the manifest)
+
+- `pluto-player-animate-tick` — retargeted. `native_player_tick` was
+  split into `native_hooks::base::Game::native_player_tick_pre/post`
+  (both weavable in the SDK index); the arm-swing/break flush the helper
+  runs belongs at the tick's end, so the HEAD now sits on `_post`. The
+  flush module itself was already in place.
+- `pluto-projectile-flight-game`, `pluto-projectile-impact-game`,
+  `pluto-throw-sound-game` — module re-anchors. The split of
+  `game/creatures.rs` left its successor at
+  `game/mobs/creatures/mod.rs` (game.rs:392 `#[path]`); the three modules'
+  `file` fields point there now, logical paths
+  (`crate::game::creatures::<name>`) and sources unchanged, as with L4's
+  re-anchors. Their caller reaches already passed. Shapes verified
+  against the pinned source: `Creatures.projectiles` is the same
+  `JoinList<Projectile, false>` the flight module's take/into pattern was
+  written for; `ArrowState` still carries `pierce`, `in_ground`,
+  `in_ground_time`, `pickup`, `pickup_item`, `dealt_damage` and —
+  closing L3b's impact residual — `pierced: Vec<Who>`, so the impact
+  module's ignore-list stash works as written; `Pickup::from_byte`,
+  `projectiles::thrown_by_item`, `drops::die/drop_chance/loot_entity`
+  all exist. Leaf type-checking of module bodies lands with L7's guarded
+  build, as for every re-anchor.
+- `pluto-living-entity-jump` — decomposed. The `living_jump_power` hook
+  (loop context; entity, kind, mutable power) is wired in the bridge to
+  `LivingEntityBehaviors::jump_power`. Two context fields degrade: the
+  hook carries no host, so `slime_size` is None and `block_jump_factor`
+  reads 1.0 — the inherited power the event carries already folds the
+  factor in, and a class answer replaces the whole power, as the woven
+  reach's did.
+- `pluto-damage-victim` — decomposed. `living_incoming_damage` now notes
+  `VictimFacts` for every victim before the hit's stages run, read from
+  the victim view the hit context lends (`HitHost::victim` →
+  `LivingView::health` / `attribute_value`) — the reader L3b recorded as
+  missing in the hit context exists in this view shape (the by-id
+  reader does not: `HitHost` has no `entity()`). The ender dragon keeps
+  its shape (health noted, attack not named, per the pure contract).
+- `pluto-player-hurt` — decomposed. The woven reach did two jobs at the
+  game's knockback scope (a target that no longer exists):
+  (1) AttackerFacts for the hit's damage events — now noted at the head
+  of `living_incoming_damage` from the causing entity, read through the
+  entity-by-id reader (kind, both hands, chest, attack attribute,
+  state); a player's note carries its hands only, as the pure contract
+  shapes it. The woven 0-id player opening does not arise here: the
+  causing id is the real entity.
+  (2) The wearer-hit report — now noted from the hit itself when the
+  victim is a player (`note_wearer_hit` with the attacker as the hit
+  context lends it and `armor_of_the_only_wearer()`), resolved by the
+  existing `resolve_wearer_hit` call. Its effect grants for the attacker
+  are queued in the bridge and land at the next entity tick's drain
+  through the server host: the hit context lends reads only (its
+  `LivingView`s write nothing), so the grants cannot land where they
+  are computed; the woven drain was a game-side module queue, and the
+  queue now lives in this bridge with the same next-tick timing.
+  Noting from the hit itself drops the woven version's known wrong
+  case (a mob fighting another mob beside the player was heard as
+  hurting the player) and its seven-block gate with it. The report's
+  own tick-side queues (wearer self-effects, counter damage, actions)
+  still wait for a flush point — draft 11 below. `damage_type`/`amount`
+  are resolved by the damage event, as the pure contract shapes them
+  (the woven report never knew them either). Two woven reads have no
+  hit-context counterpart and degrade: the attacker's chest piece (the
+  causing view lends hands, not equipment) and the positional half of
+  its state (on ground / in water / burning — the view names kind,
+  effects and health only), which also leaves the wearer report's
+  attacker position empty.
+
+Also wired, as a partial decomposition of `pluto-living-drops-game`: the
+`get_equipment_drop_chance` hook now answers from
+`LivingEntityBehaviors::equipment_drop_chance`. The class answer replaces
+the recorded chance (`original_chance`); the enchantment share the
+event's `chance` already carries over the recorded one (the killer's
+Looting included) rides on top — the fold the woven death-loot module
+applied by hand when it swapped chances into the mob. Looting is read
+live from the causing entity's main hand through the reader. A cube's
+size is not lent by the death roll, so `slime_size` is None (the woven
+module read it off the mob).
+
+### Joined to existing upstream issues (no code)
+
+- `pluto-item-indestructible` → G15 (upstream #5082, non-living entity
+  fire immunity / environment handling). Its target
+  (`ItemEntity::environment_tick`) also no longer exists at this pin.
+- The eight motion/fall interior rows (`pluto-block-after-fall`,
+  `pluto-block-fall-damage`, `pluto-block-inside-motion`,
+  `pluto-item-after-fall`, `pluto-item-inside-motion`,
+  `pluto-mob-after-fall`, `pluto-mob-fall-damage`,
+  `pluto-mob-inside-motion`) → G12/G4 (upstream #5074 / #5076), the
+  design's prescription for the generic movement-function interiors
+  (`check_inside_blocks`, `restitute`, `mod_block_fall`,
+  `tick_item_with_block_contacts`, `effects_from_blocks`, `do_move` —
+  all in `sunrise_client_lib` / `sunrise_world`, no `#[replaceable]`).
+  Recorded for the follow-up: the Part hooks `fall_on` (writable
+  distance/multiplier + landing writes), `bounce_on` (writable
+  movement) and `bounce_restitution` (factor query), and the
+  `entity_inside` hook, decompose the mod-block subset of these rows;
+  they do not cover the vanilla-block side (the woven reaches replace
+  the inside-effects pass wholesale and serve classes, not states).
+- `pluto-living-preview-flush` → the A2 unit (HUD/screen callback
+  surface). Its target (`native_screen_draw`) is gone; the nearest
+  surfaces (`screen_render_post`, `gui_layer_post`) carry no HudBatch
+  equivalent a queued living preview can flush into.
+
+### Drafted upstream issues (in the lane record, not filed)
+
+Drafts live in `~/workspace/sunrise-l5a/issues/` (13 files):
+
+1. **Identity tokens** — per-entity/per-level instance identity (the
+   block-entity `revision().identity()` pattern extended). Unblocks
+   L6's five held state rows and the spawn/head-claim state below.
+2. **Spawn completion** — the spawn prepare-point migration verdict:
+   NOT possible with current primitives. `finalize_spawn` listeners run
+   before finalization (edits overwritten), get no RNG loan, and its
+   editor lacks can-pick-up-loot / drop-chance / enchant / attachment
+   writes; coverage also misses non-finalizeSpawn paths the woven
+   runtime head serves. Ask: a post-finalization pre-join completion
+   hook + RNG loan + the editor writes + a non-generic
+   `GameLevel::finalize_spawned` entry (L4's ask). Rows:
+   `pluto-entity-spawn-{add,runtime,natural,conversion,converted}` stay
+   (c); the prepare points do not migrate.
+3. **`MovementProperties::bind` reach** — `movement-table` (L4's ask,
+   with the index name-collision evidence).
+4. **LivingRef equipment drop-chance reader** — for `mob_split`'s
+   Dress (the adapter's hard-coded 0.085 head chance).
+5. **mob_split random loan + PendingChildEditor writes** —
+   `set_no_ai` / `set_invulnerable`; parent-stream loan.
+6. **Particle-add interception / item-particle registry** —
+   `pluto-item-particle-factory`, and the landing-splash kind
+   substitution of `pluto-entity-particle-kind`.
+7. **Attribute computation participation** — the five
+   `pluto-living-attributes-*` reaches serve the game's live attribute
+   engine in `mobs::finalize`; `LivingRef`'s modifier surface is the
+   permanent group (wrong order, wrong lifetime — saved). Ask: a
+   transient class-modifier channel (after permanent, before the game's
+   own transient ops) + transient reads/removal + the armor base mirror.
+8. **Class query overrides** — `pluto-living-entity-attack` (the damage
+   events carry the finished hit, not the attribute the query is
+   defined over), `pluto-living-entity-fall` (an absolute calculated
+   damage is not expressible as a `fall_on` multiplier, and the query
+   is per type, not per landed state), `pluto-living-cause-fall`
+   (wholesale landing application with a velocity write, on any block).
+9. **Protection pipeline** — `protection-{kernel,player-scope,arm,
+   project}`: the kernel needs the post-magic stage mid-pipeline
+   (`sunrise_world::combat_rules::after_magic`); the damage events
+   bracket the calculation but never see the protection value.
+10. **Death-drop context** — `pluto-living-drops-game` is NOT
+    re-anchored: the native it replaced was restructured (server_loot,
+    roll_death/finish_death, `is_direct`, `this_nbt`, the explicit
+    `source` argument, listened enchanted-loot rolls), so a verbatim
+    re-anchor would silently lose behaviour. `living_drops` cannot
+    substitute: `ItemDrop` is non-exhaustive with no constructor (the
+    list cannot grow), and head eligibility/claim is game bookkeeping
+    with no reader. Ask: an ItemDrop constructor + head
+    eligibility/claim verbs. `pluto-head-loot-gate` rides the same
+    eligibility read.
+11. **Tick flush point** — `pluto-mob-effect-apply` /
+    `pluto-mob-effect-apply-tick` are queue drains; under the inversion
+    their fill points land at hooks (the wearer grants above are the
+    first), and the remaining queues (contact, damage drops, the
+    wearer tick queues) need a per-player/per-entity tick hook with a
+    writable host, or application rights at the fill hooks.
+12. **Path-type query** — `pluto-path-node-type`: the path hooks are
+    Part-scoped, but classification is asked for every state a mob
+    crosses, including vanilla states adjacent to mod blocks.
+13. **Visibility player identity** — `pluto-player-visibility` stays
+    (c): `living_visibility` is the woven RETURN's exact counterpart
+    (last in `getVisibilityPercent`, vanilla percent in), but its host
+    is read-only and under it the target player cannot be named —
+    `EntityRef::uuid` wants `&mut dyn ServerHost`, and `LivingRef`
+    offers no player/holder read — while the pure factor is keyed by
+    player UUID. Ask: the UUID (or a player handle) at the hook.
+
+### Notes for L7
+
+- `pluto-living-entity-jump.rs` stays in `mod/src` although its weave
+  entry is gone: the pure suite's living-query host harness
+  (`tests/pure/src/living_query_host_tests.rs`) `include!`s it as its
+  test host, the same shape as the still-(c) fall helper beside it.
+- The access module whose reach retired here
+  (`pluto-player-hurt-access`) remains in the manifest, as do the
+  spawn/protection/attribute support modules whose rows stay (c) and
+  `pluto-player-visibility-access` (its row stays (c), draft 13).
+- The re-anchored projectile modules' leaf type-check is L7's guarded
+  build, as with L4's re-anchors. One leaf was verified by shape only:
+  the flight module's `game.creatures` field access and `Game` scope
+  imports come from `creatures/mod.rs`'s `super::*` (its scope imports
+  nearly everything the modules name).
+
 ## Remaining (precise; in dependency order)
 
 - **R1 — Anchor re-derivation (host drift).** Census against ffb8601b is
