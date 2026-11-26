@@ -1,6 +1,11 @@
 // Trace-only host double: executes the production adapter, not a world generator.
 // It checks saved-source routing and candidate ownership, not gameplay parity.
 extern crate self as sunrise_core;
+#[macro_export]
+macro_rules! info { ($($tokens:tt)*) => {} }
+#[macro_export]
+macro_rules! warn { ($($tokens:tt)*) => {} }
+extern crate self as log;
 use std::{collections::BTreeMap, sync::{Arc, Mutex, OnceLock, TryLockError}};
 
 pub mod random {

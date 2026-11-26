@@ -33,7 +33,10 @@ pub struct ThrownType {
     /// The sound a hand throw of this type plays (`tconstruct:throw.shuriken`, say), instead of the
     /// vanilla snowball throw the game plays for every thrown type. None throws with the game's own
     /// sound. The host's thrown-type form carries no sound, so this stays on the trait-mod side and
-    /// reaches the game's throw through the throw-sound sink.
+    /// reaches the game's throw through the throw-sound sink. Java also plays at the thrower's feet
+    /// and files the sound on the NEUTRAL source, where the game plays at the eye and files a modded
+    /// event under MASTER; both halves stay the game's own for now — a documented residual with a
+    /// pending-throw-bridge follow-up design (see the manifest's throw-sound block).
     pub throw_sound: Option<Identifier>,
 }
 

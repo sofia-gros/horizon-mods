@@ -1772,6 +1772,14 @@ impl WorldOps for HostWorld {
         host.level_block_state(level, pos)
     }
 
+    fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
+        // The host answers from the server's merged tags, as it does for the read-only tag
+        // world above. Without this the trait's default false reaches every callback that
+        // carries this world — a block entity tick above all — and a tag-classified scan
+        // (the smeltery's structure check) judges every floor, wall and tank block invalid.
+        self.0.get().block_name_in_tag(block, tag).unwrap_or(false)
+    }
+
     fn light(&mut self, _dimension: &str, pos: [i32; 3]) -> Option<(u8, u8)> {
         // The host's light read names no dimension (it reads the level the current callback
         // runs in, as the player tick's own light does); world reads are made from inside

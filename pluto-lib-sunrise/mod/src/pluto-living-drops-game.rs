@@ -39,12 +39,21 @@ fn pluto_drop_chance_override(m:&Mob,looting:i32)->Option<Box<[f32;8]>> {
     let mut changed=false;
     for (index,slot) in slots.iter().enumerate() {
         if let Some(chance)=(sink.drop_chance)(&m.kind.id,slot,size,adjusted[index],looting) {
-            // The class's own roll is (nextFloat - looting*0.01) < chance;
-            // the native roll tests nextFloat >= chance with no looting
-            // term and skips a chance of exactly 0. Folding the looting
-            // term into the swapped chance keeps the same probability and
-            // lets a class chance of 0 roll when looting is positive.
-            adjusted[index]=chance+looting as f32*0.01;changed=true;
+            // Store the class chance unadjusted. The class's own roll is
+            // (nextFloat - looting*0.01) < chance, but the native roll
+            // applies the attacker's equipment_drops effect (Looting,
+            // +0.01 per level) to the swapped chance itself before testing
+            // nextFloat >= chance (pinned host drops.rs:518-529 ->
+            // horizon-world loot.rs:965 equipment_drop_chance), so the
+            // stored chance must not carry the looting term: folding it in
+            // here as well counted Looting twice (issue #1163: the capped
+            // 0.25 slime head chance rolled at 0.31 under Looting III
+            // instead of canon's 0.28). A class chance of exactly 0 makes
+            // the native roll skip the slot outright, where the class roll
+            // could still succeed on the looting term alone; no registered
+            // behaviour returns 0 (the sole sink caps the slime head slot
+            // at 0.25), so that corner is not exercised.
+            adjusted[index]=chance;changed=true;
         }
     }
     changed.then_some(adjusted)
