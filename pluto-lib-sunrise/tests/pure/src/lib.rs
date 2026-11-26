@@ -122,17 +122,6 @@ mod living_query_host_tests;
 #[cfg(test)]
 mod living_attribute_host_tests;
 #[cfg(test)]
-#[path = "../../../mod/src/pluto-skull-model-access.rs"]
-pub(crate) mod skull_model_access_tests;
-#[cfg(test)]
-mod skull_render_host_tests;
-#[cfg(test)]
-mod item_model {pub(crate) use crate::skull_model_access_tests as pluto_skull_model_access;}
-#[cfg(test)]
-mod block_entity_render {pub(crate) use crate::skull_render_host_tests::ModelPart;}
-#[cfg(test)]
-mod item_render {pub(crate) use crate::skull_render_host_tests::parts as pluto_skull_item_models;}
-#[cfg(test)]
 mod block_settings_host_tests;
 #[cfg(test)]
 mod living_load_host_tests;
