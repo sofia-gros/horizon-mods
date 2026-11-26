@@ -84,7 +84,7 @@ fn stack_item_name(stack: &ItemStack) -> String {
     mod_api::__private::item_key_id(stack.item()).unwrap_or("minecraft:air").to_owned()
 }
 
-fn read_stack(stack: &ItemStack) -> player_api::StackData {
+pub(crate) fn read_stack(stack: &ItemStack) -> player_api::StackData {
     let custom_data = match component_tag(stack, "minecraft:custom_data") {
         Some(Tag::Compound(compound)) => compound_from_tag(compound),
         _ => NbtCompound::new(),

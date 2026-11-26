@@ -40,6 +40,10 @@ impl mod_api::Hooks for Mod {
         parts::register_block_tint_sources(event);
     }
 
+    fn register_item_tint_sources(&self, _context: &RegistrationContext, event: &mut mod_api::RegisterItemTintSourcesEvent<'_>) {
+        parts::register_item_tint_sources(event);
+    }
+
     fn player_container_open(&self, host: &mut dyn mod_api::ServerHost, event: &mut mod_api::PlayerContainerOpenEvent<'_>) {
         parts::player_container_open(host, event);
     }

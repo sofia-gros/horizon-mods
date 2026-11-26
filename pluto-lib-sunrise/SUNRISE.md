@@ -255,13 +255,13 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | recipe-book-invalidation | MD | (b) | 再アンカー: recipe_book 移転先（census 候補あり） |
 | recipe-book-preview | MD | (b) | 同上 |
 | recipe-placement-attempt | MD | (b) | 同上 |
-| wire-read | MD | (b) | 畳み込み: 同上（item_data access） |
-| advancement-item-predicate | NR | (c) | 進捗述語の公開面の粒度を確認 |
+| wire-read | MD | (b) | 畳み込み: 同上（item_data access） **L5b**: drafted with the stack-network-conversion ask (`Wire` exposes `patch()` only; no decoded-baseline accessor). |
+| advancement-item-predicate | NR | (c) | 進捗述語の公開面の粒度を確認 **L5b**: drafted (custom item predicate kinds; one surface serves both predicate rows). |
 | block-color-world-tint | NR | (a) | **L3a done**: `register_block_tint_sources` / `BlockTintSource` registration (PlutoTintSource, 8 layers) |
-| crafting-match-veto | NR | (c) | Recipes 内部の置換は crafting hook の粒度確認から |
-| crafting-special | NR | (c) | 同上 |
-| drops | NR | (c) | ItemPart の drops 面の網羅を確認（GAPS B3-1） |
-| max-damage | NR | (c) | スタック同期（LAN guest 変換）の形を再導出 |
+| crafting-match-veto | NR | (c) | Recipes 内部の置換は crafting hook の粒度確認から **L5b**: drafted (scan-level crafting match hook). |
+| crafting-special | NR | (c) | 同上 **L5b**: drafted (same ask; special-recipe providers on a native miss). |
+| drops | NR | (c) | ItemPart の drops 面の網羅を確認（GAPS B3-1） **L5b**: drafted (B3-1 item table functions; no ItemPart correct-for-drops surface). |
+| max-damage | NR | (c) | スタック同期（LAN guest 変換）の形を再導出 **L5b**: drafted (stack network conversion extension points). |
 | movement-table | NR | (b) | RETARGET: game::api_values::block_state::bind（索引に実在） |
 | pluto-block-after-fall | NR | (c) | G12/G4（既存 issue）合流＋呼び出し側付け替え検討 |
 | pluto-block-entity-factory | NR | (a) | **L3a done**: Registrar type declaration + `BlockEntityPart::block_entity` (factory weave deleted) |
@@ -269,23 +269,23 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-block-fall-damage | NR | (c) | 同上 |
 | pluto-block-inside-motion | NR | (c) | 同上 |
 | pluto-block-settings-gameplay | NR | (a) | content 宣言（mod_content の上書きは宣言化） |
-| pluto-crafting-match-veto | NR | (c) | 同上 |
-| pluto-creative-rebuild | NR | (c) | built_creative_tabs 面で代替可否を確認 |
+| pluto-crafting-match-veto | NR | (c) | 同上 **L5b**: drafted (same ask as crafting-match-veto). |
+| pluto-creative-rebuild | NR | (c) | built_creative_tabs 面で代替可否を確認 **L5b**: drafted (runtime tab definition; the static half is covered by content tab files + the contents hook). |
 | pluto-entity-particle-kind | NR | (c) | 着地イベント＋ParticleBatch の組合せを検証 |
 | pluto-entity-spawn-add | NR | (a) | finalize_spawn / mob_spawned イベントへ |
 | pluto-entity-spawn-conversion | NR | (c) | 変換イベント面を確認 |
 | pluto-hanging-stand-tick-head | NR | (a) | EntityTickPre/PostEvent（種別フィルタ） |
 | pluto-head-loot-gate | NR | (c) | loot の roll 面を確認（LootDropsEvent の実在確認と対） |
-| pluto-item-after-fall | NR | (c) | 同上 |
-| pluto-item-color-layers | NR | (c) | ItemRenderer の色レイヤー面を確認（SpecialModel 系で代替の可能性） |
-| pluto-item-enchantability | NR | (c) | ItemPart の enchantable 面を確認 |
-| pluto-item-ender-mask | NR | (c) | エンダーマン視線面を確認 |
-| pluto-item-inside-motion | NR | (c) | 同上 |
+| pluto-item-after-fall | NR | (c) | 同上 **L5b**: join G12 (#5074 / #5076), B3-4 motion family. |
+| pluto-item-color-layers | NR | (c) | ItemRenderer の色レイヤー面を確認（SpecialModel 系で代替の可能性） **L5b**: tint half native (`register_item_tint_sources`, `pluto_lib:item_color`); retexture half drafted. |
+| pluto-item-enchantability | NR | (c) | ItemPart の enchantable 面を確認 **L5b**: drafted (B3-1; `prepare_item_enchant` is post-hoc cost editing only). |
+| pluto-item-ender-mask | NR | (c) | エンダーマン視線面を確認 **L5b**: drafted (`enderman_anger` covers mask = true via cancel; explicit false is unreachable — firing-point ask). |
+| pluto-item-inside-motion | NR | (c) | 同上 **L5b**: join G4 (#5076), B3-4 inside-motion family. |
 | pluto-item-placement-export-write | NR | (a) | content 宣言＋パッケージ構造の領分 |
 | pluto-item-placement-root-gate | NR | (a) | 同上 |
 | pluto-item-placement-root-path | NR | (a) | 同上 |
-| pluto-item-predicate | NR | (c) | 同上 |
-| pluto-item-prototypes | NR | (c) | Items::load_with の呼び出し側／登録面を確認（GAPS B3-1） |
+| pluto-item-predicate | NR | (c) | 同上 **L5b**: drafted (custom item predicate kinds; `CriterionTest` is trigger-side). |
+| pluto-item-prototypes | NR | (c) | Items::load_with の呼び出し側／登録面を確認（GAPS B3-1） **L5b**: drafted (B3-1 item table functions; no `load_with` capture surface). |
 | pluto-living-attributes-amount | NR | (c) | 属性確定パイプラインの hook 面を検証（(c) 最大の不確定塊） |
 | pluto-living-attributes-base | NR | (c) | 同上 |
 | pluto-living-attributes-compute | NR | (c) | 同上 |
@@ -322,11 +322,11 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | protection-kernel | NR | (c) | ダメージイベント（V2/V3）確認で (a) 見込み |
 | protection-player-scope | NR | (c) | ダメージイベント確認で (a) 見込み |
 | protection-project | NR | (c) | 状態効果の保護面を確認 |
-| recipe-placement-definition | NR | (c) | 同上 |
-| speed | NR | (c) | ItemPart の mining-speed 面の網羅を確認（GAPS B3-1） |
-| station-ingredient-parser | NR | (c) | IngredientEvent の粒度を確認（IngredientTestEvent 欠落と対） |
-| tool-decode | NR | (c) | 同上（from_network 側） |
-| tool-encode | NR | (c) | 同上 |
+| recipe-placement-definition | NR | (c) | 同上 **L5b**: drafted (placement-definition veto; `recipe_book_place` is a different, menu-scoped layer). |
+| speed | NR | (c) | ItemPart の mining-speed 面の網羅を確認（GAPS B3-1） **L5b**: drafted (B3-1 item table functions; no ItemPart mining-speed surface). |
+| station-ingredient-parser | NR | (c) | IngredientEvent の粒度を確認（IngredientTestEvent 欠落と対） **L5b**: drafted (whole-value station parsers; kind-named station ingredients are served by the ingredient hook). |
+| tool-decode | NR | (c) | 同上（from_network 側） **L5b**: drafted (stack network conversion, `from_network` side). |
+| tool-encode | NR | (c) | 同上 **L5b**: drafted (stack network conversion). |
 | pluto-block-bonemeal-perform | TM | (a) | BlockPart の bonemeal 面（native_hooks::base の trait が内部形） |
 | pluto-block-bonemeal-success | TM | (a) | 同上 |
 | pluto-block-bonemeal-valid | TM | (a) | 同上 |
@@ -350,7 +350,7 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-entity-spawn-runtime | TM | (c) | スポーン内部の再導出（creatures 分割先） |
 | pluto-hanging-frame-from-nbt | TM | (c) | 額縁 NBT 構築の移転先を再導出（同名関数は索引に無い） |
 | pluto-hanging-frame-hit | TM | (c) | 額縁の対話面を再導出 |
-| pluto-item-indestructible | TM | (c) | アイテムエンティティの環境 tick。G15 と隣接 |
+| pluto-item-indestructible | TM | (c) | アイテムエンティティの環境 tick。G15 と隣接 **L5b**: join G15 (#5082); age pinning alone via `on_entity_item_update` judged a semantics-changing partial, not landed. |
 | pluto-item-menu-open | TM | (a) | **L3a done**: `HostOps::open_item_menu` via `open_mod_menu`; seed items move in `player_container_open` (`MenuRef::set_items`) |
 | pluto-item-particle-factory | TM | (a) | register_particle_type / ParticleBatch（book 確認） |
 | pluto-living-preview-flush | TM | (c) | ScreenRenderPostEvent で足りるか検証 |
@@ -359,8 +359,8 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-open-item-screen | TM | (a) | **L3a done**: `register_menu_screen` factory builds the MenuScreen (layout/draw/click/tooltip) |
 | pluto-player-animate-tick | TM | (c) | PlayerTickEvent の実在確認で (a) 見込み |
 | pluto-player-hurt | TM | (c) | ノックバック面。G1（既存 issue）へ合流 |
-| pluto-reload-before-tables-reload | TM | (c) | GAPS A6（リロード実体型）と対 |
-| pluto-reload-registry | TM | (c) | 同上 |
+| pluto-reload-before-tables-reload | TM | (c) | GAPS A6（リロード実体型）と対 **L5b**: drafted (A6 remainder: pre-tables listener phase). |
+| pluto-reload-registry | TM | (c) | 同上 **L5b**: drafted (A6 remainder: listener objects, registry source, two-phase apply). |
 | send-custom-data | TM | (c) | NetFromClient/ServerEvent の実在確認 |
 | world-fluid-neighbor | TM | (a) | 同上（update-shape と共有ターゲット） |
 | world-fluid-tick | TM | (a) | 同上（scheduled-tick と共有ターゲット） |
@@ -1110,3 +1110,97 @@ When the master changes: `convert.py --source pluto-lib --sync-check
 pluto-lib-sunrise --set SUNRISE_REVISION=<rev>` reports drift; port by hand,
 preserving this tree's adjustments. On an SDK bump, also run
 `cargo sunrise-mod sdk diff <old> <new>`.
+
+## L5b (c)-class items / crafting cluster (2026-11-26, branch `sunrise/l5b-items-crafting`)
+
+- Scope: the 24 (c) rows of the items / crafting cluster (items,
+  item-tied menus, recipes, containers' item side, the two woven
+  reload rows L3b left), plus L3a residuals (1)(2)(4)(5)(6) as draft
+  asks. Every row has exactly one disposition below; drafts live in
+  the lane record (`~/workspace/sunrise-l5b/issues/`, 14 files) and
+  are **not filed** — filing follows the manager's approval flow.
+- Implemented (one partial decomposition): the tint half of
+  `pluto-item-color-layers`. `parts::register_item_tint_sources`
+  (wired in `lib.rs`) registers one native tint source,
+  `pluto_lib:item_color`: a model names it for a layer and may carry
+  the layer's tint index as the source's `index` field; the decode
+  step binds the index and the per-stack callback forwards to the
+  pure colour provider for the stack's item (`ItemColorContext`),
+  answering opaque ARGB (provider `0xRRGGBB` | `0xFF000000`; opaque
+  white when no provider answers). `hooks::read_stack` widened to
+  `pub(crate)` for the conversion. The manifest row stays: the
+  retexture half (per-stack sprite swap on the baked layers) has no
+  native surface — see the draft list.
+- Drafts (new upstream issues, not filed):
+  - B3-1 item table functions — `speed`, `drops`,
+    `pluto-item-prototypes`, `pluto-item-enchantability`. ItemPart's
+    49 scoped hooks have no mining-speed / correct-for-drops /
+    enchantability surface; `prepare_item_enchant` edits costs after
+    the fact and cannot feed `enchantable_of`.
+  - Crafting scan hooks — `crafting-match-veto`,
+    `pluto-crafting-match-veto`, `crafting-special`,
+    `recipe-placement-definition`. `CraftingRecipeKind` covers a
+    mod's own recipe kinds only; `recipe_book_place` is MenuPart-
+    scoped and a different layer from `Recipes::placement`.
+  - Stack network conversion + `Wire` decoded-baseline accessor —
+    `tool-encode`, `tool-decode`, `max-damage`, `wire-read`. No hook
+    fires on `stack_to_network` / `from_network`; `Wire` exposes
+    `patch()` only (L4's verdict re-verified).
+  - `enderman_anger` firing point — `pluto-item-ender-mask`. The hook
+    (v1, cancel) covers mask = true, but it fires after the native
+    head-item suppression, so an explicit mask = false (bypass the
+    suppression, judge the stare geometrically) is unreachable.
+  - A6 reload remainder — `pluto-reload-registry`,
+    `pluto-reload-before-tables-reload`: listener objects with
+    prepare/apply + completion, a registry source inside the reload
+    context, prepare-all-before-any-apply atomicity, and a pre-tables
+    phase. (The ingredient hook's own dispatch already precedes table
+    parsing; the ask is for general listener data.)
+  - Creative tabs in code — `pluto-creative-rebuild`: tab definitions
+    are content files and contents are hook-editable, but runtime tab
+    definition, component-bearing / operator-only file entries and
+    per-entry search metadata have no surface.
+  - Item retexture — `pluto-item-color-layers` (retexture half):
+    model select properties choose among declared cases; the
+    retexture target is an arbitrary item named in the stack's data.
+  - Custom item predicate kinds — `pluto-item-predicate`,
+    `advancement-item-predicate` (byte-identical helpers, one pure
+    dispatch): `CriterionTest` serves code-raised triggers, not
+    predicate evaluation inside criterion JSON.
+  - Station ingredient parsers — `station-ingredient-parser`: the
+    book confirms stations use the ingredient hook's bound answer, so
+    kind-named station ingredients are served; the pure station
+    registry's whole-value callbacks (native-shape claims, cross-
+    parser conflict failing closed, registry-validated lists) exceed
+    the hook's (kind, data) contract.
+  - L3a residuals: MenuPart pick-all exclusion (1, the
+    `pluto-menu-pick-all` row), staged `MenuAccess` for slot clicks
+    (2), custom fluid capability providers beyond declarations (4),
+    canvas name→`ModelRef` cache (5), `BlockMetadata` property
+    enumeration (6).
+- Joins (existing upstream issues, no code):
+  - `pluto-item-indestructible` → G15 (#5082, non-living-entity fire
+    immunity / ignition). Age pinning alone is writable through
+    `on_entity_item_update`'s view, but without an environment-damage
+    veto the row's core is missing; a partial was judged a semantics
+    change and not landed.
+  - `pluto-item-after-fall` → G12 (#5074 / #5076);
+    `pluto-item-inside-motion` → G4 (#5076) — the GAPS B3-4 motion /
+    contact family (`tick_item_with_block_contacts` is named there).
+- No manifest entries were removed by this lane (the one implemented
+  half shares its row with an unimplemented half). Plan failing-id
+  set is therefore expected to be unchanged; verification below.
+- Verification: MSVC `cargo check` exit 0 (no warnings from the new
+  code); pure `--lib` 425/425 (merged baseline, no pure changes);
+  doctests 1307 passed / 1 ignored (baseline-identical); plan
+  failing-id set 93 = the merged baseline set exactly (zero new, zero
+  resolved — no manifest entries removed by this lane; the six ids
+  the wrapped baseline console log had truncated were confirmed
+  `E_MIXIN_NOT_REPLACEABLE` in an unwrapped re-run, as was
+  `wire-read`'s `E_MIXIN_MODULE_DESTINATION`); lints 5/5 zero.
+- Notes for L7: `pluto-item-particle-factory` (L3b reclassified (c),
+  row stays in the manifest) was not in this lane's row list — it
+  needs an owner lane or a filing decision. The (b) reload rows
+  `pluto-reload-registry-access` / `pluto-reload-registry-source`
+  interact with the A6 draft's registry-source gap: if they
+  re-anchor at integration, that gap narrows to the mod-API side.
