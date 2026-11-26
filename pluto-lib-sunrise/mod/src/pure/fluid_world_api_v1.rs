@@ -10,9 +10,10 @@ use std::collections::HashMap;
 
 use super::base::{ActionResult, Identifier};
 use super::block_api_v1::{BlockBehavior, BlockBehaviors, BlockEditor, BlockView, Direction, ShapeUpdateContext, TickContext};
-use super::block_entity_api_v1::BlockPos;
+use super::block_entity_api_v1::{BlockPos, FluidStack, ItemSlot};
 use super::fluid_api_v1::{FluidDef, FluidFlow, FluidRegistry};
-use super::fluid_item_api_v1::{FluidItemDef, FluidItems};
+use super::fluid_item_api_v1::{FluidItemDef, FluidItems, FluidTarget, Interaction, TransferDirection};
+use super::neighbour_api_v1::Neighbours;
 use super::player_api::StackData;
 use super::world_api_v1::{BlockState, World};
 
@@ -405,9 +406,14 @@ fn filled_bucket_fluid(item: &str) -> Option<FluidDef> {
     FluidRegistry::registered().into_iter().find(|def| def.bucket && FluidWorld::bucket_id(&def.id).to_string() == item)
 }
 
-/// A player used an item on a block: a filled bucket of a mod fluid puts its source there; an empty bucket picks up the source it is aimed
-/// at. Only a world fluid with a bucket can do either (a bucket of a fluid with no world blocks is a container only).
+/// A player used an item on a block: a bucket used on a block with fluid storage trades with the
+/// storage first (below); a filled bucket of a mod fluid puts its source there; an empty bucket picks
+/// up the source it is aimed at. Only a world fluid with a bucket can do either of the latter two (a
+/// bucket of a fluid with no world blocks is a container only).
 pub(crate) fn use_bucket(used: &super::events_interaction_v0::UseItemOnBlockContext) -> ActionResult {
+    if trade_with_clicked_storage(used) {
+        return ActionResult::Success;
+    }
     let Some(held) = used.held.as_ref() else { return ActionResult::Pass };
     let world = World::new(&used.dimension);
     if let Some(def) = filled_bucket_fluid(&held.item).filter(|def| def.world_blocks) {
@@ -447,6 +453,107 @@ pub(crate) fn use_bucket(used: &super::events_interaction_v0::UseItemOnBlockCont
         return ActionResult::Success;
     }
     ActionResult::Pass
+}
+
+/// A bucket used on the block it was clicked on: the trade the original's tank interaction
+/// (`FluidTransferHelper.interactWithTank`) makes, which there runs as the block's own use, before
+/// `BucketItem.use` can pour the fluid into the world. Here the block's use hook (the right-click
+/// dispatch) takes such a click first, so this runs only for a click that reached the item use
+/// untaken — a creative player's bucket click does: the game's one bucket-specific permission
+/// (`native_bucket_empty`) is asked of LAN guests only, and nothing else on the creative path
+/// asks the block, so the game would pour the fluid into the world. The trade is the same
+/// [`FluidItems::interact`] the block use runs, over the fluid storage the clicked block answers
+/// through the neighbour reach. A click the block use already traded never reaches this
+/// callback, and one it passed on (nothing moved) passes here too. True when fluid moved and
+/// the click is the trade's.
+fn trade_with_clicked_storage(used: &super::events_interaction_v0::UseItemOnBlockContext) -> bool {
+    let Some(held) = used.held.as_ref() else { return false };
+    let Some(slot) = slot_from_stack(held) else { return false };
+    let Some(face) = clicked_face(used.face) else { return false };
+    let Some(done) = trade_bucket(&slot, used.pos, face) else { return false };
+    // The stack the trade leaves in the hand: the unit's result (for several held, the rest
+    // stays in the hand and the unit's result is given, as `interact` splits it).
+    let unit = if held.count > 1 { done.give.into_iter().next() } else { done.held };
+    if let Some(unit) = unit {
+        swap_held(used, held, stack_from_slot(&unit, held));
+    }
+    true
+}
+
+/// The bucket trade itself: [`FluidItems::interact`] of a bucket against the storage at `pos`,
+/// reached through `face`. `None` for a stack that is not a bucket and when nothing moved.
+fn trade_bucket(held: &ItemSlot, pos: BlockPos, face: Direction) -> Option<Interaction> {
+    if !FluidItems::is_bucket(held) {
+        return None;
+    }
+    let mut storage = ClickedStorage { pos, face };
+    FluidItems::interact(Some(held), &mut storage, TransferDirection::Auto)
+}
+
+/// The fluid storage of the clicked block as a [`FluidTarget`], through the neighbour reach.
+/// The reach's drain takes the first fluid it finds and cannot be asked first, so a drain that
+/// names its fluid reads the tanks for its answer and an executed drain of a different fluid
+/// is put straight back (a guard: a trade asks for the fluid its own read just saw).
+struct ClickedStorage {
+    pos: BlockPos,
+    face: Direction,
+}
+
+impl FluidTarget for ClickedStorage {
+    fn fill(&mut self, stack: &FluidStack, execute: bool) -> u32 {
+        Neighbours::fill_fluid(self.pos, self.face, stack, execute)
+    }
+
+    fn drain(&mut self, wanted: Option<&Identifier>, amount: u32, execute: bool) -> Option<FluidStack> {
+        if !execute {
+            let tanks = Neighbours::fluid_tanks(self.pos, self.face)?;
+            return tanks.into_iter().find_map(|tank| {
+                let held = tank.fluid?;
+                wanted.is_none_or(|wanted| *wanted == held.fluid).then(|| FluidStack { amount: held.amount.min(amount), ..held })
+            });
+        }
+        let drained = Neighbours::drain_fluid(self.pos, self.face, amount)?;
+        if wanted.is_some_and(|wanted| *wanted != drained.fluid) {
+            Neighbours::fill_fluid(self.pos, self.face, &drained, true);
+            return None;
+        }
+        Some(drained)
+    }
+}
+
+/// The face a click hit, as the direction out of the clicked block through that face.
+fn clicked_face(face: [i32; 3]) -> Option<Direction> {
+    Some(match face {
+        [0, -1, 0] => Direction::Down,
+        [0, 1, 0] => Direction::Up,
+        [0, 0, -1] => Direction::North,
+        [0, 0, 1] => Direction::South,
+        [-1, 0, 0] => Direction::West,
+        [1, 0, 0] => Direction::East,
+        _ => return None,
+    })
+}
+
+/// A context stack as an item slot, for the container registry's trades (which read the item,
+/// the count and the custom data a tagged container keeps its fluid in).
+fn slot_from_stack(held: &StackData) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&held.item).ok()?, held.count);
+    slot.damage = held.damage;
+    slot.max_damage = held.max_damage;
+    slot.custom_data = held.custom_data.clone();
+    slot.custom_model_data = held.custom_model_data.clone();
+    slot.enchantments = Some(held.enchantments.clone());
+    Some(slot)
+}
+
+/// The stack a trade leaves, in the context's stack shape: the result's item, count and custom
+/// data (a tagged bucket's fluid tag rides in its custom data) over the held stack's own fields.
+fn stack_from_slot(slot: &ItemSlot, held: &StackData) -> StackData {
+    let mut out = held.clone();
+    out.item = slot.item.to_string();
+    out.count = slot.count;
+    out.custom_data = slot.custom_data.clone();
+    out
 }
 
 fn centre(pos: BlockPos) -> [f64; 3] {
@@ -496,6 +603,13 @@ fn swap_held(used: &super::events_interaction_v0::UseItemOnBlockContext, held: &
     }
 }
 
+/// The game's own fluids and their bucket items. Nobody registers water or lava (the game already has them),
+/// so no fluid registration ever builds their containers — yet their buckets are containers like any fluid's:
+/// a lava bucket empties into a tank and an empty bucket fills from one, as the original's tank interaction
+/// (`FluidTransferHelper.interactWithTank`) does with every bucket the platform knows. They ride along with
+/// every bucket registration below, so the shared empty bucket rebuilt there always knows them too.
+const VANILLA_BUCKETS: [(&str, &str); 2] = [("minecraft:water", "minecraft:water_bucket"), ("minecraft:lava", "minecraft:lava_bucket")];
+
 /// Registers the bucket of a fluid as a container and makes the buckets work on blocks. Called by [`FluidRegistry::register`] for a fluid
 /// with a bucket.
 pub(crate) fn register_bucket(def: &FluidDef) {
@@ -508,12 +622,23 @@ pub(crate) fn register_bucket(def: &FluidDef) {
     } else {
         FluidItems::register(FluidItemDef::constant(bucket_item, def.id.clone(), 1000, Some(empty_bucket.clone())));
     }
-    let fluids: Vec<(Identifier, Identifier, bool)> = FluidRegistry::registered()
+    for (fluid, bucket) in VANILLA_BUCKETS {
+        let fluid = Identifier::parse(fluid).expect("a fixed id");
+        let bucket = Identifier::parse(bucket).expect("a fixed id");
+        FluidItems::register(FluidItemDef::constant(bucket, fluid, 1000, Some(empty_bucket.clone())));
+    }
+    let mut fluids: Vec<(Identifier, Identifier, bool)> = FluidRegistry::registered()
         .into_iter()
         .filter(|other| other.bucket && other.id != def.id)
         .chain(std::iter::once(def.clone()))
         .map(|other| (other.id.clone(), FluidWorld::bucket_id(&other.id), other.bucket_carries_tag))
         .collect();
+    for (fluid, bucket) in VANILLA_BUCKETS {
+        let fluid = Identifier::parse(fluid).expect("a fixed id");
+        if !fluids.iter().any(|(known, _, _)| *known == fluid) {
+            fluids.push((fluid, Identifier::parse(bucket).expect("a fixed id"), false));
+        }
+    }
     let mut buckets = fluids.into_iter();
     if let Some((first, first_bucket, first_tagged)) = buckets.next() {
         let mut item = if first_tagged {
@@ -692,6 +817,21 @@ mod tests {
     }
 
     #[test]
+    fn a_bucket_registration_also_makes_the_vanilla_buckets_containers() {
+        FluidRegistry::register(FluidDef::new(id("flow_test:bucketed")).with_bucket());
+        let empty = super::super::block_entity_api_v1::ItemSlot::new(id("minecraft:bucket"), 1);
+        // The empty bucket fills with the game's own fluids and becomes their buckets; a filled vanilla
+        // bucket reads as its fluid and drains back to an empty bucket.
+        for (fluid, bucket) in [("minecraft:lava", "minecraft:lava_bucket"), ("minecraft:water", "minecraft:water_bucket")] {
+            let filled = FluidItems::fill(&empty, &super::super::block_entity_api_v1::FluidStack { fluid: id(fluid), amount: 1000, tag: None });
+            assert_eq!((filled.amount, filled.container.item.to_string()), (1000, bucket.to_owned()), "{fluid}");
+            assert_eq!(FluidItems::contents(&filled.container).map(|held| (held.fluid.to_string(), held.amount)), Some((fluid.to_owned(), 1000)));
+            let drained = FluidItems::drain(&filled.container, None, 1000).unwrap();
+            assert_eq!((drained.fluid.fluid.to_string(), drained.container.unwrap().item.to_string()), (fluid.to_owned(), "minecraft:bucket".to_owned()));
+        }
+    }
+
+    #[test]
     fn a_tagged_bucket_keeps_the_fluids_tag_on_the_item_and_needs_no_world_blocks() {
         FluidRegistry::register(FluidDef::new(id("flow_test:tagged_potion")).with_bucket().bucket_carries_tag());
         assert!(BlockBehaviors::get("flow_test:tagged_potion_fluid").is_none(), "no world blocks, no flow behaviour");
@@ -730,5 +870,39 @@ mod tests {
         assert_eq!(FluidWorld::fluid_of(&BlockState::new(id("minecraft:lava"))), Some((id("minecraft:lava"), 0)), "a lava block with no level is a source");
         assert_eq!(FluidWorld::fluid_of(&BlockState::parse("minecraft:stone").unwrap()), None);
         assert_eq!(FluidWorld::fluid_of(&BlockState::parse("flow_test:molten_fluid").unwrap()), None, "a mod fluid block with no level is no form");
+    }
+
+    #[test]
+    fn a_bucket_trades_with_the_clicked_blocks_storage() {
+        use super::super::neighbour_api_v1::{with_neighbours, MemoryNeighbourOps};
+        // Registering a bucketed fluid is what makes the vanilla buckets containers (and buckets).
+        FluidRegistry::register(FluidDef::new(id("bucket_trade:molten")).with_bucket());
+        let pos = [4, 64, 4];
+        let mut ops = MemoryNeighbourOps::default();
+        ops.tanks.insert(pos, vec![(None, 4000)]);
+        let lava_bucket = ItemSlot::new(id("minecraft:lava_bucket"), 1);
+        let empty_bucket = ItemSlot::new(id("minecraft:bucket"), 1);
+        assert!(FluidItems::is_bucket(&lava_bucket) && FluidItems::is_bucket(&empty_bucket), "the vanilla buckets are buckets");
+        // A filled bucket empties into the clicked block's storage and leaves the empty bucket.
+        let done = with_neighbours(&mut ops, || trade_bucket(&lava_bucket, pos, Direction::West)).expect("the bucket empties into the tank");
+        assert!(done.into_tank && done.moved.amount == 1000);
+        assert_eq!(done.held.unwrap().item, id("minecraft:bucket"));
+        assert_eq!(ops.tanks[&pos][0].0.as_ref().unwrap().amount, 1000);
+        // The empty bucket fills back from the same storage.
+        let done = with_neighbours(&mut ops, || trade_bucket(&empty_bucket, pos, Direction::West)).expect("the bucket fills from the tank");
+        assert!(!done.into_tank && done.moved.amount == 1000);
+        assert_eq!(done.held.unwrap().item, id("minecraft:lava_bucket"));
+        assert!(ops.tanks[&pos][0].0.is_none(), "the tank gave its bucket back");
+        // Nothing trades where there is no storage, and a different fluid does not mix.
+        assert!(with_neighbours(&mut ops, || trade_bucket(&lava_bucket, [9, 64, 9], Direction::Up)).is_none());
+        ops.tanks.insert(pos, vec![(Some(FluidStack { fluid: id("minecraft:water"), amount: 500, tag: None }), 4000)]);
+        assert!(with_neighbours(&mut ops, || trade_bucket(&lava_bucket, pos, Direction::West)).is_none(), "lava does not pour into a water tank");
+        assert_eq!(ops.tanks[&pos][0].0.as_ref().unwrap().amount, 500, "and the water is untouched");
+        // Only buckets take this path: a plain item and a tank item (a container, but no bucket) do not.
+        assert!(with_neighbours(&mut ops, || trade_bucket(&ItemSlot::new(id("minecraft:stick"), 1), pos, Direction::West)).is_none());
+        FluidItems::register(FluidItemDef::tank(id("bucket_trade:carried_tank"), "Fluid", 1000));
+        let carried = ItemSlot::new(id("bucket_trade:carried_tank"), 1);
+        assert!(FluidItems::is_container(&carried) && !FluidItems::is_bucket(&carried));
+        assert!(with_neighbours(&mut ops, || trade_bucket(&carried, pos, Direction::West)).is_none());
     }
 }

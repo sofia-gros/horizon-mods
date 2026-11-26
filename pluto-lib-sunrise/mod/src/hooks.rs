@@ -299,6 +299,21 @@ impl PlayerOps for HostOps {
         attachment_read(self.host(), Holder::Entity(entity), id, sync)
     }
 
+    fn block_in_tag(&mut self, block: &str, tag: &str) -> bool {
+        // The host answers from the server's merged tags, as it does for the read-only tag
+        // world above. Without this the trait's default false reaches every callback that
+        // carries this world — a block entity tick above all — and a tag-classified scan
+        // (the smeltery's structure check) judges every floor, wall and tank block invalid.
+        // (S1 sync, re-expressed at L7 in the typed-tag API: the name-based host
+        // read S1 used no longer exists at ba1f24e4, so this mirrors the
+        // WorldOps override below.)
+        let host = self.0.get();
+        let Some(block) = mod_api::__private::block_key(block) else { return false };
+        let Some(tag_id) = mod_api::Identifier::parse_namespaced(tag) else { return false };
+        let Some(tag) = mod_api::__private::tag_key(&tag_id) else { return false };
+        host.tags().block_in_tag(block, tag.typed::<mod_api::BlockKey>()).unwrap_or(false)
+    }
+
     fn entity_attachment_set(&mut self, entity: u32, _dimension: &str, id: &str, json: &str, sync: bool) -> bool {
         attachment_write(self.host(), Holder::Entity(entity), id, json, sync)
     }

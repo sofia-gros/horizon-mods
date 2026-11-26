@@ -9,8 +9,8 @@ fn attempt(state:&StructureState,context:&mut impl StartContext,index:usize,chun
     let name=&state.registry.structures[index].name;
     match super::pluto_structure_context::natural_start(state,context,name,chunk) {
         Ok(None)=>try_generate(&state.registry,&state.resources,&state.bindings,context,index,chunk,false),
-        Ok(Some(start))=>start,
-        Err(error)=>{eprintln!("pluto_lib: natural structure {name} rejected: {error}");None},
+        Ok(Some(start))=>{log::info!("pluto_lib: natural structure start created by the registered planner: {name} at chunk {}, {}",chunk.x,chunk.z);start},
+        Err(error)=>{eprintln!("pluto_lib: natural structure {name} rejected: {error}");log::warn!("pluto_lib: natural structure {name} at chunk {}, {} rejected: {error}",chunk.x,chunk.z);None},
     }
 }
 
@@ -37,7 +37,7 @@ fn create(state:&StructureState,context:&mut impl StartContext,rings:&Rings,chun
         let supported=if custom {
             match super::pluto_structure_context::natural_set_supported(state,&set.name) {
                 Ok(supported)=>supported,
-                Err(error)=>{eprintln!("pluto_lib: natural set {} unavailable: {error}",set.name);false},
+                Err(error)=>{eprintln!("pluto_lib: natural set {} unavailable: {error}",set.name);log::warn!("pluto_lib: natural structure set {} unavailable: {error}",set.name);false},
             }
         } else {false};
         if !supported {
@@ -83,7 +83,7 @@ pub fn build(state:&StructureState,context:&mut impl StartContext,chunk:ChunkPos
             match pluto_structure_access::is_registered(kind) {
                 Ok(true)=>{registered=true;break},
                 Ok(false)=>{},
-                Err(error)=>{eprintln!("pluto_lib: natural structure dispatch unavailable: {error}");return ControlFlow::Break(None)},
+                Err(error)=>{eprintln!("pluto_lib: natural structure dispatch unavailable: {error}");log::warn!("pluto_lib: natural structure dispatch unavailable: {error}");return ControlFlow::Break(None)},
             }
         }
     }

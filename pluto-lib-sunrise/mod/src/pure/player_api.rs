@@ -151,8 +151,12 @@ pub trait PlayerOps {
     /// Broadcasts that the stack in `slot` broke (`LivingEntity.onEquippedItemBroken`): the break statistic,
     /// the break sound and crumbs where the player stands, and the item-break event for the players around.
     /// False when the broadcast could not be queued. The game's own wear already broadcasts the breaks it
-    /// applies (mining, hurt armor), so only a break the port itself applied — a tool worn by a modifier —
-    /// is broadcast this way; calling it for a host break would sound the break twice.
+    /// applies to the stacks it breaks itself (a vanilla item worn by mining or hurt armor), so a break the
+    /// game applied is never broadcast this way — it would sound the break twice. Every break of a stack
+    /// the game never breaks is the port's to broadcast: a Tinkers tool's mirror keeps its damage one short
+    /// of the game's break point, so the consumer whose wear broke the tool broadcasts it — the wear the
+    /// game's wear event asked for (where the port's replacement is the stack the game keeps) included,
+    /// not only a modifier's own extra wear.
     fn broadcast_item_break(
         &mut self,
         _player: u128,
@@ -534,7 +538,9 @@ impl ServerPlayer {
     /// the break sound and crumbs where the player stands, and the item-break event for the players around.
     /// `stack` is the stack as it broke. False outside a callback that carries this player, or when the game
     /// could not queue the broadcast. Only a break the port itself applied is broadcast this way — the game's
-    /// own wear already broadcasts the breaks it applies.
+    /// own wear already broadcasts the breaks it applies to the stacks it breaks itself; a Tinkers tool is
+    /// never one of those (its mirror stops one short of the game's break point), so every break of one is
+    /// broadcast by the consumer whose wear broke it.
     pub fn broadcast_item_break(
         &self,
         slot: super::entity_events_v1::StackSlot,
@@ -710,6 +716,8 @@ pub struct MemoryPlayerOps {
     pub released_uses: Vec<u128>,
     /// Every player whose use a `stop_use` ended, in the order they were ended.
     pub stopped_uses: Vec<u128>,
+    /// Every break broadcast, as (player, slot, item id of the stack as it broke), in order.
+    pub breaks: Vec<(u128, super::entity_events_v1::StackSlot, String)>,
     /// The item menus opened, in order, as (player, menu type, title, items, extra data).
     pub opened_item_menus: Vec<OpenedItemMenu>,
     /// The host attribute values a test set for a player, by `(player, attribute)`: what
@@ -742,6 +750,10 @@ impl MemoryPlayerOps {
 impl PlayerOps for MemoryPlayerOps {
     fn tell(&mut self, player: u128, line: &str) -> bool {
         self.told.push((player, line.to_owned()));
+        true
+    }
+    fn broadcast_item_break(&mut self, player: u128, slot: super::entity_events_v1::StackSlot, stack: &StackData) -> bool {
+        self.breaks.push((player, slot, stack.item.clone()));
         true
     }
     fn give(&mut self, player: u128, item: &str, count: u32) -> u32 {

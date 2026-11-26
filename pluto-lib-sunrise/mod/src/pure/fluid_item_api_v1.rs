@@ -217,6 +217,23 @@ impl FluidItems {
         Self::get(&stack.item.to_string()).is_some()
     }
 
+    /// Whether the stack is a bucket: a filled bucket (a constant container that hands back
+    /// `minecraft:bucket` when drained) or the shared empty bucket itself. Tank items, portions
+    /// and other containers are not buckets: they trade through a block's own use, while a
+    /// bucket's trade with a clicked block also rides the bucket path (see
+    /// `fluid_world_api_v1::use_bucket`), because the game's own bucket use would otherwise
+    /// pour the fluid into the world without ever asking the block.
+    pub(crate) fn is_bucket(stack: &ItemSlot) -> bool {
+        let Some(def) = Self::get(&stack.item.to_string()) else { return false };
+        match &def.kind {
+            Kind::Constant { empty, .. } | Kind::TaggedConstant { empty, .. } => {
+                empty.as_ref().is_some_and(|empty| empty.to_string() == "minecraft:bucket")
+            }
+            Kind::Fills(_) => stack.item.to_string() == "minecraft:bucket",
+            _ => false,
+        }
+    }
+
     /// What the stack holds; `None` for an empty container and for an item that holds no fluid. A scaled tank of several items reports
     /// the amount of all of them.
     pub fn contents(stack: &ItemSlot) -> Option<FluidStack> {
