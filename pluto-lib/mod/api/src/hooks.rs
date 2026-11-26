@@ -5044,6 +5044,8 @@ impl Hooks for PlutoHooks {
                 let amount = u32::try_from(stack.amount).ok()?;
                 (Some(FluidStack { fluid, amount, tag }), amount)
             }
+            // The host enum is non-exhaustive: a request form this build does not know is refused untouched.
+            _ => return None,
         };
         let execute = matches!(event.action, NativeFluidAction::Execute);
         let drained = drainer_gives(host, event.pos, exact.as_ref(), amount, execute)?;
