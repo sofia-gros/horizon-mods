@@ -27,7 +27,7 @@ use crate::pure::fov_api_v1::{self, FovSlot, FovStack};
 use crate::pure::highlight_api_v1;
 use crate::pure::fluid_storage_api_v1::{BlockEntityStore, FluidStorage};
 use crate::pure::item_storage_api_v1::ItemStorage;
-use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose};
+use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, ModelPart, ModelPolygon, ModelVertex, PartPose};
 use crate::pure::screen_handler_api_v1::{self, ScreenCanvas};
 use crate::pure::player_api::{EffectInstance, FoodStatus};
 use crate::pure::world_api_v1::{self, BlockState, WorldOps};
