@@ -467,10 +467,16 @@ pub(crate) fn use_bucket(used: &super::events_interaction_v0::UseItemOnBlockCont
 /// callback, and one it passed on (nothing moved) passes here too. True when fluid moved and
 /// the click is the trade's.
 fn trade_with_clicked_storage(used: &super::events_interaction_v0::UseItemOnBlockContext) -> bool {
+    let Some(face) = clicked_face(used.face) else { return false };
+    trade_with_storage(used, used.pos, face)
+}
+
+/// The bucket trade against the storage at `storage_pos`, reached through `face`, with the
+/// hand left holding what the trade leaves. True when fluid moved.
+fn trade_with_storage(used: &super::events_interaction_v0::UseItemOnBlockContext, storage_pos: BlockPos, face: Direction) -> bool {
     let Some(held) = used.held.as_ref() else { return false };
     let Some(slot) = slot_from_stack(held) else { return false };
-    let Some(face) = clicked_face(used.face) else { return false };
-    let Some(done) = trade_bucket(&slot, used.pos, face) else { return false };
+    let Some(done) = trade_bucket(&slot, storage_pos, face) else { return false };
     // The stack the trade leaves in the hand: the unit's result (for several held, the rest
     // stays in the hand and the unit's result is given, as `interact` splits it).
     let unit = if held.count > 1 { done.give.into_iter().next() } else { done.held };
@@ -488,6 +494,58 @@ fn trade_bucket(held: &ItemSlot, pos: BlockPos, face: Direction) -> Option<Inter
     }
     let mut storage = ClickedStorage { pos, face };
     FluidItems::interact(Some(held), &mut storage, TransferDirection::Auto)
+}
+
+/// A bucket the game's own bucket use is about to fill or empty (`BucketItem.use`), for the
+/// `fill_bucket` hook the host asks there before anything is picked up or poured — the one
+/// hook standing on every bucket path, for every player. The clicks the block's use and the
+/// item-use callback trade never reach it (a taken click never runs the game's bucket code);
+/// the clicks that do reach it are the ones nothing else saw: a guest's use-item packet goes
+/// straight to the bucket code with no block hit at all, so no earlier phase is ever asked,
+/// and the game would pour (or pick up) past the tank the player clicked. The trade is the
+/// same one the earlier phases make; `used.pos` here is the hook's position, which differs
+/// by direction. An empty bucket's position is the block its own ray hit — the clicked
+/// block itself, the pickup target — so the trade is with the storage there, exactly. A
+/// filled bucket's position is where its fluid would be placed: the clicked block itself
+/// when it takes the fluid in (a liquid container), otherwise the cell its clicked face
+/// leads to, with the clicked block standing beside it. The storage at the position
+/// answers first; beside it, the neighbours are probed with a simulated fill and the trade
+/// is made only when exactly one of them takes the bucket's fluid — the clicked tank is
+/// that neighbour in practice, and with none or several the click keeps the game's own
+/// pour rather than guess between storages. True when fluid moved and the pour is the
+/// trade's to cancel.
+pub(crate) fn fill_bucket_trade(used: &super::events_interaction_v0::UseItemOnBlockContext) -> bool {
+    let Some(held) = used.held.as_ref() else { return false };
+    let Some(slot) = slot_from_stack(held) else { return false };
+    if !FluidItems::is_bucket(&slot) {
+        return false;
+    }
+    // The empty bucket drains the block at the position itself.
+    if FluidItems::contents(&slot).is_none() {
+        return trade_with_storage(used, used.pos, Direction::Up);
+    }
+    // A filled bucket fills the storage at the position when there is one there...
+    if trade_with_storage(used, used.pos, Direction::Up) {
+        return true;
+    }
+    // ...and otherwise the unique neighbouring storage that takes its fluid.
+    let Some(contents) = FluidItems::contents(&slot) else { return false };
+    let mut candidate: Option<(BlockPos, Direction)> = None;
+    for offset in [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]] {
+        // The storage's face is the side the placement cell sees: out of the storage,
+        // toward the position.
+        let Some(face) = clicked_face([-offset[0], -offset[1], -offset[2]]) else { continue };
+        let pos = [used.pos[0] + offset[0], used.pos[1] + offset[1], used.pos[2] + offset[2]];
+        let mut storage = ClickedStorage { pos, face };
+        if storage.fill(&contents, false) > 0 {
+            if candidate.is_some() {
+                return false;
+            }
+            candidate = Some((pos, face));
+        }
+    }
+    let Some((pos, face)) = candidate else { return false };
+    trade_with_storage(used, pos, face)
 }
 
 /// The fluid storage of the clicked block as a [`FluidTarget`], through the neighbour reach.
@@ -905,5 +963,77 @@ mod tests {
         let carried = ItemSlot::new(id("bucket_trade:carried_tank"), 1);
         assert!(FluidItems::is_container(&carried) && !FluidItems::is_bucket(&carried));
         assert!(with_neighbours(&mut ops, || trade_bucket(&carried, pos, Direction::West)).is_none());
+    }
+
+    /// A `fill_bucket` hook context: the bucket in hand, the hook's position, and a
+    /// creative player (the mode whose untaken clicks reach the game's bucket code).
+    fn bucket_hook(held_item: &str, pos: BlockPos) -> super::super::events_interaction_v0::UseItemOnBlockContext {
+        super::super::events_interaction_v0::UseItemOnBlockContext {
+            item: held_item.to_owned(),
+            count: 1,
+            pos,
+            face: [0, 1, 0],
+            dimension: "minecraft:overworld".to_owned(),
+            player: super::super::player_api::ServerPlayer { uuid: 7, name: "tester".to_owned() },
+            creative: true,
+            game_mode: 1,
+            sneaking: false,
+            held: Some(StackData { item: held_item.to_owned(), count: 1, ..Default::default() }),
+        }
+    }
+
+    #[test]
+    fn a_filled_bucket_trades_with_the_unique_storage_beside_the_placement_cell() {
+        use super::super::neighbour_api_v1::{with_neighbours, MemoryNeighbourOps};
+        // Registering a bucketed fluid is what makes the vanilla buckets containers (and buckets).
+        FluidRegistry::register(FluidDef::new(id("hook_trade:molten")).with_bucket());
+        // The tank stands east of the cell the bucket would pour into: the hook's
+        // position is the placement cell, the clicked tank beside it.
+        let mut ops = MemoryNeighbourOps::default();
+        ops.tanks.insert([6, 64, 5], vec![(None, 4000)]);
+        let used = bucket_hook("minecraft:water_bucket", [5, 64, 5]);
+        let traded = with_neighbours(&mut ops, || fill_bucket_trade(&used));
+        assert!(traded, "the click is the trade's, so the pour is cancelled");
+        let stored = ops.tanks[&[6, 64, 5]][0].0.as_ref().expect("the tank holds the water now");
+        assert_eq!((stored.fluid.clone(), stored.amount), (id("minecraft:water"), 1000), "the bucket's water is in the tank, not the world");
+    }
+
+    #[test]
+    fn a_filled_bucket_passes_when_two_storages_beside_the_cell_would_take_it() {
+        use super::super::neighbour_api_v1::{with_neighbours, MemoryNeighbourOps};
+        FluidRegistry::register(FluidDef::new(id("hook_trade:molten")).with_bucket());
+        let mut ops = MemoryNeighbourOps::default();
+        ops.tanks.insert([4, 64, 5], vec![(None, 4000)]);
+        ops.tanks.insert([6, 64, 5], vec![(None, 4000)]);
+        let used = bucket_hook("minecraft:water_bucket", [5, 64, 5]);
+        let traded = with_neighbours(&mut ops, || fill_bucket_trade(&used));
+        assert!(!traded, "no guessing between two storages: the game's own pour stands");
+        assert!(ops.tanks.values().all(|tanks| tanks[0].0.is_none()), "nothing moved");
+    }
+
+    #[test]
+    fn an_empty_bucket_trades_with_the_storage_at_the_hook_position() {
+        use super::super::neighbour_api_v1::{with_neighbours, MemoryNeighbourOps};
+        FluidRegistry::register(FluidDef::new(id("hook_trade:molten")).with_bucket());
+        // The empty bucket's hook position is the clicked block itself (its pickup target).
+        let mut ops = MemoryNeighbourOps::default();
+        ops.tanks.insert([5, 64, 5], vec![(Some(FluidStack { fluid: id("minecraft:water"), amount: 2000, tag: None }), 4000)]);
+        let used = bucket_hook("minecraft:bucket", [5, 64, 5]);
+        let traded = with_neighbours(&mut ops, || fill_bucket_trade(&used));
+        assert!(traded);
+        assert_eq!(ops.tanks[&[5, 64, 5]][0].0.as_ref().unwrap().amount, 1000, "a bucketful drained out of the tank");
+    }
+
+    #[test]
+    fn a_bucket_with_no_storage_in_reach_passes() {
+        use super::super::neighbour_api_v1::{with_neighbours, MemoryNeighbourOps};
+        FluidRegistry::register(FluidDef::new(id("hook_trade:molten")).with_bucket());
+        let mut ops = MemoryNeighbourOps::default();
+        let filled = bucket_hook("minecraft:water_bucket", [5, 64, 5]);
+        assert!(!with_neighbours(&mut ops, || fill_bucket_trade(&filled)), "nothing to trade with: the pour stands");
+        let empty = bucket_hook("minecraft:bucket", [5, 64, 5]);
+        assert!(!with_neighbours(&mut ops, || fill_bucket_trade(&empty)), "nothing to drain: the pickup stands");
+        let not_a_bucket = bucket_hook("minecraft:stone", [5, 64, 5]);
+        assert!(!with_neighbours(&mut ops, || fill_bucket_trade(&not_a_bucket)), "not a bucket at all");
     }
 }
