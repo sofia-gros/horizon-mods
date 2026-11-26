@@ -6,7 +6,7 @@ side = "both"
 
 [native]
 game = "26.3"
-sunrise = "ffb8601b02db279261c4e9bbfd977b4b2e3892ab"
+sunrise = "ba1f24e4ad41246b558230aa665539dc768b1287"
 mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"
 
 # PlutoLib: Horizon's Fabric API. A trait mod (see docs/native-mods.md, "Trait mods"): the launcher links the

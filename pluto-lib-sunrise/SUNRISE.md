@@ -9,12 +9,13 @@ API; only PlutoLib has two trees.
 
 ## Pinned target
 
-- Sunrise revision: **6a02076f89cd189d74d63492dda5b023fa85a38f**
-  (latest Mod SDK release `sdk-6a02076f…`, 2026-11-25; game "26.3").
+- Sunrise revision: **ba1f24e4ad41246b558230aa665539dc768b1287**
+  (latest Mod SDK release `sdk-ba1f24e4…`, 2026-11-26; game "26.3").
   The tree was seeded against SDK release
   `3d34bbe63d71bb24c098c1e4021ef866be12fe2d` (2026-11-24), retargeted to
-  ffb8601b by the checkpoint below, and re-based onto 6a02076f by the L1
-  foundation section below (2026-11-26); per owner decision (2026-11-25)
+  ffb8601b by the checkpoint below, re-based onto 6a02076f by the L1
+  foundation section below (2026-11-26), and onto ba1f24e4 by the
+  re-pin 2 section below (2026-11-26); per owner decision (2026-11-25)
   only the latest SDK is supported — older generations are dropped. Per
   the Sunrise-latest research, the porting unit is an SDK release, not
   raw main.
@@ -28,10 +29,13 @@ API; only PlutoLib has two trees.
   ~2,128 `surface.changes` entries — Attachments rework, mass
   hook-version bumps, capability-provider rework, some moved mixin
   targets; ffb8601b → 6a02076f: 7 breaking / 6 conditional / 34 additive,
-  itemised in the L1 section below).
+  itemised in the L1 section below; 6a02076f → ba1f24e4: 51 breaking /
+  40 conditional / 586 additive, itemised in the re-pin 2 section
+  below — and `sdk.json` of ba1f24e4, read 2026-11-26, shows every pin
+  field identical again, so only the surface moved).
 - Release naming (owner rule, 2026-11-25): the Sunrise variant's release
   name carries "sunrise":
-  **`pluto-lib-sunrise-v0.1.0-sunrise.6a02076f-mixins.e59da909`**.
+  **`pluto-lib-sunrise-v0.1.0-sunrise.ba1f24e4-mixins.e59da909`**.
   Signing on Sunrise is GitHub artifact attestation + `.sigstore.json`
   produced by the registry's shared workflow — authors hold no keys;
   the Horizon variant's minisign plan does NOT carry over.
@@ -496,6 +500,106 @@ are folded into the release procedure (DESIGN §5).
   `pluto-lib-sunrise/sunrise-6a02076f-mixins-e59da909`; base follow-up
   work on it (the ffb8601b-named branch is kept for history).
 
+## Re-pin 2 (2026-11-26): SDK ba1f24e4
+
+A newer SDK shipped the same day (`sdk-ba1f24e4ad41246b558230aa665539dc768b1287`,
+published 2026-11-26T02:04:02Z) and was caught by the L7 lane's opening
+latest-check, which stopped before merging. This section digests the
+re-pin L1-style before any L7 integration work; the L1 worklist and the
+L2–L6 lane sections carry over unchanged onto this foundation.
+
+- **Diff** (`cargo sunrise-mod sdk diff 6a02076f ba1f24e4`, run on the
+  PC, exit 0): **51 breaking / 40 conditional / 586 additive** (677
+  surface changes; hash `30247197…` → `bfc42991…`; `surface.previous`
+  is 6a02076f, so this is the direct successor). Main drivers:
+  convention tags (#1244) — `TagKey` becomes `TagKey<K = ()>` and the
+  `Tags` / `LoopContext` / `*_key::is_in_tag` queries take typed keys;
+  frame-graph setup + compute pipelines (#963); the Collider /
+  ColliderPose rework (constants and `set_collider_transform` removed);
+  datapack vanilla value kinds (#5368 part 2, `DatapackCandidate::build`
+  gains a decoder argument); dynamic textures reworked (budget /
+  free-slot surface removed); `BlockProperties` loses
+  `skip_same_block_faces` to data-driven face rules; the item-use hook
+  family goes to version 2 (the event now carries the using player's
+  entity id); `collision_shape` goes to version 3 (no per-tick answer
+  caching). Hooks removed: `dragon_egg_form`, `shader_params`. Hooks
+  added (15): `client_break_progress`, `client_particle_add`,
+  `client_take_item_entity`, `dragon_fight_tick`, `dragon_fight_won`,
+  `dragon_respawn_stage`, `end_crystal_destroyed`, `frame_graph_setup`,
+  `living_death_protection`, `register_pipeline_modifiers`,
+  `screen_files_dropped`, `screen_mouse_moved_pre`,
+  `screen_pointer_motion`, `sleep_status_announce`, `sleepers_needed`.
+- **Pins**: only the SDK revision moved. `sdk.json` of ba1f24e4 (read
+  2026-11-26) shows game `26.3`, `mixins.rev =
+  e59da9094f0c2fdda6c627fe9eff22dec6a906f0` + patch `c4a46bf9…`,
+  `toolchain.rust = 1.99.1`, `content_api = "0.2"`, `package_format =
+  6` — all identical to 6a02076f. The manifest pin
+  (`mod/sunrise-mod.toml`, `[native] sunrise =`) is settled to
+  `ba1f24e4ad41246b558230aa665539dc768b1287` uniformly with this
+  foundation (this is the same field L2 advanced to 6a02076f on its
+  branch, which settles the notation question L7 had open).
+- **125-row classification impact: none.** No frozen row changes class
+  from this diff alone. The two removed hooks are referenced by no row
+  and no landed code; the conditional items are hook-version bumps and
+  the tree still carries no `hook_version` pins anywhere (grep-verified
+  on the foundation and the landed branches), so they do not fire —
+  the same finding as L1. The one new surface that touches a drafted
+  (c) cluster is `client_particle_add` (below).
+- **Landed-disposition impact — L7 repair list.** The landed branches
+  (L2 / L3a / L3b / L4 / L5a / L5b / L5c / L6 / S1) were grep-checked
+  against every breaking/conditional symbol:
+  - **R1 (certain, compile)**: `Tags::block_in_tag` now takes
+    `TagKey<BlockKey>`; three landed call sites pass the untyped
+    `TagKey<()>` returned by `mod_api::__private::tag_key` —
+    `hooks.rs` (1 site, the L2/S1 line) and `block_part.rs` (2 sites,
+    L3b). Repair at L7: bind the key once with `.typed::<BlockKey>()`
+    (`TagKey::typed` is added by this SDK) at those sites.
+  - **R2 (probable, verify at first compile)**: mod_api `HurtSource`
+    gains `direct_type: Option<&str>`. Woven helpers construct the
+    game-side `health::HurtSource` with full 3-field literals at 5
+    sites in 3 files (`explosion-equipment-head.rs`,
+    `ordinary-equipment-head.rs`, `pluto-entity-push-access.rs`); if
+    the game-side struct is the same type, those literals need
+    `direct_type: None` added.
+  - Everything else landed is untouched by the diff: L2's 41 wired
+    hooks, L3a's Parts / `create_skull_models` / tint sources, L3b's
+    BlockPart / `mob_split` / reload adapter, L5a's
+    `living_jump_power` / `get_equipment_drop_chance`, L5b's item tint
+    registration, L5c's `fluid_passage` wiring, L6's statics
+    (`ModBlockEntity::revision().identity()`) — none of their surfaces
+    appear in the change lists. The command-argument match already has
+    a wildcard arm, so the new `CommandArgumentValue` variants are
+    inert. `Collider`, `DatapackCandidate`, `EnchantmentInfo`,
+    `submit_geometry`, `skip_same_block_faces`, dynamic textures and
+    `WorldRenderView` have no references in landed `mod/src`.
+  - The woven re-anchors (L4's nine, L5a's tick-post / creatures
+    retargets, L5c's maps / remote / break-speed retargets) target
+    game-source files, which the surface diff does not cover; L7
+    re-measures them with its plan set-diff against ba1f24e4's index,
+    using the foundation baseline below as the reference set.
+- **New surfaces vs drafted gaps: no draft is fully resolved.**
+  `client_particle_add` (client-side, may change or cancel each
+  particle add) partially answers L5a's draft 06 (particle
+  interception) for `pluto-item-particle-factory` /
+  `pluto-entity-particle-kind`; whether it covers the pure factory
+  contract is an L7-era verification, so the rows stay (c).
+  `living_death_protection` and the `BlockStates::path_type` reader
+  are recorded as new surfaces adjacent to the protection and
+  path-type drafts respectively; neither matches a drafted ask.
+- **Foundation verification** (this tree, scoped): pure --lib
+  427 passed / 0 failed (checkpoint baseline reproduced exactly);
+  doctests 1307 passed / 0 failed / 1 ignored (checkpoint-identical);
+  lints 5/5 exit 0; plan failing-id set re-measured with L5c's
+  consistent extraction (unique `pluto_lib:<id>` from error lines) =
+  **102 unique ids** (118 `E_MIXIN` error lines), set-identical to a
+  same-session measurement of this same tree at 6a02076f — the bump
+  itself adds and removes no foundation plan failures.
+- This freeze exists as branch
+  `pluto-lib-sunrise/sunrise-ba1f24e4-mixins-e59da909`; the 6a02076f
+  branch is kept for history. L7 merges the lane branches onto this
+  foundation in its recorded order (L5a / L5b / L5c, then L4, then L6,
+  then S1 reconciled), applying R1 (and R2 if confirmed) as part of
+  the integration.
 
 ## Remaining (precise; in dependency order)
 
