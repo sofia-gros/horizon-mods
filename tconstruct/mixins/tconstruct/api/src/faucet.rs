@@ -1,13 +1,14 @@
 //! The faucet, from SlimeKnights FaucetBlock and FaucetBlockEntity (MIT; see LICENSE): it draws an ingot's worth from the tank
 //! behind it (the side opposite its facing) and pours it into the block below at a nugget per tick, stopping when the source runs
-//! dry, the target is full or, if it was not powered, when asked to. Right click toggles it. Redstone pulses and the scheduled tick
-//! need block events the host does not deliver to a block entity yet (`State::handle_redstone` is the logic); the client packet is
-//! the saved `render_fluid`/`state` data, which a renderer will read. The stream below is measured on the client instead: the
+//! dry, the target is full or, if it was not powered, when asked to. Right click toggles it. Redstone is heard on the block
+//! entity's signal seam (`State::handle_redstone` is the logic): a rising edge asks for the activation the original schedules
+//! two ticks later, and the activation lands on the seam instead (the casting blocks' swap does the same), and a falling edge
+//! stops a powered faucet. The client packet is the saved `render_fluid`/`state` data, which a renderer will read. The stream below is measured on the client instead: the
 //! client tick walks the blocks below through the client world view and keeps their states in transient client data (`stream`),
 //! which the renderer draws from (Mantle's `RenderingHelper.renderFaucetFluids` reads the same states live).
 use crate::fluid_values::{INGOT, NUGGET};
 use pluto_lib::{
-    ActionResult, BlockEntityClientTick, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, BlockState, BlockView,
+    ActionResult, BlockEntityClientTick, BlockEntitySignal, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, BlockState, BlockView,
     Direction, FluidStack, Identifier, Nbt, NbtCompound, NbtCompoundExt, Neighbours,
 };
 
@@ -222,6 +223,18 @@ pub(crate) fn use_faucet(used: &mut BlockEntityUse<'_>) -> ActionResult {
     ActionResult::Success
 }
 
+/// `FaucetBlock.neighborChanged` heard on the signal seam: `handleRedstone` itself answers a falling edge (a powered
+/// faucet turns off) and asks for an activation on a rising edge — the original schedules that activation two ticks
+/// later, here it lands on the seam, as the casting blocks' redstone swap does.
+pub(crate) fn signal_faucet(signal: &mut BlockEntitySignal<'_>) {
+    let mut state = State::load(signal.data);
+    if state.handle_redstone(signal.powered) {
+        let mut around = Around::of(signal.pos, Around::facing_of(signal.pos));
+        state.activate(&mut around);
+    }
+    state.save(signal.data);
+}
+
 /// The blocks the stream pours through, nearest first, as Mantle's `RenderingHelper.renderFaucetFluids` walks them:
 /// the state of each block below, stopping after a block whose faucet fluid does not continue (every shipped entry
 /// stops, so the walk is one block in practice). A block the view cannot say (an unloaded chunk) answers as air, whose
@@ -260,7 +273,7 @@ pub(crate) fn register() {
     for name in BLOCKS {
         let block = Identifier::new("tconstruct", name).expect("valid faucet id");
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(block).sync_data().ticker(tick_faucet).client_ticker(tick_faucet_client).on_use(use_faucet),
+            BlockEntityType::new(block).sync_data().ticker(tick_faucet).client_ticker(tick_faucet_client).on_use(use_faucet).on_signal(signal_faucet),
         );
     }
 }
@@ -364,6 +377,30 @@ mod tests {
         });
         assert_eq!(world.tanks[&[0, 64, 1]][0].0.as_ref().unwrap().amount, 410, "an ingot drawn from the south");
         assert_eq!(world.tanks[&[0, 63, 0]][0].0.as_ref().unwrap().amount, 10);
+    }
+
+    #[test]
+    fn a_redstone_rising_edge_activates_the_faucet_and_a_falling_edge_stops_a_powered_one() {
+        use pluto_lib::{with_neighbours, BlockEntitySignal, ItemSlot, MemoryNeighbourOps};
+        let mut world = MemoryNeighbourOps::default();
+        world.states.insert([0, 64, 0], "tconstruct:seared_faucet[facing=north]".to_owned());
+        world.tanks.insert([0, 64, 1], vec![(Some(fluid(500)), 4000)]);
+        world.tanks.insert([0, 63, 0], vec![(None, 90)]);
+        let mut data = NbtCompound::new();
+        let mut items: Vec<Option<ItemSlot>> = Vec::new();
+        with_neighbours(&mut world, || {
+            signal_faucet(&mut BlockEntitySignal { pos: [0, 64, 0], data: &mut data, items: &mut items, strength: 15, powered: true });
+        });
+        assert_eq!(State::load(&data).mode, Mode::Pouring, "the rising edge activates, as the scheduled tick would");
+        assert_eq!(world.tanks[&[0, 64, 1]][0].0.as_ref().unwrap().amount, 410, "an ingot drawn from the tank behind");
+        assert_eq!(world.tanks[&[0, 63, 0]][0].0.as_ref().unwrap().amount, 10, "the first nugget poured at once");
+        // a steady signal is not another edge, and losing it stops a faucet the signal was keeping
+        let mut data = NbtCompound::new();
+        State { mode: Mode::Powered, last_redstone: true, ..State::default() }.save(&mut data);
+        with_neighbours(&mut world, || {
+            signal_faucet(&mut BlockEntitySignal { pos: [0, 64, 0], data: &mut data, items: &mut items, strength: 0, powered: false });
+        });
+        assert_eq!(State::load(&data).mode, Mode::Off, "the falling edge turns a powered faucet off");
     }
 
     #[test]
