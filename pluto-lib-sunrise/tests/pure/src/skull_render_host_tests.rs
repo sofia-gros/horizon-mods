@@ -3,9 +3,9 @@
 //! exercised by these facades and require separate native validation.
 use std::{collections::HashMap,path::Path,sync::atomic::{AtomicBool,Ordering}};
 use serde_json::{Value,Map,json};
-mod sunrise_assets {pub(crate) mod item_model {pub(crate) use crate::skull_model_access_tests as pluto_skull_model_access;}}
+pub(crate) use crate::skull_model_access_tests as pluto_skull_model_access;
+mod sunrise_client_lib {pub(crate) mod item_render {pub(crate) use crate::skull_model_access_tests as pluto_skull_model_access;}}
 pub(crate) mod parts {
-    use super::sunrise_assets;
     include!("../../../mod/src/pluto-skull-item-models.rs");
 }
 #[derive(Clone,Debug,PartialEq)]

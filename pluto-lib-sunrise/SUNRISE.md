@@ -251,14 +251,14 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | recipe-book-invalidation | MD | (b) | 再アンカー: recipe_book 移転先（census 候補あり） |
 | recipe-book-preview | MD | (b) | 同上 |
 | recipe-placement-attempt | MD | (b) | 同上 |
-| wire-read | MD | (b) | 畳み込み: 同上（item_data access） |
+| wire-read | MD | (c) | L4 実測で再分類: Wire の decoded は item_data の子モジュールからしか読めず（公開アクセサは patch() のみ）、items 目的地は plan 拒否のため畳み込み不可 → Wire の decoded 公開アクセサの上流要求（GAPS B3-1 items 群に合流） |
 | advancement-item-predicate | NR | (c) | 進捗述語の公開面の粒度を確認 |
-| block-color-world-tint | NR | (b) | RETARGET: Mesher::face → Mesher::mesh（mesh は replaceable、census 確認） |
+| block-color-world-tint | NR | (a) | L4 実測で再分類: tint ローカルは Mesher::face 内のみ（mesh には無く MODIFY_VARIABLE は移せない）。ネイティブ面 register_block_tint_sources／BlockTintSource（mesher/mod_tint.rs、color_in_world）が実在 → 登録経路へ |
 | crafting-match-veto | NR | (c) | Recipes 内部の置換は crafting hook の粒度確認から |
 | crafting-special | NR | (c) | 同上 |
 | drops | NR | (c) | ItemPart の drops 面の網羅を確認（GAPS B3-1） |
 | max-damage | NR | (c) | スタック同期（LAN guest 変換）の形を再導出 |
-| movement-table | NR | (b) | RETARGET: game::api_values::block_state::bind（索引に実在） |
+| movement-table | NR | (c) | L4 実測で再分類: 指定先 api_values::block_state::bind は mod_api BlockState 索引を構築する別関数（名前衝突、MovementProperties と無関係）。本来の MovementProperties::bind（sunrise-world）の到達可能な呼び出し側は無し → #[replaceable] 付与の上流要求（GAPS B3-1 形）。support module 自体は plan 通過済み |
 | pluto-block-after-fall | NR | (c) | G12/G4（既存 issue）合流＋呼び出し側付け替え検討 |
 | pluto-block-entity-factory | NR | (a) | Registrar/BlockEntityPart の登録へ（工場の織り込みは廃止） |
 | pluto-block-entity-revision | NR | (c) | BE 同期リビジョンの公開面を確認 |
@@ -303,7 +303,7 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-mob-split-children | NR | (a) | mob_split hook v4（event.child/children） |
 | pluto-path-node-type | NR | (c) | パス探索の型面を確認 |
 | pluto-player-visibility | NR | (c) | 視認率の公開面を確認 |
-| pluto-retexture-layer | NR | (b) | 同上 |
+| pluto-retexture-layer | NR | (c) | L4 実測で再分類: 差し替え対象の own（TileLayer）ローカルは Mesher::face 内のみで、顔単位の層差し替えに対応するネイティブ面は無い → Mesher::face への #[replaceable] 付与か顔単位シームの上流要求。support module 自体は plan 通過済み |
 | pluto-skull-document-parts-return | NR | (a) | SpecialModelFactory |
 | pluto-skull-extents | NR | (a) | SpecialModelFactory（selector_bounds への RETARGET は意味が違うため不採用） |
 | pluto-skull-parts-return | NR | (a) | SpecialModelFactory |
@@ -342,7 +342,7 @@ MD = E_MIXIN_MODULE_DESTINATION.
 | pluto-damage-victim | TM | (c) | LivingIncomingDamageV3Event の実在確認で (a) 見込み |
 | pluto-effect-icon-head | TM | (c) | GAPS A2（HUD コールバック）が受け皿 |
 | pluto-entity-spawn-converted | TM | (c) | 変換完了のイベント面を確認 |
-| pluto-entity-spawn-natural | TM | (b) | RETARGET 候補が索引に実在（natural_spawning::GameLevel 側） |
+| pluto-entity-spawn-natural | TM | (c) | L4 実測で再分類: 実在する GameLevel::finalize_spawned は SDK 索引で拒否（functions.json refused、ジェネリック署名 <R: RandomSource> が理由）。finalize 判定を持つ代替シームは無し（complete_natural_spawn は finalize 後の admission 機構）→ 非ジェネリックな finalize 入口か #[replaceable] 対応の上流要求 |
 | pluto-entity-spawn-runtime | TM | (c) | スポーン内部の再導出（creatures 分割先） |
 | pluto-hanging-frame-from-nbt | TM | (c) | 額縁 NBT 構築の移転先を再導出（同名関数は索引に無い） |
 | pluto-hanging-frame-hit | TM | (c) | 額縁の対話面を再導出 |
@@ -495,6 +495,35 @@ are folded into the release procedure (DESIGN §5).
 - This freeze also exists as branch
   `pluto-lib-sunrise/sunrise-6a02076f-mixins-e59da909`; base follow-up
   work on it (the ffb8601b-named branch is kept for history).
+
+**L4 outcome (2026-11-26, branch `sunrise/l4-replaceable`)**: 9 of the
+14 (b) rows implemented. Six module re-anchors are file-only (the
+logical module paths survive through game.rs `#[path]` declarations):
+reload-registry-source → `game/interface/chat.rs`, structure-command →
+`game/administration/commands/place.rs`, living-drop-state-module →
+`game/items/combat.rs`, recipe-book ×3 → `game/items/recipe_book.rs`.
+reload-registry-access re-anchored into `client_lib.rs` with a
+`pub use crate::pluto_reload_registry;` in the registries re-export, so
+`sunrise_client::registries::pluto_reload_registry` keeps resolving.
+Fold-ins: `api` (pluto_tool_rules) moved to `sunrise-world/src/lib.rs`
+(items → world is the dependency direction that works); its
+`evaluate_stack` became `evaluate_tool(component_tag, …)` and the two
+items-side helpers extract the `minecraft:tool` component themselves.
+pluto-skull-model-access folded into `item_render.rs` beside the skull
+item-models module; its client-side consumers were repointed
+(`crate::item_render::…` / `super::…` / `sunrise_client_lib::…`) — the
+one consumer inside sunrise-assets (pluto-skull-special-decode) is an
+(a) row whose helper L3 replaces wholesale. Five rows were
+reclassified on source evidence (table updated in place above):
+block-color-world-tint → (a) candidate (native tint sources exist),
+pluto-retexture-layer / movement-table / wire-read /
+pluto-entity-spawn-natural → (c) (upstream primitive asks:
+`#[replaceable]` on `Mesher::face`, `#[replaceable]` on
+`MovementProperties::bind`, a public `Wire` decoded accessor, and a
+replaceable non-generic natural-finalize entry — the real
+`GameLevel::finalize_spawned` is refused by the SDK function index
+for its generic signature). The reclassified rows' manifest entries
+are unchanged from the freeze.
 
 
 ## Remaining (precise; in dependency order)

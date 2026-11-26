@@ -16,7 +16,7 @@ pub use sunrise_world::level::pluto_block_access::set_survival_dispatcher;
 #[cfg(not(test))]
 pub use sunrise_world::level::pluto_item_placement_access::{set_provider as set_item_placement_provider, BindingDeclaration as ItemPlacementBinding};
 #[cfg(not(test))]
-pub use sunrise_assets::item_model::pluto_skull_model_access::{set_provider as set_skull_definition_provider, Definition as SkullDefinition, definitions as skull_definitions};
+pub use crate::item_render::pluto_skull_model_access::{set_provider as set_skull_definition_provider, Definition as SkullDefinition, definitions as skull_definitions};
 #[cfg(not(test))]
 pub use crate::item_render::pluto_skull_item_models::set_provider as set_skull_part_provider;
 #[cfg(not(test))]

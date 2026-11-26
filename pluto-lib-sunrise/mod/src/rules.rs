@@ -205,11 +205,14 @@ fn parse_tag(tool: &sunrise_world::nbt::Tag) -> Option<Tool> {
     })
 }
 
-// Invalid or absent components leave the host result in place.
-pub(crate) fn evaluate_stack(
-    stack: &super::ItemStack,
+// Invalid or absent components leave the host result in place. The caller
+// extracts the `minecraft:tool` component from its own stack type: this
+// module lives on the world side of the crate graph (folded out of
+// sunrise-items, whose files take no support modules), where no item stack
+// type can be named.
+pub fn evaluate_tool(
+    tool: &sunrise_world::nbt::Tag,
     matches: impl FnMut(&str) -> bool,
 ) -> Option<Outcome> {
-    let tool = stack.data()?.other("minecraft:tool")?;
     Some(parse_tag(tool)?.evaluate(matches))
 }

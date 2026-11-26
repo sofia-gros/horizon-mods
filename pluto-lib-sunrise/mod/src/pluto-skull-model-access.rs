@@ -1,4 +1,6 @@
-// Shared symbolic skull definitions in horizon-assets. No renderer/Game/world
+// Shared symbolic skull definitions, woven into the client's item_render
+// (sunrise-assets takes no support modules; the item-model consumers that
+// read these definitions live on the client side). No renderer/Game/world
 // objects live here; a registered custom kind is never a vanilla-player fallback.
 use std::{collections::BTreeMap,sync::OnceLock};
 #[derive(Clone,Debug)]

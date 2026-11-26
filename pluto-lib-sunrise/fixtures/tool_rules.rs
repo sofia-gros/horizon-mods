@@ -1,8 +1,15 @@
 use sunrise_client_lib::items::ItemStack;
 use sunrise_world::nbt::Tag;
-#[path = "../mixins/pluto_tool_rules/rules.rs"]
+#[path = "../mod/src/rules.rs"]
 mod rules;
 use rules::{evaluate, Outcome, Rule};
+
+/// The stack-side extraction the woven helpers in sunrise-items perform
+/// before calling the world-side module (rules.rs names no stack type).
+fn evaluate_stack(stack: &ItemStack, matches: impl FnMut(&str) -> bool) -> Option<Outcome> {
+    let tool = stack.data()?.other("minecraft:tool")?;
+    rules::evaluate_tool(tool, matches)
+}
 
 #[test]
 fn ordered_values_and_fallbacks_are_independent() {
@@ -49,7 +56,7 @@ fn ordered_values_and_fallbacks_are_independent() {
 #[test]
 fn actual_component_and_missing_component() {
     let mut stack = ItemStack::new("example:tool", 1);
-    assert!(rules::evaluate_stack(&stack, |_| true).is_none());
+    assert!(evaluate_stack(&stack, |_| true).is_none());
     stack.data_mut().set_other(
         "minecraft:tool",
         Some(Tag::compound([
@@ -74,7 +81,7 @@ fn actual_component_and_missing_component() {
         ])),
     );
     assert_eq!(
-        rules::evaluate_stack(&stack, |id| id == "#example:mineable"
+        evaluate_stack(&stack, |id| id == "#example:mineable"
             || id == "minecraft:stone"),
         Some(Outcome {
             speed: 2.0,
@@ -87,7 +94,7 @@ fn actual_component_and_missing_component() {
         "minecraft:tool",
         Some(Tag::compound([("rules", Tag::Int(1))])),
     );
-    assert!(rules::evaluate_stack(&stack, |_| true).is_none());
+    assert!(evaluate_stack(&stack, |_| true).is_none());
 }
 
 #[test]
