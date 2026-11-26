@@ -1,11 +1,12 @@
 //! The scorched alloyer block entity and its window over PlutoLib's public API (SlimeKnights AlloyerBlockEntity,
 //! AlloyerContainerMenu, AlloyerScreen and the GuiFuelModule/GuiTankModule it draws; MIT, see LICENSE). The window
 //! shows the output tank and the input tanks beside the block with their fluids' still textures tiled over flat
-//! fills of their colours, and the fuel gauge with the fuel tank below's fluid in it; it has no slots of its own
-//! (the original's fuel slot is the heater's own and lives in the heater's window, as with the melter). Clicking
-//! the output tank trades the held container with it; the input tanks are the blocks beside, and the fuel gauge's
-//! tank is the block below — a menu button reaches only its own block entity, so their clicks are not ported (the
-//! block itself trades with a held container on use, like the melter).
+//! fills of their colours, and the fuel gauge with the fuel tank below's fluid in it; it has no slots of its own —
+//! the one slot in its menu is the fuel tank below's bucket slot, borrowed through the menu type's `links` as the
+//! melter borrows the heater's (the menu type is `menu/alloyer.json`: one slot, and it is the linked one).
+//! Clicking the output tank trades the held container with it; the input tanks are the blocks beside, and the
+//! fuel gauge's tank is the block below — a menu button reaches only its own block entity, so their clicks are
+//! not ported (the block itself trades with a held container on use, like the melter).
 use crate::{
     alloyer::{self, Env, Side, State, Tank, ALLOYER_CAPACITY, DATA_FUEL_AMOUNT, DATA_FUEL_CAPACITY, DATA_FUEL_FLUID, DATA_INPUTS, DATA_OUTPUT_AMOUNT, DATA_OUTPUT_FLUID, DATA_SLOTS, MAX_INPUTS},
     common,
@@ -16,7 +17,7 @@ use crate::{
     smeltery_data::Data,
 };
 use pluto_lib::{
-    BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, Direction, FluidItems, FluidRegistry, I18n, Identifier, MenuButton,
+    ActionResult, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, BlockPos, BlockState, Direction, FluidItems, FluidRegistry, I18n, Identifier, MenuButton,
     Neighbours, ScreenCanvas, ScreenHandlerRegistry, ScreenHandlerType, ScreenLayout, TransferDirection, World,
 };
 
@@ -285,18 +286,46 @@ pub(crate) fn alloyer_tooltip(at: [f32; 2], data: &[i32], lines: &mut Vec<String
     }
 }
 
+/// `AlloyerContainerMenu.hasFuelSlot`: the fuel slot is the block below's slot 0, lent only when
+/// that block is in the `fuel_tanks` tag (the melter's `fuel_links`, over the same tag).
+fn fuel_links(pos: BlockPos) -> Vec<BlockPos> {
+    let below = [pos[0], pos[1] - 1, pos[2]];
+    if Neighbours::block_state(below).is_some_and(|state| state.is_in_tag(FUEL_TANKS)) {
+        vec![below]
+    } else {
+        Vec::new()
+    }
+}
+
+/// The alloyer's use: the held container trades with its output tank, and a click nothing moved
+/// opens the window — but only over a formed structure (canon `ControllerBlock.canOpenGui` is
+/// `IN_STRUCTURE`; an unformed controller's use does nothing, so the click is spent here without
+/// asking for the open, as the melter spends a click on a missing fuel source).
+fn use_alloyer(used: &mut BlockEntityUse<'_>) -> ActionResult {
+    match fluid_items::use_tank(used, ALLOYER_CAPACITY as u32) {
+        ActionResult::Pass if !melter::melter_formed(used.pos) => ActionResult::Success,
+        result => result,
+    }
+}
+
 pub(crate) fn register() {
     let alloyer_id = Identifier::new("tconstruct", ALLOYER).expect("valid alloyer id");
-    let layout = ScreenLayout::new(176.0, 166.0).with_own_background();
+    // The fuel slot is the block below's own slot 0 at the original's (151, 32), shown only for a
+    // fuel tank below: the menu type's `links` cover it (see menu/alloyer.json), as the melter's do.
+    let layout = ScreenLayout::new(176.0, 166.0).with_own_background().neighbour_slot(151.0, 32.0, [0, -1, 0]);
     let window = ScreenHandlerType::new(alloyer_id.clone(), layout)
         .on_draw(|draw| draw_alloyer(draw.canvas, draw.origin, draw.data, draw.mouse))
         .on_click(|press| alloyer_click(press.at))
         .on_tooltip(|tip| alloyer_tooltip(tip.at, tip.data, tip.lines))
-        .on_button(|button| alloyer_press(button));
+        .on_button(|button| alloyer_press(button))
+        .on_menu_links(|context| fuel_links(context.pos));
     ScreenHandlerRegistry::register(window);
+    // The registered slot count is the menu's whole slot space (PlutoLib's `menu` contract): the
+    // alloyer's own none plus the one linked slot the menu declaration names, or the host drops
+    // the menu for a size mismatch. The entity itself holds no items; slot 0 is the link.
     BlockEntityTypeRegistry::register(
-        BlockEntityType::new(alloyer_id).fluid_tanks([ALLOYER_CAPACITY as u32]).menu("tconstruct:alloyer").sync_data()
-            .ticker(tick_alloyer).on_use(|used| fluid_items::use_tank(used, ALLOYER_CAPACITY as u32)),
+        BlockEntityType::new(alloyer_id).item_slots(1).fluid_tanks([ALLOYER_CAPACITY as u32]).menu("tconstruct:alloyer").sync_data()
+            .ticker(tick_alloyer).on_use(use_alloyer),
     );
 }
 
@@ -371,6 +400,8 @@ mod tests {
         let entity = BlockEntityTypeRegistry::get("tconstruct:scorched_alloyer").expect("the alloyer block entity");
         assert_eq!(entity.id.to_string(), "tconstruct:scorched_alloyer");
         let window = ScreenHandlerRegistry::get("tconstruct:scorched_alloyer").expect("the alloyer window");
-        assert!(window.layout.slots.is_empty(), "the alloyer window has no slots of its own");
+        // The window's one slot is the borrowed fuel slot at the original's (151, 32); the
+        // alloyer itself holds no items (menu/alloyer.json declares the slot as the linked one).
+        assert_eq!(window.layout.slots, vec![Some([151.0, 32.0])], "the alloyer window's only slot is the fuel tank below's");
     }
 }
