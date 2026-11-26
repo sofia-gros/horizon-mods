@@ -15,7 +15,8 @@ ALLOWED = [
     'docs/architecture.md', 'docs/development.md', 'docs/releasing.md', 'docs/roadmap.md', 'docs/codex.md', 'docs/migration/pr-classification.md',
     'pluto-lib/README.md', 'pluto-lib/docs/design-principles.md', 'pluto-lib/docs/fabric-api-design.md',
     'pluto-lib/docs/fabric-api-hook-map.md', 'pluto-lib/docs/support-matrix.md', 'pluto-lib/docs/api/*.md',
-    # the Sunrise variant tree mirrors pluto-lib's documents; SUNRISE.md is its ledger (R6 tooling adaptation)
+    # the Sunrise variant tree mirrors pluto-lib's documents; SUNRISE.md is its ledger (R6 tooling adaptation);
+    # as a ledger it grows by one section per lane, so it is exempt from the single-document size cap (L7)
     'pluto-lib-sunrise/README.md', 'pluto-lib-sunrise/SUNRISE.md',
     'pluto-lib-sunrise/docs/design-principles.md', 'pluto-lib-sunrise/docs/fabric-api-design.md',
     'pluto-lib-sunrise/docs/fabric-api-hook-map.md', 'pluto-lib-sunrise/docs/api/*.md',
@@ -31,7 +32,7 @@ def violations(paths, sizes=None):
     for path in paths:
         if not any(fnmatch(path, pattern) for pattern in ALLOWED):
             found.append(f'{path}: not on the documentation allow list (tools/check_docs_budget.py); update an existing document instead')
-        elif sizes and sizes.get(path, 0) > MAX_ALLOWED_BYTES and not path.endswith('hook-map.md') and 'pr-classification' not in path:
+        elif sizes and sizes.get(path, 0) > MAX_ALLOWED_BYTES and not path.endswith('hook-map.md') and 'pr-classification' not in path and path != 'pluto-lib-sunrise/SUNRISE.md':
             found.append(f'{path}: {sizes[path]} bytes is too long for a document a person reads')
     return found
 
