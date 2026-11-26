@@ -87,7 +87,7 @@ impl<'a> FluidStorage<'a> {
     /// The tanks the block at `pos` shows, as its filter lists them (`DuctTankWrapper.getTankMapping`); `None` where there is no storage.
     pub fn tanks(&mut self, pos: BlockPos) -> Option<Vec<NeighbourTank>> {
         let found = self.resolve(pos)?;
-        let tanks = BlockEntityTypeRegistry::read_tanks(&found.block, &found.data)?;
+        let tanks = BlockEntityTypeRegistry::read_tanks(&found.block, &found.data, &found.items)?;
         Some(match &found.filter {
             FluidFilter::Any => tanks,
             FluidFilter::Only(filter) => tanks.into_iter().filter(|tank| tank.fluid.as_ref().is_none_or(|held| held.fluid == *filter)).collect(),
@@ -112,7 +112,7 @@ impl<'a> FluidStorage<'a> {
         let taken = match BlockEntityTypeRegistry::fill_fluid(&found.block, found.pos, &mut found.data, &mut found.items, stack.clone(), None, execute) {
             Some(taken) => taken,
             None => {
-                let Some(tanks) = BlockEntityTypeRegistry::read_tanks(&found.block, &found.data) else { return 0 };
+                let Some(tanks) = BlockEntityTypeRegistry::read_tanks(&found.block, &found.data, &found.items) else { return 0 };
                 let mut taken = 0;
                 for (index, tank) in tanks.iter().enumerate() {
                     let room = match &tank.fluid {
@@ -246,7 +246,7 @@ mod tests {
         // one shared tank of 1000 over every fluid, saved under "tank"
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(id("fs:vat"))
-                .fluid_reader(|data| vec![NeighbourTank { fluid: data.get_compound("tank").map(|tag| FluidStack { fluid: id(tag.get_string("fluid").unwrap()), amount: tag.get_int("amount", 0) as u32, tag: None }), capacity: 1000 }])
+                .fluid_reader(|data, _items| vec![NeighbourTank { fluid: data.get_compound("tank").map(|tag| FluidStack { fluid: id(tag.get_string("fluid").unwrap()), amount: tag.get_int("amount", 0) as u32, tag: None }), capacity: 1000 }])
                 .fluid_filler(|fill| {
                     let held = fill.data.get_compound("tank").map_or(0, |tag| tag.get_int("amount", 0) as u32);
                     let taken = fill.fluid.amount.min(1000 - held);
@@ -282,5 +282,43 @@ mod tests {
         assert_eq!(storage.tanks([0, 0, 0]).unwrap()[0].fluid.as_ref().unwrap().amount, 750);
         assert_eq!(storage.tanks([9, 9, 9]), None, "a block that forwards to itself or to nothing has no storage");
         assert_eq!(storage.tanks([5, 5, 5]), None);
+    }
+
+    #[test]
+    fn a_reader_lists_the_tank_of_the_item_the_block_holds() {
+        // a proxy-style type: the storage is the item in slot 0, which holds 40 of fs:held in a tank of 1000;
+        // the listing and the drain are both answered from the slots, not the saved data
+        BlockEntityTypeRegistry::register(
+            BlockEntityType::new(id("fs:item_tank")).item_slots(1)
+                .fluid_reader(|_data, items| {
+                    vec![NeighbourTank {
+                        fluid: items.first().and_then(Option::as_ref).map(|_| fluid("fs:held", 40)),
+                        capacity: if items.first().is_some_and(Option::is_some) { 1000 } else { 0 },
+                    }]
+                })
+                .fluid_drainer(|drain| {
+                    let stored = drain.items.first().and_then(Option::as_ref)?;
+                    if drain.wanted.as_ref().is_some_and(|wanted| *wanted != id("fs:held")) { return None; }
+                    let _ = stored;
+                    if drain.execute { drain.items[0] = None; }
+                    Some(fluid("fs:held", 40))
+                }),
+        );
+        let mut world = MemoryBlockEntities::default();
+        world.blocks.insert([0, 0, 0], "fs:item_tank".into());
+        world.entities.insert([0, 0, 0], (NbtCompound::new(), vec![Some(ItemSlot::new(id("fs:can"), 1))]));
+        let mut storage = FluidStorage::new(&mut world);
+        let tanks = storage.tanks([0, 0, 0]).expect("the listing is answered from the item slots");
+        assert_eq!((tanks.len(), tanks[0].capacity, tanks[0].fluid.as_ref().map(|held| held.amount)), (1, 1000, Some(40)));
+        assert_eq!(storage.drain([0, 0, 0], None, 100, false), Some(fluid("fs:held", 40)), "asking offers the item's fluid");
+        assert_eq!(storage.tanks([0, 0, 0]).unwrap()[0].fluid.as_ref().map(|held| held.amount), Some(40), "asking took nothing");
+        assert_eq!(storage.drain([0, 0, 0], None, 100, true), Some(fluid("fs:held", 40)));
+        let tanks = storage.tanks([0, 0, 0]).unwrap();
+        assert_eq!((tanks[0].capacity, tanks[0].fluid.is_none()), (0, true), "the item is spent: a tank of no capacity holding nothing");
+        // with no item inside, the listing is still answered (one empty tank) and nothing drains
+        world.entities.insert([0, 0, 0], (NbtCompound::new(), vec![None]));
+        let mut storage = FluidStorage::new(&mut world);
+        assert_eq!(storage.tanks([0, 0, 0]).map(|tanks| tanks.len()), Some(1));
+        assert_eq!(storage.drain([0, 0, 0], None, 100, true), None);
     }
 }

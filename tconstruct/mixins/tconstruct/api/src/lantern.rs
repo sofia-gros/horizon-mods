@@ -68,7 +68,7 @@ pub(crate) fn register() {
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(id(name)).sync_data()
                 .ticker(tick_lantern)
-                .fluid_reader(read_lanterns)
+                .fluid_reader(|data, _items| read_lanterns(data))
                 .fluid_filler(fill_lantern)
                 .fluid_drainer(drain_lantern)
                 .on_use(use_lantern),

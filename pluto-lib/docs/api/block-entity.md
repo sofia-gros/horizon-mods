@@ -575,9 +575,9 @@ assert_eq!(tick.fluid(2), None);
 
 ## Custom fluid rules and use hooks
 
-A block whose tank capacity depends on what it is offered (a casting table that wants exactly the recipe's amount), or that trades items with the player's hand, declares the rule itself. Both hooks are pure and tested; the host adapter in `hooks.rs` routes fills through the host's custom fluid hooks (a block with a `fluid_filler` opts in with `custom_block_fluids`; `custom_fluid_tanks` reads its declared tanks, `custom_fluid_fill` runs the filler, simulating on a copy) and right clicks through `right_click_block_v2` (see the caution below).
+A block whose tank capacity depends on what it is offered (a casting table that wants exactly the recipe's amount), or that trades items with the player's hand, declares the rule itself. Both hooks are pure and tested; the host adapter in `hooks.rs` routes fills through the host's custom fluid hooks (a block with a `fluid_filler` opts in with `custom_block_fluids`; `custom_fluid_tanks` reads its declared tanks and reports whether the block can be drained, `custom_fluid_fill` runs the filler and `custom_fluid_drain` the drain rule, each simulating on a copy first — an exact drain request the block cannot match whole, fluid and components, is refused untouched) and right clicks through `right_click_block_v2` (see the caution below).
 
-> **Use with Caution.** Host adapter written, not yet compiled or game-verified. A right click on a block whose type has an `on_use` hook runs it before the block's own use and the item's: any answer but `Pass` cancels both (the hand does not swing, because the host cannot swing a player's arm), the hand afterwards is written back to the used hand and the stacks it gives go to the inventory, the rest dropped at the player's feet. A block with a `fluid_filler` takes fluid only through that hook, and nothing is drained out of it by another block (`custom_fluid_drain` answers none). Items given or left in the hand keep their components only for stacks the hook did not rebuild.
+> **Use with Caution.** Host adapter written, not yet compiled or game-verified. A right click on a block whose type has an `on_use` hook runs it before the block's own use and the item's: any answer but `Pass` cancels both (the hand does not swing, because the host cannot swing a player's arm), the hand afterwards is written back to the used hand and the stacks it gives go to the inventory, the rest dropped at the player's feet. A block with a `fluid_filler` takes fluid only through that hook, and gives fluid out only through its drain rule (a block that must not be drained — the original's fill-only channel handler — states a drain rule that gives nothing). Items given or left in the hand keep their components only for stacks the hook did not rebuild.
 
 ### `BlockEntityType::fluid_filler`
 
@@ -791,12 +791,12 @@ let _ = drain;
 
 ### `BlockEntityType::fluid_reader`
 
-`fn fluid_reader(self, reader: impl Fn(&NbtCompound) -> Vec<NeighbourTank> + Send + Sync + 'static) -> BlockEntityType`. How the block lists its tanks, from its saved data (Fabric: `Storage.iterator`; NeoForge: `IFluidHandler.getFluidInTank`). Without one the declared tanks are listed.
+`fn fluid_reader(self, reader: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Vec<NeighbourTank> + Send + Sync + 'static) -> BlockEntityType`. How the block lists its tanks, from its saved data and its item slots (Fabric: `Storage.iterator`; NeoForge: `IFluidHandler.getFluidInTank`). The slots are the reader's because a block whose storage is an item it holds (a proxy tank) lists that item's tank. Without one the declared tanks are listed.
 
 ```rust
 use pluto_lib::{BlockEntityType, Identifier, NeighbourTank};
 
-let vat = BlockEntityType::new(Identifier::parse("example:vat").unwrap()).fluid_reader(|_data| vec![NeighbourTank { fluid: None, capacity: 4000 }]);
+let vat = BlockEntityType::new(Identifier::parse("example:vat").unwrap()).fluid_reader(|_data, _items| vec![NeighbourTank { fluid: None, capacity: 4000 }]);
 let _ = vat;
 ```
 
@@ -875,13 +875,13 @@ assert!(!BlockEntityTypeRegistry::forwards("example:no_such_block"));
 
 ### `BlockEntityTypeRegistry::read_tanks`
 
-`fn read_tanks(block: &str, data: &NbtCompound) -> Option<Vec<NeighbourTank>>`. The tanks as the block's `fluid_reader` lists them, or the declared tanks with what the saved data holds; `None` when the block has neither.
+`fn read_tanks(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<Vec<NeighbourTank>>`. The tanks as the block's `fluid_reader` lists them, or the declared tanks with what the saved data holds; `None` when the block has neither.
 
 ```rust
 use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, NbtCompound};
 
 BlockEntityTypeRegistry::register(BlockEntityType::new(Identifier::parse("example:cistern").unwrap()).fluid_tanks([4000]));
-let tanks = BlockEntityTypeRegistry::read_tanks("example:cistern", &NbtCompound::new()).unwrap();
+let tanks = BlockEntityTypeRegistry::read_tanks("example:cistern", &NbtCompound::new(), &[]).unwrap();
 assert_eq!((tanks.len(), tanks[0].capacity, tanks[0].fluid.is_none()), (1, 4000, true));
 ```
 

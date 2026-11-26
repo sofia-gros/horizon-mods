@@ -190,7 +190,7 @@ pub(crate) fn register() {
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(block).sync_data()
                 .ticker(move |tick| tick_tank(&for_tick, tick))
-                .fluid_reader(move |data| read_tanks(&for_read, data))
+                .fluid_reader(move |data, _items| read_tanks(&for_read, data))
                 .fluid_filler(move |fill| fill_tank(&for_fill, fill))
                 .fluid_drainer(move |drain| drain_tank(&for_drain, drain))
                 .on_use(move |used| use_tank(&for_use, used)),

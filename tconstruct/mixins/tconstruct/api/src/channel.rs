@@ -6,7 +6,7 @@
 //! (`BlockEntityTypeRegistry::is_fluid_handler`), the port's form of the original's capability check.
 use crate::faucet::MB_PER_TICK;
 use pluto_lib::{
-    BlockBehavior, BlockBehaviors, BlockEntityClientTick, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
+    BlockBehavior, BlockBehaviors, BlockEntityClientTick, BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockPos, BlockState, BlockView, Direction,
     FluidStack, Identifier, Nbt, NbtCompound, NbtCompoundExt, Neighbours, Placement,
 };
 
@@ -253,11 +253,17 @@ fn fill_channel(fill: &mut BlockEntityFill<'_>) -> u32 {
     taken
 }
 
+/// The channel's handler in the original is fill-only (`FillOnlyFluidHandler` on top, insert-only
+/// side tanks, an empty handler facing out): fluid leaves a channel only through the channel's own
+/// flow, never through a neighbour's drain — so the drain rule gives nothing, stated outright rather
+/// than left to the declared tank's default drain.
+fn drain_channel(_drain: &mut BlockEntityDrain<'_>) -> Option<FluidStack> { None }
+
 pub(crate) fn register() {
     for name in BLOCKS {
         let block = Identifier::new("tconstruct", name).expect("valid channel id");
         BlockEntityTypeRegistry::register(
-            BlockEntityType::new(block.clone()).fluid_tanks([CAPACITY as u32]).sync_data().ticker(tick_channel).client_ticker(tick_channel_client).fluid_filler(fill_channel),
+            BlockEntityType::new(block.clone()).fluid_tanks([CAPACITY as u32]).sync_data().ticker(tick_channel).client_ticker(tick_channel_client).fluid_filler(fill_channel).fluid_drainer(drain_channel),
         );
         BlockBehaviors::register(BlockBehavior::new(block)
             .state_for_placement(|c| Placement::State(placement(c.state.clone(), c.pos, c.face, c.sneaking, c.view)))
