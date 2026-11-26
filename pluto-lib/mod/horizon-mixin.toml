@@ -2625,6 +2625,15 @@ name = "pluto_matching"
 source = "pluto-crafting-match.rs"
 visibility = "pub"
 
+# The crafting book lookup: a published snapshot of the recipe table in use, answering
+# a grid's match, result and remaining items through the book's own find/remainders.
+[[module]]
+id = "pluto-crafting-lookup"
+file = "crates/horizon-client/src/crafting.rs"
+name = "pluto_crafting_lookup"
+source = "pluto-crafting-lookup.rs"
+visibility = "pub"
+
 [[injection]]
 id = "pluto-crafting-match-veto"
 target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"

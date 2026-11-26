@@ -145,12 +145,19 @@ fn grid_repair(loaded: &Loaded, grid: &GridFacts<'_>) -> Option<SpecialResult> {
     result.damage = tool.damage;
     result.custom_data = tool_data.clone();
     tool_slot::repair_slot(&mut result, &env, amount as i32).ok()?;
+    // getRemainingItems: the ingredient the tool's damage does not need stays in its
+    // cell; one item repairs the chain's answer for a single item, or nothing when the
+    // chain is non-positive (and then every ingredient cell is spent).
+    let per_item = tool_stack::repair_factor(tool_data, &env, (REPAIR_AMOUNT * level) as f32);
+    let per_item = if per_item > 0.0 { per_item as i32 } else { 0 };
+    let remainders = crate::crafting_overslime::remaining_items(grid, &ingredient_id, tool_stack::damage(tool_data), per_item);
     Some(SpecialResult {
         item: tool.id.to_owned(),
         // The original's assemble returns the tool at count 1.
         count: 1,
         damage: result.damage,
         custom_data: Some(result.custom_data),
+        remainders: Some(remainders),
     })
 }
 

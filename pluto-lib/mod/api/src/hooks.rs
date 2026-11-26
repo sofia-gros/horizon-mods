@@ -579,6 +579,13 @@ pub fn hooks() -> Box<dyn Hooks> {
             result: facts.result, result_count: facts.result_count, experience: facts.experience, time: facts.time,
         })
     });
+    recipe_api_v1::set_crafting_lookup(|grid, size| {
+        let native: Vec<Option<ItemStack>> = grid.iter().map(|slot| native_slot(slot.clone())).collect();
+        let (name, result, remainders) = horizon_client::crafting::pluto_crafting_lookup::craft(&native, size)?;
+        let result = slot_of(&result)?;
+        let remainders = remainders.into_iter().map(|stack| stack.and_then(|stack| slot_of(&stack))).collect();
+        Some(recipe_api_v1::CraftingMatch { recipe: horizon_client::crafting::qualified(&name), result, remainders })
+    });
     world_api_v1::set_sturdy_lookup(|block, direction| horizon_client::entry::pluto_block_facts::face_sturdy(block, direction));
     world_api_v1::set_placement_facts_lookup(|block| horizon_client::entry::pluto_block_facts::placement_for(block).map(|facts| world_api_v1::PlacementFacts {
         classes: facts.classes.iter().map(|class| class.to_string()).collect(),

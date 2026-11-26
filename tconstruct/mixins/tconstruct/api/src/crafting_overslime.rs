@@ -155,12 +155,44 @@ fn grid_refill(loaded: &Loaded, recipe: &Recipe, grid: &GridFacts<'_>) -> Option
     result.custom_data = tool_data.clone();
     overslime::add_amount(&mut result.custom_data, &env, items_found * recipe.restore);
     tool_slot::sync_visuals(&mut result, &env).ok()?;
+    // getRemainingItems: the bottles the refill does not need stay in their cells.
+    let needed = overslime::capacity(tool_data) - overslime::amount(tool_data);
+    let per_item = recipe.restore * overslime::overworked_bonus(tool_data, &env);
+    let remainders = remaining_items(grid, &ingredient_id, needed, per_item);
     Some(SpecialResult {
         item: tool.id.to_owned(),
         count: tool.count,
         damage: result.damage,
         custom_data: Some(result.custom_data),
+        remainders: Some(remainders),
     })
+}
+
+/// `OverslimeCraftingTableRecipe.getRemainingItems`, the static helper the modifier
+/// repair recipe shares: walk the cells in order; an ingredient cell stays — a copy of
+/// its stack at count one — once the repair need is covered, and is spent otherwise,
+/// reducing the need by what one item repairs. Every other cell is spent; a spent cell's
+/// own crafting remainder is the engine's business, not the recipe's.
+pub(crate) fn remaining_items(grid: &GridFacts<'_>, ingredient: &Identifier, mut repair_needed: i32, repair_per_item: i32) -> Vec<Option<SpecialResult>> {
+    grid.cells
+        .iter()
+        .map(|cell| {
+            let stack = (*cell)?;
+            if Identifier::parse(stack.id).ok().as_ref() == Some(ingredient) {
+                if repair_needed <= 0 {
+                    return Some(SpecialResult {
+                        item: stack.id.to_owned(),
+                        count: 1,
+                        damage: stack.damage,
+                        custom_data: stack.custom_data.and_then(|data| data.as_compound()).cloned(),
+                        remainders: None,
+                    });
+                }
+                repair_needed -= repair_per_item;
+            }
+            None
+        })
+        .collect()
 }
 
 fn refill_callback<const N: usize>(grid: &GridFacts<'_>) -> Option<SpecialResult> {
@@ -181,5 +213,39 @@ pub(crate) fn register() {
             id: recipe.id,
             callback,
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn view(id: &str) -> StackView<'_> {
+        StackView { id, count: 1, damage: 0, custom_data: None }
+    }
+
+    #[test]
+    fn remaining_items_spends_only_what_the_repair_needs() {
+        let ingredient = Identifier::parse("tconstruct:earth_slime_bottle").unwrap();
+        let cells = [
+            Some(view("tconstruct:pickaxe")),
+            Some(view("tconstruct:earth_slime_bottle")),
+            Some(view("tconstruct:earth_slime_bottle")),
+            Some(view("tconstruct:earth_slime_bottle")),
+        ];
+        let grid = GridFacts { width: 4, height: 1, left: 0, top: 0, cells: &cells };
+        // A need of 100 at 50 per bottle spends two bottles; the third stays.
+        let remainders = remaining_items(&grid, &ingredient, 100, 50);
+        assert_eq!(remainders.len(), 4);
+        assert_eq!(remainders[0], None, "the tool cell is spent");
+        assert_eq!(remainders[1], None, "the first bottle is spent");
+        assert_eq!(remainders[2], None, "the second bottle covers the need");
+        assert!(
+            remainders[3].as_ref().is_some_and(|stay| stay.item == "tconstruct:earth_slime_bottle" && stay.count == 1),
+            "the unneeded bottle stays in its cell"
+        );
+        // No need at all: every bottle stays.
+        let remainders = remaining_items(&grid, &ingredient, 0, 50);
+        assert!(remainders[1].is_some() && remainders[2].is_some() && remainders[3].is_some());
     }
 }

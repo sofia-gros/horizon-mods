@@ -404,6 +404,10 @@ mod swapping_recipes;
 mod material_render;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_repair.rs"]
 mod crafting_repair;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_overslime.rs"]
+mod crafting_overslime;
+#[path = "../../../tconstruct/mixins/tconstruct/api/src/crafting_modifier_repair.rs"]
+mod crafting_modifier_repair;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/custom_attributes.rs"]
 mod custom_attributes;
 #[path = "../../../tconstruct/mixins/tconstruct/api/src/attribute_sync.rs"]

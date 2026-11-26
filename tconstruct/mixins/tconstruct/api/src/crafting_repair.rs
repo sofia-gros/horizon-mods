@@ -187,6 +187,7 @@ fn grid_repair(
         count: tool.count,
         damage: repaired.damage,
         custom_data: Some(repaired.custom_data),
+        remainders: None,
     })
 }
 
