@@ -306,6 +306,17 @@ fn a_can_fills_a_casting_table_and_drains_it_back_through_the_guest_route() {
     assert!(!done.into_tank && done.moved == fluid("tconstruct:molten_iron", 90));
     assert_eq!(FluidItems::contents(done.held.as_ref().expect("the can comes back")), Some(fluid("tconstruct:molten_iron", 90)));
     assert_eq!(listing(&mut world, POS2)[0].fluid, None, "the table is empty and reset");
+    // live() loaded the shipped data into the process-wide registries and loaded the config,
+    // the way the game loads them; hand that state back before another test observes this
+    // process. The world teardown is the game's own (it clears the captured item snapshot
+    // and the loaded registries), and the config goes back to its error state the way the
+    // reload snapshot test itself puts it there: a config that failed to parse is not a
+    // loaded config. Tests that read a fresh process — the reload snapshot test's first
+    // reload must fail before any config load, and the retextured match defers to the game
+    // while no item registry is captured — are not this test's to decide.
+    pluto_lib::ServerLifecycleEvents::SERVER_STOPPED.invoke(&pluto_lib::ServerInfo { dedicated: false });
+    ConfigEvents::RELOADING.invoke(&ModConfig { mod_id: "tconstruct".into(), kind: ConfigKind::Common,
+        file: "tconstruct-common.toml".into(), text: "[debug]\nforceIntegrationMaterials = 'bad'\n".into() });
 }
 
 /// The host's part of a trade with a host-served block (`FluidAt::Mod`), played over the saved
