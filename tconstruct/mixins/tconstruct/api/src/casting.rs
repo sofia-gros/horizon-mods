@@ -19,7 +19,7 @@ use crate::{
     tool_materials::{part_material, set_part_material, MaterialList, MaterialVariant},
 };
 use pluto_lib::{
-    BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
+    BlockEntityDrain, BlockEntityFill, BlockEntityTick, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, ActionResult, FluidItems, FluidStack, FluidTarget, Identifier, ItemSlot,
     Nbt, NbtCompound, NbtCompoundExt, RegistryLookup, SidedAccess, TransferDirection, TransferMode, World,
 };
 
@@ -676,6 +676,25 @@ fn fill_casting(fill: &mut BlockEntityFill<'_>, station: Station, require_cast: 
     }).unwrap_or(0)
 }
 
+/// `CastingFluidHandler.drain` for a neighbour taking fluid out (a bucket on the guest route, another
+/// block's extract): what the table holds, up to the amount asked — through the same `CastingTank`
+/// the block's own use trades with, so emptying the tank resets the table and a part-drain
+/// recomputes the cooling, as the handler's drain does.
+fn drain_casting(drain: &mut BlockEntityDrain<'_>, station: Station, require_cast: bool) -> Option<FluidStack> {
+    with_live(station, |env| {
+        let mut state = State::load(drain.data, drain.fluid_in(0));
+        let out = {
+            let mut target = CastingTank { state: &mut state, env, items: &mut *drain.items, require_cast };
+            target.drain(drain.wanted.as_ref(), drain.amount, drain.execute)
+        };
+        if drain.execute && out.is_some() {
+            state.save(drain.data);
+            drain.set_fluid(0, state.fluid.clone());
+        }
+        out
+    }).flatten()
+}
+
 /// The casting table's tank as a trade partner (`CastingFluidHandler`): it fills by the recipe's rule (`State::fill`) and drains whatever it
 /// holds, which resets the table once empty.
 struct CastingTank<'a> { state: &'a mut State, env: &'a dyn Env, items: &'a mut Vec<Option<ItemSlot>>, require_cast: bool }
@@ -713,10 +732,12 @@ fn use_casting(used: &mut BlockEntityUse<'_>, station: Station, require_cast: bo
             used.held = done.held;
             used.give.extend(done.give);
             state.save(used.data);
+            used.set_fluid(0, state.fluid.clone());
             return ActionResult::Success;
         }
         state.interact(env, used.items, &mut used.held, &mut used.give);
         state.save(used.data);
+        used.set_fluid(0, state.fluid.clone());
         ActionResult::Success
     }).unwrap_or(ActionResult::Success)
 }
@@ -737,6 +758,7 @@ pub(crate) fn register() {
             BlockEntityType::new(block).item_slots(SLOTS as u32).fluid_tanks([HOST_CAPACITY]).sync_data()
                 .ticker(move |tick| tick_casting(tick, station))
                 .fluid_filler(move |fill| fill_casting(fill, station, require_cast))
+                .fluid_drainer(move |drain| drain_casting(drain, station, require_cast))
                 .on_use(move |used| use_casting(used, station, require_cast))
                 // CastingBlockEntity.handleRedstone: a rising signal swaps the slots while nothing is
                 // being cast (the original schedules the swap two ticks later; the signal is heard on a
@@ -948,5 +970,31 @@ mod tests {
         assert_eq!(idle.analog_signal(&slots), 15);
         state.swap(&mut items);
         assert!(items[INPUT].is_some(), "a table that is casting does not swap");
+    }
+
+    #[test]
+    fn draining_the_tables_tank_gives_the_fluid_back_and_an_emptied_table_forgets_the_recipe() {
+        // the tank the block's drain rule serves (CastingFluidHandler through CastingTank): what a pour
+        // put in comes back out, a part-full table stops cooling, and an emptied table resets
+        let mut state = State::default();
+        let mut items = vec![Some(stack("t:ingot_cast")), None];
+        pour(&mut state, &mut items, "t:molten_iron", 90, false);
+        assert_eq!((state.fluid.as_ref().map(|held| held.amount), state.cooling), (Some(90), 60), "full and cooling");
+        let mut tank = CastingTank { state: &mut state, env: &Recipes, items: &mut items, require_cast: false };
+        assert_eq!(tank.drain(Some(&id("t:molten_gold")), 90, true), None, "another fluid is not in the table");
+        assert_eq!(tank.drain(None, 45, false), Some(fluid("t:molten_iron", 45)), "asking offers what is there");
+        assert_eq!(tank.state.fluid.as_ref().map(|held| held.amount), Some(90), "asking took nothing");
+        assert_eq!(tank.drain(None, 45, true), Some(fluid("t:molten_iron", 45)));
+        assert_eq!(
+            (tank.state.fluid.as_ref().map(|held| held.amount), tank.state.recipe.clone(), tank.state.cooling),
+            (Some(45), Some(id("t:ingot")), -1),
+            "part drained: the fluid and the recipe stay, the cooling stops (the table is no longer full)"
+        );
+        assert_eq!(tank.drain(None, 1000, true), Some(fluid("t:molten_iron", 45)), "only what is left");
+        assert!(
+            tank.state.fluid.is_none() && tank.state.recipe.is_none() && tank.state.capacity == 0 && tank.state.timer == 0,
+            "emptied: the table is reset, as the original's drain calls reset when the tank runs dry"
+        );
+        assert_eq!(tank.drain(None, 10, true), None, "an empty table gives nothing");
     }
 }

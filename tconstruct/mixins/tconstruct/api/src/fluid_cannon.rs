@@ -304,7 +304,7 @@ pub(crate) fn register() {
         BlockEntityTypeRegistry::register(
             BlockEntityType::new(block.clone()).sync_data().item_slots(1)
                 .ticker(move |tick| tick_cannon(name, tick))
-                .fluid_reader(move |data| read_tanks(name, data))
+                .fluid_reader(move |data, _items| read_tanks(name, data))
                 .fluid_filler(move |fill| fill_tank(name, fill))
                 .fluid_drainer(move |drain| drain_tank(name, drain))
                 .on_use(move |used| use_cannon(name, used)),

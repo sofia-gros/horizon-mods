@@ -483,7 +483,7 @@ type Ticker = Arc<dyn Fn(&mut BlockEntityTick<'_>) + Send + Sync>;
 type Filler = Arc<dyn Fn(&mut BlockEntityFill<'_>) -> u32 + Send + Sync>;
 type User = Arc<dyn Fn(&mut BlockEntityUse<'_>) -> crate::pure::base::action_result::ActionResult + Send + Sync>;
 type Forwarder = Arc<dyn Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<FluidForward> + Send + Sync>;
-type Reader = Arc<dyn Fn(&NbtCompound) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync>;
+type Reader = Arc<dyn Fn(&NbtCompound, &[Option<ItemSlot>]) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync>;
 type Drainer = Arc<dyn Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Send + Sync>;
 type UpdateTag = Arc<dyn Fn(&NbtCompound) -> NbtCompound + Send + Sync>;
 type Placer = Arc<dyn Fn(&mut BlockEntityPlace<'_>) + Send + Sync>;
@@ -600,8 +600,8 @@ impl BlockEntityType {
     }
 
     /// The same type, with its own way of listing its tanks (`Storage.iterator`, `IFluidHandler.getFluidInTank`): `reader` makes the list from the
-    /// saved data. Without one the declared tanks are listed.
-    pub fn fluid_reader(mut self, reader: impl Fn(&NbtCompound) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync + 'static) -> Self {
+    /// saved data and the item slots (a block whose storage is an item it holds lists that item's tank). Without one the declared tanks are listed.
+    pub fn fluid_reader(mut self, reader: impl Fn(&NbtCompound, &[Option<ItemSlot>]) -> Vec<super::neighbour_api_v1::NeighbourTank> + Send + Sync + 'static) -> Self {
         self.reader = Some(Arc::new(reader));
         self
     }
@@ -726,10 +726,10 @@ impl BlockEntityTypeRegistry {
 
     /// The tanks of the block entity of `block` as its [`BlockEntityType::fluid_reader`] lists them, or the declared tanks (with what the saved data
     /// holds) when it has none; `None` when the block has neither.
-    pub fn read_tanks(block: &str, data: &NbtCompound) -> Option<Vec<super::neighbour_api_v1::NeighbourTank>> {
+    pub fn read_tanks(block: &str, data: &NbtCompound, items: &[Option<ItemSlot>]) -> Option<Vec<super::neighbour_api_v1::NeighbourTank>> {
         let entity_type = Self::get(block)?;
         if let Some(reader) = entity_type.reader {
-            return Some(reader(data));
+            return Some(reader(data, items));
         }
         if entity_type.tanks.is_empty() {
             return None;
@@ -859,6 +859,13 @@ pub(crate) fn fluid_tanks(block: &str) -> Option<Vec<u32>> {
 /// Whether the block's block entity has its own fluid rule (the host must route fills to it instead of the declared tanks).
 pub(crate) fn has_fluid_filler(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.filler.is_some())
+}
+
+/// Whether fluid can be taken out of the block through [`BlockEntityTypeRegistry::drain_fluid`]: it has a
+/// drain rule of its own, or declared tanks the rule drains by default. (A drain rule may still give
+/// nothing — a fill-only handler, as the original's channels have — the rule is the block's to state.)
+pub(crate) fn can_drain(block: &str) -> bool {
+    BlockEntityTypeRegistry::get(block).is_some_and(|t| t.drainer.is_some() || !t.tanks.is_empty())
 }
 
 /// Whether the block's fluid storage is its saved data read through its type's own hooks (a fluid reader, a fluid

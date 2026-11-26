@@ -65,7 +65,7 @@ pub(crate) fn foreign_to(data: &NbtCompound, candidate: BlockPos, master_alive: 
 // --- the controllers' tank
 
 /// `getTanks`, `getFluidInTank` and `getTankCapacity` of the smeltery tank: a tank per fluid and the empty space.
-pub(crate) fn read_controller(data: &NbtCompound) -> Vec<NeighbourTank> {
+pub(crate) fn read_controller(data: &NbtCompound, _items: &[Option<ItemSlot>]) -> Vec<NeighbourTank> {
     let mut tank = SmelteryTank::default();
     if let Some(tag) = data.get_compound("tank") { tank.read(tag); }
     let mut tanks: Vec<NeighbourTank> = tank.fluids().iter().enumerate()
@@ -440,8 +440,8 @@ mod tests {
             faucet.activate(&mut around);
             for _ in 0..12 { faucet.tick(&mut around); }
         });
-        let (pool, _) = world.read([2, 0, 0]).unwrap();
-        let held = pluto_lib::BlockEntityTypeRegistry::read_tanks("tconstruct:test_pool", &pool).unwrap();
+        let (pool, pool_items) = world.read([2, 0, 0]).unwrap();
+        let held = pluto_lib::BlockEntityTypeRegistry::read_tanks("tconstruct:test_pool", &pool, &pool_items).unwrap();
         assert_eq!(held[0].fluid, Some(fluid("tconstruct:molten_iron", 90)), "an ingot's worth of the first fluid, a nugget a tick, until the target is full");
         let (controller, _) = world.read([0, 1, 0]).unwrap();
         let mut tank = SmelteryTank::default();

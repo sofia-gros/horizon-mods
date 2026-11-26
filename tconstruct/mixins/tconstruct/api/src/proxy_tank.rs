@@ -9,16 +9,14 @@
 //!
 //! Not ported, each named: the click split of the original's `use` (the corner posts trade fluid, the center
 //! and the bottom swap the item) — the use hook carries no hit position or face, so a fluid trade is tried
-//! first and the item swap second, as the fluid cannons do; the tank listing a neighbour reads — PlutoLib's
-//! reader hook is given the saved data but not the item slots, and here the item is the storage, so fills and
-//! drains (which do receive the slots) work while the listing cannot be answered; the stored item and its
+//! first and the item swap second, as the fluid cannons do; the stored item and its
 //! fluid drawn in the corner posts (the render data is already generated; no renderer is registered for this
 //! block) and the comparator output itself, which needs the host — the strength rule is `comparator` here.
 
 use crate::melter_blocks::facing_toward;
 use pluto_lib::{
     ActionResult, BlockBehavior, BlockBehaviors, BlockEntityDrain, BlockEntityFill, BlockEntityType, BlockEntityTypeRegistry, BlockEntityUse, FluidItems,
-    FluidStack, FluidTarget, Identifier, ItemSlot, Placement, TransferDirection,
+    FluidStack, FluidTarget, Identifier, ItemSlot, NeighbourTank, NbtCompound, Placement, TransferDirection,
 };
 
 pub(crate) const BLOCK: &str = "scorched_proxy_tank";
@@ -135,10 +133,18 @@ fn use_proxy_tank(used: &mut BlockEntityUse<'_>) -> ActionResult {
     ActionResult::Success
 }
 
+/// The tank listing a neighbour reads (`ProxyItemTank.getTanks`/`getFluidInTank`/`getTankCapacity`):
+/// the one tank is the stored item's, so the list is made from the item slots — with no item inside,
+/// a tank of no capacity holding nothing.
+fn read_tank(_data: &NbtCompound, items: &[Option<ItemSlot>]) -> Vec<NeighbourTank> {
+    vec![NeighbourTank { fluid: contents(items), capacity: capacity(items) }]
+}
+
 pub(crate) fn register() {
     let block = Identifier::new("tconstruct", BLOCK).expect("valid proxy tank id");
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(block.clone()).item_slots(1).sync_data()
+            .fluid_reader(read_tank)
             .fluid_filler(fill_tank)
             .fluid_drainer(drain_tank)
             .on_use(use_proxy_tank),

@@ -167,7 +167,7 @@ pub(crate) fn register() {
     BlockEntityTypeRegistry::register(
         BlockEntityType::new(block.clone()).item_slots(2).sync_data()
             .ticker(tick_casting_tank)
-            .fluid_reader(|data| read_tank(data))
+            .fluid_reader(|data, _items| read_tank(data))
             .fluid_filler(fill_tank)
             .fluid_drainer(drain_tank)
             .on_use(use_casting_tank)

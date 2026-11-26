@@ -9,7 +9,7 @@ use horizon_client::mod_api::{
     Host, FillBucketEvent, LevelTickPostEvent, LevelTickPreEvent, LivingIncomingDamageEvent, LivingFallEvent, CriticalHitEvent, LivingJumpEvent, MovementInputEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent,
     UseAnimation, UseAnimationEvent, UseDurationEvent, NativeCommand, PerformCommandEvent, RegisterCommandsEvent as RegisterCmds, ConfigLoadingEvent, ConfigReloadingEvent, ConfigUnloadingEvent, NativeConfig, NativeConfigFile, NativeConfigKind, RegisterConfigsEvent,
     RightClickBlockEvent, ServerAboutToStartEvent, ServerStoppingEvent, ServerTickEvent, ServerTickPhase, LivingDeathEvent, BreakSpeedEvent, LivingDamagePreEvent, LivingEntityUseItemFinishEvent, BlockCloneItemEvent, UseItemEvent, UseItemOnEvent,
-    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenCharTypedPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, StatefulBlockEntityEvent, BlockEntityFromStateEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
+    HearsProjectileImpactsEvent, ProjectileImpactEvent, BlockEntityDraw, BlockEntitySubmitEvent, CubeFace, DisplayContext, MenuButtonV2Event, MenuLinksEvent, MenuSlotRulesEvent, MenuQuickMoveEvent, ContainerAcceptsEvent, MenuClickedEvent, MenuClosedEvent, MenuInputClosedEvent, ModBlockEntity, NativeScreen, NativeStack, ScreenClickEvent, ScreenDrawEvent, ScreenEvent, ScreenTooltipEvent, ScreenRenderPostEvent, ScreenMouseButtonPressedPreEvent, ScreenMouseScrolledPreEvent, ScreenCharTypedPreEvent, ScreenKeyPressedPreEvent, ScreenClosingEvent, HudEvent, BlockEntityContainerEvent, BlockEntityFluidsEvent, ModContainer, ModFluidTanks, BlockEntityEvent, BlockEntityTickEvent, BlockEntityTicksEvent, BlockEntityUpdateTagEvent, StatefulBlockEntityEvent, BlockEntityFromStateEvent, CustomBlockFluidsEvent, CustomFluidTanksEvent, CustomFluidFillEvent, CustomFluidDrainEvent, NativeFluidAction, NativeFluidDrain, NativeFluidStack, NativeFluidTankView, NativeItemEntity, RightClickBlockV2Event, Hand, EquipmentSlot, AttachmentCodec, AttachmentError, AttachmentType, Compound, Holder, Tag,
     PlaceBlockEvent, LivingGetProjectileEvent, KeyEvent, InteractEntityV2Event, PlayerFishV2Event, LeftClickBlockEvent,
     InteractEntityEvent, InventoryTickEvent, EntityTickPreEvent, EntityTickPostEvent, PlayerDestroyItemEvent,
     IngredientEvent, IngredientTestEvent,
@@ -2212,6 +2212,50 @@ fn filler_takes(host: &mut dyn Host, pos: [i32; 3], face: Option<block_api_v1::D
         });
     }
     taken
+}
+
+/// What the block entity at `pos` gives out through its type's drain rule (`BlockEntityType::fluid_drainer`, or the
+/// declared tanks it drains by default); `None` when its block has no drain surface. The drain side of
+/// [`filler_takes`]: with `execute` the drainer's changes are kept (and sent to the clients), otherwise they are
+/// thrown away. An `exact` request (a fluid and the component tag it must carry) is first simulated and refused
+/// whole when what the block gives does not match it exactly, so an execute never takes a different fluid out.
+fn drainer_gives(host: &mut dyn Host, pos: [i32; 3], exact: Option<&FluidStack>, amount: u32, execute: bool) -> Option<FluidStack> {
+    let block = host.block(pos);
+    if !block_entity_api_v1::can_drain(&block) {
+        return None;
+    }
+    let wanted = exact.map(|stack| stack.fluid.clone());
+    let run = |host: &mut dyn Host, execute: bool| -> Option<FluidStack> {
+        let mut drained = None;
+        if execute {
+            host.change_mod_block_entity(pos, &mut |entity| {
+                with_block_entity(entity, |data, items| {
+                    drained = block_entity_api_v1::BlockEntityTypeRegistry::drain_fluid(&block, pos, data, items, wanted.clone(), amount, true).flatten();
+                    true
+                });
+            });
+            if drained.is_some() {
+                host.block_entity_sync(pos);
+            }
+        } else {
+            let mut entity = host.mod_block_entity(pos)?;
+            with_block_entity(&mut entity, |data, items| {
+                drained = block_entity_api_v1::BlockEntityTypeRegistry::drain_fluid(&block, pos, data, items, wanted.clone(), amount, false).flatten();
+                false
+            });
+        }
+        drained
+    };
+    if let Some(want) = exact {
+        let preview = run(host, false)?;
+        if preview.fluid != want.fluid || preview.tag != want.tag {
+            return None;
+        }
+        if !execute {
+            return Some(preview);
+        }
+    }
+    run(host, execute)
 }
 
 /// The block entities of the level in place as a [`BlockEntityStore`]: what [`FluidStorage`] reads and writes when a
@@ -4974,7 +5018,7 @@ impl Hooks for PlutoHooks {
             content: content.map(|stack| NativeFluidStack { fluid: stack.fluid.to_string(), amount: stack.amount.min(i32::MAX as u32) as i32, components: stack.tag.as_ref().map(compound_to_tag).unwrap_or_default() }),
             capacity: capacity.min(i32::MAX as u32) as i32,
             can_fill: true,
-            can_drain: false,
+            can_drain: block_entity_api_v1::can_drain(&block),
         }).collect())
     }
 
@@ -4988,9 +5032,22 @@ impl Hooks for PlutoHooks {
         Some(taken.min(offered.amount) as i32)
     }
 
-    fn custom_fluid_drain(&self, _host: &mut dyn Host, _event: &mut CustomFluidDrainEvent<'_>) -> Option<NativeFluidStack> {
-        // A block with its own fluid rule only takes fluid in; nothing is drained out of it by another block.
-        None
+    fn custom_fluid_drain(&self, host: &mut dyn Host, event: &mut CustomFluidDrainEvent<'_>) -> Option<NativeFluidStack> {
+        // The block's own drain rule answers, as its fill rule does in `custom_fluid_fill`: the host asks a
+        // maximum-only drain (`Any`), or the exact stack its simulation just saw (`Exact`, fluid and
+        // components whole) — an exact request the block cannot match exactly is refused untouched.
+        let (exact, amount) = match event.request {
+            NativeFluidDrain::Any(amount) => (None, u32::try_from(*amount).ok()?),
+            NativeFluidDrain::Exact(stack) => {
+                let fluid = Identifier::parse(&stack.fluid).ok()?;
+                let tag = (!stack.components.is_empty()).then(|| compound_from_tag(&stack.components));
+                let amount = u32::try_from(stack.amount).ok()?;
+                (Some(FluidStack { fluid, amount, tag }), amount)
+            }
+        };
+        let execute = matches!(event.action, NativeFluidAction::Execute);
+        let drained = drainer_gives(host, event.pos, exact.as_ref(), amount, execute)?;
+        Some(NativeFluidStack { fluid: drained.fluid.to_string(), amount: drained.amount.min(i32::MAX as u32) as i32, components: drained.tag.as_ref().map(compound_to_tag).unwrap_or_default() })
     }
 
     fn right_click_block_v2(&self, host: &mut dyn Host, event: &mut RightClickBlockV2Event) -> Flow {
