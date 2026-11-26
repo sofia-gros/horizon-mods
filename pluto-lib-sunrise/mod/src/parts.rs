@@ -744,6 +744,47 @@ impl mod_api::BlockTintSource for PlutoTintSource {
     }
 }
 
+// ---- Item tints ----
+
+/// The `register_item_tint_sources` hook body: one native tint source,
+/// `pluto_lib:item_color`. An item model names it for a layer and may
+/// carry the layer's tint index as the source's `index` field; the
+/// decode step binds that index, and the per-stack callback forwards
+/// to the pure colour provider registered for the stack's item. A
+/// provider answer is `0xRRGGBB` and becomes opaque ARGB; no provider
+/// (or a declining one) leaves the layer untinted (opaque white). The
+/// retexture half of the woven colour-layers seam is not expressible
+/// here — tint sources change colour, not sprites (recorded in
+/// SUNRISE.md's L5b section).
+pub(crate) fn register_item_tint_sources(event: &mut mod_api::RegisterItemTintSourcesEvent<'_>) {
+    let id = mod_api::Identifier::parse("pluto_lib:item_color").expect("static identifier");
+    event.register(id, |config| {
+        let index = tint_index_from_config(config);
+        Ok(move |_: &dyn mod_api::ClientHost, input: &mod_api::ItemTintInput<'_>| {
+            let context = color_provider_api_v1::ItemColorContext { stack: crate::hooks::read_stack(input.stack), tint_index: index };
+            match color_provider_api_v1::ColorProviderRegistry::item_color(&context) {
+                Some(rgb) => 0xFF00_0000 | (rgb & 0x00FF_FFFF),
+                None => 0xFFFF_FFFF,
+            }
+        })
+    });
+}
+
+/// The tint index a model declares for the `pluto_lib:item_color`
+/// source (its `index` field, in any integer NBT shape); 0 when the
+/// field is absent or not an integer.
+fn tint_index_from_config(config: &mod_api::Tag) -> i32 {
+    let mod_api::Tag::Compound(compound) = config else { return 0 };
+    let compound = crate::hooks::compound_from_tag(compound);
+    match compound.get("index") {
+        Some(Nbt::Byte(value)) => i32::from(*value),
+        Some(Nbt::Short(value)) => i32::from(*value),
+        Some(Nbt::Int(value)) => *value,
+        Some(Nbt::Long(value)) => i32::try_from(*value).unwrap_or(0),
+        _ => 0,
+    }
+}
+
 // ---- Skull models ----
 
 /// The `create_skull_models` hook body: every pure skull definition is
