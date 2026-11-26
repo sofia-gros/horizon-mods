@@ -610,6 +610,35 @@ mod tests {
     }
 
     #[test]
+    fn a_controller_in_the_south_wall_forms_only_when_it_faces_out_of_the_structure() {
+        // the same world with the controller in the z-max wall instead: facing south (out of the structure,
+        // toward where a placer stands) finds the inside behind it, while facing north (into the structure)
+        // scans the open air in front of it and finds no wall within the limit, as the original does
+        let world = smeltery(3);
+        let lookup = world.lookup();
+        let mut outward = Multiblock::smeltery([2, 2, 4]);
+        let data = outward.detect(&lookup, Direction::South).expect("forms facing out");
+        assert_eq!((data.min, data.max), ([0, 0, 0], [4, 3, 4]));
+        assert_eq!(data.contained().len(), 45);
+        let mut inward = Multiblock::smeltery([2, 2, 4]);
+        assert!(inward.detect(&lookup, Direction::North).is_none());
+        assert_eq!(inward.last_result.key, TOO_LARGE);
+    }
+
+    #[test]
+    fn a_tank_in_a_floor_corner_is_neither_collected_nor_part_of_the_structure() {
+        // a floor corner touches two edges and the floor, so it sits on the frame: the original's
+        // containsBase leaves it out (its in_structure stays false) and detection never visits the
+        // corner, so it is not collected as a tank either; the structure still forms around it
+        let mut world = smeltery(3);
+        world.block([0, 0, 0], true, true, true);
+        let mut multiblock = Multiblock::smeltery(CONTROLLER);
+        let data = multiblock.detect(&world.lookup(), Direction::North).expect("forms");
+        assert!(data.tanks.is_empty());
+        assert!(!data.contains([0, 0, 0]));
+    }
+
+    #[test]
     fn walls_taller_than_the_controller_extend_the_structure_and_it_stops_at_the_first_open_layer() {
         let mut world = smeltery(5);
         // the controller sits in the middle layer; a hole in the wall at y 4 ends the structure at y 3
