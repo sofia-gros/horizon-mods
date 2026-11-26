@@ -37,7 +37,15 @@
 //! the complete result stack. The registration id is the recipe identity
 //! the lookup reports, in the `<namespace>:<path>` form the recipe file
 //! would declare. Consumption stays native: taking the result consumes
-//! one item from every occupied grid cell, as for any crafting recipe.
+//! one item from every occupied grid cell, as for any crafting recipe —
+//! except the cells a provider's declared remainders leave in place,
+//! which the crafting lookup below applies.
+//!
+//! The crafting lookup is the read side of the same book: given a grid,
+//! the adapter answers the recipe the game's own crafting would match,
+//! its assembled result and what each cell holds after one craft, so a
+//! mod's own crafting surface (a persistent station grid, say) crafts
+//! with the game's semantics instead of beside them.
 //!
 //! Register once during startup, before recipes load or any craft is
 //! evaluated. Callbacks must be read-only and deterministic for their
@@ -48,7 +56,8 @@ use std::sync::RwLock;
 
 use serde_json::Value;
 
-use super::base::{Nbt, NbtCompound};
+use super::base::{Identifier, Nbt, NbtCompound};
+use super::block_entity_api_v1::ItemSlot;
 
 /// Borrowed facts about one item stack, valid only for this synchronous
 /// evaluation. Missing custom data means unavailable, not an empty stack;
@@ -394,6 +403,18 @@ pub struct SpecialResult {
     /// The result's `minecraft:custom_data` compound, when the result
     /// carries one (a repaired tool's saved tool data, for instance).
     pub custom_data: Option<NbtCompound>,
+    /// The cells of the evaluated (cropped) grid this craft does not
+    /// spend, aligned with the grid the callback was given: an entry
+    /// names the stack that stays in that cell — the shape of a recipe
+    /// whose `getRemainingItems` leaves an unneeded ingredient in place
+    /// once the craft's need is covered (a repair that only spends as
+    /// many repair items as the damage requires). The field or an entry
+    /// being `None` spends the cell, and the engine's own remainder for
+    /// it (a container item) stands. [`crafting_match`] applies the
+    /// stays over the engine's remainders; the game's own take path
+    /// does not consult providers, so a special crafted there still
+    /// spends every occupied cell.
+    pub remainders: Option<Vec<Option<SpecialResult>>>,
 }
 
 pub type SpecialCallback = for<'a> fn(&GridFacts<'a>) -> Option<SpecialResult>;
@@ -530,6 +551,149 @@ pub fn set_cooking_lookup(lookup: CookingLookup) {
 pub fn cooking_recipe(kind: &str, item: &str) -> Option<CookingRecipe> {
     let lookup = COOKING_LOOKUP.read().unwrap_or_else(|e| e.into_inner());
     (*lookup)?(kind, item)
+}
+
+/* Crafting lookups */
+
+/// One match of the game's crafting book for a grid, as [`crafting_match`] answers it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CraftingMatch {
+    /// The matched recipe's id, qualified (`minecraft:oak_planks` for a
+    /// bare table name, the whole id for anyone else's recipe).
+    pub recipe: String,
+    /// The assembled result stack.
+    pub result: ItemSlot,
+    /// What each grid cell holds after one craft, aligned with the
+    /// queried grid (`size * size` entries, row-major): a spent cell's
+    /// crafting remainder (a milk bucket's empty bucket), or None where
+    /// the cell empties. Taking the result spends one item from every
+    /// occupied cell and leaves these stacks in their cells; a remainder
+    /// that cannot stay in a shrunken cell is the taker's to hand to the
+    /// player, as in the game's own take logic.
+    pub remainders: Vec<Option<ItemSlot>>,
+}
+
+/// The adapter's crafting lookup: the crafting book's match for a grid
+/// of `size` rows and columns (the cells row-major, `size * size` of
+/// them), or None when the book matches nothing.
+pub type CraftingLookup = fn(&[Option<ItemSlot>], usize) -> Option<CraftingMatch>;
+
+static CRAFTING_LOOKUP: RwLock<Option<CraftingLookup>> = RwLock::new(None);
+
+/// Install the adapter's crafting lookup, once during startup. There is no uninstall.
+pub fn set_crafting_lookup(lookup: CraftingLookup) {
+    if let Ok(mut slot) = CRAFTING_LOOKUP.write() {
+        *slot = Some(lookup);
+    }
+}
+
+/// The crafting book's match for `grid`, as the game's own crafting
+/// answers it: the first recipe in the book's order whose match the
+/// grid satisfies — admission policies, assembly providers and special
+/// markers all apply, as they do at the game's own table — assembled
+/// for this grid. A matched special recipe whose provider declares
+/// remainders leaves those cells' stays in place of the engine's
+/// remainders. None when the book matches nothing, or when no adapter
+/// is installed.
+pub fn crafting_match(grid: &[Option<ItemSlot>], size: usize) -> Option<CraftingMatch> {
+    let lookup = CRAFTING_LOOKUP.read().unwrap_or_else(|e| e.into_inner());
+    let mut matched = (*lookup)?(grid, size)?;
+    if SPECIAL_RECIPES.has_providers() {
+        if let Some(stays) = special_stays(&matched.recipe, grid, size) {
+            for (cell, stay) in stays {
+                if let Some(slot) = matched.remainders.get_mut(cell) {
+                    *slot = stay;
+                }
+            }
+        }
+    }
+    Some(matched)
+}
+
+/// The stays a matched special recipe's provider declares for this
+/// grid, as (full-grid cell, stack) pairs: the provider is re-asked
+/// over the cropped grid, as the engine's own input crops it, and only
+/// its answer under the matched recipe's own id counts.
+fn special_stays(
+    recipe: &str,
+    grid: &[Option<ItemSlot>],
+    size: usize,
+) -> Option<Vec<(usize, Option<ItemSlot>)>> {
+    // The occupied bounding box, cropped as the engine's own input crops.
+    let (mut left, mut top, mut right, mut bottom) = (size, size, 0, 0);
+    let mut any = false;
+    for row in 0..size {
+        for col in 0..size {
+            if grid.get(row * size + col).is_some_and(|cell| cell.is_some()) {
+                any = true;
+                left = left.min(col);
+                top = top.min(row);
+                right = right.max(col);
+                bottom = bottom.max(row);
+            }
+        }
+    }
+    if !any {
+        return None;
+    }
+    let width = right + 1 - left;
+    let height = bottom + 1 - top;
+    let cropped: Vec<Option<ItemSlot>> = (0..width * height)
+        .map(|index| {
+            grid.get((top + index / width) * size + (left + index % width))
+                .cloned()
+                .flatten()
+        })
+        .collect();
+    let ids: Vec<Option<String>> = cropped
+        .iter()
+        .map(|cell| cell.as_ref().map(|slot| slot.item.to_string()))
+        .collect();
+    let datas: Vec<Option<Nbt>> = cropped
+        .iter()
+        .map(|cell| {
+            cell.as_ref().and_then(|slot| {
+                (!slot.custom_data.is_empty()).then(|| Nbt::Compound(slot.custom_data.clone()))
+            })
+        })
+        .collect();
+    let cells: Vec<Option<StackView<'_>>> = cropped
+        .iter()
+        .zip(ids.iter())
+        .zip(datas.iter())
+        .map(|((slot, id), data)| {
+            slot.as_ref().map(|slot| StackView {
+                id: id.as_deref().unwrap_or_default(),
+                count: slot.count,
+                damage: slot.damage,
+                custom_data: data.as_ref(),
+            })
+        })
+        .collect();
+    let facts = GridFacts { width, height, left, top, cells: &cells };
+    let (id, result) = SPECIAL_RECIPES.evaluate(&facts)?;
+    if id != recipe {
+        return None;
+    }
+    let declared = result.remainders?;
+    let mut stays = Vec::new();
+    for (index, stay) in declared.into_iter().enumerate() {
+        let Some(stay) = stay else { continue };
+        let cell = (top + index / width) * size + (left + index % width);
+        stays.push((cell, Some(stay_slot(&stay)?)));
+    }
+    Some(stays)
+}
+
+/// A declared stay as a slot: the result shape's own conversion, as the
+/// engine's special seam converts a provider's result.
+fn stay_slot(stay: &SpecialResult) -> Option<ItemSlot> {
+    let mut slot = ItemSlot::new(Identifier::parse(&stay.item).ok()?, stay.count);
+    slot.damage = stay.damage;
+    if let Some(data) = &stay.custom_data {
+        slot.custom_data = data.clone();
+    }
+    Some(slot)
 }
 /// Interest runs on cheap borrowed recipe facts. None avoids all grid and
 /// result capture in the adapter, even with unrelated registrations.
@@ -675,7 +839,7 @@ mod tests {
         GridFacts { width: cells.len(), height: 1, left: 0, top: 0, cells }
     }
     fn special_result(item: &str) -> SpecialResult {
-        SpecialResult { item: item.to_owned(), count: 1, damage: 0, custom_data: None }
+        SpecialResult { item: item.to_owned(), count: 1, damage: 0, custom_data: None, remainders: None }
     }
     fn answer_apple(grid: &GridFacts<'_>) -> Option<SpecialResult> {
         grid.cells
@@ -774,5 +938,80 @@ mod tests {
             kinds.register(IngredientKind { kind: "", items: |_| vec![], test: |_, _| true }),
             Err(RegistrationError::EmptyId)
         );
+    }
+
+    fn slot(item: &str, count: u32) -> ItemSlot {
+        ItemSlot::new(Identifier::parse(item).unwrap(), count)
+    }
+
+    /// A two-recipe book: four planks in a square craft a table (no
+    /// remainders), and the stay special's marker matches a tool beside
+    /// a bottle anywhere in the grid.
+    fn book_lookup(grid: &[Option<ItemSlot>], size: usize) -> Option<CraftingMatch> {
+        let cell = |index: usize| grid.get(index).cloned().flatten();
+        let planks = [0, 1, size, size + 1]
+            .iter()
+            .all(|&index| cell(index).is_some_and(|stack| stack.item.to_string() == "minecraft:oak_planks"));
+        if planks {
+            return Some(CraftingMatch {
+                recipe: "minecraft:crafting_table".to_owned(),
+                result: slot("minecraft:crafting_table", 1),
+                remainders: vec![None; size * size],
+            });
+        }
+        let tool = grid.iter().flatten().any(|stack| stack.item.to_string() == "test:tool");
+        let bottle = grid.iter().flatten().any(|stack| stack.item.to_string() == "test:bottle");
+        if tool && bottle {
+            return Some(CraftingMatch {
+                recipe: "test:stay_special".to_owned(),
+                result: slot("test:tool", 1),
+                remainders: vec![None; size * size],
+            });
+        }
+        None
+    }
+
+    /// The stay special: the bottle beside the tool stays in its cell.
+    fn answer_stay(grid: &GridFacts<'_>) -> Option<SpecialResult> {
+        let tool = grid.cells.iter().flatten().any(|cell| cell.id == "test:tool");
+        let bottle = grid.cells.iter().position(|cell| cell.is_some_and(|cell| cell.id == "test:bottle"));
+        let (true, Some(bottle)) = (tool, bottle) else { return None };
+        let mut remainders: Vec<Option<SpecialResult>> = vec![None; grid.cells.len()];
+        remainders[bottle] = Some(special_result("test:bottle"));
+        let mut result = special_result("test:tool");
+        result.remainders = Some(remainders);
+        Some(result)
+    }
+
+    #[test]
+    fn crafting_match_passes_the_book_answer_through() {
+        set_crafting_lookup(book_lookup);
+        let mut grid = vec![None; 9];
+        for index in [0, 1, 3, 4] {
+            grid[index] = Some(slot("minecraft:oak_planks", 2));
+        }
+        let matched = crafting_match(&grid, 3).expect("the square of planks matches");
+        assert_eq!(matched.recipe, "minecraft:crafting_table");
+        assert_eq!(matched.result, slot("minecraft:crafting_table", 1));
+        assert_eq!(matched.remainders, vec![None; 9]);
+        let mut unmatched = vec![None; 9];
+        unmatched[0] = Some(slot("minecraft:oak_planks", 1));
+        assert_eq!(crafting_match(&unmatched, 3), None, "a lone plank matches nothing");
+    }
+
+    #[test]
+    fn crafting_match_applies_a_specials_declared_stays() {
+        set_crafting_lookup(book_lookup);
+        register_special_recipe(SpecialRecipeRegistration { id: "test:stay_special", callback: answer_stay })
+            .expect("first registration of the stay special");
+        // The tool at (1, 1) and the bottle at (1, 2): the cropped box
+        // starts at column 1, so the stay must land on full-grid cell 5.
+        let mut grid = vec![None; 9];
+        grid[4] = Some(slot("test:tool", 1));
+        grid[5] = Some(slot("test:bottle", 3));
+        let matched = crafting_match(&grid, 3).expect("the marker matches");
+        assert_eq!(matched.recipe, "test:stay_special");
+        assert_eq!(matched.remainders[5], Some(slot("test:bottle", 1)), "the unneeded bottle stays");
+        assert_eq!(matched.remainders[4], None, "the tool cell is spent");
     }
 }

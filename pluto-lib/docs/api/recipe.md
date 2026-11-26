@@ -621,7 +621,7 @@ register_special_recipe(SpecialRecipeRegistration {
     id: "example:apple_pie",
     callback: |grid| {
         let apples = grid.cells.iter().flatten().filter(|cell| cell.id == "minecraft:apple").count();
-        (apples == 2).then(|| SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None })
+        (apples == 2).then(|| SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None, remainders: None })
     },
 }).unwrap();
 
@@ -634,15 +634,16 @@ assert_eq!(result.item, "example:pie");
 
 ### `SpecialResult`
 
-The complete result stack a special recipe produces for one grid: `item` is the result's item id, `count` how many, `damage` its damage, and `custom_data` its `minecraft:custom_data` compound when the result carries one (a repaired tool's saved tool data, for instance).
+The complete result stack a special recipe produces for one grid: `item` is the result's item id, `count` how many, `damage` its damage, and `custom_data` its `minecraft:custom_data` compound when the result carries one (a repaired tool's saved tool data, for instance). `remainders` names the cells of the evaluated (cropped) grid this craft does not spend — an entry is the stack that stays in that cell, the shape of a recipe whose `getRemainingItems` leaves an unneeded ingredient in place once the craft's need is covered; the field or an entry being `None` spends the cell, and the engine's own remainder for it stands. The crafting lookup applies the stays over the engine's remainders; the game's own take path does not consult providers, so a special crafted there still spends every occupied cell.
 
 ```rust
 use pluto_lib::recipe_api_v1::SpecialResult;
 
-let result = SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None };
+let result = SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None, remainders: None };
 assert_eq!(result.item, "example:pie");
 assert_eq!((result.count, result.damage), (1, 0));
 assert!(result.custom_data.is_none());
+assert!(result.remainders.is_none());
 ```
 
 ### `SpecialCallback`
@@ -703,7 +704,7 @@ use pluto_lib::recipe_api_v1::{GridFacts, SpecialRecipeRegistration, SpecialResu
 
 register_special_recipe(SpecialRecipeRegistration {
     id: "example:apple_pie",
-    callback: |_| Some(SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None }),
+    callback: |_| Some(SpecialResult { item: "example:pie".to_owned(), count: 1, damage: 0, custom_data: None, remainders: None }),
 }).unwrap();
 let grid = GridFacts { width: 0, height: 0, left: 0, top: 0, cells: &[] };
 let (name, result) = evaluate_special_recipe(&grid).unwrap();
@@ -813,4 +814,98 @@ set_cooking_lookup(|kind, item| {
 let recipe = cooking_recipe("minecraft:smelting", "minecraft:beef").unwrap();
 assert_eq!((recipe.result.as_str(), recipe.result_count, recipe.time), ("minecraft:cooked_beef", 1, 200));
 assert!(cooking_recipe("minecraft:blasting", "minecraft:beef").is_none());
+```
+
+## Crafting lookups
+
+### `CraftingMatch`
+
+One match of the game's crafting book for a grid, as a lookup answers it: `recipe` the matched recipe's id, qualified (`minecraft:oak_planks` for a bare table name, the whole id for anyone else's recipe), `result` the assembled result stack, and `remainders` what each grid cell holds after one craft, aligned with the queried grid (`size * size` entries, row-major) — a spent cell's crafting remainder (a milk bucket's empty bucket), or None where the cell empties. Taking the result spends one item from every occupied cell and leaves these stacks in their cells; a remainder that cannot stay in a shrunken cell is the taker's to hand to the player, as in the game's own take logic.
+
+```rust
+use pluto_lib::recipe_api_v1::CraftingMatch;
+use pluto_lib::{Identifier, ItemSlot};
+
+let matched = CraftingMatch {
+    recipe: "minecraft:crafting_table".to_owned(),
+    result: ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1),
+    remainders: vec![None; 9],
+};
+assert_eq!(matched.recipe, "minecraft:crafting_table");
+assert_eq!(matched.result.count, 1);
+assert_eq!(matched.remainders.len(), 9);
+```
+
+### `CraftingLookup`
+
+`type CraftingLookup = fn(&[Option<ItemSlot>], usize) -> Option<CraftingMatch>`. The adapter's crafting lookup: the crafting book's match for a grid of `size` rows and columns (the cells row-major, `size * size` of them), or None when the book matches nothing.
+
+```rust
+use pluto_lib::recipe_api_v1::{CraftingLookup, CraftingMatch};
+use pluto_lib::{Identifier, ItemSlot};
+
+let lookup: CraftingLookup = |grid, size| {
+    let planks = grid.iter().flatten().filter(|stack| stack.item.to_string() == "minecraft:oak_planks").count();
+    (size == 3 && planks == 4).then(|| CraftingMatch {
+        recipe: "minecraft:crafting_table".to_owned(),
+        result: ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1),
+        remainders: vec![None; size * size],
+    })
+};
+let mut grid = vec![None; 9];
+for index in [0, 1, 3, 4] {
+    grid[index] = Some(ItemSlot::new(Identifier::parse("minecraft:oak_planks").unwrap(), 1));
+}
+assert_eq!(lookup(&grid, 3).map(|matched| matched.recipe), Some("minecraft:crafting_table".to_owned()));
+assert!(lookup(&grid, 2).is_none());
+```
+
+### `set_crafting_lookup`
+
+`fn set_crafting_lookup(lookup: CraftingLookup)`. Installs the adapter's crafting lookup, once during startup. There is no uninstall.
+
+```rust
+use pluto_lib::recipe_api_v1::{CraftingMatch, crafting_match, set_crafting_lookup};
+use pluto_lib::{Identifier, ItemSlot};
+
+set_crafting_lookup(|grid, size| {
+    let planks = grid.iter().flatten().filter(|stack| stack.item.to_string() == "minecraft:oak_planks").count();
+    (size == 3 && planks == 4).then(|| CraftingMatch {
+        recipe: "minecraft:crafting_table".to_owned(),
+        result: ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1),
+        remainders: vec![None; size * size],
+    })
+});
+let mut grid = vec![None; 9];
+for index in [0, 1, 3, 4] {
+    grid[index] = Some(ItemSlot::new(Identifier::parse("minecraft:oak_planks").unwrap(), 1));
+}
+assert_eq!(crafting_match(&grid, 3).map(|matched| matched.recipe), Some("minecraft:crafting_table".to_owned()));
+```
+
+### `crafting_match`
+
+`fn crafting_match(grid: &[Option<ItemSlot>], size: usize) -> Option<CraftingMatch>`. The crafting book's match for `grid`, as the game's own crafting answers it: the first recipe in the book's order whose match the grid satisfies — admission policies, assembly providers and special markers all apply, as they do at the game's own table — assembled for this grid. A matched special recipe whose provider declares remainders leaves those cells' stays in place of the engine's remainders. None when the book matches nothing, or when no adapter is installed.
+
+```rust
+use pluto_lib::recipe_api_v1::{CraftingMatch, crafting_match, set_crafting_lookup};
+use pluto_lib::{Identifier, ItemSlot};
+
+assert!(crafting_match(&vec![None; 9], 3).is_none(), "no adapter installed yet");
+set_crafting_lookup(|grid, size| {
+    let planks = grid.iter().flatten().filter(|stack| stack.item.to_string() == "minecraft:oak_planks").count();
+    (size == 3 && planks == 4).then(|| CraftingMatch {
+        recipe: "minecraft:crafting_table".to_owned(),
+        result: ItemSlot::new(Identifier::parse("minecraft:crafting_table").unwrap(), 1),
+        remainders: vec![None; size * size],
+    })
+});
+let mut grid = vec![None; 9];
+for index in [0, 1, 3, 4] {
+    grid[index] = Some(ItemSlot::new(Identifier::parse("minecraft:oak_planks").unwrap(), 1));
+}
+let matched = crafting_match(&grid, 3).unwrap();
+assert_eq!(matched.result.item.to_string(), "minecraft:crafting_table");
+grid[0] = None;
+assert!(crafting_match(&grid, 3).is_none(), "three planks match nothing");
 ```
