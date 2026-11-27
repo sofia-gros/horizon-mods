@@ -23,6 +23,10 @@ sunrise = "ba1f24e4ad41246b558230aa665539dc768b1287"
 
 # Dependency declaration lives here, never in Cargo.toml (book, "Dependencies
 # between mods"): a Cargo semver floor with no ceiling — the mechanical form of
-# "PlutoLib v1.0.0 or newer is required".
+# "PlutoLib v1.0.0 or newer is required". order = "before" is dispatch
+# metadata, not a version rule: this package dispatches before PlutoLib, so
+# Pipes' register hook fills PlutoLib's pure registries before PlutoLib's own
+# register hook drains them into game declarations (the consumption lives
+# inside PlutoLib; no Pipes code is involved).
 [dependencies]
-pluto_lib = ">=1.0.0"
+pluto_lib = { version = ">=1.0.0", order = "before" }
