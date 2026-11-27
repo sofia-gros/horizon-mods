@@ -11,9 +11,10 @@
 //! tail of `update_shape`.
 //!
 //! Registration: [`register_parts`] attaches the part for every behaviour
-//! block the pure registry already holds when PlutoLib's own `register`
-//! runs. A consumer mod that registers behaviours later attaches the part
-//! itself in its own `register` through [`attach`].
+//! block the pure registry holds when PlutoLib's own `register` hook runs
+//! the registration pass (see `parts`). Consumers never attach the part
+//! themselves: their `register` hooks only fill the pure registry, and
+//! their manifests place PlutoLib's `register` after theirs.
 
 use std::sync::Arc;
 
@@ -37,8 +38,7 @@ type Pos = [i32; 3];
 pub struct PlutoBlockPart;
 
 /// Attach the block part to `block` (a namespaced block id) on `registrar`.
-/// Consumers call this from their own `register` for each block they gave a
-/// pure behaviour, after registering the behaviour itself.
+/// PlutoLib-internal: [`register_parts`] calls it for each behaviour block.
 pub fn attach(registrar: &mut dyn Registrar, block: &str) {
     let key = registrar.block_key(block);
     registrar.attach_block_part(key, "pluto_lib:block", Arc::new(PlutoBlockPart));

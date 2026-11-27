@@ -5,12 +5,17 @@
 //! and fluid-tank declarations the game's own capability providers answer,
 //! menu Parts, menu screen factories, skull models and block tint sources.
 //!
-//! Registration is inverted, as everywhere in this tree: a consumer registers
-//! its pure types first, then calls [`register_parts`] with its own registrar,
-//! so the declarations and Parts are owned by the package that owns the
-//! blocks. PlutoLib's own `register` hook calls it too; the game keeps the
-//! first declaration of a type and refuses a second Part of the same type on
-//! it, so a second call is harmless.
+//! Registration is inverted, as everywhere in this tree: a consumer fills
+//! the pure registries from its own `register` hook, and PlutoLib's own
+//! `register` hook then runs [`register_parts`] with PlutoLib's registrar,
+//! declaring the types under the consumers' own ids (the platform keeps an
+//! explicit `namespace:path` as declared). Consumers never call this pass
+//! and never see a registrar; their code is the same on every platform.
+//! The pass can only drain what is already registered, so a consumer's
+//! package manifest declares its PlutoLib dependency with
+//! `order = "before"` — the owner dispatches before the dependency —
+//! which runs the consumer's `register` before PlutoLib's in the game's
+//! registration dispatch.
 
 use std::collections::BTreeMap;
 use std::sync::Mutex;
@@ -26,8 +31,8 @@ use crate::pure::{color_provider_api_v1, screen_handler_api_v1, skull_model_regi
 /// Declares the block entity types, containers, fluid tanks, menu Parts and
 /// menu screens of everything the pure registries currently hold, and
 /// attaches the block Parts of every behaviour block they hold. Called by
-/// PlutoLib's own `register` hook and by consumers from theirs, after their
-/// pure registrations.
+/// PlutoLib's own `register` hook only, after consumers' `register` hooks
+/// have filled the pure registries (see the module docs).
 pub fn register_parts(registrar: &mut dyn mod_api::Registrar) {
     register_block_entities(registrar);
     register_menus(registrar);

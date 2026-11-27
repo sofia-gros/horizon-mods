@@ -1007,9 +1007,11 @@ pub(crate) fn register(registrar: &mut dyn Registrar, _cx: &RegistrationContext)
         let _ = JSON_KEYS.set((plain, synced));
     }
     // The block-entity, menu, block and skull Parts and declarations of
-    // whatever the pure registries already hold (consumers re-run it with
-    // their own registrar after registering their types; duplicates are
-    // refused harmlessly by the game).
+    // whatever the pure registries hold. This hook is the only drain:
+    // consumers fill the pure registries from their own `register` hooks
+    // and never declare anything themselves, and their manifests declare
+    // this package's dependency with `order = "before"`, so their hooks
+    // run before this one in registration dispatch.
     crate::parts::register_parts(registrar);
 }
 
