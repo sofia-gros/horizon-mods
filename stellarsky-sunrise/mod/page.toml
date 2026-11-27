@@ -14,13 +14,14 @@
 # - categories omitted on purpose: IDs are maintainer-owned in the registry's
 #   registry/categories.toml and must fit kind "native-mod"; a wrong ID fails
 #   `cargo sunrise-mod check`.
-# - SCREENSHOT: real in-game capture placed 2026-11-27 (owner's pick
-#   from the curated gallery): the night sky with the moon and the
-#   dynamic star layer, from the 2026-11-25 Stellarsky in-game
-#   confirmation set. The owner picked this shot because it shows
-#   what the Sunrise v1.0.0 build actually renders; the Milky Way
-#   captures show the static texture layers, which are not on
-#   Sunrise yet, and were not picked.
+# - SCREENSHOT: real in-game capture. The first pick (2026-11-27)
+#   was the dynamic-layer shot — what Sunrise v1.0.0 renders. The
+#   owner then changed the pick to the Milky Way capture (the
+#   galactic centre with its dark bands), which shows the full
+#   Stellarsky sky including the static texture layers that are
+#   not on Sunrise yet; the description therefore carries the
+#   owner's provenance note (screenshots taken on Horizon; on
+#   Sunrise, behaviour may differ where the API is unconnected).
 # - DESCRIPTION: owner-approved text placed 2026-11-27 (publication
 #   batch resume), including the owner's specified PlutoLib
 #   dependency wording in the Requirements section.
@@ -60,6 +61,10 @@ and the zodiacal light — are **not shown yet**: PlutoLib's Sunrise
 sky surface has no texture-layer registry yet. They join the sky
 in a later PlutoLib release, with no change needed in this mod.
 
+The screenshots were taken on Horizon. On Sunrise, behaviour may
+differ from the images in places, where parts of the API are not
+connected yet.
+
 This is the Sunrise edition, for Sunrise game 26.3. It ships as
 source plus `Cargo.lock`; the launcher builds it on the player's
 computer for the exact game build it pins.
@@ -71,4 +76,4 @@ issues = "https://github.com/sofia-gros/horizon-mods/issues"
 
 [[screenshots]]
 path = "page/stellarsky-night.png"
-caption = "The night sky with the moon and Stellarsky's dynamic star layer — 523 stars drawn one by one, each twinkling on its own, and the vanilla star field replaced. Captured in-game."
+caption = "The Stellarsky night sky — the Milky Way over the galactic centre, with its dark bands. Captured in-game."
