@@ -44,7 +44,7 @@ assert!(HangingRegistry::stand_for_variant(0).is_some());
 
 ### `FrameVariant`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One item frame variant's behaviour row.
 
@@ -81,7 +81,7 @@ assert!(diamond.winds_down && diamond.more_rotations);
 
 ### `FrameVariant::rotates`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Whether the variant has a rotation timer (it steps or winds down), so `setItem` resets its rotation: the original's `doesRotate`.
 
@@ -111,7 +111,7 @@ assert!(!gold.rotates());
 
 ### `FrameVariant::set_rotation`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The original's `setRotation` arithmetic: a 16-step variant caps at 16 when it winds down and wraps modulo 16 otherwise.
 
@@ -140,7 +140,7 @@ assert_eq!(frame.set_rotation(9), 1);
 
 ### `FrameVariant::analog_output`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The original's `getAnalogOutput`.
 
@@ -168,7 +168,7 @@ assert_eq!(frame.analog_output(true, 12), 12);
 
 ### `FrameVariant::tick_rotation`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Advances the variant's rotation timer by one tick.
 
@@ -254,7 +254,7 @@ assert!(!clear.hidden(false));
 
 ### `HangingRegistry`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The hanging variant registry.
 
@@ -271,7 +271,7 @@ assert!(HangingRegistry::stand_for_variant(99).is_none());
 
 ### `HangingRegistry::register_frame`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers one item frame variant.
 
@@ -309,7 +309,7 @@ assert!(HangingRegistry::register_frame(FrameVariant {
 
 ### `HangingRegistry::register_stand`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers one armor stand variant.
 
@@ -341,7 +341,7 @@ assert!(HangingRegistry::register_stand(StandVariant {
 
 ### `HangingRegistry::frame_for_item`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The frame variant an item places, if any.
 
@@ -368,7 +368,7 @@ assert_eq!(found.variant, 3);
 
 ### `HangingRegistry::frame_for_variant`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The frame variant a saved variant index names, if any.
 
@@ -394,7 +394,7 @@ assert_eq!(HangingRegistry::frame_for_variant(0).unwrap().rotation_step, -1);
 
 ### `HangingRegistry::stand_for_item`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The stand variant an item places, if any.
 
@@ -417,7 +417,7 @@ assert!(HangingRegistry::stand_for_item(&Identifier::parse("mymod:bone_armor_sta
 
 ### `HangingRegistry::stand_for_variant`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The stand variant a saved variant index names, if any.
 

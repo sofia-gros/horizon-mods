@@ -1566,7 +1566,7 @@ let _ = registered;
 ### `FishingRegistry`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The registry of fishing rods a mod casts with: which items count as rods (a hook stays alive only while its owner holds one — the game's own check names the vanilla rod, and the transport asks this registry for the rest), and how a rod stack's cast profile is computed.
 
@@ -1587,7 +1587,7 @@ assert_eq!(FishingRegistry::profile(&stack).map(|profile| profile.power), Some(2
 ### `FishingProfile`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The numbers a rod casts with, computed from the stack used.
 
@@ -1608,7 +1608,7 @@ assert_eq!((war.luck, war.lure, war.collecting), (2, 1, true));
 ### `Grapple`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 How a grapple hook behaves.
 
@@ -1625,7 +1625,7 @@ assert_ne!(Grapple::Dash, Grapple::Drill);
 ### `Fishing`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Fishing with a mod's rod: the calls a mod makes. `use_rod` queues a use — the game's fishing tick casts with the profile when no hook of this rod is out and retrieves when one is — and `take_wear` drains the rod wear the game side reports (a cast's and a hit's 1, a retrieve's cost), which the mod pays into its own tool at its next use, so the wear lands at most one use late.
 
@@ -1646,7 +1646,7 @@ assert_eq!(Fishing::take_wear(&player), 0);
 ### `combat_damage`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The damage a hooked entity takes at retrieve.
 
@@ -1663,7 +1663,7 @@ assert_eq!(combat_damage(3.0, 0.0), 0.0);
 ### `hook_damage_type`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The damage type a combat hook's retrieve hurt is dealt as.
 
@@ -1681,7 +1681,7 @@ assert_eq!(hook_damage_type(false), "tconstruct:fishing_hook");
 ### `pull_delta`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The velocity a hooked entity gains at retrieve.
 
@@ -1698,7 +1698,7 @@ assert_eq!(pull_delta([0.0, 64.0, 0.0], [10.0, 64.0, 0.0], 4.0), [-2.0, 0.0, 0.0
 ### `grapple_delta`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The velocity the owner gains from a grapple.
 
@@ -1715,7 +1715,7 @@ assert_eq!(grapple_delta([0.0, 64.0, 0.0], [0.0, 64.0, 0.0]), [0.0; 3]);
 ### `retrieve_damage`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The rod wear a retrieve costs, over the game's own retrieve number.
 
@@ -1768,7 +1768,7 @@ assert!(DispenseRegistry::get("example:never_registered").is_none());
 ### `FishingRegistry::register`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers a rod item and its cast profile computation.
 
@@ -1785,7 +1785,7 @@ assert!(FishingRegistry::is_rod("example:rod"));
 ### `FishingRegistry::register_rod`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Names an item a fishing rod for the hook's lifetime check.
 
@@ -1801,7 +1801,7 @@ assert!(FishingRegistry::is_rod("example:plain_rod"));
 ### `FishingRegistry::is_rod`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Whether the item named is a registered rod.
 
@@ -1817,7 +1817,7 @@ assert!(!FishingRegistry::is_rod("example:not_a_rod"));
 ### `FishingRegistry::profile`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The profile a stack casts with.
 
@@ -1832,7 +1832,7 @@ assert_eq!(FishingRegistry::profile(&StackData::default()), None);
 ### `Fishing::use_rod`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Queues a use of a fishing rod by the player with the profile.
 
@@ -1850,7 +1850,7 @@ assert!(Fishing::take_use().is_some());
 ### `Fishing::take_use`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Takes the queued use, if any.
 
@@ -1866,7 +1866,7 @@ assert_eq!(Fishing::take_use(), None);
 ### `Fishing::note_wear`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Records rod wear the game side reports.
 
@@ -1884,7 +1884,7 @@ assert_eq!(Fishing::take_wear(&player), 2);
 ### `Fishing::take_wear`
 
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The rod wear waiting for the player, drained.
 

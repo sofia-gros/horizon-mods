@@ -305,7 +305,7 @@ assert_eq!(base.value, 0.0);
 
 ### `LivingEntityLoadContext`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The context a load-time base callback receives.
 

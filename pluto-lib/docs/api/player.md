@@ -513,7 +513,7 @@ assert!(!player.broadcast_item_break(StackSlot::MainHand, &stack)); // no runnin
 
 ### `PlayerItemBreakEvents`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Hears a player's stack break: the player, the item id, and the slot it broke in.
 
@@ -1366,7 +1366,7 @@ assert_eq!(game.opened_item_menus[0].player, 1);
 
 ### `ItemBreak`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A player's item broke (NeoForge's `PlayerDestroyItemEvent`), heard through `PlayerItemBreakEvents::EVENT` when the game's own wear breaks a player's stack: `player` is the player whose item broke, `item` the item that broke, and `slot` the equipment slot it broke in.
 
@@ -1384,7 +1384,7 @@ assert_eq!(broken.slot, StackSlot::MainHand);
 
 ### `PlayerItemBreakEvents::EVENT`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The `ItemBreak` event: every callback runs, in registration order.
 

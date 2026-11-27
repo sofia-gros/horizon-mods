@@ -1024,7 +1024,7 @@ register_special_recipe(SpecialRecipeRegistration { id: "example:apple_pie", cal
 
 ### `CookingRecipe`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One cooking recipe of the game's own book (the furnace family), as a lookup answers it.
 
@@ -1042,7 +1042,7 @@ assert_eq!((recipe.result_count, recipe.time), (1, 200));
 
 ### `CookingLookup`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The adapter's cooking lookup.
 
@@ -1068,7 +1068,7 @@ assert!(lookup("minecraft:smelting", "minecraft:stone").is_none());
 
 ### `set_cooking_lookup`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Installs the adapter's cooking lookup.
 
@@ -1092,7 +1092,7 @@ assert_eq!(cooking_recipe("minecraft:smelting", "minecraft:beef").map(|recipe| r
 
 ### `cooking_recipe`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The first cooking recipe of `kind` that takes `item`.
 

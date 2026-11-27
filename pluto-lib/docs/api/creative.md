@@ -130,7 +130,7 @@ assert_eq!(named.to_snbt(), "{count:2,id:\"minecraft:stick\",components:{\"minec
 
 ### `ItemGroup`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A creative tab.
 
@@ -151,7 +151,7 @@ assert_eq!(group.icon.count, 1);
 
 ### `ItemGroup::new`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A tab with no entries yet.
 
@@ -170,7 +170,7 @@ assert_eq!(group.entries.len(), 0);
 
 ### `ItemGroup::entry`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One more entry at the end.
 
@@ -189,7 +189,7 @@ assert_eq!(group.entries.len(), 1);
 
 ### `ItemGroup::entries`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Several more entries at the end.
 
@@ -210,7 +210,7 @@ assert_eq!(group.entries.len(), 3);
 
 ### `ItemGroupRegistry`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers tabs (Fabric: `Registry.register(Registries.ITEM_GROUP, ...)`).
 
@@ -227,7 +227,7 @@ ItemGroupRegistry::register(ItemGroup::new(Identifier::new("example", "first").u
 
 ### `ItemGroupRegistry::register`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Adds the tab to the creative inventory.
 
@@ -251,7 +251,7 @@ assert_eq!(mine[0].display_name, "New");
 
 ### `ItemGroupRegistry::registered`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The tabs registered so far, in registration order.
 
@@ -271,7 +271,7 @@ assert!(ItemGroupRegistry::registered().iter().any(|g| g.id.path() == "listed"))
 
 ### `ModifyEntries`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What a modify-entries callback receives.
 
@@ -291,7 +291,7 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|entries: &ModifyEntries| {
 
 ### `ItemGroupEvents`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The events that edit tab entries.
 
@@ -307,7 +307,7 @@ ItemGroupEvents::MODIFY_ENTRIES_ALL.register(|_| {});
 
 ### `ItemGroupEvents::MODIFY_ENTRIES_ALL`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Runs for every tab, vanilla's and mods', as the creative inventory is built.
 
@@ -328,7 +328,7 @@ assert_eq!(context.added.borrow().len(), 1);
 
 ### `ItemGroupEvents::modify_entries_event`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Runs `callback` for one tab only, vanilla's (`minecraft:ingredients`) or a mod's.
 

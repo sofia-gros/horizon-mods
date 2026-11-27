@@ -1936,7 +1936,7 @@ Spawn placements and the fishing registry are documented in [world.md](world.md)
 
 ### `BlockExperienceContext`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The experience a player's block break is about to drop.
 
@@ -2141,7 +2141,7 @@ assert!(!EntityReach::spin_attack(4), "no entity scope is open");
 
 ### `Grapple::starts_spin_attack`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Whether a grapple of this kind starts the owner's spin attack when it pulls.
 

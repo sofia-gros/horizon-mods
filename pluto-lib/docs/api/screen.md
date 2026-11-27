@@ -489,7 +489,7 @@ assert!(ScreenLayout::new(176.0, 166.0).with_own_background().own_background);
 
 ### `EquipmentSlotKind`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A piece of the opening player's own equipment, as a slot of a window can show it: `Head`, `Chest`, `Legs`, `Feet` or `OffHand`.
 
@@ -506,7 +506,7 @@ assert_ne!(EquipmentSlotKind::Feet, EquipmentSlotKind::OffHand);
 
 ### `EquipmentSlotKind::host_slot`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The host's equipment index of this piece (the entity equipment numbering the host's own equipment access reads and writes: feet 100, legs 101, chest 102, head 103, offhand -106).
 

@@ -24,7 +24,7 @@ assert_eq!(MapTickCallback::EVENT.invoke(&MapTickRequest { head }), Some(7));
 
 ### `MapTickRequest`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The worn head stack a map-tick handler is asked about.
 
@@ -42,7 +42,7 @@ assert_eq!(request.head.item.to_string(), "example:helmet");
 
 ### `MapTickCallback`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The stored map's id for a worn head stack (see `MapTickRequest`): the mod that owns the storage registers one callback answering the id of the map to tick, or `None` for a head it does not own.
 
@@ -65,7 +65,7 @@ assert_eq!(MapTickCallback::EVENT.invoke(&MapTickRequest { head }), Some(7));
 
 ### `MapTickCallback::EVENT`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The event itself.
 

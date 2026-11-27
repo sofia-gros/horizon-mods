@@ -680,7 +680,7 @@ assert_eq!((push.strength.get(), push.cancel.get()), (0.8, false));
 
 ### `ItemDamage`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A player's item about to lose durability, for a callback to change or cancel.
 
@@ -928,7 +928,7 @@ ServerEntityEvents::SHEAR.register(|attempt| {
 
 ### `ShearAttempt`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A player about to shear a mob.
 

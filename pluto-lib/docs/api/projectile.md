@@ -54,7 +54,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile that has found what it meets.
 
@@ -102,7 +102,7 @@ assert_eq!(hit.motion[1], -1.5);
 
 ### `ProjectileImpact::world`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The world the projectile is in.
 
@@ -126,7 +126,7 @@ assert_eq!(dimension_of(&hit), "minecraft:the_nether");
 
 ### `ProjectileEvents`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The holder of the projectile events.
 
@@ -142,7 +142,7 @@ ProjectileEvents::IMPACT.register(|_| true);
 
 ### `ProjectileEvents::IMPACT`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile hit something, before the hit acts.
 
@@ -167,7 +167,7 @@ assert!(!ProjectileEvents::IMPACT.invoke(&egg));
 
 ### `ProjectileEvents::LAUNCH`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile entered a server level, heard after it exists.
 
@@ -186,7 +186,7 @@ ProjectileEvents::LAUNCH.register(|launch| {
 
 ### `ProjectileLaunch`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile that entered a level.
 
@@ -206,7 +206,7 @@ assert_eq!(launch.motion[2], -3.0);
 
 ### `ProjectileEvents::SHOOT_BOW`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A player's bow or crossbow shot an arrow.
 
@@ -229,7 +229,7 @@ ProjectileEvents::SHOOT_BOW.register(|shot| {
 
 ### `BowShot`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An arrow shot by a player's bow or crossbow.
 
@@ -291,7 +291,7 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `ThrownType`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A thrown item type.
 
@@ -313,7 +313,7 @@ assert_eq!(thrown.throw_sound, None);
 
 ### `ThrownTypeRegistry`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The registry of thrown types.
 
@@ -333,7 +333,7 @@ assert!(ThrownTypeRegistry::get(&Identifier::parse("example:missing_thrown").unw
 
 ### `ProjectileSpawn`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile to spawn.
 
@@ -355,7 +355,7 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 
 ### `spawn_projectile`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Spawns the projectile in `world` and returns the new entity's id.
 
@@ -378,7 +378,7 @@ assert_eq!(ops.summons[0].kind, "minecraft:snowball");
 
 ### `spawn_thrown`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Spawns a registered thrown type by its id.
 
@@ -401,7 +401,7 @@ assert_eq!(spawn_thrown(&world, &Identifier::parse("example:unregistered_thrown"
 
 ### `throw_sound_for`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The sound a thrown type throws with.
 
@@ -422,7 +422,7 @@ assert_eq!(throw_sound_for("example:chime_thrown"), Some("example:throw.chime"))
 
 ### `uuid_int_array`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A uuid as the four ints entity data holds it in.
 
@@ -439,7 +439,7 @@ assert_eq!(uuid_int_array(0x0011_2233_4455_6677_8899_AABB_CCDD_EEFF), [0x0011_22
 
 ### `ThrownType::new`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A thrown type, validated as the game validates its content form.
 
@@ -459,7 +459,7 @@ assert!(ThrownType::new(Identifier::parse("example:bad_thrown").unwrap(), Identi
 
 ### `ThrownType::throw_sound`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The same thrown type, throwing with `sound`.
 
@@ -478,7 +478,7 @@ assert_eq!(thrown.throw_sound.unwrap().to_string(), "example:throw.throwball");
 
 ### `ThrownTypeRegistry::register`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers a thrown type.
 
@@ -497,7 +497,7 @@ assert!(ThrownTypeRegistry::register(thrown).is_err(), "duplicate id");
 
 ### `ThrownTypeRegistry::get`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The thrown type registered under `id`, if any.
 
@@ -516,7 +516,7 @@ assert_eq!(ThrownTypeRegistry::get(&id).unwrap().item.to_string(), "example:orb"
 
 ### `ThrownTypeRegistry::throw_sound`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The throw sound registered for `id`, if the type carries one.
 
@@ -537,7 +537,7 @@ assert_eq!(ThrownTypeRegistry::throw_sound(&id).map(|sound| sound.to_string()), 
 
 ### `ThrownTypeRegistry::declarations`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Every registered thrown type, by id.
 
@@ -559,7 +559,7 @@ assert!(ThrownTypeRegistry::register(ThrownType::new(Identifier::parse("example:
 
 ### `ProjectileSpawn::new`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile of `kind` at `position` with `motion`.
 
@@ -579,7 +579,7 @@ assert!(spawn.owner.is_none() && spawn.data.is_empty());
 
 ### `ProjectileSpawn::owner`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The same spawn, thrown by the entity `owner`.
 
@@ -597,7 +597,7 @@ assert_eq!(spawn.owner, Some(42));
 
 ### `ProjectileSpawn::data`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The same spawn, with the kind's own saved `data`.
 
@@ -617,7 +617,7 @@ assert_eq!(spawn.data.get("damage"), Some(&Nbt::Double(2.5)));
 
 ### `ProjectileSpawn::to_nbt`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The saved data the spawn loads from.
 
@@ -637,7 +637,7 @@ assert_eq!(nbt.get("Owner"), Some(&Nbt::IntArray(vec![0x0011_2233, 0x4455_6677, 
 
 ### `AmmoRequest`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A living entity is about to shoot, and the game asks what projectile it fires.
 
@@ -668,7 +668,7 @@ assert!(request.supplied.borrow().is_none() && request.edits.borrow().is_empty()
 
 ### `ProjectileEvents::AMMO`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A living entity is about to shoot a weapon, and the game asks what projectile it fires.
 
@@ -696,7 +696,7 @@ assert_eq!(request.supplied.borrow().as_ref().unwrap().item.to_string(), "minecr
 
 ### `ProjectileEvents::SPAWN`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile joined the flying list, before its first tick: the set-up pass.
 
@@ -719,7 +719,7 @@ ProjectileEvents::SPAWN.register(|spawn| {
 
 ### `ProjectileSpawned`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile at the moment it joins the flying list.
 
@@ -752,7 +752,7 @@ assert_eq!(spawn.pickup.get(), Some(ArrowPickup::CreativeOnly));
 
 ### `ArrowFacts`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What a flying projectile's arrow half keeps.
 
@@ -770,7 +770,7 @@ assert!(facts.in_ground && facts.in_ground_time > 4 && !facts.dealt_damage);
 
 ### `ArrowPickup`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An arrow's pickup status: who may pick a stuck arrow up.
 
@@ -788,7 +788,7 @@ assert_eq!((ArrowPickup::Disallowed as u8, ArrowPickup::Allowed as u8, ArrowPick
 
 ### `ProjectileEvents::FLIGHT`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile ended a tick it flew (or rested stuck) in: the steering pass.
 
@@ -811,7 +811,7 @@ ProjectileEvents::FLIGHT.register(|flight| {
 
 ### `ProjectileFlight`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile at the end of a tick of flight.
 
@@ -851,7 +851,7 @@ assert_eq!(flight.actions.borrow().len(), 1);
 
 ### `FlightAction`
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One thing a flight callback asks the game to do around a flying projectile.
 

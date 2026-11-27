@@ -804,7 +804,7 @@ assert!(BlockEntityRendererRegistry::has("example:undrawn"));
 
 ### `ArmorLayerKind`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The layer set an armor renderer is asked for.
 
@@ -818,7 +818,7 @@ assert_ne!(ArmorLayerKind::Humanoid, ArmorLayerKind::HumanoidLeggings);
 
 ### `ArmorRenderContext`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What an armor renderer is asked.
 
@@ -834,7 +834,7 @@ assert_eq!(context.kind, ArmorLayerKind::Humanoid);
 
 ### `ArmorLayer`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One drawn armor layer.
 
@@ -851,7 +851,7 @@ assert_eq!(layer.tint, Some(0x336699));
 
 ### `ArmorRenderer`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The registry of worn armor renderers.
 
@@ -865,7 +865,7 @@ ArmorRenderer::register(&[Identifier::parse("example:plain_suit").unwrap()], |_|
 
 ### `ArmorRenderer::register`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Gives each of `items` the renderer.
 
@@ -883,7 +883,7 @@ ArmorRenderer::register(&[item], |_| Some(vec![ArmorLayer { texture: Identifier:
 
 ### `ArmorRenderer::layers`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Asks the stack item's renderer for its layers.
 
