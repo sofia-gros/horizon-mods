@@ -1,6 +1,6 @@
 # PlutoLib (Sunrise edition) — registry page.
 # Placement at execution: pluto-lib-sunrise/mod/page.toml
-# Screenshot placement:    pluto-lib-sunrise/mod/page/plutolib-smeltery-gui.png
+# Screenshot placement:    pluto-lib-sunrise/mod/page/plutolib-mods-list.png
 #
 # Schema (Sunrise modding book, "Publishing your mod" / cargo-sunrise-mod page checks):
 # - summary >= 25 chars, description >= 125 chars (Unicode scalars after trimming)
@@ -9,11 +9,12 @@
 # - categories omitted on purpose: IDs are maintainer-owned in the registry's
 #   registry/categories.toml and must fit kind "native-mod"; a wrong ID fails
 #   `cargo sunrise-mod check`. Add at execution only if a fitting ID exists.
-# - SCREENSHOT IS A PENDING-REPLACEMENT PLACEHOLDER: the bundled shot was
-#   captured on the Horizon build, not the Sunrise client. Re-capture the same
-#   subject (smeltery controller GUI on PlutoLib's menu API) on the Sunrise
-#   client and replace page/plutolib-smeltery-gui.png before the release
-#   freezes the page bundle.
+# - SCREENSHOT: real Sunrise-client capture, placed 2026-11-27 in the
+#   v1.0.0 publication prep (the Sunrise client's mod list showing
+#   PlutoLib 1.0.0 loaded, from the v1.0.0 in-game check). It replaces
+#   the earlier Horizon-build placeholder (a Tinkers' Construct
+#   smeltery GUI); that subject belongs to the Horizon edition, as
+#   Tinkers is not published on Sunrise.
 
 summary = "PlutoLib for Sunrise: a Fabric-API-style foundation library that gives native mods a stable, general-purpose API over the game's internals."
 
@@ -44,5 +45,5 @@ homepage = "https://github.com/sofia-gros/horizon-mods"
 issues = "https://github.com/sofia-gros/horizon-mods/issues"
 
 [[screenshots]]
-path = "page/plutolib-smeltery-gui.png"
-caption = "PENDING REPLACEMENT — placeholder captured on the Horizon build; re-capture on the Sunrise client before release. A Tinkers' Construct smeltery controller GUI running on PlutoLib's menu API."
+path = "page/plutolib-mods-list.png"
+caption = "PlutoLib 1.0.0 in the Sunrise client's mod list, alongside its consumer mods Classic Pipes and Stellarsky — captured on the Sunrise client during the v1.0.0 in-game check."
