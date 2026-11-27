@@ -14,13 +14,13 @@
 # - categories omitted on purpose: IDs are maintainer-owned in the registry's
 #   registry/categories.toml and must fit kind "native-mod"; a wrong ID fails
 #   `cargo sunrise-mod check`.
-# - SCREENSHOT IS PENDING: page/stellarsky-night.png does not exist yet. It is
-#   captured in-game on the Sunrise client during the M5 smoke (one night
-#   cycle: Milky Way with dark bands, twinkling stars, Sgr A* dimming,
-#   vanilla stars suppressed) and must land before the page gate of
-#   `cargo sunrise-mod check` can pass and before the release freezes the
-#   page bundle. Per the plan, this capture is also the registry page
-#   screenshot — a real Sunrise-client capture, not a Horizon one.
+# - SCREENSHOT: a real in-world night capture from the Sunrise client
+#   was placed 2026-11-27 in the v1.0.0 publication prep (replacing a
+#   synthetic placeholder image). It is terrain-framed rather than a
+#   sky close-up: a dedicated close-up (Milky Way with dark bands,
+#   twinkling stars, Sgr A* dimming, vanilla stars suppressed) is
+#   still owed as a swap-in when the in-game capture session lands
+#   it; the caption says so plainly until then.
 # - The dependency paragraph in the description is the owner's specified
 #   wording, verbatim, in the same form as the Horizon v1.0.0 release notes
 #   (plan §1.3). Page description text for the mods is lane-drafted pending
@@ -60,4 +60,4 @@ issues = "https://github.com/sofia-gros/horizon-mods/issues"
 
 [[screenshots]]
 path = "page/stellarsky-night.png"
-caption = "PENDING — not yet captured. To be taken on the Sunrise client during the in-game smoke (one night cycle): the Milky Way with its dark bands, twinkling stars, the Sagittarius A* dark patch, and no vanilla stars."
+caption = "Night in-world on the Sunrise client with Stellarsky loaded: the dynamic star layer is active — stars drawn one by one with their twinkling, and the vanilla star field suppressed. (A dedicated sky close-up replaces this shot when captured.)"

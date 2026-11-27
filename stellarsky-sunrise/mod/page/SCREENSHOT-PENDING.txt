@@ -1,20 +1,14 @@
-PENDING items for this package's page/ folder (M1 prep, 2026-11-26):
+PENDING items for this package's page/ folder (updated 2026-11-27,
+v1.0.0 publication prep):
 
-1. page/stellarsky-night.png — NOT YET CAPTURED.
-   Captured in-game on the Sunrise client during the M5 night-cycle smoke
-   (plan §4.5): Milky Way with dark bands, twinkling stars, Sgr A* dimming,
-   vanilla stars suppressed. This capture doubles as the registry page
-   screenshot (a real Sunrise-client capture, not a Horizon one).
-   page.toml already carries the [[screenshots]] entry pointing at it.
+1. page/stellarsky-night.png — REAL CAPTURE PLACED; dedicated sky
+   close-up still owed. The file is now a real in-world night
+   capture from the Sunrise client (taken during the v1.0.0
+   in-game check), replacing the synthetic placeholder that sat
+   here before. Still owed as a swap-in: a dedicated sky close-up
+   from a night-cycle session (Milky Way with dark bands,
+   twinkling stars, Sgr A* dimming, vanilla stars suppressed).
 
-2. icon.png (package root, beside sunrise-mod.toml) —
-   AWAITING-REPLACEMENT. The owner supplied the icon himself
-   (2026-11-26 22:43, after a brief hold) and the manager processed
-   it to the tool's rules; the processed file is placed at the
-   package root as icon.png — PNG 512×512, 189,031 bytes, sha256
-   df399f5965af1e32bcf7917941e9a7f18da07f360a8535d7b2db2654931cadd3.
-   BUT the artwork's "STALLERSKY" lettering is a generation garble
-   (owner, 2026-11-26 22:44): the owner will send a corrected
-   version, and the manager will forward the processed replacement
-   with its sha when it arrives. The current file is a placeholder —
-   do NOT treat it as final. The replacement must land before M3.
+2. icon.png (package root) — RESOLVED. The corrected owner artwork
+   is placed (the earlier "STALLERSKY" garbled placeholder was
+   replaced by the owner's corrected version, 190,102 bytes).
