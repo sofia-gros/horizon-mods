@@ -14,10 +14,15 @@
 # - categories omitted on purpose: IDs are maintainer-owned in the registry's
 #   registry/categories.toml and must fit kind "native-mod"; a wrong ID fails
 #   `cargo sunrise-mod check`.
-# - SCREENSHOT: real in-game capture placed 2026-11-27 (owner's pick
-#   from the curated gallery): iron ingots riding inside transparent
-#   item pipes between two chests, from the 2026-11-26 re-check
-#   session. The owner accepted past captures for the page gallery.
+# - SCREENSHOT: real in-game capture. The first pick showed the
+#   gen-2 BuildCraft-original texture and the owner rejected it;
+#   replaced 2026-11-27 with a capture showing the current gen-3
+#   self-drawn texture (dark charcoal frame, pale windows, brown
+#   extraction pipes), from the 2026-11-26 step-2 session — see
+#   gallery/PIPES-TEXTURE-CHECK.md for the per-shot verdicts. The
+#   description carries the owner's provenance note (screenshots
+#   taken on Horizon; on Sunrise, behaviour may differ where the
+#   API is unconnected).
 # - DESCRIPTION: owner-approved text placed 2026-11-27 (publication
 #   batch resume), including the owner's specified PlutoLib
 #   dependency wording in the Requirements section.
@@ -72,6 +77,10 @@ and Sunrise.
   [sunrise-org/sunrise#5950](https://github.com/sunrise-org/sunrise/issues/5950));
   the tab appears when it lands, with no change needed in this mod.
 
+The screenshots were taken on Horizon. On Sunrise, behaviour may
+differ from the images in places, where parts of the API are not
+connected yet.
+
 This is the Sunrise edition, for Sunrise game 26.3. It ships as
 source plus `Cargo.lock`; the launcher builds it on the player's
 computer for the exact game build it pins.
@@ -83,4 +92,4 @@ issues = "https://github.com/sofia-gros/horizon-mods/issues"
 
 [[screenshots]]
 path = "page/pipes-transit.png"
-caption = "Iron ingots riding inside transparent item pipes between two chests — items in transit are drawn inside the pipe. Captured in-game."
+caption = "A chest-to-chest pipe run in the current self-drawn pipe textures — dark frames with pale windows, brown extraction pipes at the feed end. Captured in-game."
