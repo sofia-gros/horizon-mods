@@ -1006,13 +1006,11 @@ pub(crate) fn register(registrar: &mut dyn Registrar, _cx: &RegistrationContext)
     if let (Ok(plain), Ok(synced)) = (registrar.register_attachment_type(plain), registrar.register_attachment_type(synced)) {
         let _ = JSON_KEYS.set((plain, synced));
     }
-    // The menu / block-entity / skull Parts and declarations of whatever the
-    // pure registries already hold (consumers re-run it with their own
-    // registrar after registering their types; duplicates are refused
-    // harmlessly by the game).
+    // The block-entity, menu, block and skull Parts and declarations of
+    // whatever the pure registries already hold (consumers re-run it with
+    // their own registrar after registering their types; duplicates are
+    // refused harmlessly by the game).
     crate::parts::register_parts(registrar);
-    // The BlockParts for every behaviour block the pure block registry holds.
-    crate::block_part::register_parts(registrar);
 }
 
 /// The issued key for the JSON attachment of the given sync class, once registered.

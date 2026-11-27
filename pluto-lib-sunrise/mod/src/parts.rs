@@ -24,12 +24,14 @@ use crate::pure::screen_handler_api_v1::ScreenCanvas;
 use crate::pure::{color_provider_api_v1, screen_handler_api_v1, skull_model_registry};
 
 /// Declares the block entity types, containers, fluid tanks, menu Parts and
-/// menu screens of everything the pure registries currently hold. Called by
+/// menu screens of everything the pure registries currently hold, and
+/// attaches the block Parts of every behaviour block they hold. Called by
 /// PlutoLib's own `register` hook and by consumers from theirs, after their
 /// pure registrations.
 pub fn register_parts(registrar: &mut dyn mod_api::Registrar) {
     register_block_entities(registrar);
     register_menus(registrar);
+    crate::block_part::register_parts(registrar);
 }
 
 // ---- Block entities ----
