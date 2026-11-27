@@ -35,16 +35,14 @@ pub struct Mod;
 impl mod_api::Hooks for Mod {
     fn register(&self, registrar: &mut dyn mod_api::Registrar, cx: &RegistrationContext) {
         // The registrations go into PlutoLib's own registries, not the game's
-        // registrar; the last call then declares them to the game through
-        // this mod's own registrar, because a declaration belongs to the
-        // package that owns the blocks, and PlutoLib's own register ran
-        // before this one, when the registries did not hold them yet.
+        // registrar; PlutoLib consumes them from its side of the bridge. The two
+        // parameters are the hook's contract and are intentionally unused here.
+        let _ = registrar;
         let _ = cx;
         creative::register();
         item_pipe::register();
         fluid_pipe::register();
         connections::register();
         render::register();
-        pluto_lib::register_parts(registrar);
     }
 }
