@@ -6,7 +6,7 @@
 
 <img src="docs/branding/horizon-mods-banner.png" alt="Horizon Mods banner" width="900">
 
-**Mods and a Fabric-API-style library for [Horizon](https://github.com/horizon-rust/horizon).**
+**Mods and a Fabric-API-style library for [Horizon](https://github.com/horizon-rust/horizon) and [Sunrise](https://github.com/sunrise-org/sunrise).**
 
 English · [日本語](README.ja.md)
 
@@ -18,33 +18,32 @@ Four projects share this repository. Everything is built on **PlutoLib**, which 
 
 | | |
 |---|---|
-| **[PlutoLib](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)** ([API pages](pluto-lib/docs/api/index.md)) | Horizon's counterpart of the Fabric API: an independent library mod that other mods call, with Fabric-like names and behaviour, released per Horizon version. |
-| **[Tinkers' Construct for Horizon](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)** | A clean port of the original Java Tinkers' Construct, written against PlutoLib's public API only: build tools from parts, smelt and cast metals, modify your equipment. |
-| **[Pipes](https://github.com/sofia-gros/horizon-mods/releases/tag/pipes-v1.0.0-beta)** | A clean-implementation pipe mod: item pipes that connect Tinkers furnaces, tanks and chests, with redstone-powered extraction. |
-| **[Stellarsky](https://github.com/sofia-gros/horizon-mods/releases/tag/stellarsky-v1.0.0-beta)** | A realistic-sky mod: a real star catalogue, the Milky Way from ESO's panorama with its dark lanes, zodiacal light and airglow, and a black hole at Sagittarius A*. |
+| **[PlutoLib](pluto-lib/)** ([API pages](pluto-lib/docs/api/index.md)) | The counterpart of the Fabric API: an independent library mod that other mods call, with Fabric-like names and behaviour. It is always released on its own, and its API has the same shape on every platform it supports. |
+| **[Tinkers' Construct](tconstruct/)** | A clean port of the original Java Tinkers' Construct, written against PlutoLib's public API only: build tools from parts, smelt and cast metals, modify your equipment. |
+| **[Classic Pipes](pipes/)** | A clean-implementation pipe mod in the BuildCraft style: item pipes that connect furnaces, tanks and chests, with the items in transit visible inside the pipes. |
+| **[Stellarsky](stellarsky/)** | A realistic-sky mod: a real star catalogue with twinkling stars, the Milky Way with its dark lanes, zodiacal light and airglow, and a black hole at Sagittarius A*. |
 
-## Status: v1.0.0-beta released
+## Status
 
-**v1.0.0-beta** prereleases are out (2026-11-25) for **[Tinkers' Construct](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v1.0.0-beta)**, **[Pipes](https://github.com/sofia-gros/horizon-mods/releases/tag/pipes-v1.0.0-beta)** and **[Stellarsky](https://github.com/sofia-gros/horizon-mods/releases/tag/stellarsky-v1.0.0-beta)**, built for Horizon `441f49d5` and Horizon Mixins `e59da909` (Rust 1.95.0). PlutoLib ships as `pluto-lib.hnmod`, attached to the Tinkers' Construct and Pipes releases as their required dependency.
+### Sunrise — released
 
-### Installing the beta
+**PlutoLib v1.0.0**, **Classic Pipes v1.0.0** and **Stellarsky v1.0.0** are published in the Sunrise mod registry; install them from the launcher's mod catalogue. The same releases are on GitHub: [PlutoLib](https://github.com/sofia-gros/horizon-mods/releases/tag/pluto_lib/v1.0.0) · [Classic Pipes](https://github.com/sofia-gros/horizon-mods/releases/tag/pipes/v1.0.0) · [Stellarsky](https://github.com/sofia-gros/horizon-mods/releases/tag/stellarsky/v1.0.0).
 
-- Download the `.hmod` file for each mod you want and place it in your game folder's **`horizon-mods/`** directory. Enable each mod in **`horizon-mods.txt`** (`mod.tconstruct:true`, `mod.pipes:true`, `mod.stellarsky:true`) or from Options > Mods in game.
-- Tinkers' Construct and Pipes also need their native parts: place their `.hnmod` files — and `pluto-lib.hnmod` — in **`horizon-native-mods/`**, beside `horizon-mods/`.
-- The first launch builds the native mods into the game and takes about a minute; this happens once, and later launches are fast.
-- **Install the `.hmod` package, not a folder copy** — copying a content folder into place by hand does not work.
+> **Classic Pipes and Stellarsky require PlutoLib v1.0.0 or later.** They were built for v1.0.0; if a newer PlutoLib version does not work, use 1.0.0. PlutoLib is a separate download — it is not bundled with the mods.
 
-### Verification and known gaps
+On Sunrise, parts of PlutoLib's API are not connected yet, so some features are present but do nothing there for now. The [API pages](pluto-lib/docs/api/index.md) mark every item with its state on each platform. Two examples: Stellarsky currently shows its dynamic sky — the stars, their twinkling and the black hole — while its static layers (the Milky Way sphere, airglow and zodiacal light) are not connected yet; and the four pipes work and can be crafted, but cannot be taken from a creative tab yet.
 
-The beta tree passed the full local guarded build chain — weave plan (154 injections, 141 modules, 3 states), guards 13/13, and the native, API, consumer, game-entry and link checks — as well as the CI test suites. The Mixins-validation CI job itself currently cannot fetch its inputs: the upstream `horizon-rust` organisation is flagged on GitHub and its repositories return 404, so the same validation was run locally against the pinned sources instead.
+There is no Tinkers' Construct release for Sunrise. Tinkers returns on the Horizon line below.
 
-The beta is not the finished port. Its known gaps are tracked as issues [#1158](https://github.com/sofia-gros/horizon-mods/issues/1158)–[#1171](https://github.com/sofia-gros/horizon-mods/issues/1171), and the formal **v1.0.0** is defined as 100% parity with the original, including fixes for all of them. Stellarsky's beta contains its static sky layers only; the dynamic layer — the bright stars with twinkle and the darkening around Sagittarius A* — arrives with the formal release.
+### Horizon (new mod API) — in development
 
-The earlier **[v0.0.1](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v0.0.1)** release (2026-11-23) remains available under its tag.
+Horizon has moved to a new mod API, and PlutoLib is being built for it. Nothing on this line is released yet. Tinkers' Construct follows on this line, on top of the new PlutoLib.
 
-A Sunrise-targeted variant of PlutoLib (`pluto-lib-sunrise`) is in preparation.
+### The old Horizon line — archived
 
-Verified in game (Windows, the v0.0.1 build):
+The previous generation, built on the `.hnmod` format, is closed. Its releases remain available under their tags for the launcher generation they were built for: **[v0.0.1](https://github.com/sofia-gros/horizon-mods/releases/tag/tconstruct-v0.0.1)** (2026-11-23) and the **v1.0.0-beta** prereleases (2026-11-25). There will be no formal v1.0.0 on this line: current Horizon launchers no longer load the `.hnmod` format.
+
+Verified in game at the time (Windows, the v0.0.1 build):
 
 - Crafting a pickaxe from its parts on the inventory grid, and the Part Builder screen.
 - The melter and the smeltery: ores melt into fluids and cast back into parts.
@@ -57,9 +56,9 @@ Verified in game (Windows, the v0.0.1 build):
 
 ## Where to go next
 
-- **Developers:** [docs/development.md](docs/development.md) (build, local checks, CI) and [docs/architecture.md](docs/architecture.md).
+- **Developers:** the [PlutoLib API pages](pluto-lib/docs/api/index.md) (every public item, with its per-platform state), [docs/development.md](docs/development.md) (build, local checks, CI) and [docs/architecture.md](docs/architecture.md).
 - **Plans:** [docs/roadmap.md](docs/roadmap.md).
-- **Releases:** [docs/releasing.md](docs/releasing.md).
+- **Releases:** [docs/releasing.md](docs/releasing.md). Each component is released separately, under its own tag.
 - **Working rules for contributors and agents:** [AGENTS.md](AGENTS.md).
 
 ## Licence
