@@ -330,7 +330,7 @@ assert!(frame_quads(&layer, &day).is_empty());
 
 ### `sky_darken`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 How much sky light the weather and time take off, from 0 (clear noon) to 11 (midnight in a thunderstorm).
 

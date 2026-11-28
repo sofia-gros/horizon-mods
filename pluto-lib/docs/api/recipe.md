@@ -576,7 +576,7 @@ assert!(prepare_assembly(&other).is_none());
 
 ### `AdmissionRequest`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What an admission callback answers.
 
@@ -600,7 +600,7 @@ assert!(request.result.is_none());
 
 ### `AdmissionDecision`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What one admission policy decides for one grid.
 
@@ -616,7 +616,7 @@ assert_ne!(AdmissionDecision::Deny, AdmissionDecision::Pass);
 
 ### `AdmissionInterest`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The cheap interest check of an admission policy.
 
@@ -636,7 +636,7 @@ assert!(interest(&facts));
 
 ### `AdmissionCallback`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The callback an interested admission policy runs for one grid request.
 
@@ -657,7 +657,7 @@ assert_eq!(callback(&request), AdmissionDecision::Pass);
 
 ### `AdmissionRegistration`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One admission policy to register.
 
@@ -680,7 +680,7 @@ assert!((registration.interest)(&facts));
 
 ### `AdmissionOutcome`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The result of evaluating the interested policies for one request.
 
@@ -697,7 +697,7 @@ assert_ne!(AdmissionOutcome::Native, AdmissionOutcome::Denied { first: "example:
 
 ### `AdmissionEvaluation`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An ephemeral snapshot of the interested policies' callbacks, returned by `prepare_admission`.
 
@@ -722,7 +722,7 @@ assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Native);
 
 ### `AdmissionEvaluation::evaluate`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Runs every snapshotted callback for one request.
 
@@ -748,7 +748,7 @@ assert_eq!(evaluation.evaluate(&request), AdmissionOutcome::Denied { first: "exa
 
 ### `register_admission`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers one admission policy.
 
@@ -772,7 +772,7 @@ assert!(prepare_admission(&facts).is_some());
 
 ### `has_admission_providers`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Whether any admission policy has been registered.
 
@@ -795,7 +795,7 @@ assert!(has_admission_providers());
 
 ### `prepare_admission`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Runs the admission interest check for one recipe.
 

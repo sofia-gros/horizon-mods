@@ -1087,7 +1087,7 @@ with_ops(&mut game, || assert_eq!(player.attribute_value("minecraft:block_intera
 
 ### `KeyPress`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A key of the player's own keyboard or mouse changed state, heard on the client for the local player only.
 
@@ -1108,7 +1108,7 @@ assert!(!release.pressed && release.player.is_none());
 
 ### `PlayerKeyEvents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Key presses of the local player (see `KeyPress`).
 
@@ -1124,7 +1124,7 @@ PlayerKeyEvents::EVENT.register(|press: &KeyPress| {
 
 ### `PlayerKeyEvents::EVENT`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The event for a local player's key press: every callback runs, in registration order.
 
@@ -1273,7 +1273,7 @@ assert_eq!((tick.effects.len(), tick.remove_effects.borrow().len()), (1, 1));
 
 ### `MovementInput`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The local player's movement input, after the game read it and before it applies it (client only).
 

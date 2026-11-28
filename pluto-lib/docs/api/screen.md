@@ -598,7 +598,7 @@ assert_eq!(canvas.0, 0, "the default canvas has no scene reach and draws nothing
 
 ### `SceneBlock`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One block of a scene: its state, where it stands in the scene's own coordinates, and the block entity drawn with it, if any.
 
@@ -618,7 +618,7 @@ assert!(block.entity.is_none());
 
 ### `SceneEntity`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The block entity a scene draws at a block: which block's entity it is, the data it renders from, and the items it holds, in its slot order (an armor stand's worn pieces).
 
@@ -641,7 +641,7 @@ assert_eq!(stand.items.len(), 1);
 
 ### `SceneView`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Where a scene is seen from.
 
@@ -661,7 +661,7 @@ assert_eq!((view.center, view.yaw, view.pitch, view.scale), ([0.5, 0.5, 0.5], 45
 
 ### `LivingPreview`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A living entity drawn as a screen preview (the station windows' armor stand, wearing the piece being made), drawn through `ScreenCanvas::living`.
 
@@ -682,7 +682,7 @@ assert!(preview.arms && !preview.base_plate && preview.item.is_none());
 
 ### `LivingPreview::armor_stand`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An armor stand preview holding or wearing `item`, standing as the smithing screen's preview stand stands: turned to 210 degrees, arms shown, no base plate.
 

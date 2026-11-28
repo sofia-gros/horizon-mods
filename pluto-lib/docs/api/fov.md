@@ -30,7 +30,7 @@ reads that count against its draw time. A callback that owns nothing in the fact
 
 ### `FovFacts`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The facts of one field-of-view computation.
 
@@ -57,7 +57,7 @@ assert_eq!(facts.using_ticks, Some(12));
 
 ### `FovSlot`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 One equipment slot of the local player, as a `FovStack` names it.
 
@@ -76,7 +76,7 @@ assert_ne!(FovSlot::Chest, FovSlot::Head);
 
 ### `FovStack`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 One of the local player's equipment stacks.
 
@@ -94,7 +94,7 @@ assert_eq!(fov_stack.stack.count, 1);
 
 ### `FovCallback`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Answers the factor one mod's modifiers contribute to the field of view, or None when they contribute nothing this tick.
 
@@ -114,7 +114,7 @@ assert_eq!(callback(&FovFacts { base: 1.0, flying: false, walking_speed: 0.1, mo
 
 ### `FovRegistry`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The registry of field-of-view callbacks.
 
@@ -132,7 +132,7 @@ assert_eq!(fov_multiplier(&facts), Some(1.05));
 
 ### `FovRegistry::register`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers a field-of-view callback.
 
@@ -154,7 +154,7 @@ assert_eq!(fov_multiplier(&facts), Some(1.05), "registered once, applied once");
 
 ### `fov_multiplier`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The product of every registered callback's factor over `facts`, or None when no callback contributes.
 
@@ -175,7 +175,7 @@ assert_eq!(fov_multiplier(&facts), Some(1.05 * 0.5));
 
 ### `FovRegistry::set_keybind_zoom`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Records the helmet key as held (`true`) or released (`false`).
 
@@ -195,7 +195,7 @@ assert!(!keybind_zoom());
 
 ### `keybind_zoom`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Whether the helmet key is held now, as the armor interact hook last reported it.
 

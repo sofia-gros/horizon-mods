@@ -145,7 +145,7 @@ The reach can also move a living entity the way the game itself moves one: `Enti
 
 ### `CalculateFallDamageContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Owned data for a class fall-damage calculation query.
 
@@ -163,7 +163,7 @@ assert_eq!(query.inherited, 3.0);
 
 ### `LivingEntityBehavior::calculate_fall_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Configures the class fall-damage calculation on a behavior.
 
@@ -181,7 +181,7 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:no_fall_dam
 
 ### `LivingEntityBehaviors::calculate_fall_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Dispatches the registered class fall-damage calculation for a context.
 
@@ -200,7 +200,7 @@ assert_eq!(LivingEntityBehaviors::calculate_fall_damage(&query), None);
 
 ### `JumpPowerContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: unclassified](badges/sunrise-unclassified.svg)
 
 Owned data for a class jump-power query.
 
@@ -217,7 +217,7 @@ assert_eq!(query.slime_size, Some(9));
 
 ### `AttackDamageContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Owned data for a class contact-attack query.
 
@@ -233,7 +233,7 @@ assert_eq!(query.attribute, 3.0);
 
 ### `LivingEntityBehavior`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A cloneable set of per-type class method overrides.
 
@@ -249,7 +249,7 @@ let _owned_copy = behavior.clone();
 
 ### `LivingEntityBehavior::new`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Starts a behavior for a type, with every method inherited.
 
@@ -266,7 +266,7 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:inherited")
 
 ### `LivingEntityBehavior::jump_power`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Configures the no-argument jump-power override on a behavior.
 
@@ -283,7 +283,7 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:jump").unwr
 
 ### `LivingEntityBehavior::attack_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Configures the contact attack-damage override on a behavior.
 
@@ -300,7 +300,7 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:contact").u
 
 ### `LivingEntityBehaviors`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The process-local registry and dispatch for class queries.
 
@@ -316,7 +316,7 @@ assert_eq!(LivingEntityBehaviors::attack_damage(&query), None);
 
 ### `LivingEntityBehaviors::register`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers a behavior for its entity type.
 
@@ -334,7 +334,7 @@ assert!(LivingEntityBehaviors::register(LivingEntityBehavior::new(id)).is_err())
 
 ### `LivingEntityBehaviors::jump_power`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Invokes the registered jump-power method for a context.
 
@@ -352,7 +352,7 @@ assert_eq!(LivingEntityBehaviors::jump_power(&query), None);
 
 ### `LivingEntityBehaviors::attack_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Invokes the registered contact attack-damage method for a context.
 
@@ -1731,7 +1731,7 @@ assert!(!hit.critical.get());
 
 ### `LivingJump`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A living entity jumped.
 
@@ -1840,7 +1840,7 @@ assert_eq!(input.forward.get(), 0.5);
 
 ### `LivingFall`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A living entity is about to handle a fall.
 
@@ -1861,7 +1861,7 @@ assert_eq!(fall.distance.get(), 0.0);
 
 ### `LivingFallEvents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Events about a living entity's fall.
 
@@ -1881,7 +1881,7 @@ LivingFallEvents::FALL.register(|fall| {
 
 ### `LivingFallEvents::FALL`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A living entity is about to handle a fall, before the fall damage is applied.
 

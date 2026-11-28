@@ -56,7 +56,7 @@ The host enforces at most 32 mod messages per player per tick. `Ok(())` means **
 
 ### `ClientPlayConnectionEvents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Client login/disconnection boundaries, distinct from the server's player membership events.
 
@@ -70,7 +70,7 @@ ClientPlayConnectionEvents::DISCONNECT.register(|_| {});
 
 ### `ClientPlayConnectionEvents::JOIN`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Fires after the client's login packet, including a new login after reconfiguration without a prior disconnect.
 
@@ -84,7 +84,7 @@ ClientPlayConnectionEvents::JOIN.register(|_| {});
 
 ### `ClientPlayConnectionEvents::DISCONNECT`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Fires before an actual connection is discarded, not for a dimension change.
 
@@ -206,7 +206,7 @@ assert!(ClientPlayNetworking::send(&Identifier::new("example", "request").unwrap
 
 ### `PlayerConnection`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 What a connection callback receives.
 
@@ -228,7 +228,7 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 
 ### `ServerPlayConnectionEvents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The two connection events.
 
@@ -244,7 +244,7 @@ ServerPlayConnectionEvents::DISCONNECT.register(|_| {});
 
 ### `ServerPlayConnectionEvents::JOIN`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A player joined the server.
 
@@ -269,7 +269,7 @@ ServerPlayConnectionEvents::JOIN.invoke(&PlayerConnection {
 
 ### `ServerPlayConnectionEvents::DISCONNECT`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 A player left the server.
 

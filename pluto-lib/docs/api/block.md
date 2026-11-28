@@ -833,7 +833,7 @@ assert_eq!(view.is_state_in_tag(&log, "example:leaves"), Some(false));
 
 ### `EntityInsideContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An entity is inside the block.
 
@@ -923,7 +923,7 @@ assert_eq!(block.piston_behavior_override(), Some(PistonBehavior::Block));
 
 ### `PathNodeType`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A host-independent Minecraft path-node category.
 
@@ -943,7 +943,7 @@ assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
 
 ### `PathNodeType::name`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 This category's uppercase Minecraft name.
 
@@ -958,7 +958,7 @@ assert_eq!(PathNodeType::StickyHoney.name(), "STICKY_HONEY");
 
 ### `PathNodeType::parse`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Reads an uppercase category name.
 
@@ -974,7 +974,7 @@ assert_eq!(PathNodeType::parse("UNKNOWN_CATEGORY"), None);
 
 ### `PathNodeTypeContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A borrowed path query.
 
@@ -1013,7 +1013,7 @@ BlockBehaviors::register(BlockBehavior::new(Identifier::new("example", "slow_flo
 
 ### `EntityInsideMotionContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Mutable motion during a swept block contact.
 
@@ -1041,7 +1041,7 @@ assert_eq!(c.previous_position[0], -0.2);
 
 ### `AfterFallContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A registered block's post-landing motion request.
 
@@ -1654,7 +1654,7 @@ assert!(BlockBehaviors::registered().iter().any(|b| b.block().to_string() == "ex
 
 ### `EntityInsideContext::act`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Queues something to do to the entity inside.
 

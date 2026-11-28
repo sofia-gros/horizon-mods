@@ -619,7 +619,7 @@ assert_eq!(route.configuration["root_placer"]["type"], "minecraft:mangrove_root_
 
 ### `StructureWorld`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Borrowed query/RNG interface for one structure attempt.
 
@@ -657,7 +657,7 @@ assert!(world.random_int(0).is_err());
 
 ### `StructureContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The `chunk` identifies the generation attempt, and `world` supplies that attempt's queries/randomness.
 
@@ -684,7 +684,7 @@ assert!(context.world.first_occupied_height(-25, 55).is_err());
 
 ### `StructurePiece`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The owned `kind` selects a piece codec; `configuration` carries its settings and anchors, not host registry IDs.
 
@@ -714,7 +714,7 @@ assert_eq!(piece.clone().configuration["origin"], serde_json::json!([8,80,8]));
 
 ### `StructureStart`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Its `position` is the generation stub's biome-check origin.
 
@@ -736,7 +736,7 @@ assert_eq!(start.clone(), start);
 
 ### `ConfiguredStructure`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A cloneable decoded structure algorithm with owned immutable captures.
 
@@ -751,7 +751,7 @@ let _snapshot = structure.clone();
 
 ### `ConfiguredStructure::new`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Capture already-validated settings.
 
@@ -771,7 +771,7 @@ let _structure = ConfiguredStructure::new(move |_| {
 
 ### `ConfiguredStructure::find_generation_point`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Execute the decoded planner, preserving its rejection or error.
 
@@ -801,7 +801,7 @@ assert_eq!(structure.find_generation_point(&mut StructureContext { world: &mut w
 
 ### `StructureTypeRegistry`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Namespaced structure-type codecs.
 
@@ -816,7 +816,7 @@ assert!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).unwrap().is
 
 ### `StructureTypeRegistry::register`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Register or replace a decoder.
 
@@ -834,7 +834,7 @@ assert!(StructureTypeRegistry::register(Identifier::parse("example:empty_structu
 
 ### `StructureTypeRegistry::decode`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Unknown types return `Ok(None)`; registered types return their snapshot or a codec error.
 
@@ -852,7 +852,7 @@ assert_eq!(StructureTypeRegistry::decode(&id, &serde_json::Value::Null).err().as
 
 ### `StructureRotation`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Rotation about the template's origin with zero pivot; `Default` is `None`.
 
@@ -871,7 +871,7 @@ assert_eq!(rotations.len(), 4);
 
 ### `StructureMirror`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Minecraft's mirror before rotation.
 
@@ -888,7 +888,7 @@ assert_ne!(StructureMirror::LeftRight, StructureMirror::FrontBack);
 
 ### `StructurePieceTemplate`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Owned immutable settings for a registered template piece.
 
@@ -910,7 +910,7 @@ assert_eq!(template.clone().origin, [-8,70,24]);
 
 ### `StructurePieceWorld`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Required fallible operations for one piece's real post-processing world.
 
@@ -948,7 +948,7 @@ assert!(world.place_feature(&Identifier::parse("example:tree").unwrap(), [0,70,0
 
 ### `StructureMarkerContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The host supplies an already transformed/clipped DATA marker and mutable state belonging to this actual piece.
 
@@ -974,7 +974,7 @@ assert_eq!(state, 1);
 
 ### `ConfiguredStructurePiece`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An immutable template piece definition with owned initial state and marker behavior.
 
@@ -991,7 +991,7 @@ assert!(piece.initial_state().is_null());
 
 ### `ConfiguredStructurePiece::new`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Captures immutable settings, initial state and a marker callback.
 
@@ -1018,7 +1018,7 @@ assert_eq!(piece.clone().initial_state()["count"], 0);
 
 ### `StructurePieceTypeRegistry`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registry of namespaced template-piece codecs; decoded snapshots outlive registry replacement.
 
@@ -1033,7 +1033,7 @@ assert!(StructurePieceTypeRegistry::decode(&unknown, &serde_json::Value::Null).u
 
 ### `StructurePieceTypeRegistry::register`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Register or replace a piece codec; false means the registry lock is poisoned.
 
@@ -1062,7 +1062,7 @@ assert!(StructurePieceTypeRegistry::decode(&id, &serde_json::json!(false)).is_er
 
 ### `ConfiguredStructurePiece::template`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Borrow immutable settings; changing a separate clone does not move this piece.
 
@@ -1081,7 +1081,7 @@ assert_eq!(piece.template().origin, [0,70,0]);
 
 ### `ConfiguredStructurePiece::initial_state`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Borrow the initial snapshot.
 
@@ -1102,7 +1102,7 @@ assert_eq!(piece.initial_state()["placed"], 0);
 
 ### `ConfiguredStructurePiece::handle_data_marker`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Invoke the captured callback directly on the supplied piece's mutable state.
 
@@ -1145,7 +1145,7 @@ assert_eq!(piece.initial_state(), &serde_json::json!(0));
 
 ### `StructurePieceTypeRegistry::decode`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Clone the decoder outside the registry lock, then decode.
 
@@ -1165,7 +1165,7 @@ assert_eq!(StructurePieceTypeRegistry::decode(&id, &serde_json::Value::Null).err
 
 ### `ConfiguredStructurePiece::with_state_validator`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Attach a type-specific saved-state check.
 
@@ -1190,7 +1190,7 @@ assert!(piece.validate_state(&serde_json::json!(-1)).is_err());
 
 ### `ConfiguredStructurePiece::validate_state`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Validate without querying or writing a world.
 

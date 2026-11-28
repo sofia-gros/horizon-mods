@@ -302,7 +302,7 @@ assert_eq!(UseItemCallback::EVENT.invoke(&used), ActionResult::Consume);
 
 ### `DispenseRegistry`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The registry of dispenser behaviours, keyed by the item dispensed.
 
@@ -323,7 +323,7 @@ assert!(DispenseRegistry::get("example:unclaimed").is_none());
 
 ### `DispenseBehavior`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 What a dispenser does with one item.
 
@@ -341,7 +341,7 @@ assert!(matches!(shoot, DispenseBehavior::Shoot { power, .. } if power == 1.1));
 
 ### `dispense_shot`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Computes where a dispenser shot spawns and the motion it starts with.
 
@@ -1680,7 +1680,7 @@ ServerEntityEvents::ENTITY_TICK_POST.invoke(&EntityInfo { id: 9, kind: "minecraf
 
 ### `MobTick`
 
-![Horizon: works](badges/horizon-works.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A mob's tick report, heard after the mob's own tick ran, for every living entity that is not a player.
 
@@ -1811,7 +1811,7 @@ assert_eq!(edit.stack.count, 0, "a count of 0 empties the place");
 
 ### `CauseFallDamageContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The landing a class `cause_fall_damage` decides on.
 
@@ -1830,7 +1830,7 @@ assert!(!context.suppressing_bounce);
 
 ### `FallOutcome`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What a `cause_fall_damage` override does instead of applying fall damage.
 
@@ -1846,7 +1846,7 @@ assert_eq!(FallOutcome::Cancel, FallOutcome::Cancel);
 
 ### `EquipmentDropChanceContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The equipment drop chance one class computes for one slot at death.
 
@@ -1869,7 +1869,7 @@ assert_eq!(context.slot, "head");
 
 ### `LivingEntityBehavior::cause_fall_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers the class's own `causeFallDamage`.
 
@@ -1885,7 +1885,7 @@ let _ = behavior;
 
 ### `LivingEntityBehavior::equipment_drop_chance`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers the class's own per-slot equipment drop chance at death.
 
@@ -1901,7 +1901,7 @@ let _ = behavior;
 
 ### `LivingEntityBehaviors::cause_fall_damage`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Dispatches the registered `cause_fall_damage` override for the context's type.
 
@@ -1917,7 +1917,7 @@ assert_eq!(LivingEntityBehaviors::cause_fall_damage(&context), None);
 
 ### `LivingEntityBehaviors::equipment_drop_chance`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Dispatches the registered per-slot drop chance for the context's type.
 

@@ -446,7 +446,7 @@ What a click on the book screen means: `NextPage`, `PrevPage`, `Section(index)`,
 
 ### `draw_book`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Draws the page `view` shows of `book` into `area`.
 
@@ -507,7 +507,7 @@ assert_eq!(wrap_text(&Canvas, "one two three four", 60.0), vec!["one two", "thre
 
 ### `BookOps`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What the game can do for a book reader: `open_book`, `close_book` and `open_book_id`.
 
@@ -1198,7 +1198,7 @@ assert_eq!(book_click(&book, &view, area, [200.0, 150.0]), BookClick::None);
 
 ### `with_books`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Runs a closure with a book reach available.
 
@@ -1223,7 +1223,7 @@ assert_eq!(ops.opens, vec![id]);
 
 ### `open_book`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Opens a registered book for the local reader.
 
@@ -1250,7 +1250,7 @@ assert_eq!(ops.opens, vec![id]);
 
 ### `close_book`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Closes the book opened through the current reach.
 
@@ -1277,7 +1277,7 @@ assert_eq!(ops.closes, 1);
 
 ### `current_book`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The book currently open through the current reach, if any.
 

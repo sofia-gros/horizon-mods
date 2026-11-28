@@ -363,7 +363,7 @@ assert_eq!(definition.texture_size, [32, 16]);
 
 ### `SkullModelAnimation`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Which inherited head-animation family a skull model uses.
 

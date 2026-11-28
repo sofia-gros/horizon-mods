@@ -1308,7 +1308,7 @@ assert_eq!(context.parent.id, 7);
 ### `MobSplitRandom`
 
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Random draws for inheritance decisions.
 
@@ -1330,7 +1330,7 @@ assert_eq!(random.next_int(3), Ok(2));
 ### `MobSplitChild`
 
 
-![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: absent](badges/sunrise-absent.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One spawned child, dressed before it joins the world.
 
@@ -1733,7 +1733,7 @@ assert_eq!(retrieve_damage(1, false), 1);
 ### `DispenseRegistry::register`
 
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Registers the behaviour for an item.
 
@@ -1752,7 +1752,7 @@ assert!(DispenseRegistry::get("example:ball").is_some());
 ### `DispenseRegistry::get`
 
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The behaviour registered for the item named, if any.
 

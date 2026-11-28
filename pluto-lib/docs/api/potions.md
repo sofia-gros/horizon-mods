@@ -4,7 +4,7 @@ The effects a potion carries, read from the game's own potion registry: which ef
 
 ### `PotionEffectFact`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 One effect of a potion, as the game's registry lists it.
 
@@ -22,7 +22,7 @@ assert_eq!((fact.duration, fact.amplifier, fact.instant), (432, 1, false));
 
 ### `Potions`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 Looking potions up in the game's registry.
 
@@ -38,7 +38,7 @@ assert_eq!(Potions::effects(&water), None, "no game is running in a unit test");
 
 ### `Potions::effects`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The effects of a potion, in the order the game lists them.
 
@@ -55,7 +55,7 @@ assert_eq!(Potions::effects(&poison), None, "the registry is the game's, and no 
 
 ### `Potions::contents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: works](badges/sunrise-works.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: works](badges/sunrise-works.svg)
 
 The effects a potion's contents apply, as a stack carries them: the potion's own effects followed by the contents' custom effects, in that order.
 

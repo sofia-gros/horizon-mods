@@ -287,7 +287,7 @@ LivingEntityBehaviors::register(LivingEntityBehavior::new(Identifier::parse("exa
 
 ### `AttributeBaseValue`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An owned, explicit attribute base write.
 
@@ -323,7 +323,7 @@ assert_eq!(context.slime_size, Some(4));
 
 ### `LivingEntityBehavior::attribute_bases_on_load`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Installs the class's load-time base callback.
 
@@ -341,7 +341,7 @@ let behavior = LivingEntityBehavior::new(Identifier::parse("example:load_policy"
 
 ### `LivingEntityBehaviors::attribute_bases_on_load`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Dispatches the load-time base callback for a context.
 
@@ -358,7 +358,7 @@ assert!(LivingEntityBehaviors::attribute_bases_on_load(&context).unwrap().is_emp
 
 ### `AttributeModifierOperation`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The three Minecraft attribute modifier operations.
 
@@ -376,7 +376,7 @@ assert_ne!(operation, AttributeModifierOperation::AddValue);
 
 ### `TransientAttributeModifier`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A declared transient attribute modifier for a class.
 
@@ -395,7 +395,7 @@ assert_eq!(modifier.clone(), modifier);
 
 ### `LivingEntityBehavior::transient_attribute_modifier`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Adds a transient modifier declaration to a class behavior.
 
@@ -416,7 +416,7 @@ let _behavior = LivingEntityBehavior::new(Identifier::parse("example:resistant")
 
 ### `LivingEntityBehaviors::transient_attribute_modifiers`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An owned snapshot of a type's transient modifier declarations.
 

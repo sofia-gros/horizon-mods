@@ -86,7 +86,7 @@ assert_eq!(face.state.block.path(), "meadow_leaves");
 
 ### `ItemColorContext`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What an item colour provider is told about the stack being drawn.
 

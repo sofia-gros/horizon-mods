@@ -54,7 +54,7 @@ ProjectileEvents::IMPACT.register(|hit| {
 
 ### `ProjectileImpact`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A projectile that has found what it meets.
 
@@ -102,7 +102,7 @@ assert_eq!(hit.motion[1], -1.5);
 
 ### `ProjectileImpact::world`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The world the projectile is in.
 

@@ -473,7 +473,7 @@ An item can take time to use (eating, drinking, drawing): register how long it t
 
 ### `UseAction`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The pose a player holds while using an item.
 
@@ -490,7 +490,7 @@ assert_eq!(poses.len(), 12);
 
 ### `ItemUse`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 How an item is used over time.
 
@@ -514,7 +514,7 @@ assert_eq!(stew.remainder.unwrap().1, 1);
 
 ### `ItemUse::new`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 An item use of `use_time` ticks in the given pose.
 
@@ -532,7 +532,7 @@ assert!(horn.food.is_none() && horn.remainder.is_none());
 
 ### `ItemUse::food`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Makes completing the use feed the player.
 
@@ -550,7 +550,7 @@ assert_eq!(snack.food.unwrap().nutrition, 4);
 
 ### `ItemUse::can_always_eat`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Lets a feeding item be started at full hunger.
 
@@ -567,7 +567,7 @@ assert!(apple.can_always_eat);
 
 ### `ItemUse::remainder`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Hands back `count` of `item` when one of the item is used up.
 
@@ -684,7 +684,7 @@ assert_eq!(bread.saturation, 6.0);
 
 ### `ItemUseRegistry`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Registers the use behavior of items.
 
@@ -699,7 +699,7 @@ ItemUseRegistry::register(Identifier::new("example", "jerky").unwrap(), ItemUse:
 
 ### `ItemUseRegistry::register`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Makes `item` usable over time with the given `ItemUse` behavior.
 
@@ -718,7 +718,7 @@ assert_eq!(ItemUseRegistry::get("example:tonic").unwrap().use_time, 40);
 
 ### `ItemUseRegistry::register_stack`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Makes `item` usable over time, with the behavior decided per stack.
 
@@ -740,7 +740,7 @@ assert!(ItemUseRegistry::stack_use("example:flask").is_some());
 
 ### `ItemUseRegistry::stack_use`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The per-stack use registered for an item id, or `None`.
 
@@ -757,7 +757,7 @@ assert!(ItemUseRegistry::stack_use("example:never_registered").is_none());
 
 ### `StackUse`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 How one stack of an item is used over time, decided per stack.
 
@@ -773,7 +773,7 @@ assert!(format!("{use_it:?}").contains("Eat"));
 
 ### `StackUse::new`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A stack use in the given pose that every stack may start.
 
@@ -790,7 +790,7 @@ let _plain = StackUse::new(UseAction::Drink);
 
 ### `StackUse::can_use`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Sets whether this registration applies to a stack.
 
@@ -809,7 +809,7 @@ let _only_whole = StackUse::new(UseAction::Eat).can_use(|stack| stack.damage == 
 
 ### `StackUse::use_time`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Sets the ticks this stack's use takes.
 
@@ -826,7 +826,7 @@ let _slow_when_worn = StackUse::new(UseAction::Eat).use_time(|stack| 16 + stack.
 
 ### `StackUse::food`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Sets what completing the use feeds for this stack.
 
@@ -843,7 +843,7 @@ let _fed = StackUse::new(UseAction::Eat).food(|stack| Some(Food { nutrition: sta
 
 ### `StackUse::requires_hunger`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Stops a player who is not hungry from starting to use the stack.
 
@@ -861,7 +861,7 @@ let _only_when_hungry = StackUse::new(UseAction::Eat).requires_hunger();
 
 ### `ItemUseRegistry::get`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 What is registered for an item id, or `None`.
 
@@ -880,7 +880,7 @@ assert_eq!(ItemUseRegistry::get("example:horn").unwrap().action, UseAction::Toot
 
 ### `StackUse::action_for`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Chooses the use's pose per stack.
 
@@ -1097,7 +1097,7 @@ assert!(item.potion.is_none() && !item.custom_name && item.components.is_none())
 
 ### `TagLookup`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A read-only tag membership query.
 
@@ -1443,7 +1443,7 @@ assert_eq!(queued_event_count(), 0);
 
 ### `TagSnapshot`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One owner's resolved item-tag snapshot for advancement matching.
 
@@ -1468,7 +1468,7 @@ assert_eq!(snapshot["example:empty"], Some(Vec::new()));
 
 ### `publish_tag_snapshot`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Publishes one owner's current resolved item-tag snapshot.
 
@@ -1496,7 +1496,7 @@ assert!(tag_snapshots().contains(&("example:docs".to_string(), TagSnapshot::new(
 
 ### `tag_snapshot_generation`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The tag-snapshot publication generation.
 
@@ -1516,7 +1516,7 @@ assert_eq!(tag_snapshot_generation(), before + 1);
 
 ### `tag_snapshots`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Every currently published owner snapshot.
 
@@ -1806,7 +1806,7 @@ assert!(StackedOnOtherRegistry::get("example:kit").is_some());
 ```
 ### `ItemEvents`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Events about items.
 
@@ -1822,7 +1822,7 @@ ItemEvents::RELEASE_USING.register(|_| {});
 
 ### `ItemEvents::RELEASE_USING`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Heard when a player lets go of an item they were using, before its use time ran out.
 
@@ -1842,7 +1842,7 @@ ItemEvents::RELEASE_USING.register(|release| {
 
 ### `ItemEvents::USE_TICK`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Heard on every tick of a player using an item over time.
 
@@ -1862,7 +1862,7 @@ ItemEvents::USE_TICK.register(|tick| {
 
 ### `ReleaseUsing`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 A player releasing an item they were using.
 
@@ -1906,7 +1906,7 @@ assert_eq!(release.edits.borrow().len(), 1);
 
 ### `ReleaseUsing::set_used`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 Marks the release as a use of the item.
 
@@ -1929,7 +1929,7 @@ assert!(release.used.get());
 
 ### `ReleaseUsing::world`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The world the player is in.
 
@@ -1952,7 +1952,7 @@ assert_eq!(release.world().dimension, "minecraft:the_nether");
 
 ### `UseTick`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 One tick of a player using an item over time (NeoForge's `LivingEntityUseItemEvent.Tick`).
 
@@ -1988,7 +1988,7 @@ assert!(tick.ticks_used < tick.duration);
 
 ### `UseTick::world`
 
-![Horizon: absent](badges/horizon-absent.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
+![Horizon: inert](badges/horizon-inert.svg) ![Sunrise: inert](badges/sunrise-inert.svg)
 
 The world the player is in.
 
