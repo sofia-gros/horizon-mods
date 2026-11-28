@@ -1525,6 +1525,28 @@ signal.set_fluid(0, None);
 assert_eq!(signal.fluid(0), None);
 ```
 
+### `BlockEntityRemove`
+
+
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+
+What a removal hook receives.
+
+> `pos`, `data` (the saved data as it was; the block entity is going away, so changes
+> to it would be lost), `items` (the item slots as they were when the removal began;
+> what is left in them is spilled by the game), and `drops`, the extra stacks to drop
+> at the position, for what the type keeps outside its slots.
+
+```rust
+use pluto_lib::{BlockEntityRemove, ItemSlot, Identifier, NbtCompound};
+
+let (data, mut items) = (NbtCompound::new(), vec![Some(ItemSlot::new(Identifier::new("minecraft", "stone").unwrap(), 5)), None]);
+let mut removal = BlockEntityRemove { pos: [1, 2, 3], data: &data, items: &mut items, drops: Vec::new() };
+removal.drops.push(ItemSlot::new(Identifier::new("minecraft", "iron_ingot").unwrap(), 3));
+assert_eq!(removal.drops.len(), 1);
+assert!(removal.items[0].is_some() && removal.pos == [1, 2, 3]);
+```
+
 ### `ItemFilter`
 
 
@@ -1689,6 +1711,43 @@ let kind = BlockEntityType::new(Identifier::parse("example:swapping_tank").unwra
 let _ = kind;
 ```
 
+### `BlockEntityType::on_remove`
+
+
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+
+The same type, with `remover` run when its block entity is removed from the world with its side effects (see `BlockEntityRemove`).
+
+`fn on_remove(self, remover: impl Fn(&mut BlockEntityRemove<'_>) + Send + Sync + 'static) -> BlockEntityType`
+
+> It runs once on every removal that carries its side effects — a player's break, an
+> explosion, another block taking its place — and never on a removal without them.
+> What the type keeps outside its item slots goes in the removal's drops; the slots
+> themselves are spilled by the game, as they are for any container.
+
+```rust
+use pluto_lib::{BlockEntityType, BlockEntityTypeRegistry, Identifier, ItemSlot, Nbt, NbtCompound, NbtCompoundExt};
+
+BlockEntityTypeRegistry::register(
+    BlockEntityType::new(Identifier::parse("example:carrier").unwrap())
+        .item_slots(2)
+        .on_remove(|removal| {
+            // what rides outside the slots (here: a count kept in the data) is dropped;
+            // the slots themselves are left for the game to spill
+            let riding = removal.data.get_int("riding", 0);
+            if riding > 0 {
+                removal.drops.push(ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), riding as u32));
+            }
+        }),
+);
+let mut data = NbtCompound::new();
+data.insert("riding".into(), Nbt::Int(3));
+let mut items = vec![Some(ItemSlot::new(Identifier::parse("minecraft:stone").unwrap(), 5)), None];
+let drops = BlockEntityTypeRegistry::remove_block("example:carrier", [1, 2, 3], &data, &mut items);
+assert_eq!(drops, vec![ItemSlot::new(Identifier::parse("minecraft:iron_ingot").unwrap(), 3)]);
+assert!(items[0].is_some(), "slots are left for the game to spill");
+```
+
 ### `BlockEntityType::item_forward`
 
 
@@ -1763,6 +1822,26 @@ let kind = BlockEntityType::new(Identifier::parse("example:casting_table").unwra
         transfer.mode == TransferMode::Take || transfer.stack.item.to_string().ends_with("bucket")
     });
 let _ = kind;
+```
+
+### `BlockEntityTypeRegistry::remove_block`
+
+
+![Horizon: works](badges/horizon-works.svg) ![Sunrise: works](badges/sunrise-works.svg)
+
+Runs the block's removal hook over the saved data and item slots of the block entity being removed.
+
+`fn remove_block(block: &str, pos: BlockPos, data: &NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> Vec<ItemSlot>`
+
+> It answers the extra stacks the hook asks to drop (what it keeps outside its
+> slots), and an empty list when the block has no removal hook; what the hook
+> leaves in `items` is the game's to spill.
+
+```rust
+use pluto_lib::{BlockEntityTypeRegistry, NbtCompound};
+
+let mut items = Vec::new();
+assert!(BlockEntityTypeRegistry::remove_block("example:no_hook", [0; 3], &NbtCompound::new(), &mut items).is_empty());
 ```
 
 ### `BlockEntityTypeRegistry::item_forward_of`

@@ -329,6 +329,29 @@ impl BlockEntitySignal<'_> {
     }
 }
 
+/// A block entity is being removed from the world: what [`BlockEntityType::on_remove`] receives
+/// (Minecraft: `BlockEntity.preRemoveSideEffects`, the moment a container spills). The hook runs
+/// once on every removal that carries its side effects — a player's break, an explosion, another
+/// block taking its place — and never on a removal without them (a piston move, an edit that
+/// skips side effects), where the game removes block entities silently as vanilla does. The
+/// removal itself runs inside the game's level operations, where the bridge cannot be called,
+/// so the hook answers from the block entity's saved data and item slots as they were when its
+/// removal began, at the end of that same operation: what it leaves in the item slots is spilled
+/// by the game itself, as it already is for a container (the spill is the game's by then, so a
+/// hook cannot keep a slotted stack from dropping by taking it out here); what a type keeps
+/// outside its slots (a pipe's stacks in transit, kept in its saved data) it puts in `drops`, and
+/// the game drops those at the block's position in the same operation.
+pub struct BlockEntityRemove<'a> {
+    /// The block entity's position.
+    pub pos: BlockPos,
+    /// The saved data, as it was; the block entity is going away, so changes to it would be lost.
+    pub data: &'a NbtCompound,
+    /// The item slots, as they were when the removal began; what is left in them is spilled by the game.
+    pub items: &'a mut Vec<Option<ItemSlot>>,
+    /// Extra stacks to drop at the position, for what the type keeps outside its slots.
+    pub drops: Vec<ItemSlot>,
+}
+
 /// Which items a block that forwards its item storage lets through (see [`BlockEntityType::item_forward`]).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ItemFilter {
@@ -461,6 +484,7 @@ type Drainer = Arc<dyn Fn(&mut BlockEntityDrain<'_>) -> Option<FluidStack> + Sen
 type UpdateTag = Arc<dyn Fn(&NbtCompound) -> NbtCompound + Send + Sync>;
 type Placer = Arc<dyn Fn(&mut BlockEntityPlace<'_>) + Send + Sync>;
 type Signaller = Arc<dyn Fn(&mut BlockEntitySignal<'_>) + Send + Sync>;
+type Remover = Arc<dyn Fn(&mut BlockEntityRemove<'_>) + Send + Sync>;
 type ItemForwarder = Arc<dyn Fn(&NbtCompound, &[Option<ItemSlot>]) -> Option<ItemForward> + Send + Sync>;
 type Sided = Arc<dyn Fn(Direction) -> SidedAccess + Send + Sync>;
 type TransferRule = Arc<dyn Fn(&BlockEntityTransfer<'_>) -> bool + Send + Sync>;
@@ -487,6 +511,7 @@ pub struct BlockEntityType {
     drainer: Option<Drainer>,
     placer: Option<Placer>,
     signaller: Option<Signaller>,
+    remover: Option<Remover>,
     item_forward: Option<ItemForwarder>,
     sided: Option<Sided>,
     transfer_rule: Option<TransferRule>,
@@ -495,7 +520,7 @@ pub struct BlockEntityType {
 impl BlockEntityType {
     /// A block entity type for `block`, with no data, no ticker and nothing sent to clients.
     pub fn new(block: Identifier) -> Self {
-        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None, filler: None, user: None, forward: None, reader: None, drainer: None, placer: None, signaller: None, item_forward: None, sided: None, transfer_rule: None }
+        Self { id: block.clone(), block, initial_data: NbtCompound::new(), slots: 0, menu: None, tanks: Vec::new(), ticker: None, client_ticker: None, update_tag: None, filler: None, user: None, forward: None, reader: None, drainer: None, placer: None, signaller: None, remover: None, item_forward: None, sided: None, transfer_rule: None }
     }
 
     /// The same type under another id.
@@ -603,6 +628,15 @@ impl BlockEntityType {
     /// The type must also have a ticker: the change is noticed on the block entity's own tick.
     pub fn on_signal(mut self, signaller: impl Fn(&mut BlockEntitySignal<'_>) + Send + Sync + 'static) -> Self {
         self.signaller = Some(Arc::new(signaller));
+        self
+    }
+
+    /// The same type, with `remover` run when its block entity is removed from the world with its
+    /// side effects (see [`BlockEntityRemove`]): a player's break, an explosion, another block
+    /// taking its place. What the type keeps outside its item slots goes in the removal's drops;
+    /// the slots themselves are spilled by the game, as they are for any container.
+    pub fn on_remove(mut self, remover: impl Fn(&mut BlockEntityRemove<'_>) + Send + Sync + 'static) -> Self {
+        self.remover = Some(Arc::new(remover));
         self
     }
 
@@ -726,6 +760,16 @@ impl BlockEntityTypeRegistry {
         run(&mut data, &mut items)
     }
 
+    /// Runs the [`BlockEntityType::on_remove`] hook of `block` over the saved `data` and `items` of
+    /// the block entity being removed: the extra stacks it asks to drop (what it keeps outside its
+    /// slots). Empty when the block has no hook; what the hook leaves in `items` is the game's to spill.
+    pub fn remove_block(block: &str, pos: BlockPos, data: &NbtCompound, items: &mut Vec<Option<ItemSlot>>) -> Vec<ItemSlot> {
+        let Some(remover) = Self::get(block).and_then(|t| t.remover) else { return Vec::new() };
+        let mut removal = BlockEntityRemove { pos, data, items, drops: Vec::new() };
+        remover(&mut removal);
+        removal.drops
+    }
+
     /// Runs the [`BlockEntityType::on_use`] hook of `block` for a player holding `held` (`None`: an empty hand); `None` when the block has no hook.
     pub fn use_block(block: &str, pos: BlockPos, data: &mut NbtCompound, items: &mut Vec<Option<ItemSlot>>, held: Option<ItemSlot>, sneaking: bool) -> Option<BlockUseOutcome> {
         let user = Self::get(block)?.user?;
@@ -822,6 +866,11 @@ pub(crate) fn has_use_hook(block: &str) -> bool {
 /// Whether the block's block entity has an [`BlockEntityType::on_place`] hook (the host asks it when a player places the block).
 pub(crate) fn has_place_hook(block: &str) -> bool {
     BlockEntityTypeRegistry::get(block).is_some_and(|t| t.placer.is_some())
+}
+
+/// Whether the block's block entity has an [`BlockEntityType::on_remove`] hook (the host asks it when the block is removed).
+pub(crate) fn has_remove_hook(block: &str) -> bool {
+    BlockEntityTypeRegistry::get(block).is_some_and(|t| t.remover.is_some())
 }
 
 /// Runs the [`BlockEntityType::on_place`] hook of `block` over a fresh block entity's data and slots; true if a hook ran.
@@ -965,6 +1014,32 @@ mod tests {
         assert!(create("test:unknown").is_none());
         assert!(!ticks("test:unknown"));
         assert!(!tick("test:unknown_entity", [0; 3], &mut data, &mut items));
+    }
+
+    #[test]
+    fn a_removal_hook_answers_the_drops_it_keeps_outside_its_slots() {
+        BlockEntityTypeRegistry::register(
+            BlockEntityType::new(id("test:carrier"))
+                .item_slots(2)
+                .on_remove(|removal| {
+                    // What rides outside the slots (here: a count kept in the data) is dropped;
+                    // the slots themselves are left for the game to spill.
+                    let riding = removal.data.get_int("riding", 0);
+                    if riding > 0 {
+                        removal.drops.push(ItemSlot::new(id("minecraft:iron_ingot"), riding as u32));
+                    }
+                }),
+        );
+        assert!(has_remove_hook("test:carrier"));
+        assert!(!has_remove_hook("test:unknown"));
+        let mut data = NbtCompound::new();
+        data.insert("riding".into(), Nbt::Int(3));
+        let mut items: Vec<Option<ItemSlot>> = vec![Some(ItemSlot::new(id("minecraft:stone"), 5)), None];
+        let drops = BlockEntityTypeRegistry::remove_block("test:carrier", [1, 2, 3], &data, &mut items);
+        assert_eq!(drops, vec![ItemSlot::new(id("minecraft:iron_ingot"), 3)]);
+        assert_eq!(items[0], Some(ItemSlot::new(id("minecraft:stone"), 5)), "slots are left for the game to spill");
+        let empty = BlockEntityTypeRegistry::remove_block("test:unknown", [1, 2, 3], &data, &mut items);
+        assert!(empty.is_empty());
     }
 
     #[test]

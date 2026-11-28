@@ -11,7 +11,7 @@ pub use crate::pure::block_api_v1::{
     self, BlockBehavior, BlockBehaviors, BlockEditor, BlockView, BonemealContext, PickContext, PlaceOnContext, TickContext, Direction, EntityInsideContext, EntityInsideMotionContext, FallOnContext, AfterFallContext, MemoryBlockView, Placement, PlacementContext, ShapeUpdateContext,
     SurviveContext, PathNodeType, PathNodeTypeContext, PistonBehavior, can_survive, vegetation_may_place_on,
 };
-pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityDrain, BlockEntityFill, BlockEntityPlace, BlockEntitySignal, BlockEntityTransfer, TransferMode, FluidFilter, FluidForward, ItemFilter, ItemForward, SidedAccess, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
+pub use crate::pure::block_entity_api_v1::{self, BlockEntityClientTick, BlockEntityDrain, BlockEntityFill, BlockEntityPlace, BlockEntityRemove, BlockEntitySignal, BlockEntityTransfer, TransferMode, FluidFilter, FluidForward, ItemFilter, ItemForward, SidedAccess, BlockEntityTick, BlockEntityUse, BlockUseOutcome, BlockEntityType, BlockEntityTypeRegistry, BlockPos, FluidStack, ItemSlot};
 pub use crate::pure::block_entity_renderer_api_v1::{self, BlockEntityCanvas, BlockEntityRender, BlockEntityRendererRegistry, ItemDisplayContext, ModelPart, ModelPolygon, ModelVertex, PartPose, CubeDefinition, PartDefinition, LayerDefinition, EntityModelLayerRegistry};
 pub use crate::pure::block_events_v1::{self, BlockPlace, ServerBlockEvents, block_place, block_place_heard};
 pub use crate::pure::color_provider_api_v1::{self, BlockColorContext, ItemColorContext, ColorProviderRegistry};
